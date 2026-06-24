@@ -1,0 +1,203 @@
+/* customerProfile.css — self-contained styles for the staff Customer Profile.
+   Prefixed `cp-` so nothing collides with existing index.css rules.
+   Imported once by CustomerProfilePanel.tsx. */
+
+/* ---------- drawer shell ---------- */
+.cp-overlay { position: fixed; inset: 0; z-index: 50; display: flex; justify-content: flex-end; }
+.cp-scrim { position: absolute; inset: 0; background: rgba(15, 23, 42, 0.3); backdrop-filter: blur(1px); }
+.cp-drawer {
+  position: relative; height: 100%; width: 100%; max-width: 960px;
+  background: #f8fafc; box-shadow: -8px 0 30px rgba(0,0,0,.15);
+  display: flex; flex-direction: column;
+}
+
+/* ---------- header ---------- */
+.cp-header { border-bottom: 1px solid #e2e8f0; background: #fff; padding: 20px 24px 0; }
+.cp-title-row { display: flex; align-items: flex-start; justify-content: space-between; }
+.cp-title-wrap { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.cp-title { font-size: 20px; font-weight: 600; color: #0f172a; margin: 0; }
+.cp-sub { margin-top: 4px; display: flex; flex-wrap: wrap; align-items: center; gap: 4px 12px; font-size: 14px; color: #64748b; }
+.cp-close { border: none; background: none; cursor: pointer; border-radius: 8px; padding: 8px; color: #94a3b8; font-size: 15px; line-height: 1; }
+.cp-close:hover { background: #f1f5f9; color: #334155; }
+
+/* ---------- badges ---------- */
+.cp-badge { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 500; }
+.cp-badge--slate { background: #f1f5f9; color: #475569; }
+.cp-badge--indigo { background: #eef2ff; color: #4338ca; }
+.cp-badge--emerald { background: #ecfdf5; color: #047857; }
+.cp-badge--violet { background: #f5f3ff; color: #6d28d9; }
+
+/* ---------- KPI strip ---------- */
+.cp-kpi-grid { margin-top: 16px; display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+@media (min-width: 640px) { .cp-kpi-grid { grid-template-columns: repeat(4, 1fr); } }
+.cp-kpi { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 10px 16px; }
+.cp-kpi-label { font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+.cp-kpi-value { margin-top: 4px; font-size: 24px; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; }
+.cp-kpi-sub { margin-top: 2px; font-size: 12px; color: #64748b; }
+
+/* ---------- tabs ---------- */
+.cp-tabs { margin-top: 16px; display: flex; gap: 4px; }
+.cp-tab {
+  background: none; border: none; border-bottom: 2px solid transparent; cursor: pointer;
+  padding: 8px 16px; font-size: 14px; font-weight: 500; color: #64748b; margin-bottom: -1px;
+  border-radius: 8px 8px 0 0;
+}
+.cp-tab:hover { color: #1e293b; }
+.cp-tab--active { border-bottom-color: #6366f1; color: #4f46e5; }
+.cp-tab-n { margin-left: 4px; font-size: 12px; color: #94a3b8; }
+
+/* ---------- body ---------- */
+.cp-body { flex: 1; overflow-y: auto; padding: 24px; }
+
+/* ---------- cards / grid ---------- */
+.cp-grid { display: grid; gap: 16px; }
+@media (min-width: 1024px) { .cp-grid { grid-template-columns: repeat(2, 1fr); } }
+.cp-card { border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; padding: 16px; }
+.cp-card-head { margin-bottom: 12px; display: flex; align-items: center; justify-content: space-between; }
+.cp-card-title { font-size: 14px; font-weight: 600; color: #1e293b; margin: 0; }
+
+/* ---------- bar chart ---------- */
+.cp-bars { display: flex; height: 128px; align-items: flex-end; gap: 6px; }
+.cp-bar-col { display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: flex-end; position: relative; }
+.cp-bar-stack { position: relative; width: 100%; }
+.cp-bar { margin: 0 auto; width: 100%; border-radius: 4px 4px 0 0; transition: opacity .15s; }
+.cp-bar-col:hover .cp-bar { opacity: .8; }
+.cp-bar--indigo { background: #6366f1; }
+.cp-bar--teal { background: #14b8a6; }
+.cp-bar-tip {
+  pointer-events: none; position: absolute; top: -28px; left: 50%; transform: translateX(-50%);
+  white-space: nowrap; border-radius: 4px; background: #0f172a; padding: 2px 6px; font-size: 10px;
+  color: #fff; opacity: 0; transition: opacity .15s; z-index: 10;
+}
+.cp-bar-col:hover .cp-bar-tip { opacity: 1; }
+.cp-bar-label { margin-top: 4px; font-size: 10px; color: #94a3b8; }
+
+/* ---------- split bar ---------- */
+.cp-split-group { display: flex; flex-direction: column; gap: 16px; }
+.cp-split-sublabel { margin-bottom: 6px; font-size: 12px; font-weight: 500; color: #64748b; }
+.cp-split-track { display: flex; height: 10px; width: 100%; overflow: hidden; border-radius: 999px; background: #f1f5f9; }
+.cp-split-legend { margin-top: 8px; display: flex; flex-wrap: wrap; gap: 4px 16px; }
+.cp-legend-item { display: inline-flex; align-items: center; gap: 6px; font-size: 12px; color: #475569; text-transform: capitalize; }
+.cp-legend-item b { color: #0f172a; font-weight: 600; }
+.cp-dot { height: 8px; width: 8px; border-radius: 999px; }
+
+/* dynamic fills */
+.cp-c-sky { background: #0ea5e9; }
+.cp-c-indigo { background: #6366f1; }
+.cp-c-emerald { background: #10b981; }
+.cp-c-violet { background: #8b5cf6; }
+.cp-c-slate { background: #94a3b8; }
+
+/* ---------- status breakdown ---------- */
+.cp-statusrow { display: flex; align-items: center; gap: 12px; margin-bottom: 8px; }
+.cp-status-label { width: 112px; flex-shrink: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: 12px; color: #475569; }
+.cp-status-track { height: 8px; flex: 1; overflow: hidden; border-radius: 999px; background: #f1f5f9; }
+.cp-status-fill { height: 100%; border-radius: 999px; background: #94a3b8; }
+.cp-status-n { width: 40px; text-align: right; font-size: 12px; font-weight: 500; color: #334155; font-variant-numeric: tabular-nums; }
+
+/* ---------- lanes ---------- */
+.cp-lane-row { display: flex; align-items: center; justify-content: space-between; padding: 6px 0; font-size: 14px; border-top: 1px solid #f1f5f9; }
+.cp-lane-row:first-child { border-top: none; }
+.cp-lane { display: inline-flex; align-items: center; gap: 4px; font-weight: 500; color: #334155; }
+.cp-arrow { color: #cbd5e1; }
+.cp-lane-n { color: #64748b; font-variant-numeric: tabular-nums; }
+
+/* ---------- metrics ---------- */
+.cp-metrics { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.cp-metric { border-radius: 8px; background: #f8fafc; padding: 8px 12px; }
+.cp-metric-label { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+.cp-metric-value { margin-top: 2px; font-size: 18px; font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; }
+.cp-note { margin-top: 12px; font-size: 12px; color: #94a3b8; }
+.cp-empty { padding: 24px 0; text-align: center; font-size: 14px; color: #94a3b8; }
+
+/* ---------- shipments toolbar ---------- */
+.cp-toolbar { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-bottom: 12px; }
+.cp-input { height: 36px; width: 256px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 0 12px; font-size: 14px; outline: none; }
+.cp-input:focus { border-color: #818cf8; }
+.cp-select { height: 36px; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; padding: 0 8px; font-size: 14px; color: #334155; text-transform: capitalize; outline: none; }
+.cp-select:focus { border-color: #818cf8; }
+.cp-count { margin-left: auto; font-size: 12px; color: #64748b; }
+
+/* ---------- table ---------- */
+.cp-table-wrap { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 12px; }
+.cp-table { min-width: 100%; border-collapse: collapse; font-size: 14px; }
+.cp-table thead { background: #f8fafc; }
+.cp-table th { padding: 8px 12px; text-align: left; font-size: 11px; font-weight: 500; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+.cp-table th.cp-r, .cp-table td.cp-r { text-align: right; }
+.cp-table th.cp-c, .cp-table td.cp-c { text-align: center; }
+.cp-table tbody tr { border-top: 1px solid #f1f5f9; }
+.cp-table tbody tr:hover { background: #f8fafc; }
+.cp-table td { padding: 8px 12px; color: #475569; vertical-align: middle; }
+.cp-cell-strong { font-weight: 500; color: #334155; }
+.cp-cell-sub { font-size: 12px; color: #94a3b8; }
+.cp-num { font-variant-numeric: tabular-nums; }
+.cp-table-empty { padding: 40px 12px; text-align: center; color: #94a3b8; }
+
+/* ---------- status pills ---------- */
+.cp-pill { display: inline-flex; align-items: center; border-radius: 999px; padding: 2px 8px; font-size: 12px; font-weight: 500; box-shadow: inset 0 0 0 1px var(--ring, rgba(100,116,139,.2)); }
+.cp-pill--arrived { background: #ecfdf5; color: #047857; --ring: rgba(5,150,105,.2); }
+.cp-pill--arrivedest { background: rgba(236,253,245,.7); color: #047857; --ring: rgba(5,150,105,.2); }
+.cp-pill--transit { background: #f0f9ff; color: #0369a1; --ring: rgba(2,132,199,.2); }
+.cp-pill--booked { background: #fffbeb; color: #b45309; --ring: rgba(180,83,9,.2); }
+.cp-pill--scheduled { background: #f8fafc; color: #475569; --ring: rgba(100,116,139,.2); }
+.cp-mode-air { color: #0284c7; }
+.cp-mode-sea { color: #4f46e5; }
+.cp-muted { color: #94a3b8; }
+
+/* ---------- pager ---------- */
+.cp-pager { display: flex; align-items: center; justify-content: space-between; font-size: 14px; margin-top: 12px; }
+.cp-pager-info { color: #64748b; }
+.cp-pager-btns { display: flex; gap: 8px; }
+.cp-btn { border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; padding: 6px 12px; color: #334155; cursor: pointer; }
+.cp-btn:hover:not(:disabled) { background: #f8fafc; }
+.cp-btn:disabled { opacity: .4; cursor: default; }
+
+/* ---------- skeleton ---------- */
+.cp-skel { border-radius: 12px; background: #f1f5f9; animation: cp-pulse 1.4s ease-in-out infinite; }
+.cp-skel-line { height: 16px; border-radius: 4px; background: #f1f5f9; animation: cp-pulse 1.4s ease-in-out infinite; }
+.cp-skel-grid { display: grid; gap: 16px; }
+@media (min-width: 640px) { .cp-skel-grid { grid-template-columns: repeat(2, 1fr); } }
+.cp-skel-card { height: 160px; }
+@keyframes cp-pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+
+/* ================= Info tab ================= */
+.cp-card--wide { grid-column: 1 / -1; }
+
+/* definition list (company details) */
+.cp-dl { display: grid; gap: 8px; margin: 0; }
+.cp-dl-row { display: flex; justify-content: space-between; gap: 16px; font-size: 14px; border-bottom: 1px solid #f1f5f9; padding-bottom: 6px; }
+.cp-dl-row:last-child { border-bottom: none; padding-bottom: 0; }
+.cp-dl-row dt { color: #64748b; }
+.cp-dl-row dd { margin: 0; color: #0f172a; font-weight: 500; text-align: right; }
+
+/* editable form grid */
+.cp-form { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; }
+.cp-field { display: flex; flex-direction: column; gap: 4px; }
+.cp-field--full { grid-column: 1 / -1; }
+.cp-field-label { font-size: 11px; text-transform: uppercase; letter-spacing: .03em; color: #64748b; }
+.cp-input--block { width: 100%; box-sizing: border-box; }
+.cp-textarea { width: 100%; box-sizing: border-box; border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; font-size: 14px; font-family: inherit; resize: vertical; outline: none; }
+.cp-textarea:focus { border-color: #818cf8; }
+
+/* contacts */
+.cp-contact-list { display: grid; gap: 4px; }
+.cp-contact { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid #f1f5f9; }
+.cp-contact:first-child { border-top: none; }
+.cp-contact-name { font-size: 14px; font-weight: 500; color: #1e293b; display: flex; align-items: center; }
+.cp-contact-sub { font-size: 12px; color: #94a3b8; margin-top: 1px; }
+.cp-ml { margin-left: 6px; }
+
+/* portal access */
+.cp-portal-list { display: grid; gap: 4px; margin-bottom: 12px; }
+.cp-portal-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 8px 0; border-top: 1px solid #f1f5f9; }
+.cp-portal-row:first-child { border-top: none; }
+.cp-grant { display: flex; gap: 8px; }
+.cp-grant .cp-input { flex: 1; width: auto; }
+.cp-err { margin-top: 8px; font-size: 13px; color: #dc2626; }
+
+/* buttons */
+.cp-btn--sm { padding: 4px 10px; font-size: 13px; }
+.cp-btn--primary { background: #4f46e5; border-color: #4f46e5; color: #fff; }
+.cp-btn--primary:hover:not(:disabled) { background: #4338ca; }
+.cp-btn--danger { color: #dc2626; border-color: #fecaca; }
+.cp-btn--danger:hover:not(:disabled) { background: #fef2f2; }

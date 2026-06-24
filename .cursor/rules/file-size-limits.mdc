@@ -1,0 +1,11 @@
+---
+description: Keep source files small; split proactively at 200 lines
+alwaysApply: true
+---
+
+# File size limits
+
+- Keep every source file under **300 lines**.
+- Split files proactively once they approach **200 lines** — do not wait until the limit is hit.
+- When splitting, extract focused helpers or subcomponents rather than adding inline bulk.
+- Prefer one responsibility per file (e.g. map layer setup vs. map React shell).
