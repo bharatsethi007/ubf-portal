@@ -9,8 +9,12 @@ import ShipmentProgressBar from '../components/ShipmentProgressBar'
 import TrackingHistoryCard from '../components/TrackingHistoryCard'
 import VoyageDetailsCard from '../components/VoyageDetailsCard'
 import { fetchShipment } from '../hooks/useShipments'
+import { useContainers } from '../hooks/useContainers'
+import { useShipmentInvoices } from '../hooks/useInvoices'
+import InvoicesTable from '../components/InvoicesTable'
 import type { Shipment } from '../types/shipment'
 import { countryLabel } from '../utils/ports'
+import { fmtShort } from '../utils/format'
 
 const LINECOLS = ['Goods Description', 'Quantity', 'Pack Type', 'Weight', 'Volume', 'Marks and Numbers', 'Final Destination']
 const DOCCOLS = ['Description', 'Type', 'Size', 'Date Added', '']
@@ -39,6 +43,9 @@ export default function ShipmentDetail() {
   const navigate = useNavigate()
   const [shipment, setShipment] = useState<Shipment | null>(null)
   const [loading, setLoading] = useState(true)
+  const consolKey = shipment?.mode === 'sea' ? shipment.consol_key : null
+  const { containers, loading: containersLoading } = useContainers(consolKey)
+  const { invoices, loading: invoicesLoading } = useShipmentInvoices(shipment?.job_unique ?? null)
 
   useEffect(() => {
     const jobUnique = Number(id)
@@ -126,6 +133,51 @@ export default function ShipmentDetail() {
             )}
           </table>
           {!hasHousebillLines(shipment) && <EmptyState />}
+        </div>
+      </section>
+
+      {shipment.mode === 'sea' && (
+        <section className="card detail-card detail-section">
+          <h2>Containers</h2>
+          <div className="detail-table-shell">
+            {containersLoading ? (
+              <p className="muted pad-inline">Loading containers…</p>
+            ) : containers.length === 0 ? (
+              <p className="muted pad-inline">No containers recorded.</p>
+            ) : (
+              <table className="data-table data-table--compact">
+                <thead>
+                  <tr>
+                    <th>Container No</th>
+                    <th>Seal</th>
+                    <th>Available From</th>
+                    <th>Available To</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {containers.map((c) => (
+                    <tr key={c.c_number}>
+                      <td className="mono">{c.c_number}</td>
+                      <td>{c.seal ?? '—'}</td>
+                      <td className="mono">{fmtShort(c.avail_from)}</td>
+                      <td className="mono">{fmtShort(c.avail_to)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            )}
+          </div>
+        </section>
+      )}
+
+      <section className="card detail-card detail-section">
+        <h2>Invoices</h2>
+        <div className="detail-table-shell">
+          <InvoicesTable
+            invoices={invoices}
+            loading={invoicesLoading}
+            emptyMessage="No invoices for this shipment."
+          />
         </div>
       </section>
 

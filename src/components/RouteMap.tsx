@@ -208,7 +208,9 @@ export default function RouteMap(props: Props) {
       const root = createRoot(el)
       markerRootRef.current = root
       root.render(<VehicleIcon mode={mode} />)
-      markerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' }).addTo(map)
+      markerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
+        .setLngLat(pointOnArc(arc, progress))
+        .addTo(map)
     } catch (err) {
       console.error('[RouteMap] map init failed:', err)
       setMapError(true)

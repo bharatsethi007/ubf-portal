@@ -37,6 +37,12 @@ export function fmtProgress(d: string | null): string {
   return date.toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' })
 }
 
+export function fmtMoney(amount: number | null, currency: string | null): string {
+  if (amount == null) return '—'
+  const n = amount.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+  return currency ? `${currency} ${n}` : n
+}
+
 export function shipmentLabel(s: { job_no: string | null; house_bill: string | null; job_unique: number }): string {
   return s.job_no || s.house_bill || `Job ${s.job_unique}`
 }

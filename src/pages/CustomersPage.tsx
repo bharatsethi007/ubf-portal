@@ -1,7 +1,7 @@
+import { useNavigate } from 'react-router-dom'
 import { useEffect, useState } from 'react'
 import { Search } from 'lucide-react'
 import { supabase } from '../supabase'
-import { CustomerProfilePanel } from '../components/Customers/CustomerProfilePanel'
 import Pagination from '../components/Pagination'
 import { customerDisplayName, customerPageRange, PAGE_SIZE } from '../utils/customerQuery'
 import { fmtShort } from '../utils/format'
@@ -25,6 +25,7 @@ function PortalBadge({ active }: { active: boolean }) {
 }
 
 export default function CustomersPage() {
+  const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [showInactive, setShowInactive] = useState(false)
   const [page, setPage] = useState(1)
@@ -32,7 +33,6 @@ export default function CustomersPage() {
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
-  const [selectedAccountId, setSelectedAccountId] = useState<string | null>(null)
   const debouncedSearch = useDebouncedValue(search, 300)
 
   useEffect(() => {
@@ -130,7 +130,7 @@ export default function CustomersPage() {
                   <tr
                     key={row.account_id}
                     className="row-clickable"
-                    onClick={() => setSelectedAccountId(String(row.account_id))}
+                    onClick={() => navigate(`/customers/${row.account_id}`)}
                   >
                     <td>
                       <strong>{customerDisplayName(row)}</strong>
@@ -151,12 +151,6 @@ export default function CustomersPage() {
         </div>
         <Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
-
-      <CustomerProfilePanel
-        accountId={selectedAccountId}
-        open={!!selectedAccountId}
-        onClose={() => setSelectedAccountId(null)}
-      />
     </div>
   )
 }

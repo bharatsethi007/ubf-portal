@@ -5,7 +5,7 @@ import type { Shipment, StatCounts } from '../types/shipment'
 const SELECT = `
   job_unique, module, mode, direction, customer_account_id,
   house_bill, job_no, shipment_no, origin, destination,
-  vessel_flight, etd, eta, departed, arrived, doc_date, status,
+  vessel_flight, etd, eta, departed, arrived, doc_date, status, consol_key,
   goods_desc, pack_qty, pack_type, weight_kg, volume_m3, marks, final_dest,
   customers ( name )
 `

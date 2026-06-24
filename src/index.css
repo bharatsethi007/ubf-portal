@@ -68,6 +68,9 @@ a:hover { text-decoration: underline; }
 .pill.scheduled { color: #1D4ED8; background: #EFF6FF; }
 .pill.transit { color: #B45309; background: #FFFBEB; }
 .pill.arrived { color: #047857; background: #ECFDF5; }
+.pill.unpaid { color: #B91C1C; background: #FEF2F2; }
+.invoice-outstanding { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 12px; }
+.invoice-outstanding__badge { font-size: 12px; }
 
 /* Empty */
 .empty { background: var(--paper); border: 1px dashed var(--line); border-radius: var(--radius); padding: 48px; text-align: center; color: var(--muted); }

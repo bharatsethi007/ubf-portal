@@ -12,6 +12,7 @@ import {
   UsersPage,
 } from './pages/stubs/StubPages'
 import CustomersPage from './pages/CustomersPage'
+import CustomerProfile from './pages/CustomerProfile'
 import Shipments from './pages/Shipments'
 import Dashboard from './pages/Dashboard'
 import ShipmentDetail from './pages/ShipmentDetail'
@@ -100,6 +101,14 @@ export default function App() {
           <Route path="/shipments" element={<Shipments globalSearch={search} />} />
           <Route path="/new-booking" element={<NewBookingPage />} />
           <Route path="/estimates" element={<EstimatesPage />} />
+          <Route
+            path="/customers/:accountId"
+            element={
+              <StaffRoute>
+                <CustomerProfile />
+              </StaffRoute>
+            }
+          />
           <Route
             path="/customers"
             element={

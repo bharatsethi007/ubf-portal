@@ -17,6 +17,7 @@ export default function ConsolsTable() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [expanded, setExpanded] = useState<string | null>(null)
+  const [containerCounts, setContainerCounts] = useState<Record<string, number>>({})
 
   useEffect(() => {
     setExpanded(null)
@@ -54,9 +55,41 @@ export default function ConsolsTable() {
     }
   }, [queryCtx, page])
 
+  useEffect(() => {
+    if (rows.length === 0) {
+      setContainerCounts({})
+      return
+    }
+
+    let cancelled = false
+    const keys = rows.map((r) => r.consol_key)
+
+    ;(async () => {
+      const { data, error } = await supabase
+        .from('containers')
+        .select('consol_key')
+        .in('consol_key', keys)
+
+      if (cancelled) return
+
+      const counts: Record<string, number> = {}
+      for (const key of keys) counts[key] = 0
+      if (!error && data) {
+        for (const row of data as { consol_key: string }[]) {
+          counts[row.consol_key] = (counts[row.consol_key] ?? 0) + 1
+        }
+      }
+      setContainerCounts(counts)
+    })()
+
+    return () => {
+      cancelled = true
+    }
+  }, [rows])
+
   if (error) return <div className="error card pad-inline">{error}</div>
 
-  const colSpan = 8
+  const colSpan = 9
 
   return (
     <div className="shipments-table card">
@@ -72,6 +105,7 @@ export default function ConsolsTable() {
               <th>ETD</th>
               <th>ETA</th>
               <th>Jobs</th>
+              <th>Containers</th>
             </tr>
           </thead>
           <tbody>
@@ -96,6 +130,7 @@ export default function ConsolsTable() {
                       <td className="mono">{fmtShort(row.etd)}</td>
                       <td className="mono">{fmtShort(row.eta)}</td>
                       <td>{row.job_count}</td>
+                      <td>{containerCounts[row.consol_key] ? containerCounts[row.consol_key] : '—'}</td>
                     </tr>
                     {open && (
                       <tr className="consol-expand-row">
