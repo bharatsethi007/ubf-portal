@@ -14,6 +14,10 @@ export default {
         line: 'var(--color-line)',
         surface: 'var(--color-surface)',
         canvas: 'var(--color-canvas)',
+        ub: {
+          navy: '#0A2472',
+          orange: '#F7941D',
+        },
         accent: {
           DEFAULT: 'var(--color-accent)',
           soft: 'var(--color-accent-soft)',
