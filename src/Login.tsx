@@ -1,5 +1,7 @@
 import { useState } from 'react';
+import loginArt from './assets/login-illustration.png';
 import { supabase } from './supabase';
+import './pages/loginPage.css';
 
 export default function Login() {
   const [email, setEmail] = useState('');
@@ -21,17 +23,9 @@ export default function Login() {
   }
 
   return (
-    <div style={{ display: 'flex', minHeight: '100vh' }}>
+    <div className="login-page">
       {/* LEFT: login form */}
-      <div
-        style={{
-          flex: 1,
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          background: '#fff',
-        }}
-      >
+      <div className="login-page__left">
         <div style={{ width: '100%', maxWidth: 360, padding: '0 24px' }}>
           <img
             src="/src/assets/ub-logo.jpg"
@@ -88,28 +82,14 @@ export default function Login() {
           >
             {busy ? 'Signing in…' : 'Sign in'}
           </button>
-
-          <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 24 }}>UB Freight Ltd</div>
         </div>
       </div>
 
       {/* RIGHT: brand panel */}
-      <div
-        style={{
-          flex: 1,
-          background: '#0A2472',
-          color: '#fff',
-          display: 'flex',
-          flexDirection: 'column',
-          padding: 48,
-          position: 'relative',
-          overflow: 'hidden',
-        }}
-        className="login-brand-panel"
-      >
-        <h2 style={{ fontSize: 26, fontWeight: 500, lineHeight: 1.3, maxWidth: 360 }}>
-          Moving freight across NZ, Australia &amp; the Pacific
-        </h2>
+      <div className="login-art-panel">
+        <div className="login-art-panel__card">
+          <img src={loginArt} className="login-art-panel__img" alt="" />
+        </div>
       </div>
     </div>
   );
