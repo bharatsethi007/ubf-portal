@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import loginArt from './assets/login-illustration.png';
+import ubLogo from './assets/ub-logo.jpg';
 import { supabase } from './supabase';
 import './pages/loginPage.css';
 
@@ -28,7 +29,7 @@ export default function Login() {
       <div className="login-page__left">
         <div style={{ width: '100%', maxWidth: 360, padding: '0 24px' }}>
           <img
-            src="/src/assets/ub-logo.jpg"
+            src={ubLogo}
             alt="UB Freight"
             style={{ height: 44, marginBottom: 28 }}
           />
