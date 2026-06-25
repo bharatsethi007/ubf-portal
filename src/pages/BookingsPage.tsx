@@ -1,0 +1,171 @@
+import { useEffect, useMemo, useState } from 'react'
+import { Navigate, useNavigate, useParams } from 'react-router-dom'
+import { fetchOverdueBatch, type CustomerOverdue } from '../api/customerOverdueApi'
+import OverdueBadge from '../components/OverdueBadge'
+import '../components/overdueBadge.css'
+import { useBookings } from '../hooks/useBookings'
+import {
+  MODULE_CONFIG,
+  STATUS_LABEL,
+  isUntouched,
+  type Booking,
+  type BookingModule,
+  type BookingSource,
+} from '../types/booking'
+import { bookingOverdueAccountIds, bookingRowOverdueAccountId } from '../utils/bookingOverdueUtils'
+
+const MODULES: BookingModule[] = ['EA', 'ES', 'IA', 'IS']
+
+export default function BookingsPage() {
+  const { module } = useParams()
+  if (!module || !MODULES.includes(module as BookingModule)) {
+    return <Navigate to="/bookings/ES" replace />
+  }
+  return <BookingsPageContent module={module as BookingModule} />
+}
+
+function BookingsPageContent({ module }: { module: BookingModule }) {
+  const navigate = useNavigate()
+  const { data, loading, error } = useBookings(module)
+  const [overdueMap, setOverdueMap] = useState<Record<string, CustomerOverdue>>({})
+  const cfg = MODULE_CONFIG[module]
+
+  const accountIds = useMemo(
+    () => [...new Set(data.flatMap((b) => bookingOverdueAccountIds(b, module)))],
+    [data, module],
+  )
+
+  useEffect(() => {
+    if (loading || accountIds.length === 0) {
+      setOverdueMap({})
+      return
+    }
+
+    let cancelled = false
+    fetchOverdueBatch(accountIds, 30).then((map) => {
+      if (!cancelled) setOverdueMap(map)
+    })
+
+    return () => {
+      cancelled = true
+    }
+  }, [accountIds, loading])
+
+  return (
+    <div className="customers-page">
+      <header className="customers-page__head">
+        <h1>{cfg.label} Bookings</h1>
+        <button type="button" className="bookings-page__new" onClick={() => navigate(`/bookings/${module}/new`)}>
+          + New Booking
+        </button>
+      </header>
+
+      {error && <div className="error card pad-inline">{error}</div>}
+
+      <div className="customers-table card">
+        <div className="table-wrap">
+          <table className="data-table">
+            <thead>
+              <tr>
+                <th>Ref</th>
+                <th>Importer</th>
+                <th>Exporter</th>
+                <th>Route</th>
+                <th>Source</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading ? (
+                <tr><td colSpan={6} className="muted pad-inline">Loading bookings…</td></tr>
+              ) : data.length === 0 ? (
+                <tr><td colSpan={6} className="muted pad-inline">No bookings yet.</td></tr>
+              ) : (
+                data.map((b) => (
+                  <BookingRow key={b.id} module={module} booking={b} overdueMap={overdueMap} />
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function BookingRow({
+  module,
+  booking: b,
+  overdueMap,
+}: {
+  module: BookingModule
+  booking: Booking
+  overdueMap: Record<string, CustomerOverdue>
+}) {
+  const navigate = useNavigate()
+  const untouched = isUntouched(b)
+  const rowCls = untouched ? 'booking-row--untouched row-clickable' : 'row-clickable'
+  const isExport = MODULE_CONFIG[module].direction === 'export'
+  const overdueAccountId = bookingRowOverdueAccountId(b, module)
+  const overdue = overdueAccountId ? overdueMap[overdueAccountId] : null
+
+  return (
+    <tr className={rowCls} onClick={() => navigate(`/bookings/${module}/${b.id}/edit`)}>
+      <td><strong>{b.booking_ref}</strong></td>
+      <td>
+        <PartyCell
+          name={b.importer_name ?? '—'}
+          overdue={!isExport ? overdue : null}
+        />
+      </td>
+      <td>
+        <PartyCell
+          name={exporterLabel(b)}
+          overdue={isExport ? overdue : null}
+        />
+      </td>
+      <td className="mono">{routeCell(b)}</td>
+      <td><SourceTag source={b.source} /></td>
+      <td>{STATUS_LABEL[b.status]}</td>
+    </tr>
+  )
+}
+
+function PartyCell({
+  name,
+  overdue,
+}: {
+  name: string
+  overdue: CustomerOverdue | null | undefined
+}) {
+  if (!overdue) return <>{name}</>
+
+  return (
+    <span className="booking-row__party">
+      <span>{name}</span>
+      <OverdueBadge
+        compact
+        size="sm"
+        count={overdue.overdue_count}
+        amount={overdue.overdue_amount}
+        currency={overdue.currency}
+        oldestDue={overdue.oldest_due}
+      />
+    </span>
+  )
+}
+
+function exporterLabel(b: Booking): string {
+  if (b.is_consolidation) return 'Multiple'
+  return b.shipper_account_id ?? b.account_id ?? '—'
+}
+
+function routeCell(b: Booking): string {
+  return `${b.origin ?? '—'} → ${b.destination ?? '—'}`
+}
+
+function SourceTag({ source }: { source: BookingSource }) {
+  if (source === 'customer_portal') return <span className="pill transit">Portal</span>
+  if (source === 'email_parsed') return <span className="pill parsed">Parsed</span>
+  return <span className="muted">Manual</span>
+}

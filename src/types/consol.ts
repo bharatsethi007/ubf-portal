@@ -3,6 +3,7 @@ export type Consol = {
   module: string
   mode: string
   direction: string
+  master_bill: string | null
   origin: string | null
   destination: string | null
   vessel_flight: string | null

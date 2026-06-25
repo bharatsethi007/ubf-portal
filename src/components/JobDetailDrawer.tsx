@@ -5,6 +5,8 @@ import { fmtShort } from '../utils/format'
 import JobStatusRail from './JobStatusRail'
 import MapErrorBoundary from './MapErrorBoundary'
 import RouteMap from './RouteMap'
+import MasterBillField from './shipments/MasterBillField'
+import TrackingToggle from './shipments/TrackingToggle'
 import SlideDrawer from './SlideDrawer'
 import StatusPill from './StatusPill'
 
@@ -100,6 +102,14 @@ export default function JobDetailDrawer({ jobUnique, consolKey, onClose }: Props
             </div>
             <StatusPill status={shipment.status} />
           </header>
+
+          <dl className="job-drawer__facts job-drawer__summary">
+            <MasterBillField mode={shipment.mode} value={shipment.master_bill} />
+          </dl>
+
+          {consolKey && (
+            <TrackingToggle consolKey={consolKey} module={shipment.module} layout="detail" />
+          )}
 
           <JobStatusRail shipment={shipment} />
 

@@ -5,6 +5,8 @@ export type Shipment = {
   direction: 'import' | 'export' | string
   customer_account_id: number | null
   house_bill: string | null
+  master_bill: string | null
+  shipper_name: string | null
   job_no: string | null
   shipment_no: string | null
   origin: string | null

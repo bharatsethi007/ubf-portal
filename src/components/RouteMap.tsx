@@ -7,8 +7,8 @@ import { supabase } from '../supabase'
 import { RouteUnavailableFallback } from './MapErrorBoundary'
 import {
   coordsReady,
+  interpolateLngLat,
   isValidPoint,
-  pointOnArc,
   routeProgress,
   safeGreatCircleArc,
   toLngLat,
@@ -77,7 +77,7 @@ function VehicleIcon({ mode }: { mode: string }) {
 }
 
 export default function RouteMap(props: Props) {
-  const { originCode, destCode, mode, etd, eta, departed, arrived, status } = props
+  const { originCode, destCode, mode, departed, arrived, status } = props
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const markerRef = useRef<mapboxgl.Marker | null>(null)
@@ -161,9 +161,14 @@ export default function RouteMap(props: Props) {
   }, [originLngLat, destLngLat])
 
   const progress = useMemo(
-    () => routeProgress({ etd, eta, departed, arrived, status }),
-    [etd, eta, departed, arrived, status],
+    () => routeProgress({ departed, arrived, status }),
+    [departed, arrived, status],
   )
+
+  const markerLngLat = useMemo(() => {
+    if (!originLngLat || !destLngLat) return originLngLat
+    return interpolateLngLat(originLngLat, destLngLat, progress)
+  }, [originLngLat, destLngLat, progress])
 
   const canRenderMap = ready && arc.length >= 2 && !mapError && !portsLoading && hasMapboxToken
 
@@ -209,7 +214,7 @@ export default function RouteMap(props: Props) {
       markerRootRef.current = root
       root.render(<VehicleIcon mode={mode} />)
       markerRef.current = new mapboxgl.Marker({ element: el, anchor: 'center' })
-        .setLngLat(pointOnArc(arc, progress))
+        .setLngLat(markerLngLat ?? originLngLat)
         .addTo(map)
     } catch (err) {
       console.error('[RouteMap] map init failed:', err)
@@ -228,21 +233,20 @@ export default function RouteMap(props: Props) {
       mapRef.current?.remove()
       mapRef.current = null
     }
-  }, [canRenderMap, originLngLat, destLngLat, originCode, destCode, arc, mode])
+  }, [canRenderMap, originLngLat, destLngLat, originCode, destCode, arc, mode, markerLngLat])
 
   useEffect(() => {
     const map = mapRef.current
     const marker = markerRef.current
     const el = markerElRef.current
-    if (!map || !marker || !el || arc.length < 2) return
+    if (!map || !marker || !el || arc.length < 2 || !markerLngLat) return
 
     const apply = () => {
       try {
         updateRouteArc(map, arc)
         fitRouteBounds(map, arc)
-        const pos = pointOnArc(arc, progress)
         const bearing = travelBearing(arc, progress)
-        marker.setLngLat(pos)
+        marker.setLngLat(markerLngLat)
         el.style.transform = `rotate(${bearing}deg)`
       } catch (err) {
         console.error('[RouteMap] map update failed:', err)
@@ -252,7 +256,7 @@ export default function RouteMap(props: Props) {
 
     if (map.isStyleLoaded()) apply()
     else map.once('load', apply)
-  }, [arc, progress])
+  }, [arc, progress, markerLngLat])
 
   useEffect(() => {
     markerRootRef.current?.render(<VehicleIcon mode={mode} />)

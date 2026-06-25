@@ -29,6 +29,65 @@ export interface CustomerMeta {
   notes: string | null;
 }
 
+export interface CustomerSync {
+  address1: string | null;
+  address2: string | null;
+  address3: string | null;
+  city: string | null;
+  state: string | null;
+  postcode: string | null;
+  country: string | null;
+  phone: string | null;
+  email: string | null;
+  contact: string | null;
+}
+
+export type ResolvedCustomerAddress = {
+  line1: string;
+  line2: string;
+  city: string;
+  region: string;
+  postcode: string;
+  country: string;
+  phone: string;
+  email: string;
+  contact: string;
+};
+
+const CUSTOMER_SYNC_SELECT =
+  'address1, address2, address3, city, state, postcode, country, phone, email, contact';
+
+export function resolveCustomerAddress(
+  meta: CustomerMeta | null | undefined,
+  cust: CustomerSync | null | undefined,
+): ResolvedCustomerAddress {
+  return {
+    line1: meta?.address_line1 || cust?.address1 || '',
+    line2: meta?.address_line2 || [cust?.address2, cust?.address3].filter(Boolean).join(', ') || '',
+    city: meta?.city || cust?.city || '',
+    region: meta?.region || cust?.state || '',
+    postcode: meta?.postcode || cust?.postcode || '',
+    country: meta?.country || cust?.country || '',
+    phone: cust?.phone || '',
+    email: cust?.email || '',
+    contact: cust?.contact || '',
+  };
+}
+
+export function resolvedToMetaFields(resolved: ResolvedCustomerAddress): Pick<
+  CustomerMeta,
+  'address_line1' | 'address_line2' | 'city' | 'region' | 'postcode' | 'country'
+> {
+  return {
+    address_line1: resolved.line1,
+    address_line2: resolved.line2,
+    city: resolved.city,
+    region: resolved.region,
+    postcode: resolved.postcode,
+    country: resolved.country,
+  };
+}
+
 export const EMPTY_META = (accountId: string): CustomerMeta => ({
   account_id: accountId,
   address_line1: '', address_line2: '', city: '', region: '',
@@ -64,6 +123,16 @@ export async function fetchMeta(accountId: string): Promise<CustomerMeta> {
     .maybeSingle();
   if (error) throw error;
   return (data as CustomerMeta) ?? EMPTY_META(accountId);
+}
+
+export async function fetchCustomerSync(accountId: string): Promise<CustomerSync | null> {
+  const { data, error } = await supabase
+    .from('customers')
+    .select(CUSTOMER_SYNC_SELECT)
+    .eq('account_id', accountId)
+    .maybeSingle();
+  if (error) throw error;
+  return (data as CustomerSync) ?? null;
 }
 
 export async function saveMeta(meta: CustomerMeta): Promise<void> {

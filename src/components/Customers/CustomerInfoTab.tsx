@@ -1,10 +1,12 @@
 // CustomerInfoTab.tsx — company details, editable address/account, contacts, portal access.
 import React, { useEffect, useState } from 'react';
 import type { CustomerStats } from './customerProfileApi';
+import { CustomerInfoAddressCard } from './CustomerInfoAddressCard';
 import {
-  fetchContacts, fetchPortalUsers, fetchMeta, saveMeta,
+  fetchContacts, fetchPortalUsers, fetchMeta, fetchCustomerSync, saveMeta,
   grantPortalAccess, revokePortalAccess,
-  type Contact, type PortalUser, type CustomerMeta,
+  resolveCustomerAddress,
+  type Contact, type PortalUser, type CustomerMeta, type CustomerSync,
 } from './customerInfoApi';
 import { Card, fmt } from './profileUi';
 
@@ -14,6 +16,7 @@ export function CustomerInfoTab({
   const [contacts, setContacts] = useState<Contact[]>([]);
   const [portal, setPortal] = useState<PortalUser[]>([]);
   const [meta, setMeta] = useState<CustomerMeta | null>(null);
+  const [sync, setSync] = useState<CustomerSync | null>(null);
   const [loading, setLoading] = useState(true);
 
   const reloadPortal = () => fetchPortalUsers(accountId).then(setPortal).catch(() => {});
@@ -21,8 +24,20 @@ export function CustomerInfoTab({
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    Promise.all([fetchContacts(accountId), fetchPortalUsers(accountId), fetchMeta(accountId)])
-      .then(([c, p, m]) => { if (alive) { setContacts(c); setPortal(p); setMeta(m); } })
+    Promise.all([
+      fetchContacts(accountId),
+      fetchPortalUsers(accountId),
+      fetchMeta(accountId),
+      fetchCustomerSync(accountId),
+    ])
+      .then(([c, p, m, s]) => {
+        if (alive) {
+          setContacts(c);
+          setPortal(p);
+          setMeta(m);
+          setSync(s);
+        }
+      })
       .catch(() => {})
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
@@ -32,6 +47,7 @@ export function CustomerInfoTab({
     return <div className="cp-skel-grid">{[0, 1, 2, 3].map((i) => <div key={i} className="cp-skel cp-skel-card" />)}</div>;
   }
 
+  const resolved = resolveCustomerAddress(meta, sync);
   const portalEmails = new Set(portal.map((p) => (p.email ?? '').toLowerCase()));
 
   return (
@@ -48,7 +64,7 @@ export function CustomerInfoTab({
         <p className="cp-note">Synced from TradeWindow — read-only.</p>
       </Card>
 
-      <AddressCard meta={meta} setMeta={setMeta} />
+      <CustomerInfoAddressCard meta={meta} setMeta={setMeta} resolved={resolved} />
 
       <ContactsCard
         contacts={contacts}
@@ -74,35 +90,6 @@ function Row({ label, value }: { label: string; value?: string | null }) {
       <dt>{label}</dt>
       <dd>{value || '—'}</dd>
     </div>
-  );
-}
-
-function AddressCard({ meta, setMeta }: { meta: CustomerMeta; setMeta: (m: CustomerMeta) => void }) {
-  const [saving, setSaving] = useState(false);
-  const [done, setDone] = useState(false);
-  const f = (k: keyof CustomerMeta) => (e: React.ChangeEvent<HTMLInputElement>) =>
-    setMeta({ ...meta, [k]: e.target.value });
-
-  const save = async () => {
-    setSaving(true); setDone(false);
-    try { await saveMeta(meta); setDone(true); setTimeout(() => setDone(false), 2000); }
-    finally { setSaving(false); }
-  };
-
-  return (
-    <Card title="Address & account" action={<SaveBtn saving={saving} done={done} onClick={save} />}>
-      <div className="cp-form">
-        <Field label="Address line 1" value={meta.address_line1} onChange={f('address_line1')} full />
-        <Field label="Address line 2" value={meta.address_line2} onChange={f('address_line2')} full />
-        <Field label="City" value={meta.city} onChange={f('city')} />
-        <Field label="Region" value={meta.region} onChange={f('region')} />
-        <Field label="Postcode" value={meta.postcode} onChange={f('postcode')} />
-        <Field label="Country" value={meta.country} onChange={f('country')} />
-        <Field label="Account owner" value={meta.account_owner} onChange={f('account_owner')} />
-        <Field label="Credit terms" value={meta.credit_terms} onChange={f('credit_terms')} />
-      </div>
-      <p className="cp-note">Staff-only. Not shown to the customer.</p>
-    </Card>
   );
 }
 
@@ -201,28 +188,13 @@ function NotesCard({ meta, setMeta }: { meta: CustomerMeta; setMeta: (m: Custome
     finally { setSaving(false); }
   };
   return (
-    <Card title="Internal notes" wide action={<SaveBtn saving={saving} done={done} onClick={save} />}>
+    <Card title="Internal notes" wide action={
+      <button className="cp-btn cp-btn--sm cp-btn--primary" disabled={saving} onClick={save}>
+        {saving ? 'Saving…' : done ? 'Saved ✓' : 'Save'}
+      </button>
+    }>
       <textarea className="cp-textarea" rows={4} placeholder="Staff notes about this customer…"
         value={meta.notes ?? ''} onChange={(e) => setMeta({ ...meta, notes: e.target.value })} />
     </Card>
-  );
-}
-
-function Field({
-  label, value, onChange, full,
-}: { label: string; value: string | null; onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; full?: boolean }) {
-  return (
-    <div className={full ? 'cp-field cp-field--full' : 'cp-field'}>
-      <label className="cp-field-label">{label}</label>
-      <input className="cp-input cp-input--block" value={value ?? ''} onChange={onChange} />
-    </div>
-  );
-}
-
-function SaveBtn({ saving, done, onClick }: { saving: boolean; done: boolean; onClick: () => void }) {
-  return (
-    <button className="cp-btn cp-btn--sm cp-btn--primary" disabled={saving} onClick={onClick}>
-      {saving ? 'Saving…' : done ? 'Saved ✓' : 'Save'}
-    </button>
   );
 }

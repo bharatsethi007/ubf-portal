@@ -16,6 +16,8 @@ import CustomerProfile from './pages/CustomerProfile'
 import Shipments from './pages/Shipments'
 import Dashboard from './pages/Dashboard'
 import ShipmentDetail from './pages/ShipmentDetail'
+import BookingsPage from './pages/BookingsPage'
+import BookingFormPage from './pages/bookings/BookingFormPage'
 import StaffRoute from './components/StaffRoute'
 
 export default function App() {
@@ -101,6 +103,30 @@ export default function App() {
           <Route path="/shipments" element={<Shipments globalSearch={search} />} />
           <Route path="/new-booking" element={<NewBookingPage />} />
           <Route path="/estimates" element={<EstimatesPage />} />
+          <Route
+            path="/bookings/:module/new"
+            element={
+              <StaffRoute>
+                <BookingFormPage />
+              </StaffRoute>
+            }
+          />
+          <Route
+            path="/bookings/:module/:id/edit"
+            element={
+              <StaffRoute>
+                <BookingFormPage />
+              </StaffRoute>
+            }
+          />
+          <Route
+            path="/bookings/:module"
+            element={
+              <StaffRoute>
+                <BookingsPage />
+              </StaffRoute>
+            }
+          />
           <Route
             path="/customers/:accountId"
             element={

@@ -7,13 +7,6 @@ function clamp01(n: number): number {
   return Math.min(1, Math.max(0, n))
 }
 
-function parseDay(d: string | null): number | null {
-  if (!d) return null
-  const iso = d.includes('T') ? d : `${d}T00:00:00`
-  const t = new Date(iso).getTime()
-  return Number.isNaN(t) ? null : t
-}
-
 export function isValidPoint(p: RouteMapPoint): p is { lat: number; lng: number } {
   if (!p) return false
   return Number.isFinite(p.lat) && Number.isFinite(p.lng)
@@ -32,21 +25,41 @@ export function toLngLat(p: { lat: number; lng: number }): LngLat {
   return [p.lng, p.lat]
 }
 
+function normalizeLng(lng: number): number {
+  let x = lng
+  while (x > 180) x -= 360
+  while (x < -180) x += 360
+  return x
+}
+
 export function routeProgress(shipment: {
-  etd: string | null
-  eta: string | null
   departed: string | null
   arrived: string | null
   status: string
 }): number {
-  if (shipment.arrived || shipment.status.startsWith('Arrived')) return 1
-  if (!shipment.departed) return 0
+  if (shipment.arrived) return 1
+  if (shipment.departed) return 0.5
 
-  const etd = parseDay(shipment.etd)
-  const eta = parseDay(shipment.eta)
-  if (etd == null || eta == null || eta <= etd) return 0
+  const s = shipment.status.toLowerCase()
+  if (s.includes('arrived') || s.includes('delivered')) return 1
+  if (s.includes('transit')) return 0.5
+  return 0
+}
 
-  return clamp01((Date.now() - etd) / (eta - etd))
+/** Linear origin→dest position at fraction t, with antimeridian-safe longitude. */
+export function interpolateLngLat(origin: LngLat, dest: LngLat, t: number): LngLat {
+  const frac = clamp01(t)
+  let [originLng, originLat] = origin
+  let [destLng, destLat] = dest
+
+  if (Math.abs(destLng - originLng) > 180) {
+    if (originLng < destLng) originLng += 360
+    else destLng += 360
+  }
+
+  const lng = normalizeLng(originLng + (destLng - originLng) * frac)
+  const lat = originLat + (destLat - originLat) * frac
+  return [lng, lat]
 }
 
 export function greatCircleArc(origin: LngLat, dest: LngLat, steps = 96): LngLat[] {

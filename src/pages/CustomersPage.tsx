@@ -138,10 +138,10 @@ export default function CustomersPage() {
                     </td>
                     <td>{row.branch ?? '—'}</td>
                     <td><RoleBadges row={row} /></td>
-                    <td>{row.total_shipments}</td>
-                    <td>{row.in_transit}</td>
-                    <td>{row.this_month}</td>
-                    <td className="mono">{fmtShort(row.last_activity)}</td>
+                    <td className="mono nums">{row.total_shipments}</td>
+                    <td className="mono nums">{row.in_transit}</td>
+                    <td className="mono nums">{row.this_month}</td>
+                    <td className="mono nums">{fmtShort(row.last_activity)}</td>
                     <td><PortalBadge active={row.has_portal_access} /></td>
                   </tr>
                 ))

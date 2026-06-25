@@ -1,12 +1,15 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import '../components/Customers/customerProfile.css'
+import '../components/overdueBadge.css'
 import {
   fetchCustomerStats,
   fetchCustomerInsights,
   type CustomerStats,
   type Insights,
 } from '../components/Customers/customerProfileApi'
+import { fetchCustomerOverdue, type CustomerOverdue } from '../api/customerOverdueApi'
+import OverdueBadge from '../components/OverdueBadge'
 import { CustomerOverviewTab } from '../components/Customers/CustomerOverviewTab'
 import { CustomerShipmentsTab } from '../components/Customers/CustomerShipmentsTab'
 import { CustomerInfoTab } from '../components/Customers/CustomerInfoTab'
@@ -22,13 +25,17 @@ export default function CustomerProfile() {
   const [tab, setTab] = useState<Tab>('overview')
   const [stats, setStats] = useState<CustomerStats | null>(null)
   const [insights, setInsights] = useState<Insights | null>(null)
+  const [overdue, setOverdue] = useState<CustomerOverdue | null>(null)
   const [loading, setLoading] = useState(false)
   const { invoices, outstandingByCurrency, loading: invoicesLoading } = useCustomerInvoices(accountId ?? null)
 
   const load = useCallback((withInsights: boolean) => {
     if (!accountId) return
     setLoading(true)
-    const jobs: Promise<unknown>[] = [fetchCustomerStats(accountId).then(setStats)]
+    const jobs: Promise<unknown>[] = [
+      fetchCustomerStats(accountId).then(setStats),
+      fetchCustomerOverdue(accountId, 30).then(setOverdue),
+    ]
     if (withInsights) jobs.push(fetchCustomerInsights(accountId).then(setInsights))
     Promise.all(jobs).catch(() => {}).finally(() => setLoading(false))
   }, [accountId])
@@ -38,6 +45,7 @@ export default function CustomerProfile() {
     setTab('overview')
     setStats(null)
     setInsights(null)
+    setOverdue(null)
     load(true)
   }, [accountId, load])
 
@@ -69,6 +77,17 @@ export default function CustomerProfile() {
           <span>· {stats?.contact_count ?? 0} contacts</span>
           <span>· Last activity {fmt.date(stats?.last_activity)}</span>
         </div>
+
+        {overdue && (
+          <OverdueBadge
+            size="md"
+            count={overdue.overdue_count}
+            amount={overdue.overdue_amount}
+            currency={overdue.currency}
+            oldestDue={overdue.oldest_due}
+            onClick={() => setTab('invoices')}
+          />
+        )}
 
         <div className="cp-kpi-grid">
           <KpiCard label="Total shipments" value={fmt.int(stats?.total_shipments)} />
@@ -102,6 +121,8 @@ export default function CustomerProfile() {
               invoices={invoices}
               loading={invoicesLoading}
               showShipment
+              paginate
+              pageSize={25}
               outstandingByCurrency={outstandingByCurrency}
               emptyMessage="No invoices for this customer."
             />

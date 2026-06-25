@@ -8,7 +8,7 @@ import { useShipmentQueryContext } from './useShipmentQueryContext'
 import { useShipmentFilters } from './useShipmentFilters'
 
 export function useMapPortData() {
-  const { view } = useShipmentFilters()
+  const { view, activeModule } = useShipmentFilters()
   const queryCtx = useShipmentQueryContext()
   const { ports: portMap, loading: portsLoading } = usePorts()
   const [mapPorts, setMapPorts] = useState<MapPortPoint[]>([])
@@ -20,7 +20,7 @@ export function useMapPortData() {
 
     ;(async () => {
       const table = view === 'consols' ? 'v_consols' : 'shipments'
-      let query = supabase.from(table).select('origin, destination')
+      let query = supabase.from(table).select('origin, destination, direction')
       query = applyShipmentQueryFilters(query, queryCtx)
 
       const { data, error } = await query.limit(5000)
@@ -32,14 +32,14 @@ export function useMapPortData() {
         return
       }
 
-      setMapPorts(buildMapPorts(data ?? [], portMap))
+      setMapPorts(buildMapPorts(data ?? [], portMap, activeModule))
       setLoading(false)
     })()
 
     return () => {
       cancelled = true
     }
-  }, [view, queryCtx, portMap])
+  }, [view, queryCtx, portMap, activeModule])
 
   return { mapPorts, loading: loading || portsLoading }
 }

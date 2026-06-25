@@ -176,6 +176,7 @@ export default function ShipmentDetail() {
           <InvoicesTable
             invoices={invoices}
             loading={invoicesLoading}
+            defaultShowPaid
             emptyMessage="No invoices for this shipment."
           />
         </div>

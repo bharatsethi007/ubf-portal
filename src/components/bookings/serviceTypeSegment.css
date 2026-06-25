@@ -1,0 +1,38 @@
+.bf-segment {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #fff;
+}
+
+@media (min-width: 640px) {
+  .bf-segment { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+}
+
+.bf-segment__item {
+  padding: 8px 10px;
+  border: none;
+  border-right: 1px solid #e2e8f0;
+  background: #fff;
+  font-size: 12px;
+  font-weight: 400;
+  color: #475569;
+  cursor: pointer;
+  text-align: center;
+  line-height: 1.25;
+  transition: background 0.15s, color 0.15s;
+}
+
+.bf-segment__item:last-child { border-right: none; }
+
+.bf-segment__item:hover:not(.bf-segment__item--active) {
+  background: #f8fafc;
+}
+
+.bf-segment__item--active {
+  background: #eff6ff;
+  color: #2563eb;
+  font-weight: 500;
+}

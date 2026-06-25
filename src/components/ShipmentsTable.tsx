@@ -74,17 +74,17 @@ export default function ShipmentsTable({ rows, watchlist, onToggleWatch }: Props
                 <td>
                   <span className="port-cell">
                     <span className="flag">{flagFor(countryFromPort(s.origin))}</span>
-                    <span className="mono">{s.origin ?? '—'}</span>
+                    <span className="mono nums">{s.origin ?? '—'}</span>
                   </span>
                 </td>
                 <td>
                   <span className="port-cell">
                     <span className="flag">{flagFor(countryFromPort(s.destination))}</span>
-                    <span className="mono">{s.destination ?? '—'}</span>
+                    <span className="mono nums">{s.destination ?? '—'}</span>
                   </span>
                 </td>
-                <td className="mono">{fmtShort(s.etd)}</td>
-                <td className="mono">{fmtShort(s.eta)}</td>
+                <td className="mono nums">{fmtShort(s.etd)}</td>
+                <td className="mono nums">{fmtShort(s.eta)}</td>
                 <td>{s.vessel_flight ?? '—'}</td>
               </tr>
             )

@@ -19,14 +19,22 @@ function flagFor(country: string): string {
   return flags[country] ?? '🏳️'
 }
 
+function emptyDetail(text: string | null | undefined): { value: string; muted: boolean } {
+  const v = text?.trim()
+  return v ? { value: v, muted: false } : { value: 'No data yet', muted: true }
+}
+
 export default function ShipmentDetailsCard({ shipment }: { shipment: Shipment }) {
+  const shipper = emptyDetail(shipment.shipper_name)
+  const masterBill = emptyDetail(shipment.master_bill)
+
   return (
     <section className="card detail-card">
       <h2>Shipment Details</h2>
       <dl className="detail-facts detail-facts--stacked">
         <div>
           <dt>Shipper</dt>
-          <dd className="muted">No data yet</dd>
+          <dd className={shipper.muted ? 'muted' : undefined}>{shipper.value}</dd>
         </div>
         <div>
           <dt>Client</dt>
@@ -56,7 +64,7 @@ export default function ShipmentDetailsCard({ shipment }: { shipment: Shipment }
         </div>
         <div>
           <dt>Masterbill</dt>
-          <dd className="muted">No data yet</dd>
+          <dd className={masterBill.muted ? 'muted mono' : 'mono'}>{masterBill.value}</dd>
         </div>
         <div>
           <dt>Housebill</dt>

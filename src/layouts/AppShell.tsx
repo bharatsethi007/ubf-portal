@@ -5,6 +5,7 @@ import {
   Building2,
   Calendar,
   ChevronDown,
+  ClipboardList,
   FileText,
   LayoutDashboard,
   Menu,
@@ -17,6 +18,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Logo from '../components/Logo'
+import SidebarNavGroup, { type NavGroupDef } from '../components/SidebarNavGroup'
 import SyncButton from '../components/SyncButton'
 import { supabase } from '../supabase'
 
@@ -29,6 +31,19 @@ const NAV = [
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/users', label: 'Users', icon: Users },
 ]
+
+const BOOKINGS_NAV: NavGroupDef = {
+  id: 'bookings',
+  label: 'Bookings',
+  icon: ClipboardList,
+  basePath: '/bookings',
+  items: [
+    { to: '/bookings/EA', label: 'Export Air' },
+    { to: '/bookings/ES', label: 'Export Sea' },
+    { to: '/bookings/IA', label: 'Import Air' },
+    { to: '/bookings/IS', label: 'Import Sea' },
+  ],
+}
 
 type Props = {
   session: Session
@@ -87,7 +102,20 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
         </button>
 
         <nav className="sidebar__nav">
-          {NAV.map(({ to, label, icon: Icon, end }) => (
+          {NAV.slice(0, 3).map(({ to, label, icon: Icon, end }) => (
+            <NavLink
+              key={to}
+              to={to}
+              end={end}
+              className={({ isActive }) => `nav-link${isActive ? ' active' : ''}`}
+              onClick={() => setNavOpen(false)}
+            >
+              <Icon size={18} strokeWidth={1.75} />
+              {label}
+            </NavLink>
+          ))}
+          <SidebarNavGroup group={BOOKINGS_NAV} onNavigate={() => setNavOpen(false)} />
+          {NAV.slice(3).map(({ to, label, icon: Icon, end }) => (
             <NavLink
               key={to}
               to={to}

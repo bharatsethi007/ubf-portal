@@ -1,0 +1,137 @@
+.airline-select {
+  position: relative;
+  width: 10rem;
+  flex-shrink: 0;
+}
+
+.airline-select__btn {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-line, #e2e8f0);
+  border-radius: 6px;
+  background: var(--color-surface, #fff);
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  font-size: 13px;
+  color: var(--color-ink, #0f172a);
+}
+
+.airline-select__btn:hover {
+  border-color: #cbd5e1;
+}
+
+.airline-select__btn--empty {
+  gap: 8px;
+  color: #94a3b8;
+}
+
+.airline-select__btn--selected {
+  gap: 8px;
+  padding-right: 32px;
+  position: relative;
+}
+
+.airline-select__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.airline-select__clear {
+  position: absolute;
+  right: 8px;
+  top: 50%;
+  transform: translateY(-50%);
+  border: none;
+  background: none;
+  padding: 4px;
+  color: #94a3b8;
+  cursor: pointer;
+  line-height: 0;
+  border-radius: 4px;
+}
+
+.airline-select__clear:hover {
+  color: #475569;
+  background: #f1f5f9;
+}
+
+.airline-select__search-wrap {
+  position: relative;
+}
+
+.airline-select__input {
+  width: 100%;
+  height: 36px;
+  padding: 0 12px;
+  border: 1px solid var(--color-line, #e2e8f0);
+  border-radius: 6px;
+  font-size: 13px;
+  box-sizing: border-box;
+}
+
+.airline-select__input:focus {
+  outline: none;
+  border-color: var(--color-accent, #2563eb);
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15);
+}
+
+.airline-select__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  width: 18rem;
+  max-height: 240px;
+  overflow-y: auto;
+  margin: 0;
+  padding: 4px;
+  list-style: none;
+  border: 1px solid var(--color-line, #e2e8f0);
+  border-radius: 8px;
+  background: #fff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.airline-select__option {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  padding: 8px;
+  border: none;
+  border-radius: 6px;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+}
+
+.airline-select__option:hover {
+  background: #f8fafc;
+}
+
+.airline-select__code {
+  width: 2.5rem;
+  flex-shrink: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.airline-select__name {
+  font-size: 12px;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@media (max-width: 767px) {
+  .airline-select {
+    width: 100%;
+  }
+}
