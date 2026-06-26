@@ -14,7 +14,7 @@ import {
 import CustomersPage from './pages/CustomersPage'
 import CustomerProfile from './pages/CustomerProfile'
 import Shipments from './pages/Shipments'
-import Dashboard from './pages/Dashboard'
+import Dashboard from './pages/DashboardPage'
 import ShipmentDetail from './pages/ShipmentDetail'
 import BookingsPage from './pages/BookingsPage'
 import BookingFormPage from './pages/bookings/BookingFormPage'
