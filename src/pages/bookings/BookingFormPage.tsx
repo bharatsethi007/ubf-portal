@@ -2,9 +2,12 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import type { BookingDocumentsHandle } from '../../components/bookings/BookingDocuments'
 import ShipmentInfo from '../../components/bookings/ShipmentInfo'
-import SuggestionBubble from '../../components/bookings/SuggestionBubble'
+import UBFIntelligenceBubble from '../../components/bookings/UBFIntelligenceBubble'
+import {
+  resolveIntelligencePartyIds,
+  type IntelligenceBookingMeta,
+} from '../../components/bookings/intelligence/resolveIntelligencePartyIds'
 import TopProgressBar from '../../components/bookings/TopProgressBar'
-import type { ReferenceJob } from '../../components/bookings/jobsReferenceApi'
 import { validateSubmit, type FieldErrors } from '../../components/bookings/bookingFormValidation'
 import { getBooking, saveBooking } from '../../hooks/useBookings'
 import type { CargoLineRow } from '../../types/bookingCargoLine'
@@ -53,6 +56,7 @@ export default function BookingFormPage() {
   const [error, setError] = useState('')
   const [fieldErrors, setFieldErrors] = useState<FieldErrors>({})
   const [submitAttempted, setSubmitAttempted] = useState(false)
+  const [intelligenceMeta, setIntelligenceMeta] = useState<IntelligenceBookingMeta>({})
   const documentsRef = useRef<BookingDocumentsHandle>(null)
 
   const patch = useCallback((p: Partial<BookingFormState>) => {
@@ -63,21 +67,14 @@ export default function BookingFormPage() {
     setState((s) => ({ ...s, suppliers: rows }))
   }, [])
 
-  const shipperAccountId = state.isConsolidation
-    ? state.suppliers.find((s) => s.customer?.account_id)?.customer?.account_id
-    : state.shipperCustomer?.account_id
-  const consigneeAccountId = state.consigneeCustomer?.account_id
-  const docAccountId = consigneeAccountId ?? shipperAccountId
-
-  useEffect(() => {
-    console.log('[SuggestionBubble] inputs', {
-      shipperAccountId: shipperAccountId ?? null,
-      consigneeAccountId: consigneeAccountId ?? null,
-      origin: state.origin.trim() || null,
-      destination: state.destination.trim() || null,
-      module: mod,
-    })
-  }, [shipperAccountId, consigneeAccountId, state.origin, state.destination, mod])
+  const { supplierAccountId, consigneeAccountId } = resolveIntelligencePartyIds(state, intelligenceMeta)
+  const docAccountId = consigneeAccountId ?? supplierAccountId
+  const supplierName = state.isConsolidation
+    ? (state.suppliers.find((s) => s.customer?.account_id === supplierAccountId)?.companyName
+      || state.suppliers.find((s) => s.customer?.account_id)?.customer?.name
+      || 'Supplier')
+    : (state.shipperCompany.trim() || state.shipperCustomer?.name || 'Supplier')
+  const consigneeName = state.consigneeCompany.trim() || state.consigneeCustomer?.name || 'Consignee'
 
   useEffect(() => {
     if (!bookingId) return
@@ -88,6 +85,14 @@ export default function BookingFormPage() {
       .then(({ booking, suppliers, cargoLines: dbLines, documents: docs }) => {
         if (cancelled) return
         setState(formFromBooking(booking, suppliers))
+        setIntelligenceMeta({
+          accountId: booking.account_id,
+          consigneeAccountId: booking.consignee_account_id,
+          firstSupplierAccountId: suppliers[0]?.supplier_account_id,
+          bookingRef: booking.booking_ref,
+          vessel: booking.vessel ?? null,
+          voyage: booking.voyage ?? null,
+        })
         setCargoLines(dbLines.length ? cargoLinesFromDb(dbLines) : cargoLinesFromBookingHeader(booking))
         setDocuments(docs)
         setStatus(booking.status)
@@ -102,21 +107,6 @@ export default function BookingFormPage() {
       cancelled = true
     }
   }, [bookingId])
-
-  const copyCargoFromJob = useCallback((job: ReferenceJob) => {
-    setCargoLines((lines) => {
-      const next = lines.length ? [...lines] : [newCargoLine()]
-      const row = { ...next[0] }
-      if (job.goods_desc) row.goodsDesc = job.goods_desc
-      if (job.pack_qty != null) row.pieces = String(job.pack_qty)
-      if (job.weight_kg != null) {
-        row.weight = String(job.weight_kg)
-        row.weightUnit = 'KG'
-      }
-      next[0] = row
-      return next
-    })
-  }, [])
 
   async function handleSave(nextStatus: BookingStatus) {
     setError('')
@@ -204,14 +194,18 @@ export default function BookingFormPage() {
         </div>
       </div>
 
-      <SuggestionBubble
-        shipperAccountId={shipperAccountId}
-        consigneeAccountId={consigneeAccountId}
-        origin={state.origin}
-        destination={state.destination}
-        module={mod}
-        onCopyCargo={copyCargoFromJob}
-      />
+      {!loading && (
+        <UBFIntelligenceBubble
+          supplierAccountId={supplierAccountId}
+          consigneeAccountId={consigneeAccountId}
+          supplierName={supplierName}
+          consigneeName={consigneeName}
+          formState={state}
+          cargoLines={cargoLines}
+          intelligenceMeta={intelligenceMeta}
+          module={mod}
+        />
+      )}
     </div>
   )
 }
