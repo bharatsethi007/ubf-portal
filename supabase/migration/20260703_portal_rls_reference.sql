@@ -1,0 +1,42 @@
+-- 20260703_portal_rls_reference.sql
+-- REFERENCE ONLY — do NOT apply. Verified 2026-07-03: equivalent policies already exist.
+--
+-- Existing policies (pg_policies):
+--   shipments.own_shipments:
+--     customer_account_id IN (SELECT account_id FROM portal_users WHERE user_id = auth.uid())
+--   containers.own_containers:
+--     EXISTS (SELECT 1 FROM shipments sh
+--       WHERE sh.consol_key = containers.consol_key
+--         AND sh.customer_account_id IN (SELECT account_id FROM portal_users WHERE user_id = auth.uid()))
+--   invoices.own_invoices:
+--     account_id IN (SELECT account_id FROM portal_users WHERE user_id = auth.uid())
+--
+-- If ever missing on a fresh project, apply the block below:
+
+-- alter table public.shipments enable row level security;
+-- drop policy if exists own_shipments on public.shipments;
+-- create policy own_shipments on public.shipments
+--   for select to authenticated
+--   using (customer_account_id::text in (
+--     select account_id from portal_users where user_id = auth.uid()
+--   ));
+--
+-- alter table public.containers enable row level security;
+-- drop policy if exists own_containers on public.containers;
+-- create policy own_containers on public.containers
+--   for select to authenticated
+--   using (exists (
+--     select 1 from shipments sh
+--     where sh.consol_key = containers.consol_key
+--       and sh.customer_account_id::text in (
+--         select account_id from portal_users where user_id = auth.uid()
+--       )
+--   ));
+--
+-- alter table public.invoices enable row level security;
+-- drop policy if exists own_invoices on public.invoices;
+-- create policy own_invoices on public.invoices
+--   for select to authenticated
+--   using (account_id in (
+--     select account_id from portal_users where user_id = auth.uid()
+--   ));

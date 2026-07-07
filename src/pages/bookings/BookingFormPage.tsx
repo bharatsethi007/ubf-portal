@@ -35,6 +35,9 @@ import ConsigneeSection from './sections/ConsigneeSection'
 import DocumentsSection from './sections/DocumentsSection'
 import NotesSection from './sections/NotesSection'
 import ShipperSection from './sections/ShipperSection'
+import SliErrorBoundary from '../../features/sli/staff/SliErrorBoundary'
+import SliTab from '../../features/sli/staff/SliTab'
+import { SectionCard } from './formUi'
 import './bookingFormPage.css'
 import '../../components/bookings/bookingForm.css'
 
@@ -191,6 +194,15 @@ export default function BookingFormPage() {
               documentsRef={documentsRef}
             />
           </div>
+          <SectionCard id="sli" title="SLI">
+            {bookingId ? (
+              <SliErrorBoundary>
+                <SliTab bookingId={bookingId} isConsolidation={state.isConsolidation} />
+              </SliErrorBoundary>
+            ) : (
+              <p className="muted">Save the booking to manage SLIs.</p>
+            )}
+          </SectionCard>
         </div>
       </div>
 

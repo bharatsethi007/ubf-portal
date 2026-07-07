@@ -559,6 +559,19 @@ a:hover { text-decoration: underline; }
 .portal-access__btn { width: auto; margin: 0; padding: 8px 14px; font-size: 13px; }
 .portal-access__success { margin: 8px 0 0; font-size: 13px; color: var(--arrived); }
 .portal-access__empty { margin: 0 0 12px; font-size: 13px; }
+.portal-access__user { display: flex; flex-direction: column; gap: 4px; min-width: 0; }
+.portal-access__actions { display: flex; gap: 10px; flex-shrink: 0; }
+.portal-access-pill {
+  display: inline-flex; align-items: center; width: fit-content;
+  padding: 2px 8px; border-radius: 999px; font-size: 11px; font-weight: 500;
+}
+.portal-access-pill--pending { background: #fdf3d7; color: #92600a; }
+.portal-access-pill--active { background: #e4f7ec; color: #1a7a45; }
+.portal-access-pill--revoked { background: #eff0f3; color: #6b7280; }
+.portal-access-link { margin-top: 12px; padding: 12px; border: 1px solid var(--line); border-radius: 8px; background: #f8fafc; }
+.portal-access-link__hint { margin: 0 0 8px; font-size: 12.5px; color: var(--muted); }
+.portal-access-link__row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+.portal-access-link__input { flex: 1; min-width: 200px; font-size: 12px; }
 
 .dashboard-workspace {
   display: grid; grid-template-columns: 220px minmax(0, 1fr) 240px;

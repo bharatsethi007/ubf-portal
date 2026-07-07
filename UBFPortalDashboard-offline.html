@@ -1,0 +1,247 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>UB Freight · Customer Portal</title>
+<link rel="preconnect" href="https://api.fontshare.com" />
+<link href="https://api.fontshare.com/v2/css?f[]=general-sans@400,500,600,700&display=swap" rel="stylesheet" />
+<style>
+  :root{
+    --bg:#F4F5F7;--card:#fff;--ink:#171A21;--ink2:#3C414D;--muted:#8A90A0;--faint:#B7BCC8;
+    --line:#ECEEF2;--line2:#E4E7EC;--blue:#3B5BFE;--blueSoft:#EBEFFF;--dark:#12141C;
+    --green:#2FBF71;--greenBg:#E4F7EC;--amber:#F0B429;--amberBg:#FDF3D7;--orange:#F5843C;--orangeBg:#FCEADD;--red:#F0553D;--grey:#6B7280;--greyBg:#EFF0F3;
+    --sh:0 1px 2px rgba(16,24,40,.04),0 8px 24px rgba(16,24,40,.05);
+    --gs:'General Sans','Segoe UI',system-ui,sans-serif;
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0}
+  body{background:var(--bg);font-family:var(--gs);color:var(--ink);-webkit-font-smoothing:antialiased}
+  ::-webkit-scrollbar{width:9px;height:9px}::-webkit-scrollbar-thumb{background:#D5D9E2;border-radius:9px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:18px;box-shadow:var(--sh)}
+  .h{font-weight:600;letter-spacing:-.01em;color:var(--ink)}
+  button{font-family:var(--gs)}
+  table{width:100%;border-collapse:collapse}
+  th{text-align:left;font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.04em;padding:10px 8px;border-bottom:1px solid var(--line)}
+  td{padding:13px 8px;border-bottom:1px solid var(--line)}
+  .pill{font-size:11.5px;font-weight:600;padding:4px 11px;border-radius:20px;white-space:nowrap}
+  .navbtn{position:relative;border:none;background:transparent;cursor:pointer;font-weight:500;font-size:14px;padding:20px 14px;color:var(--muted)}
+  .navbtn.on{color:var(--ink)}
+  .navbtn.on::after{content:"";position:absolute;left:14px;right:14px;bottom:0;height:2.5px;background:var(--ink);border-radius:3px}
+  .seg{border:none;cursor:pointer;padding:7px 13px;border-radius:8px;font-size:12.5px;font-weight:600;color:var(--muted);background:transparent}
+  .seg.on{color:var(--ink);background:var(--greyBg)}
+  .stab{font-size:13px;font-weight:600;padding:7px 13px;border-radius:9px;cursor:pointer;color:var(--muted)}
+  .stab.on{color:#fff;background:var(--dark)}
+  .caltog{border:none;cursor:pointer;padding:5px 13px;border-radius:8px;font-size:12.5px;font-weight:600;text-transform:capitalize;color:var(--muted);background:transparent}
+  .caltog.on{color:#fff;background:var(--blue)}
+  .row{display:grid;gap:16px}
+</style>
+</head>
+<body>
+<div id="app"></div>
+
+<script>
+const C = getComputedStyle(document.documentElement);
+const v = n => C.getPropertyValue(n).trim();
+const COL = {blue:"#3B5BFE",orange:"#F5843C"};
+
+/* ── data ── */
+const PORTS = {
+  Shanghai:{ll:[121.47,31.23],n:"Shanghai",f:"🇨🇳"}, Ningbo:{ll:[121.54,29.87],n:"Ningbo",f:"🇨🇳"},
+  Yantian:{ll:[114.27,22.56],n:"Yantian",f:"🇨🇳"}, Singapore:{ll:[103.85,1.29],n:"Singapore",f:"🇸🇬"},
+  Melbourne:{ll:[144.96,-37.81],n:"Melbourne",f:"🇦🇺"}, Sydney:{ll:[151.21,-33.87],n:"Sydney",f:"🇦🇺"},
+  Auckland:{ll:[174.76,-36.84],n:"Auckland",f:"🇳🇿"}, Tauranga:{ll:[176.16,-37.68],n:"Tauranga",f:"🇳🇿"},
+  Suva:{ll:[178.44,-18.14],n:"Suva",f:"🇫🇯"}, LosAngeles:{ll:[-118.27,33.74],n:"Los Angeles",f:"🇺🇸"},
+};
+const LANES = [
+  {from:"Shanghai",to:"Auckland",dir:"import",mode:"sea",n:42},
+  {from:"Yantian",to:"Auckland",dir:"import",mode:"sea",n:27},
+  {from:"Ningbo",to:"Tauranga",dir:"import",mode:"sea",n:18},
+  {from:"Singapore",to:"Auckland",dir:"import",mode:"sea",n:12},
+  {from:"Melbourne",to:"Auckland",dir:"import",mode:"sea",n:8},
+  {from:"Auckland",to:"Sydney",dir:"export",mode:"sea",n:15},
+  {from:"Auckland",to:"Suva",dir:"export",mode:"sea",n:9},
+  {from:"Auckland",to:"LosAngeles",dir:"export",mode:"air",n:6},
+];
+const BUBBLES = (()=>{const m={};LANES.forEach(l=>[l.from,l.to].forEach(p=>{m[p]=m[p]||{key:p,...PORTS[p],vol:0,imp:0,exp:0};m[p].vol+=l.n;l.dir==="import"?m[p].imp+=l.n:m[p].exp+=l.n;}));return Object.values(m);})();
+const SHIP=[
+ {name:"Homeware retail restock",tid:"FIS-2291",from:["🇨🇳","Shanghai","ETD Jul 1"],to:["🇳🇿","Auckland","ETA Jul 4"],cargo:"Kitchenware · 2×40'HC",car:["CMA-CGM","🚢"],st:"In Transit"},
+ {name:"Store fixtures Q3",tid:"FIS-2288",from:["🇨🇳","Ningbo","ETD Jun 28"],to:["🇳🇿","Tauranga","ETA Jul 6"],cargo:"Fixtures · LCL",car:["Maersk","🚢"],st:"At Origin"},
+ {name:"Chilled produce export",tid:"FEA-1140",from:["🇳🇿","Auckland","ETD Jul 2"],to:["🇺🇸","Los Angeles","ETA Jul 3"],cargo:"Produce · 380kg",car:["Qatar Air","✈️"],st:"Departure"},
+ {name:"Machinery import",tid:"FIS-2276",from:["🇨🇳","Yantian","ETD Jun 25"],to:["🇳🇿","Auckland","ETA Jul 9"],cargo:"Parts · 1×20'",car:["ONE","🚢"],st:"In Transit"},
+ {name:"Fiji distribution",tid:"FES-0902",from:["🇳🇿","Auckland","ETD Jun 30"],to:["🇫🇯","Suva","ETA Jul 7"],cargo:"FMCG · 1×40'",car:["UBF","🚢"],st:"At Destination"},
+ {name:"Retail apparel",tid:"FIS-2255",from:["🇸🇬","Singapore","ETD Jun 20"],to:["🇳🇿","Auckland","ETA Jul 1"],cargo:"Apparel · LCL",car:["CMA-CGM","🚢"],st:"Delivered"},
+];
+const ATTN=[
+ {ref:"FIS-2288",lane:"Ningbo → Tauranga",flag:"Customs hold · MPI inspection",eta:"Jul 6",sev:"high",mode:"🚢"},
+ {ref:"FIS-2291",lane:"Shanghai → Auckland",flag:"Cargo rolled from booked vessel",eta:"Jul 4",sev:"high",mode:"🚢"},
+ {ref:"FEA-1140",lane:"Auckland → Los Angeles",flag:"Awaiting SLI confirmation",eta:"Jul 3",sev:"med",mode:"✈️"},
+ {ref:"FIS-2276",lane:"Yantian → Auckland",flag:"2 days free time left · detention risk",eta:"Jul 9",sev:"med",mode:"🚢"},
+];
+const CAL={arrive:{3:2,4:4,6:1,8:3,9:2,11:1,15:2,18:1,22:3},depart:{2:1,3:1,5:2,7:1,10:2,14:1,17:2,21:1,24:2}};
+const STPILL={"At Origin":["--grey","--greyBg"],"In Transit":["--blue","--blueSoft"],"Picked up":["--amber","--amberBg"],"Departure":["--orange","--orangeBg"],"At Destination":["--orange","--orangeBg"],"Delivered":["--green","--greenBg"]};
+
+/* ── globe math (hand-rolled orthographic + slerp) ── */
+const D2R=Math.PI/180;
+function vec(lon,lat){const la=lat*D2R,lo=lon*D2R,c=Math.cos(la);return[c*Math.cos(lo),c*Math.sin(lo),Math.sin(la)];}
+Object.values(PORTS).forEach(p=>p.v=vec(p.ll[0],p.ll[1]));
+function project(vv,lon0,lat0,R,cx,cy){
+  const clo=Math.cos(lon0*D2R),slo=Math.sin(lon0*D2R),cla=Math.cos(lat0*D2R),sla=Math.sin(lat0*D2R);
+  const x=vv[0],y=vv[1],z=vv[2];
+  const x1=x*clo+y*slo, y1=-x*slo+y*clo, z1=z;
+  const x2=x1*cla+z1*sla, y2=y1, z2=-x1*sla+z1*cla;
+  return[cx+R*y2, cy-R*z2, x2];
+}
+function slerp(a,b,n){
+  const dot=Math.max(-1,Math.min(1,a[0]*b[0]+a[1]*b[1]+a[2]*b[2]));
+  const om=Math.acos(dot),so=Math.sin(om)||1e-6,out=[];
+  for(let i=0;i<=n;i++){const t=i/n,s0=Math.sin((1-t)*om)/so,s1=Math.sin(t*om)/so;out.push([a[0]*s0+b[0]*s1,a[1]*s0+b[1]*s1,a[2]*s0+b[2]*s1]);}
+  return out;
+}
+const DOTS=[];for(let lat=-76;lat<=76;lat+=5)for(let lon=-180;lon<180;lon+=5)DOTS.push(vec(lon,lat));
+const GRAT=[];
+for(let lon=-180;lon<=180;lon+=20){const line=[];for(let lat=-80;lat<=80;lat+=4)line.push(vec(lon,lat));GRAT.push(line);}
+for(let lat=-60;lat<=60;lat+=20){const line=[];for(let lon=-180;lon<=180;lon+=4)line.push(vec(lon,lat));GRAT.push(line);}
+const ARCS=LANES.map(l=>({...l,pts:slerp(PORTS[l.from].v,PORTS[l.to].v,50)}));
+
+function runGlobe(canvas,tipEl){
+  const ctx=canvas.getContext("2d"),dpr=Math.min(devicePixelRatio||1,2);
+  let W=0,H=410,R=0,cx=0,cy=0,t=0,off=0,hover=false,raf;
+  const reduce=matchMedia("(prefers-reduced-motion: reduce)").matches;
+  const wrap=canvas.parentElement;
+  function resize(){W=wrap.clientWidth;canvas.width=W*dpr;canvas.height=H*dpr;canvas.style.width=W+"px";canvas.style.height=H+"px";ctx.setTransform(dpr,0,0,dpr,0,0);R=Math.min(W,H)/2-26;cx=W/2;cy=H/2;}
+  resize();new ResizeObserver(resize).observe(wrap);
+  const view=[];
+  function poly(pts,lon0,lat0){let started=false;ctx.beginPath();for(const p of pts){const q=project(p,lon0,lat0,R,cx,cy);if(q[2]>0){if(!started){ctx.moveTo(q[0],q[1]);started=true;}else ctx.lineTo(q[0],q[1]);}else started=false;}}
+  function draw(){
+    if(!hover&&!reduce){t+=0.005;off+=0.4;}
+    const lon0=158+Math.sin(t)*10, lat0=-6+Math.cos(t*0.7)*3;
+    ctx.clearRect(0,0,W,H);
+    const g=ctx.createRadialGradient(cx-R*.3,cy-R*.3,R*.1,cx,cy,R);
+    g.addColorStop(0,"#FBFCFE");g.addColorStop(.7,"#EEF2FA");g.addColorStop(1,"#E2E8F4");
+    ctx.beginPath();ctx.arc(cx,cy,R,0,7);ctx.fillStyle=g;ctx.fill();ctx.lineWidth=1;ctx.strokeStyle="#DCE2EE";ctx.stroke();
+    ctx.strokeStyle="rgba(150,162,196,.16)";ctx.lineWidth=.7;GRAT.forEach(l=>{poly(l,lon0,lat0);ctx.stroke();});
+    for(const d of DOTS){const q=project(d,lon0,lat0,R,cx,cy);if(q[2]<=0)continue;const op=Math.max(0,.42*q[2]);ctx.beginPath();ctx.arc(q[0],q[1],.95,0,7);ctx.fillStyle="rgba(150,162,196,"+op+")";ctx.fill();}
+    ARCS.forEach(a=>{const col=a.dir==="import"?COL.blue:COL.orange;poly(a.pts,lon0,lat0);ctx.setLineDash([]);ctx.strokeStyle=col+"22";ctx.lineWidth=4;ctx.stroke();poly(a.pts,lon0,lat0);ctx.setLineDash([1.5,8]);ctx.lineDashOffset=-off*(a.mode==="air"?1.6:1);ctx.strokeStyle=col;ctx.lineWidth=1.6;ctx.lineCap="round";ctx.stroke();});
+    ctx.setLineDash([]);view.length=0;const pulse=(Math.sin(t*6)+1)/2;
+    BUBBLES.forEach(b=>{const q=project(b.v,lon0,lat0,R,cx,cy);if(q[2]<=0)return;const col=b.imp>=b.exp?COL.blue:COL.orange;const r=3+Math.sqrt(b.vol)*1.25;view.push({b,x:q[0],y:q[1],r});ctx.beginPath();ctx.arc(q[0],q[1],r+4+pulse*5,0,7);ctx.fillStyle=col+"1A";ctx.fill();ctx.beginPath();ctx.arc(q[0],q[1],r,0,7);ctx.fillStyle="#fff";ctx.fill();ctx.lineWidth=2;ctx.strokeStyle=col;ctx.stroke();ctx.beginPath();ctx.arc(q[0],q[1],r*.42,0,7);ctx.fillStyle=col;ctx.fill();});
+    raf=requestAnimationFrame(draw);
+  }
+  draw();
+  canvas.onmousemove=e=>{const rc=canvas.getBoundingClientRect(),mx=e.clientX-rc.left,my=e.clientY-rc.top;let hit=null;for(const q of view)if(Math.hypot(mx-q.x,my-q.y)<q.r+6){hit=q;break;}
+    if(hit){tipEl.style.display="block";tipEl.style.left=(mx+14)+"px";tipEl.style.top=(my-6)+"px";tipEl.innerHTML=`<div style="font-weight:600;font-size:14px">${hit.b.f} ${hit.b.n}</div><div style="display:flex;gap:12px;margin-top:5px"><span style="font-size:12px;color:${COL.blue};font-weight:600">↓ ${hit.b.imp} in</span><span style="font-size:12px;color:${COL.orange};font-weight:600">↑ ${hit.b.exp} out</span></div>`;}
+    else tipEl.style.display="none";};
+  canvas.onmouseenter=()=>hover=true;canvas.onmouseleave=()=>{hover=false;tipEl.style.display="none";};
+}
+
+/* ── markup helpers ── */
+function spark(up){const pts=up?[8,6,7,4,5,3,2]:[3,4,3,5,4,6,5];const w=62,h=22,mx=Math.max(...pts),mn=Math.min(...pts);const d=pts.map((p,i)=>((i/(pts.length-1))*w)+","+(h-((p-mn)/(mx-mn))*h)).join(" ");return `<svg width="${w}" height="${h}"><polyline points="${d}" fill="none" stroke="${up?v('--green'):v('--red')}" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>`;}
+function statusPill(s){const[cc,bb]=STPILL[s]||["--grey","--greyBg"];return `<span class="pill" style="color:${v(cc)};background:${v(bb)}">${s}</span>`;}
+function kpiOverview(){const items=[["Booked",67,"96.3%",1],["In Transit",23,"66.4%",1],["Departing",32,"94.3%",1],["Arriving",12,"3.6%",0]];
+  return `<div class="card" style="padding:18px 20px"><span class="h" style="font-size:16px">Shipment overview</span>
+    <div style="display:flex;justify-content:space-between;margin-top:16px">${items.map(([l,val,d,up])=>`<div><div style="color:var(--muted);font-size:12px;margin-bottom:8px">${l}</div><div style="margin-bottom:6px">${spark(up)}</div><div style="display:flex;align-items:baseline;gap:6px"><span class="h" style="font-size:24px">${val}</span><span style="font-size:12px;font-weight:600;color:${up?v('--green'):v('--red')}">${up?"↗":"↘"} ${d}</span></div></div>`).join("")}</div></div>`;}
+
+function render(){
+  const NAV=["Dashboard","Shipments","Quotes","Track shipment","Billing"];
+  const RANGE=["Last year","Last month","This week","Today","Custom"];
+  document.getElementById("app").innerHTML=`
+  <div style="position:sticky;top:0;z-index:20;background:#fff;border-bottom:1px solid var(--line);height:62px;display:flex;align-items:center;gap:30px;padding:0 26px">
+    <div style="display:flex;align-items:center;gap:8px"><div style="width:24px;height:24px;border-radius:50%;border:3px solid var(--blue);border-top-color:transparent;transform:rotate(45deg)"></div><span class="h" style="font-weight:700;font-size:18px">UB Freight</span></div>
+    <div style="display:flex;gap:2px">${NAV.map((n,i)=>`<button class="navbtn ${i===0?'on':''}">${n}</button>`).join("")}</div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:16px;color:var(--muted);font-size:16px">
+      <span>🔍</span><span>↻</span><span>🔔</span>
+      <div style="display:flex;align-items:center;gap:8px;padding-left:8px;border-left:1px solid var(--line)"><span style="font-size:13.5px;color:var(--ink2);font-weight:500">Customer portal ▾</span><div style="width:32px;height:32px;border-radius:50%;background:linear-gradient(135deg,#4a6bff,#8aa2ff);display:grid;place-items:center;color:#fff;font-weight:600;font-size:12px">PL</div></div>
+    </div>
+  </div>
+
+  <div style="max-width:1340px;margin:0 auto;padding:26px">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:14px;margin-bottom:22px">
+      <div><div class="h" style="font-size:28px;letter-spacing:-.02em">Dashboard overview</div><div style="color:var(--muted);font-size:13px;margin-top:3px">Last updated: Thu 2 Jul 2026, 09:45 AM</div></div>
+      <div style="display:flex;align-items:center;gap:14px">
+        <div id="rangeSeg" style="display:flex;gap:2px;background:#fff;border:1px solid var(--line);border-radius:11px;padding:3px">${RANGE.map((r,i)=>`<button class="seg ${r==='This week'?'on':''}">${r}</button>`).join("")}</div>
+        <button style="display:inline-flex;align-items:center;gap:8px;border:none;cursor:pointer;background:var(--blue);color:#fff;font-weight:600;font-size:14px;padding:10px 18px;border-radius:11px">+ Create New <span style="opacity:.5">|</span> ▾</button>
+      </div>
+    </div>
+
+    <div class="row" style="grid-template-columns:1.8fr 1fr 1fr;margin-bottom:18px">
+      ${kpiOverview()}
+      <div class="card" style="padding:18px 20px"><span class="h" style="font-size:16px">Containers</span>
+        <div style="display:flex;align-items:center;gap:14px;margin-top:14px"><div class="h" style="font-size:34px">2375</div><div style="font-size:12px;color:var(--muted);line-height:1.7"><div><b style="color:var(--ink)">960</b> · Active</div><div><b style="color:var(--ink)">1415</b> · Completed</div></div></div>
+        <div style="color:var(--faint);font-size:11.5px;margin-top:10px">Booked this year</div></div>
+      <div class="card" style="padding:18px 20px"><span class="h" style="font-size:16px">Pending payments</span>
+        <div class="h" style="font-size:30px;margin-top:14px">$25,678.32</div>
+        <div style="color:var(--orange);font-size:12px;font-weight:600;margin-top:8px">20 invoices left ›</div></div>
+    </div>
+
+    <div class="row" style="grid-template-columns:1.75fr 1fr;margin-bottom:18px">
+      <div class="card" style="padding:18px 18px 4px;overflow:hidden">
+        <div style="display:flex;align-items:center;justify-content:space-between">
+          <div style="display:flex;align-items:center;gap:9px"><span>📍</span><span class="h" style="font-size:16px">Live shipments</span><span style="font-size:12px;color:var(--muted)">· 97 in transit</span></div>
+          <div style="display:flex;gap:16px;font-size:12.5px">
+            <span style="color:var(--blue);display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:var(--blue)"></span> Imports</span>
+            <span style="color:var(--orange);display:flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:4px;background:var(--orange)"></span> Exports</span>
+          </div>
+        </div>
+        <div style="position:relative;width:100%"><canvas id="globe" style="display:block;cursor:pointer"></canvas><div id="tip" style="display:none;position:absolute;background:#fff;border:1px solid var(--line2);border-radius:12px;padding:9px 12px;box-shadow:0 8px 28px rgba(16,24,40,.14);z-index:5;min-width:150px;pointer-events:none"></div></div>
+      </div>
+      <div class="card" style="padding:20px">
+        <div style="display:flex;align-items:center;gap:9px;margin-bottom:16px"><span>⚠️</span><span class="h" style="font-size:16px">Needs attention</span></div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+        ${ATTN.map(s=>`<div style="padding:13px;border-radius:13px;border:1px solid ${s.sev==='high'?'#F7CFC7':v('--line2')};background:${s.sev==='high'?'#FEF6F4':'#FAFBFC'};cursor:pointer">
+          <div style="display:flex;justify-content:space-between;align-items:center"><span style="font-weight:600;font-size:13px">${s.ref}</span><span style="font-size:12px">${s.mode}</span></div>
+          <div style="color:var(--muted);font-size:12px;margin-top:3px">${s.lane}</div>
+          <div style="display:flex;align-items:center;gap:6px;margin-top:9px"><span style="width:6px;height:6px;border-radius:3px;background:${s.sev==='high'?v('--red'):v('--amber')}"></span><span style="font-size:11.5px;color:${s.sev==='high'?v('--red'):'#B7860B'};font-weight:600">${s.flag}</span><span style="margin-left:auto;font-size:11px;color:var(--muted)">🕐 ${s.eta}</span></div>
+        </div>`).join("")}
+        </div>
+      </div>
+    </div>
+
+    <div class="row" style="grid-template-columns:1.75fr 1fr">
+      <div class="card" style="padding:20px">
+        <div><span class="h" style="font-size:17px">My Shipments</span><div style="color:var(--muted);font-size:12.5px;margin-top:2px">Track all your bookings & stay updated</div></div>
+        <div id="shipTabs" style="display:flex;gap:4px;margin:16px 0 8px">${["All","In Transit","Arriving","Departing"].map((t,i)=>`<span class="stab ${i===0?'on':''}">${t}</span>`).join("")}</div>
+        <table><thead><tr>${["Name / Tracking","From","To","Cargo","Mode","Status"].map(h=>`<th>${h}</th>`).join("")}</tr></thead>
+        <tbody>${SHIP.map(s=>`<tr>
+          <td><div style="font-size:13.5px;font-weight:600">${s.name}</div><div style="font-size:12px;color:var(--blue)">#${s.tid}</div></td>
+          <td><div style="font-size:13px;color:var(--ink2)">${s.from[0]} ${s.from[1]}</div><div style="font-size:11.5px;color:var(--muted)">${s.from[2]}</div></td>
+          <td><div style="font-size:13px;color:var(--ink2)">${s.to[0]} ${s.to[1]}</div><div style="font-size:11.5px;color:var(--muted)">${s.to[2]}</div></td>
+          <td style="font-size:12.5px;color:var(--ink2)">${s.cargo}</td>
+          <td><span style="display:inline-flex;align-items:center;gap:7px"><span style="width:26px;height:26px;border-radius:8px;background:var(--greyBg);display:grid;place-items:center;font-size:13px">${s.car[1]}</span><span style="font-size:12.5px;color:var(--ink2);font-weight:500">${s.car[0]}</span></span></td>
+          <td>${statusPill(s.st)}</td></tr>`).join("")}</tbody></table>
+      </div>
+      <div class="card" style="padding:20px" id="calCard"></div>
+    </div>
+  </div>`;
+
+  renderCal("month");
+  runGlobe(document.getElementById("globe"),document.getElementById("tip"));
+  // interactions
+  wire("#rangeSeg .seg"); wire("#shipTabs .stab");
+  document.querySelectorAll(".navbtn").forEach(b=>b.onclick=()=>{document.querySelectorAll(".navbtn").forEach(x=>x.classList.remove("on"));b.classList.add("on");});
+}
+function wire(sel){const els=document.querySelectorAll(sel);els.forEach(e=>e.onclick=()=>{els.forEach(x=>x.classList.remove("on"));e.classList.add("on");});}
+
+function renderCal(view){
+  const days=view==="month"?30:7,start=view==="month"?1:2,cols=view==="month"?6:7;
+  let cells="";
+  for(let i=0;i<days;i++){const d=start+i,a=CAL.arrive[d],dep=CAL.depart[d],on=a||dep;
+    cells+=`<div style="aspect-ratio:${view==="month"?"1.4":"0.95"};border-radius:10px;padding:6px 8px;background:${on?'#fff':'#FAFBFC'};border:1px solid ${on?v('--line2'):v('--line')};display:flex;flex-direction:column;justify-content:space-between">
+      <span style="font-size:12px;color:${on?v('--ink'):v('--faint')};font-weight:600">${d}</span>
+      <div style="display:flex;gap:4px;flex-wrap:wrap">${a?`<span style="font-size:10.5px;font-weight:700;color:#fff;background:var(--blue);border-radius:5px;padding:1px 5px">↓${a}</span>`:""}${dep?`<span style="font-size:10.5px;font-weight:700;color:#fff;background:var(--orange);border-radius:5px;padding:1px 5px">↑${dep}</span>`:""}</div></div>`;}
+  document.getElementById("calCard").innerHTML=`
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px">
+      <div style="display:flex;align-items:center;gap:9px"><span>📅</span><span class="h" style="font-size:16px">Schedule</span><span style="color:var(--muted);font-size:13px">July 2026</span></div>
+      <div style="display:flex;gap:3px;background:var(--greyBg);padding:3px;border-radius:10px"><button class="caltog ${view==='week'?'on':''}" data-v="week">week</button><button class="caltog ${view==='month'?'on':''}" data-v="month">month</button></div>
+    </div>
+    <div style="display:flex;gap:16px;margin-bottom:12px;font-size:12px">
+      <span style="color:var(--blue);display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:4px;background:var(--blue)"></span> Arrivals</span>
+      <span style="color:var(--orange);display:flex;align-items:center;gap:5px"><span style="width:8px;height:8px;border-radius:4px;background:var(--orange)"></span> Departures</span>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(${cols},1fr);gap:6px">${cells}</div>`;
+  document.querySelectorAll("#calCard .caltog").forEach(b=>b.onclick=()=>renderCal(b.dataset.v));
+}
+
+render();
+</script>
+</body>
+</html>

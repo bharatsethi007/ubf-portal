@@ -5,9 +5,12 @@ import { CustomerInfoAddressCard } from './CustomerInfoAddressCard';
 import {
   fetchContacts, fetchPortalUsers, fetchMeta, fetchCustomerSync, saveMeta,
   grantPortalAccess, revokePortalAccess,
+  regeneratePortalLink,
   resolveCustomerAddress,
-  type Contact, type PortalUser, type CustomerMeta, type CustomerSync,
+  type Contact, type PortalUser, type PortalActivateResult, type CustomerMeta, type CustomerSync,
 } from './customerInfoApi';
+import PortalLinkCopy from '../portalAccess/PortalLinkCopy';
+import PortalStatusPill from '../portalAccess/PortalStatusPill';
 import { Card, fmt } from './profileUi';
 
 export function CustomerInfoTab({
@@ -134,12 +137,17 @@ function PortalCard({
   const [email, setEmail] = useState('');
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [issuedLink, setIssuedLink] = useState<PortalActivateResult | null>(null);
 
-  const invite = async () => {
+  const activate = async () => {
     if (!email.trim()) return;
-    setBusy(true); setErr(null);
-    try { await grantPortalAccess(accountId, email); setEmail(''); await onChange(); }
-    catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); }
+    setBusy(true); setErr(null); setIssuedLink(null);
+    try {
+      const result = await grantPortalAccess(accountId, email);
+      setIssuedLink(result);
+      setEmail('');
+      await onChange();
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); }
     finally { setBusy(false); }
   };
   const revoke = async (uid: string) => {
@@ -148,33 +156,56 @@ function PortalCard({
     catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); }
     finally { setBusy(false); }
   };
+  const regen = async (uid: string) => {
+    setBusy(true); setErr(null);
+    try {
+      const result = await regeneratePortalLink(uid);
+      setIssuedLink(result);
+    } catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); }
+    finally { setBusy(false); }
+  };
 
   return (
     <Card title="Portal access" action={
       <span className={`cp-badge ${active ? 'cp-badge--emerald' : 'cp-badge--slate'}`}>{active ? 'Active' : 'No access'}</span>
     }>
-      {portal.length > 0 && (
+      {portal.length === 0 ? (
+        <p className="cp-note" style={{ marginBottom: 12 }}>No portal access yet. Activate to give this customer online tracking.</p>
+      ) : (
         <div className="cp-portal-list">
           {portal.map((p) => (
             <div key={p.user_id} className="cp-portal-row">
               <div>
-                <div className="cp-contact-name">{p.email || p.user_id}</div>
-                <div className="cp-contact-sub">Since {fmt.date(p.created_at)}</div>
+                <div className="cp-contact-name" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
+                  {p.email || p.user_id}
+                  <PortalStatusPill status={p.status} />
+                </div>
+                <div className="cp-contact-sub">
+                  {p.status === 'active' && p.activated_at ? `Active since ${fmt.date(p.activated_at)}` : `Since ${fmt.date(p.created_at)}`}
+                </div>
               </div>
-              <button className="cp-btn cp-btn--sm cp-btn--danger" disabled={busy} onClick={() => revoke(p.user_id)}>Revoke</button>
+              <div style={{ display: 'flex', gap: 8 }}>
+                {p.status === 'pending' && (
+                  <button className="cp-btn cp-btn--sm" disabled={busy} onClick={() => regen(p.user_id)}>Copy link</button>
+                )}
+                {p.status !== 'revoked' && (
+                  <button className="cp-btn cp-btn--sm cp-btn--danger" disabled={busy} onClick={() => revoke(p.user_id)}>Revoke</button>
+                )}
+              </div>
             </div>
           ))}
         </div>
       )}
       <div className="cp-grant">
-        <input className="cp-input" type="email" placeholder="email to invite…" value={email}
-          onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && invite()} />
-        <button className="cp-btn cp-btn--primary" disabled={busy || !email.trim()} onClick={invite}>
-          {busy ? 'Working…' : 'Send invite'}
+        <input className="cp-input" type="email" placeholder="email to activate…" value={email}
+          onChange={(e) => setEmail(e.target.value)} onKeyDown={(e) => e.key === 'Enter' && activate()} />
+        <button className="cp-btn cp-btn--primary" disabled={busy || !email.trim()} onClick={activate}>
+          {busy ? 'Working…' : 'Activate'}
         </button>
       </div>
+      {issuedLink && <PortalLinkCopy link={issuedLink.link} expiresAt={issuedLink.expires_at} onDismiss={() => setIssuedLink(null)} />}
       {err && <p className="cp-err">{err}</p>}
-      <p className="cp-note">Sends a magic-link invite and links the login to this account.</p>
+      <p className="cp-note">Creates a set-password link on the portal site — copy and send it to the customer.</p>
     </Card>
   );
 }

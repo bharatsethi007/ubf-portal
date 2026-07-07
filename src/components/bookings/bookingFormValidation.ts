@@ -6,6 +6,7 @@ export type SectionKey =
   | 'consignee'
   | 'cargo'
   | 'notes'
+  | 'sli'
 
 export const FORM_SECTIONS: { key: SectionKey; label: string }[] = [
   { key: 'shipment', label: 'Shipment' },
@@ -13,6 +14,7 @@ export const FORM_SECTIONS: { key: SectionKey; label: string }[] = [
   { key: 'consignee', label: 'Consignee' },
   { key: 'cargo', label: 'Cargo' },
   { key: 'notes', label: 'Notes' },
+  { key: 'sli', label: 'SLI' },
 ]
 
 export type FieldErrors = Record<string, string>

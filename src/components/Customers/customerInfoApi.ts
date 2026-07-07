@@ -10,11 +10,14 @@ export interface Contact {
   is_prime: boolean | null;
 }
 
-export interface PortalUser {
-  user_id: string;
-  email: string | null;
-  created_at: string | null;
-}
+export {
+  activatePortalAccess as grantPortalAccess,
+  fetchPortalUsersForAccount as fetchPortalUsers,
+  regeneratePortalLink,
+  revokePortalAccess,
+  type PortalActivateResult,
+  type PortalUserRecord as PortalUser,
+} from '../../lib/portalActivationApi';
 
 export interface CustomerMeta {
   account_id: string;
@@ -105,16 +108,6 @@ export async function fetchContacts(accountId: string): Promise<Contact[]> {
   return (data ?? []) as Contact[];
 }
 
-export async function fetchPortalUsers(accountId: string): Promise<PortalUser[]> {
-  const { data, error } = await supabase
-    .from('portal_users')
-    .select('user_id,email,created_at')
-    .eq('account_id', accountId)
-    .order('created_at', { ascending: true });
-  if (error) throw error;
-  return (data ?? []) as PortalUser[];
-}
-
 export async function fetchMeta(accountId: string): Promise<CustomerMeta> {
   const { data, error } = await supabase
     .from('customer_meta')
@@ -142,21 +135,5 @@ export async function saveMeta(meta: CustomerMeta): Promise<void> {
     updated_at: new Date().toISOString(),
     updated_by: uid,
   });
-  if (error) throw error;
-}
-
-// Invites (or reuses) an auth user and links them to the account. Staff-only fn.
-export async function grantPortalAccess(accountId: string, email: string): Promise<void> {
-  const { data, error } = await supabase.functions.invoke('invite-portal-user', {
-    body: { account_id: accountId, email: email.trim().toLowerCase() },
-  });
-  if (error) throw new Error(error.message || 'Invite failed');
-  // Edge function may return an application-level error in the payload.
-  const payload = data as { error?: string } | null;
-  if (payload?.error) throw new Error(payload.error);
-}
-
-export async function revokePortalAccess(userId: string): Promise<void> {
-  const { error } = await supabase.from('portal_users').delete().eq('user_id', userId);
   if (error) throw error;
 }
