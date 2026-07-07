@@ -1,9 +1,8 @@
 import type { PortalShipmentRow } from './portalDashboardApi'
 import { shipmentActivityDate } from './portalShipmentDates'
-import { isArrived, shipmentDirection, tabMatchesStatus } from './portalStatus'
+import { isArrived, shipmentDirection } from './portalStatus'
 import type { DirectionTab } from './portalShipmentParty'
 
-export type StatusTab = 'All' | 'In Transit' | 'Arriving' | 'Departing'
 export type ModeTab = 'All' | 'Air' | 'Sea'
 
 export const DIRECTION_TABS: { key: DirectionTab; label: string }[] = [
@@ -11,8 +10,6 @@ export const DIRECTION_TABS: { key: DirectionTab; label: string }[] = [
   { key: 'import', label: 'Imports' },
   { key: 'export', label: 'Exports' },
 ]
-
-export const STATUS_TABS: StatusTab[] = ['All', 'In Transit', 'Arriving', 'Departing']
 
 export const MODE_TABS: ModeTab[] = ['All', 'Air', 'Sea']
 
@@ -31,12 +28,10 @@ function matchesMode(row: PortalShipmentRow, modeTab: ModeTab): boolean {
 export function filterShipments(
   rows: PortalShipmentRow[],
   dirTab: DirectionTab,
-  statusTab: StatusTab,
   modeTab: ModeTab,
 ): PortalShipmentRow[] {
   return rows
     .filter((r) => matchesDirection(r, dirTab))
-    .filter((r) => tabMatchesStatus(statusTab, r.status))
     .filter((r) => matchesMode(r, modeTab))
     .sort((a, b) => {
       const aDone = isArrived(a.status) ? 1 : 0

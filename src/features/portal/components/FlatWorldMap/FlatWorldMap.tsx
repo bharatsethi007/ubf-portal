@@ -1,8 +1,8 @@
 import { useMemo } from 'react'
 import type { PortMap } from '../../../../hooks/usePorts'
 import type { GlobeLane } from '../../dashboard/portalDashboardApi'
+import FlatMapLandDots from './FlatMapLandDots'
 import { MAP_H, MAP_W, projectLngLat } from './flatMapProjection'
-import { getLandDots } from './landDots'
 import MapPinSvg from './MapPinSvg'
 
 type Props = {
@@ -16,8 +16,6 @@ const ORANGE = '#F5843C'
 const LANE = '#C5CAD6'
 
 export default function FlatWorldMap({ lanes, ports, inTransit }: Props) {
-  const landDots = useMemo(() => getLandDots(), [])
-
   const { lines, importPins, exportPins } = useMemo(() => {
     const importDest = new Set<string>()
     const exportOrigin = new Set<string>()
@@ -52,7 +50,7 @@ export default function FlatWorldMap({ lanes, ports, inTransit }: Props) {
   }, [lanes, ports])
 
   return (
-    <div className="portal-card portal-card--pad">
+    <div className="portal-card portal-card--map">
       <div className="portal-map-head">
         <div>
           <div className="portal-card-title">Live shipments</div>
@@ -64,17 +62,14 @@ export default function FlatWorldMap({ lanes, ports, inTransit }: Props) {
         </div>
       </div>
       <div className="portal-map-wrap">
+        <FlatMapLandDots className="portal-map-land" />
         <svg
           viewBox={`0 0 ${MAP_W} ${MAP_H}`}
-          className="portal-map-svg"
-          preserveAspectRatio="xMidYMid meet"
+          className="portal-map-svg portal-map-svg--overlay"
+          preserveAspectRatio="xMidYMid slice"
           role="img"
           aria-label="World shipment lanes"
         >
-          <rect width={MAP_W} height={MAP_H} fill="#fff" />
-          {landDots.map((d, i) => (
-            <circle key={i} cx={d.x} cy={d.y} r={0.55} fill="#D5D9E2" />
-          ))}
           {lines.map((l) => (
             <line
               key={l.key}

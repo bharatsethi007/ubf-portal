@@ -247,7 +247,13 @@ export function shipmentDisplayName(r: PortalShipmentRow): string {
 }
 
 export function shipmentTrackingId(r: PortalShipmentRow): string {
-  return r.job_no ?? r.house_bill ?? r.shipment_no ?? `#${r.job_unique}`
+  const id = r.job_no ?? r.house_bill ?? r.shipment_no ?? `#${r.job_unique}`
+  return String(id)
+}
+
+/** Absolute path for React Router: /portal/shipments/:jobNo */
+export function shipmentDetailPath(r: PortalShipmentRow): string {
+  return `/portal/shipments/${encodeURIComponent(shipmentTrackingId(r))}`
 }
 
 export function shipmentCargoLine(r: PortalShipmentRow): string {

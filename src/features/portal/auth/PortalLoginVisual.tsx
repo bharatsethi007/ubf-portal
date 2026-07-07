@@ -1,3 +1,5 @@
+import PortalLogo from '../components/PortalLogo'
+
 const CHIPS = [
   'Live shipment tracking',
   'Invoices & payments',
@@ -9,6 +11,7 @@ export default function PortalLoginVisual() {
     <aside className="portal-login__visual" aria-hidden>
       <div className="portal-login__visual-dots" />
       <div className="portal-login__visual-content">
+        <PortalLogo variant="light" className="portal-login__visual-logo" />
         <p className="portal-login__visual-tagline">Your cargo, in real time.</p>
         <p className="portal-login__visual-sub">
           Live tracking across NZ, Australia and the Pacific.

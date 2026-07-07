@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
 import type { PortMap } from '../../../hooks/usePorts'
 import { formatShortDate } from '../../dashboard/portalFormat'
-import { shipmentTrackingId, type PortalShipmentRow } from '../../dashboard/portalDashboardApi'
+import { shipmentDetailPath, shipmentTrackingId, type PortalShipmentRow } from '../../dashboard/portalDashboardApi'
 import { formatContainerNumbers } from '../../dashboard/portalContainerLabels'
 import { resolvePortCountryCode, resolvePortLabel } from '../../dashboard/portalPortDisplay'
 import { counterpartyName, customerRefDisplay, partyColumnHeader, type DirectionTab } from '../../dashboard/portalShipmentParty'
@@ -13,9 +13,7 @@ import {
   PAGE_SIZE,
   paginateRows,
   pageCount,
-  STATUS_TABS,
   type ModeTab,
-  type StatusTab,
 } from '../../dashboard/portalShipmentTableFilters'
 import { arrivalDate, departureDate } from '../../dashboard/portalShipmentDates'
 import CarrierChip from './CarrierChip'
@@ -66,15 +64,14 @@ function modeCell(row: PortalShipmentRow, containerMap: Map<string, string[]>) {
 
 export default function ShipmentsTable({ rows, ports, containerMap }: Props) {
   const [dirTab, setDirTab] = useState<DirectionTab>('all')
-  const [statusTab, setStatusTab] = useState<StatusTab>('All')
   const [modeTab, setModeTab] = useState<ModeTab>('All')
   const [page, setPage] = useState(1)
 
-  useEffect(() => { setPage(1) }, [dirTab, statusTab, modeTab])
+  useEffect(() => { setPage(1) }, [dirTab, modeTab])
 
   const filtered = useMemo(
-    () => filterShipments(rows, dirTab, statusTab, modeTab),
-    [rows, dirTab, statusTab, modeTab],
+    () => filterShipments(rows, dirTab, modeTab),
+    [rows, dirTab, modeTab],
   )
 
   const totalPages = pageCount(filtered.length, PAGE_SIZE)
@@ -92,33 +89,20 @@ export default function ShipmentsTable({ rows, ports, containerMap }: Props) {
         <div className="portal-ship-filters__row">
           {DIRECTION_TABS.map(({ key, label }) => (
             <button key={key} type="button"
-              className={`portal-stab${dirTab === key ? ' portal-stab--on' : ''}`}
+              className={`portal-filter-btn${dirTab === key ? ' portal-filter-btn--on-dark' : ''}`}
               onClick={() => setDirTab(key)}>
               {label}
             </button>
           ))}
         </div>
         <div className="portal-ship-filters__row">
-          <div className="portal-seg-wrap portal-seg-wrap--flat">
-            {STATUS_TABS.map((t) => (
-              <button key={t} type="button"
-                className={`portal-seg${statusTab === t ? ' portal-seg--on' : ''}`}
-                onClick={() => setStatusTab(t)}>
-                {t}
-              </button>
-            ))}
-          </div>
-        </div>
-        <div className="portal-ship-filters__row">
-          <div className="portal-seg-wrap portal-seg-wrap--flat">
-            {MODE_TABS.map((t) => (
-              <button key={t} type="button"
-                className={`portal-seg${modeTab === t ? ' portal-seg--on' : ''}`}
-                onClick={() => setModeTab(t)}>
-                {t}
-              </button>
-            ))}
-          </div>
+          {MODE_TABS.map((t) => (
+            <button key={t} type="button"
+              className={`portal-filter-btn${modeTab === t ? ' portal-filter-btn--on' : ''}`}
+              onClick={() => setModeTab(t)}>
+              {t}
+            </button>
+          ))}
         </div>
       </div>
 
@@ -139,7 +123,7 @@ export default function ShipmentsTable({ rows, ports, containerMap }: Props) {
                 {pageRows.map((s) => (
                   <tr key={s.job_unique}>
                     <td>
-                      <Link to={`/portal/shipments/${shipmentTrackingId(s)}`} className="portal-job-link nums">
+                      <Link to={shipmentDetailPath(s)} className="portal-job-link nums">
                         {shipmentTrackingId(s)}
                       </Link>
                     </td>

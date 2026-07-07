@@ -18,8 +18,10 @@
   max-width: 380px;
 }
 
-.portal-login__brand {
-  margin-bottom: 32px;
+.portal-login__brand .portal-logo {
+  height: 40px;
+  max-width: 130px;
+  margin-bottom: 28px;
 }
 
 .portal-login__heading {

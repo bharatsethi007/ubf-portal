@@ -10,11 +10,11 @@ import ScheduleCalendar from '../components/ScheduleCalendar'
 import ShipmentsTable from '../components/ShipmentsTable/ShipmentsTable'
 import { buildCalendar } from './portalDashboardApi'
 import { buildContainerNumberMap } from './portalContainerLabels'
-import type { PortalRange } from './portalFormat'
 import { usePortalDashboard } from './usePortalDashboard'
+import { usePortalRange } from './usePortalRange'
 
 export default function PortalDashboardPage() {
-  const [range, setRange] = useState<PortalRange>('week')
+  const [range, setRange] = usePortalRange()
   const [calOffset, setCalOffset] = useState(0)
   const { ports } = usePorts()
   const { data, loading, error, refresh } = usePortalDashboard(range)

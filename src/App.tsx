@@ -4,13 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import AppShell from './layouts/AppShell'
 import Login from './Login'
-import PortalAuthGate from './features/portal/auth/PortalAuthGate'
-import PortalLoginPage from './features/portal/auth/PortalLoginPage'
-import SetPasswordPage from './features/portal/auth/SetPasswordPage'
-import PortalShell from './features/portal/layout/PortalShell'
-import PortalDashboardPage from './features/portal/dashboard/PortalDashboardPage'
-import PortalShipmentDetailPage from './features/portal/shipment/PortalShipmentDetailPage'
-import PortalStubPage from './features/portal/stubs/PortalStubPage'
+import { portalRoutes } from './routes/portalRoutes'
 import {
   EstimatesPage,
   NewBookingPage,
@@ -114,19 +108,7 @@ export default function App() {
       <Routes>
         <Route path="/sli/:token" element={<SliPage />} />
 
-        <Route path="/portal/set-password" element={<SetPasswordPage />} />
-        <Route path="/portal/login" element={<PortalLoginPage session={session} authReady={ready} />} />
-
-        <Route element={<PortalAuthGate session={session} isStaff={isStaff} staffReady={staffReady} />}>
-          <Route element={<PortalShell session={session!} />}>
-            <Route path="/portal" element={<PortalDashboardPage />} />
-            <Route path="/portal/shipments/:jobNo" element={<PortalShipmentDetailPage />} />
-            <Route path="/portal/shipments" element={<PortalStubPage title="Shipments" />} />
-            <Route path="/portal/quotes" element={<PortalStubPage title="Quotes" />} />
-            <Route path="/portal/track" element={<PortalStubPage title="Track shipment" />} />
-            <Route path="/portal/billing" element={<PortalStubPage title="Billing" />} />
-          </Route>
-        </Route>
+        {portalRoutes({ session, authReady: ready, isStaff, staffReady })}
 
         <Route element={<AuthGate session={session} isStaff={isStaff} isPortalUser={isPortalUser} staffReady={staffReady} />}>
           <Route

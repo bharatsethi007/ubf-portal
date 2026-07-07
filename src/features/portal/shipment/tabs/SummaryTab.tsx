@@ -5,6 +5,7 @@ import { shipmentDirection } from '../../dashboard/portalStatus'
 import { counterpartyName } from '../../dashboard/portalShipmentParty'
 import { arrivalDate, departureDate } from '../../dashboard/portalShipmentDates'
 import SectionTitle from '../../components/SectionTitle'
+import PortalShipmentRouteMap from '../../components/FlatWorldMap/PortalShipmentRouteMap'
 import TrackingTimeline from '../TrackingTimeline'
 import {
   displayJobNo,
@@ -62,10 +63,11 @@ export default function SummaryTab({ data, ports }: Props) {
           <ol className="portal-detail-chain">
             <li><PortPair code={shipment.origin} mode={shipment.mode} ports={ports} /></li>
             <li><PortPair code={shipment.destination} mode={shipment.mode} ports={ports} /></li>
-            {shipment.final_dest && (
-              <li>{shipment.final_dest}</li>
-            )}
           </ol>
+          <dl className="portal-detail-grid portal-detail-grid--route-dates">
+            <GridField label="ETD" value={formatShortDate(departureDate(shipment))} />
+            <GridField label="ETA" value={formatShortDate(arrivalDate(shipment))} />
+          </dl>
         </section>
 
         <section className="portal-detail-section">
@@ -103,14 +105,14 @@ export default function SummaryTab({ data, ports }: Props) {
       </div>
 
       <aside className="portal-detail-summary__aside">
+        <div className="portal-card portal-card--route-map">
+          <div className="portal-card-title">Route</div>
+          <PortalShipmentRouteMap shipment={shipment} ports={ports} />
+        </div>
         <section className="portal-detail-section">
           <SectionTitle title="Recent updates" />
           <TrackingTimeline milestones={recentTimelineUpdates(timeline)} compact />
         </section>
-        <dl className="portal-detail-grid portal-detail-grid--dates">
-          <GridField label="ETD" value={formatShortDate(departureDate(shipment))} />
-          <GridField label="ETA" value={formatShortDate(arrivalDate(shipment))} />
-        </dl>
       </aside>
     </div>
   )

@@ -3,7 +3,7 @@ import { Eye, EyeOff } from 'lucide-react'
 import { Navigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../../supabase'
-import PortalBrandMark from '../components/PortalBrandMark'
+import PortalLogo from '../components/PortalLogo'
 import PortalLoginVisual from './PortalLoginVisual'
 import '../layout/portalTheme.css'
 import './portalLoginPage.css'
@@ -44,7 +44,7 @@ export default function PortalLoginPage({ session, authReady }: Props) {
     <div className="portal-root portal-login">
       <section className="portal-login__form-panel">
         <div className="portal-login__form-inner">
-          <PortalBrandMark className="portal-login__brand" />
+          <PortalLogo className="portal-login__brand" />
           <h1 className="portal-login__heading">Sign in to your portal</h1>
           <p className="portal-login__sub">
             Track your shipments, bookings and invoices in one place.

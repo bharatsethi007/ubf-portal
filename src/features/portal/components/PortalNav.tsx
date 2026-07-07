@@ -1,15 +1,15 @@
 import { NavLink } from 'react-router-dom'
 import {
-  Bell, FileText, LayoutGrid, MapPin, Receipt, RefreshCw, Search, Ship,
+  Bell, ClipboardList, FileText, LayoutGrid, Receipt, RefreshCw, Search, Ship,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
-import PortalBrandMark from './PortalBrandMark'
+import PortalNavLogo from './PortalNavLogo'
 
 const TABS: { to: string; label: string; end?: boolean; icon: LucideIcon }[] = [
   { to: '/portal', label: 'Dashboard', end: true, icon: LayoutGrid },
+  { to: '/portal/bookings', label: 'Bookings', icon: ClipboardList },
   { to: '/portal/shipments', label: 'Shipments', icon: Ship },
   { to: '/portal/quotes', label: 'Quotes', icon: FileText },
-  { to: '/portal/track', label: 'Track shipment', icon: MapPin },
   { to: '/portal/billing', label: 'Billing', icon: Receipt },
 ]
 
@@ -19,7 +19,7 @@ export default function PortalNav({ initials, onRefresh }: Props) {
   return (
     <header className="portal-nav">
       <NavLink to="/portal" className="portal-nav__brand">
-        <PortalBrandMark />
+        <PortalNavLogo />
       </NavLink>
 
       <nav className="portal-nav__tabs" aria-label="Customer portal">
