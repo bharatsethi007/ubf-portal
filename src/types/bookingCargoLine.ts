@@ -24,6 +24,8 @@ export type CargoLineRow = {
   length: string
   width: string
   height: string
+  /** Stored CBM when no L×W×H (from extraction or DB). */
+  cbm: string
   weightUnit: WeightUnit
   weight: string
 }

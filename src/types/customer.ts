@@ -1,9 +1,10 @@
 export type CustomerStats = {
-  account_id: number
+  account_id: string
   name: string | null
   branch: string | null
   is_importer: boolean | null
   is_exporter: boolean | null
+  sales_manager: string | null
   total_shipments: number
   in_transit: number
   arrived: number
@@ -17,7 +18,7 @@ export type CustomerStats = {
 }
 
 export type Contact = {
-  account_id: number
+  account_id: string
   first_name: string | null
   last_name: string | null
   email: string | null

@@ -70,8 +70,9 @@ export default function CustomerProfile() {
           {stats?.has_portal_access && <Badge tone="indigo">Portal</Badge>}
         </div>
         <div className="cp-sub">
-          <span>#{accountId}</span>
+          <span className="cp-sub-code">#{accountId}</span>
           {stats?.branch && <span>· {stats.branch}</span>}
+          {stats?.sales_manager && <span>· {stats.sales_manager}</span>}
           {stats?.is_importer && <Badge tone="emerald">Importer</Badge>}
           {stats?.is_exporter && <Badge tone="violet">Exporter</Badge>}
           <span>· {stats?.contact_count ?? 0} contacts</span>

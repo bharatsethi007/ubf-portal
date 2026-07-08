@@ -9,6 +9,13 @@ type Props = {
 export default function CargoHandling({ state, set }: Props) {
   return (
     <div className="bf-cargo-handling">
+      <FormField label="Packing type" className="bf-field--w48">
+        <TextInput
+          value={state.packingType}
+          placeholder="e.g. pallets, cartons, crates"
+          onChange={(v) => set({ packingType: v })}
+        />
+      </FormField>
       <div className="bf-cargo-handling__toggles">
         <div className="bf-toggle--chip">
           <ToggleSwitch label="Dangerous goods" checked={state.isDg} onChange={(v) => set({ isDg: v })} />

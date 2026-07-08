@@ -10,6 +10,7 @@ export function newCargoLine(): CargoLineRow {
     length: '',
     width: '',
     height: '',
+    cbm: '',
     weightUnit: 'KG',
     weight: '',
   }
@@ -33,9 +34,12 @@ export function computeRowCbm(line: CargoLineRow): number | null {
   const l = parseNum(line.length)
   const w = parseNum(line.width)
   const h = parseNum(line.height)
-  if (pieces == null || l == null || w == null || h == null) return null
-  const cbm = dimToMetres(l, line.lengthUnit) * dimToMetres(w, line.lengthUnit) * dimToMetres(h, line.lengthUnit) * pieces
-  return Math.round(cbm * 10000) / 10000
+  if (pieces != null && l != null && w != null && h != null) {
+    const cbm = dimToMetres(l, line.lengthUnit) * dimToMetres(w, line.lengthUnit) * dimToMetres(h, line.lengthUnit) * pieces
+    return Math.round(cbm * 10000) / 10000
+  }
+  const stored = parseNum(line.cbm)
+  return stored
 }
 
 function weightToKg(weight: number, unit: WeightUnit): number {
@@ -98,6 +102,7 @@ export function cargoLineFromDb(row: BookingCargoLine): CargoLineRow {
     length: row.length == null ? '' : String(row.length),
     width: row.width == null ? '' : String(row.width),
     height: row.height == null ? '' : String(row.height),
+    cbm: row.cbm == null ? '' : String(row.cbm),
     weightUnit: row.weight_unit ?? 'KG',
     weight: row.weight == null ? '' : String(row.weight),
   }
@@ -122,7 +127,7 @@ export function cargoLineToDb(row: CargoLineRow, ord: number): Partial<BookingCa
 
 export function isCargoLineEmpty(row: CargoLineRow): boolean {
   return !row.goodsDesc.trim() && !row.pieces.trim() && !row.length.trim()
-    && !row.width.trim() && !row.height.trim() && !row.weight.trim()
+    && !row.width.trim() && !row.height.trim() && !row.weight.trim() && !row.cbm.trim()
 }
 
 export function cargoLinesFromDb(rows: BookingCargoLine[]): CargoLineRow[] {
@@ -131,7 +136,7 @@ export function cargoLinesFromDb(rows: BookingCargoLine[]): CargoLineRow[] {
 
 export function cargoLinesFromBookingHeader(booking: Booking): CargoLineRow[] {
   const hasData = booking.pieces != null || booking.gross_weight_kg != null || booking.weight_kg != null
-    || booking.goods_description || booking.length_cm != null
+    || booking.goods_description || booking.length_cm != null || booking.volume_m3 != null
   if (!hasData) return [newCargoLine()]
   return [{
     ...newCargoLine(),
@@ -141,6 +146,7 @@ export function cargoLinesFromBookingHeader(booking: Booking): CargoLineRow[] {
     length: booking.length_cm != null ? String(booking.length_cm) : '',
     width: booking.width_cm != null ? String(booking.width_cm) : '',
     height: booking.height_cm != null ? String(booking.height_cm) : '',
+    cbm: booking.volume_m3 != null ? String(booking.volume_m3) : '',
     weightUnit: 'KG',
     weight: booking.gross_weight_kg != null ? String(booking.gross_weight_kg)
       : booking.weight_kg != null ? String(booking.weight_kg) : '',

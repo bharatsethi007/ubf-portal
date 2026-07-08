@@ -1,6 +1,6 @@
 import { cargoLineToDb, computeCargoTotals, isCargoLineEmpty } from '../../components/bookings/cargoLineUtils'
 import type { CustomerPickerValue } from '../../hooks/useBookings'
-import type { Booking, BookingModule, BookingServiceType, BookingStatus, BookingSupplier } from '../../types/booking'
+import type { Booking, BookingModule, BookingServiceType, BookingSource, BookingStatus, BookingSupplier } from '../../types/booking'
 import type { BookingCargoLine, CargoLineRow } from '../../types/bookingCargoLine'
 
 export type CustomerRef = CustomerPickerValue | null
@@ -325,15 +325,17 @@ export function formToSavePayload(
   status: BookingStatus,
   cargoLines: CargoLineRow[],
   bookingId?: string,
+  existingSource?: BookingSource | null,
 ): { payload: Partial<Booking>; suppliers: Partial<BookingSupplier>[]; cargoLines: Partial<BookingCargoLine>[] } {
   const activeLines = cargoLines.filter((row) => !isCargoLineEmpty(row))
   const totals = computeCargoTotals(activeLines)
   const firstDesc = activeLines.find((row) => row.goodsDesc.trim())?.goodsDesc.trim() ?? null
+  const source: BookingSource = bookingId ? (existingSource ?? 'manual') : 'manual'
 
   const payload: Partial<Booking> = {
     ...(bookingId ? { id: bookingId } : {}),
     module,
-    source: 'manual',
+    source,
     status,
     account_id: state.consigneeCustomer?.account_id ?? null,
     is_consolidation: state.isConsolidation,
@@ -369,6 +371,7 @@ export function formToSavePayload(
     volume_m3: totals.totalCbm,
     chargeable_weight_kg: totals.chargeableWeightKg,
     goods_description: firstDesc,
+    packing_type: state.packingType.trim() || null,
     is_dg: state.isDg,
     un_number: state.unNumber.trim() || null,
     dg_class: state.dgClass.trim() || null,

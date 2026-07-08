@@ -1,0 +1,146 @@
+.bf-layout--with-email {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+@media (min-width: 1280px) {
+  .bf-layout--with-email {
+    flex-direction: row;
+    align-items: flex-start;
+    gap: 24px;
+  }
+
+  .bf-layout--with-email .bf-main {
+    flex: 1;
+    min-width: 0;
+  }
+}
+
+.bf-email-panel {
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  overflow: hidden;
+}
+
+@media (min-width: 1280px) {
+  .bf-email-panel {
+    position: sticky;
+    top: 132px;
+    width: 320px;
+    flex-shrink: 0;
+    max-height: calc(100vh - 148px);
+    display: flex;
+    flex-direction: column;
+  }
+}
+
+.bf-email-panel__toggle {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  width: 100%;
+  padding: 12px 14px;
+  border: none;
+  background: #f8fafc;
+  font-size: 13px;
+  font-weight: 600;
+  color: #0e7490;
+  cursor: pointer;
+}
+
+.bf-email-panel__toggle:hover { background: #ecfeff; }
+
+.bf-email-panel__toggle-main {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.bf-email-panel__chev {
+  transition: transform 0.2s ease;
+  color: #64748b;
+}
+
+.bf-email-panel__chev--open { transform: rotate(180deg); }
+
+.bf-email-panel__body {
+  padding: 12px 14px 14px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.bf-email-panel__meta {
+  margin: 0;
+  display: grid;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.bf-email-panel__meta div {
+  display: grid;
+  gap: 2px;
+}
+
+.bf-email-panel__meta dt {
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  font-size: 10px;
+}
+
+.bf-email-panel__meta dd {
+  margin: 0;
+  color: #0f172a;
+  word-break: break-word;
+}
+
+.bf-email-panel__label {
+  margin: 0 0 6px;
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: #64748b;
+}
+
+.bf-email-panel__attachments ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 6px;
+}
+
+.bf-email-panel__attachments a {
+  font-size: 12px;
+  color: var(--primary);
+  word-break: break-all;
+}
+
+.bf-email-panel__att-err {
+  display: block;
+  font-size: 11px;
+  color: #b91c1c;
+}
+
+.bf-email-panel__body-text {
+  margin: 0;
+  padding: 10px;
+  border-radius: 8px;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 11px;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 420px;
+  overflow-y: auto;
+}

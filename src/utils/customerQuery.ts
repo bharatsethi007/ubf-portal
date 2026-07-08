@@ -7,8 +7,8 @@ export function customerPageRange(page: number): { from: number; to: number } {
   return { from, to: from + PAGE_SIZE - 1 }
 }
 
-export function customerDisplayName(row: { name: string | null; account_id: number }): string {
-  return row.name?.trim() || String(row.account_id)
+export function customerDisplayName(row: { name: string | null; account_id: string }): string {
+  return row.name?.trim() || row.account_id
 }
 
 export function contactName(c: { first_name: string | null; last_name: string | null }): string {

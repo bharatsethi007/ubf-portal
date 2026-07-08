@@ -20,6 +20,7 @@ import {
 import {
   MODULE_CONFIG,
   STATUS_LABEL,
+  type Booking,
   type BookingModule,
   type BookingStatus,
 } from '../../types/booking'
@@ -37,6 +38,9 @@ import NotesSection from './sections/NotesSection'
 import ShipperSection from './sections/ShipperSection'
 import SliErrorBoundary from '../../features/sli/staff/SliErrorBoundary'
 import SliTab from '../../features/sli/staff/SliTab'
+import EmailSourcePanel from '../../components/bookings/EmailSourcePanel'
+import EmailSourceErrorBoundary from '../../components/bookings/EmailSourceErrorBoundary'
+import { useBookingSourceEmail } from './useBookingSourceEmail'
 import { SectionCard } from './formUi'
 import './bookingFormPage.css'
 import '../../components/bookings/bookingForm.css'
@@ -51,6 +55,7 @@ export default function BookingFormPage() {
   const mod = module && MODULES.includes(module as BookingModule) ? (module as BookingModule) : null
 
   const [state, setState] = useState<BookingFormState>(emptyFormState)
+  const [bookingSource, setBookingSource] = useState<Booking['source']>('manual')
   const [cargoLines, setCargoLines] = useState<CargoLineRow[]>([newCargoLine()])
   const [documents, setDocuments] = useState<BookingDocument[]>([])
   const [status, setStatus] = useState<BookingStatus>('draft')
@@ -79,6 +84,11 @@ export default function BookingFormPage() {
     : (state.shipperCompany.trim() || state.shipperCustomer?.name || 'Supplier')
   const consigneeName = state.consigneeCompany.trim() || state.consigneeCustomer?.name || 'Consignee'
 
+  const { source: emailSource, attachmentUrls, attachmentErrors } = useBookingSourceEmail(
+    bookingId,
+    bookingSource === 'email_import',
+  )
+
   useEffect(() => {
     if (!bookingId) return
     let cancelled = false
@@ -88,6 +98,7 @@ export default function BookingFormPage() {
       .then(({ booking, suppliers, cargoLines: dbLines, documents: docs }) => {
         if (cancelled) return
         setState(formFromBooking(booking, suppliers))
+        setBookingSource(booking.source)
         setIntelligenceMeta({
           accountId: booking.account_id,
           consigneeAccountId: booking.consignee_account_id,
@@ -131,7 +142,9 @@ export default function BookingFormPage() {
 
     setSaving(true)
     try {
-      const { payload, suppliers, cargoLines: cargoPayload } = formToSavePayload(state, mod!, nextStatus, cargoLines, bookingId)
+      const { payload, suppliers, cargoLines: cargoPayload } = formToSavePayload(
+        state, mod!, nextStatus, cargoLines, bookingId, bookingSource,
+      )
       const saved = await saveBooking(payload, suppliers, cargoPayload)
       await documentsRef.current?.flushPending(saved.id)
       navigate(`/bookings/${mod}/${saved.id}/edit`, { replace: true })
@@ -147,6 +160,8 @@ export default function BookingFormPage() {
   const cfg = MODULE_CONFIG[mod]
   const title = `${isEdit ? 'Edit' : 'New'} ${cfg.label} Booking`
   const sectionProps = { state, set: patch, errors: fieldErrors, showErrors: submitAttempted }
+
+  const showEmailPanel = bookingSource === 'email_import' && Boolean(emailSource)
 
   if (loading) return <div className="muted pad">Loading booking…</div>
 
@@ -177,7 +192,7 @@ export default function BookingFormPage() {
 
       {error && <div className="bf-alert error card pad-inline">{error}</div>}
 
-      <div className="bf-layout">
+      <div className={`bf-layout${showEmailPanel ? ' bf-layout--with-email' : ''}`}>
         <div className="bf-main">
           <ShipmentInfo {...sectionProps} useIata={cfg.portKind === 'IATA'} />
           <div className={`bf-parties-grid${state.isConsolidation ? ' bf-parties-grid--wide-shipper' : ''}`}>
@@ -204,6 +219,15 @@ export default function BookingFormPage() {
             )}
           </SectionCard>
         </div>
+        {showEmailPanel && emailSource && (
+          <EmailSourceErrorBoundary>
+            <EmailSourcePanel
+              source={emailSource}
+              attachmentUrls={attachmentUrls ?? {}}
+              attachmentErrors={attachmentErrors ?? {}}
+            />
+          </EmailSourceErrorBoundary>
+        )}
       </div>
 
       {!loading && (

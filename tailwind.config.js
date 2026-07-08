@@ -4,12 +4,11 @@ export default {
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Inter Variable', 'system-ui', 'sans-serif'],
+        sans: ['General Sans', 'system-ui', 'sans-serif'],
         mono: ['IBM Plex Mono', 'ui-monospace', 'monospace'],
       },
       colors: {
         ink: 'var(--color-ink)',
-        muted: 'var(--color-muted)',
         faint: 'var(--color-faint)',
         line: 'var(--color-line)',
         surface: 'var(--color-surface)',
@@ -19,9 +18,36 @@ export default {
           orange: '#F7941D',
         },
         accent: {
-          DEFAULT: 'var(--color-accent)',
+          DEFAULT: 'var(--accent)',
+          foreground: 'var(--accent-foreground)',
           soft: 'var(--color-accent-soft)',
         },
+        background: 'var(--background)',
+        foreground: 'var(--foreground)',
+        card: {
+          DEFAULT: 'var(--card)',
+          foreground: 'var(--card-foreground)',
+        },
+        popover: {
+          DEFAULT: 'var(--popover)',
+          foreground: 'var(--popover-foreground)',
+        },
+        primary: {
+          DEFAULT: 'var(--primary)',
+          foreground: 'var(--primary-foreground)',
+        },
+        secondary: {
+          DEFAULT: 'var(--secondary)',
+          foreground: 'var(--secondary-foreground)',
+        },
+        muted: {
+          DEFAULT: 'var(--muted)',
+          foreground: 'var(--muted-foreground)',
+        },
+        destructive: 'var(--destructive)',
+        border: 'var(--border)',
+        input: 'var(--input)',
+        ring: 'var(--ring)',
       },
     },
   },

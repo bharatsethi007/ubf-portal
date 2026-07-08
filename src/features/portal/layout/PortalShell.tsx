@@ -11,7 +11,11 @@ export default function PortalShell({ session }: Props) {
 
   return (
     <div className="portal-root">
-      <PortalNav displayName={account?.displayName ?? 'Customer portal'} initials={account?.initials ?? 'CU'} />
+      <PortalNav
+        displayName={account?.displayName ?? 'Customer portal'}
+        userEmail={account?.email ?? session.user.email ?? ''}
+        initials={account?.initials ?? 'CU'}
+      />
       <main className="portal-main">
         <Outlet />
       </main>

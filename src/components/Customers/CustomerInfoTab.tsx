@@ -60,6 +60,7 @@ export function CustomerInfoTab({
           <Row label="Name" value={stats?.name} />
           <Row label="Account #" value={accountId} />
           <Row label="Branch" value={stats?.branch} />
+          <Row label="Sales manager" value={stats?.sales_manager} />
           <Row label="Type" value={[stats?.is_importer && 'Importer', stats?.is_exporter && 'Exporter'].filter(Boolean).join(' · ') || '—'} />
           <Row label="Contacts" value={String(stats?.contact_count ?? 0)} />
           <Row label="Status" value={stats?.closed ? 'Closed' : 'Active'} />

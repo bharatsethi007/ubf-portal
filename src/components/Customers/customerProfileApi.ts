@@ -9,6 +9,7 @@ export interface CustomerStats {
   is_importer: boolean;
   is_exporter: boolean;
   closed: boolean;
+  sales_manager: string | null;
   has_portal_access: boolean;
   contact_count: number;
   total_shipments: number;

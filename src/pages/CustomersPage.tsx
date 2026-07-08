@@ -1,43 +1,55 @@
 import { useNavigate } from 'react-router-dom'
-import { useEffect, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Search } from 'lucide-react'
+import { getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { supabase } from '../supabase'
 import Pagination from '../components/Pagination'
-import { customerDisplayName, customerPageRange, PAGE_SIZE } from '../utils/customerQuery'
-import { fmtShort } from '../utils/format'
+import CustomersTable from '../components/Customers/CustomersTable'
+import { customersTableColumns } from '../components/Customers/customersTableColumns'
+import {
+  ROLE_FILTERS,
+  SORT_PRESETS,
+  type RoleFilter,
+  type SortPreset,
+} from '../components/Customers/customersTableFilters'
+import { customerPageRange, PAGE_SIZE } from '../utils/customerQuery'
 import type { CustomerStats } from '../types/customer'
 import { useDebouncedValue } from '../hooks/useDebouncedValue'
-
-function RoleBadges({ row }: { row: CustomerStats }) {
-  return (
-    <span className="customer-badges">
-      {row.is_importer && <span className="pill scheduled">Importer</span>}
-      {row.is_exporter && <span className="pill booked">Exporter</span>}
-      {!row.is_importer && !row.is_exporter && <span className="muted">—</span>}
-    </span>
-  )
-}
-
-function PortalBadge({ active }: { active: boolean }) {
-  return active
-    ? <span className="pill arrived">Active</span>
-    : <span className="pill booked">No access</span>
-}
 
 export default function CustomersPage() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [showInactive, setShowInactive] = useState(false)
+  const [roleFilter, setRoleFilter] = useState<RoleFilter>('all')
+  const [managerFilter, setManagerFilter] = useState('all')
+  const [sortPreset, setSortPreset] = useState<SortPreset>('activity')
+  const [managers, setManagers] = useState<string[]>([])
   const [page, setPage] = useState(1)
   const [rows, setRows] = useState<CustomerStats[]>([])
   const [total, setTotal] = useState(0)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const debouncedSearch = useDebouncedValue(search, 300)
+  const columns = useMemo(() => customersTableColumns(), [])
+
+  useEffect(() => {
+    supabase
+      .from('customers')
+      .select('sales_manager')
+      .not('sales_manager', 'is', null)
+      .then(({ data }) => {
+        const set = new Set<string>()
+        for (const r of data ?? []) {
+          if (r.sales_manager) set.add(r.sales_manager)
+        }
+        setManagers([...set].sort())
+      })
+      .catch(() => {})
+  }, [])
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, showInactive])
+  }, [debouncedSearch, showInactive, roleFilter, managerFilter, sortPreset])
 
   useEffect(() => {
     let cancelled = false
@@ -45,17 +57,23 @@ export default function CustomersPage() {
 
     ;(async () => {
       const { from, to } = customerPageRange(page)
-      let query = supabase
-        .from('v_customer_stats')
-        .select('*', { count: 'exact' })
-        .order('total_shipments', { ascending: false })
+      let query = supabase.from('v_customer_stats').select('*', { count: 'exact' })
+
+      if (sortPreset === 'alpha') query = query.order('name', { ascending: true, nullsFirst: false })
+      else query = query.order('last_activity', { ascending: false, nullsFirst: false })
 
       if (!showInactive) query = query.eq('closed', false)
+      if (roleFilter === 'importer') query = query.eq('is_importer', true)
+      else if (roleFilter === 'exporter') query = query.eq('is_exporter', true)
+      if (managerFilter !== 'all') query = query.eq('sales_manager', managerFilter)
 
       const term = debouncedSearch.trim()
       if (term) {
-        if (/^\d+$/.test(term)) query = query.or(`name.ilike.%${term}%,account_id.eq.${term}`)
-        else query = query.ilike('name', `%${term}%`)
+        if (/^[A-Za-z0-9]+$/.test(term)) {
+          query = query.or(`name.ilike.%${term}%,account_id.ilike.%${term}%`)
+        } else {
+          query = query.ilike('name', `%${term}%`)
+        }
       }
 
       const { data, error: err, count } = await query.range(from, to)
@@ -76,7 +94,14 @@ export default function CustomersPage() {
     return () => {
       cancelled = true
     }
-  }, [page, debouncedSearch, showInactive])
+  }, [page, debouncedSearch, showInactive, roleFilter, managerFilter, sortPreset])
+
+  const table = useReactTable({
+    data: rows,
+    columns,
+    getCoreRowModel: getCoreRowModel(),
+    manualSorting: true,
+  })
 
   return (
     <div className="customers-page">
@@ -103,52 +128,59 @@ export default function CustomersPage() {
         </div>
       </header>
 
+      <div className="customers-page__filters">
+        <div className="customers-segment" role="group" aria-label="Role filter">
+          {ROLE_FILTERS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={`customers-segment__btn${roleFilter === key ? ' customers-segment__btn--on' : ''}`}
+              onClick={() => setRoleFilter(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="customers-segment" role="group" aria-label="Sort">
+          {SORT_PRESETS.map(({ key, label }) => (
+            <button
+              key={key}
+              type="button"
+              className={`customers-segment__btn${sortPreset === key ? ' customers-segment__btn--on' : ''}`}
+              onClick={() => setSortPreset(key)}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        {managers.length > 0 && (
+          <label className="customers-page__select-label">
+            Sales manager
+            <select
+              className="input input--sm customers-page__select"
+              value={managerFilter}
+              onChange={(e) => setManagerFilter(e.target.value)}
+            >
+              <option value="all">All</option>
+              {managers.map((m) => (
+                <option key={m} value={m}>{m}</option>
+              ))}
+            </select>
+          </label>
+        )}
+      </div>
+
       {error && <div className="error card pad-inline">{error}</div>}
 
-      <div className="customers-table card">
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Customer</th>
-                <th>Branch</th>
-                <th>Role</th>
-                <th>Total</th>
-                <th>In transit</th>
-                <th>This month</th>
-                <th>Last activity</th>
-                <th>Portal</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={8} className="muted pad-inline">Loading customers…</td></tr>
-              ) : rows.length === 0 ? (
-                <tr><td colSpan={8} className="muted pad-inline">No customers match your filters.</td></tr>
-              ) : (
-                rows.map((row) => (
-                  <tr
-                    key={row.account_id}
-                    className="row-clickable"
-                    onClick={() => navigate(`/customers/${row.account_id}`)}
-                  >
-                    <td>
-                      <strong>{customerDisplayName(row)}</strong>
-                      {!row.name && <span className="muted mono"> #{row.account_id}</span>}
-                    </td>
-                    <td>{row.branch ?? '—'}</td>
-                    <td><RoleBadges row={row} /></td>
-                    <td className="mono nums">{row.total_shipments}</td>
-                    <td className="mono nums">{row.in_transit}</td>
-                    <td className="mono nums">{row.this_month}</td>
-                    <td className="mono nums">{fmtShort(row.last_activity)}</td>
-                    <td><PortalBadge active={row.has_portal_access} /></td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      <div
+        className="customers-table card"
+        onClick={(e) => {
+          const tr = (e.target as HTMLElement).closest('tr.row-clickable')
+          const id = tr?.getAttribute('data-href')
+          if (id) navigate(`/customers/${id}`)
+        }}
+      >
+        <CustomersTable table={table} loading={loading} colSpan={columns.length} />
         <Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
     </div>

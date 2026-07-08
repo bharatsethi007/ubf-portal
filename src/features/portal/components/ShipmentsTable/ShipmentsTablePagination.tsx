@@ -1,3 +1,5 @@
+import { Button } from '@/components/ui/button'
+
 type Props = {
   page: number
   totalPages: number
@@ -20,25 +22,27 @@ export default function ShipmentsTablePagination({
         {from}–{to} of {totalRows}
       </span>
       <div className="portal-table-pager__btns">
-        <button
+        <Button
           type="button"
-          className="portal-table-pager__btn"
+          variant="outline"
+          size="icon-sm"
           disabled={page <= 1}
           onClick={() => onPage(page - 1)}
           aria-label="Previous page"
         >
           ‹
-        </button>
+        </Button>
         <span className="portal-table-pager__page nums">{page} / {totalPages}</span>
-        <button
+        <Button
           type="button"
-          className="portal-table-pager__btn"
+          variant="outline"
+          size="icon-sm"
           disabled={page >= totalPages}
           onClick={() => onPage(page + 1)}
           aria-label="Next page"
         >
           ›
-        </button>
+        </Button>
       </div>
     </div>
   )

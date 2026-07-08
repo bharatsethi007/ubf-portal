@@ -3,6 +3,7 @@ import { Navigate, useNavigate, useParams } from 'react-router-dom'
 import { fetchOverdueBatch, type CustomerOverdue } from '../api/customerOverdueApi'
 import OverdueBadge from '../components/OverdueBadge'
 import '../components/overdueBadge.css'
+import BookingSourceTag from '../components/bookings/BookingSourceTag'
 import { useBookings } from '../hooks/useBookings'
 import {
   MODULE_CONFIG,
@@ -10,9 +11,13 @@ import {
   isUntouched,
   type Booking,
   type BookingModule,
-  type BookingSource,
 } from '../types/booking'
 import { bookingOverdueAccountIds, bookingRowOverdueAccountId } from '../utils/bookingOverdueUtils'
+import {
+  BOOKING_SOURCE_FILTERS,
+  filterBookingsBySource,
+  type BookingSourceFilter,
+} from './bookings/bookingsListFilters'
 
 const MODULES: BookingModule[] = ['EA', 'ES', 'IA', 'IS']
 
@@ -27,12 +32,17 @@ export default function BookingsPage() {
 function BookingsPageContent({ module }: { module: BookingModule }) {
   const navigate = useNavigate()
   const { data, loading, error } = useBookings(module)
+  const [sourceFilter, setSourceFilter] = useState<BookingSourceFilter>('all')
   const [overdueMap, setOverdueMap] = useState<Record<string, CustomerOverdue>>({})
   const cfg = MODULE_CONFIG[module]
+  const filtered = useMemo(
+    () => filterBookingsBySource(data, sourceFilter),
+    [data, sourceFilter],
+  )
 
   const accountIds = useMemo(
-    () => [...new Set(data.flatMap((b) => bookingOverdueAccountIds(b, module)))],
-    [data, module],
+    () => [...new Set(filtered.flatMap((b) => bookingOverdueAccountIds(b, module)))],
+    [filtered, module],
   )
 
   useEffect(() => {
@@ -60,6 +70,19 @@ function BookingsPageContent({ module }: { module: BookingModule }) {
         </button>
       </header>
 
+      <div className="bookings-source-filters" role="group" aria-label="Filter by source">
+        {BOOKING_SOURCE_FILTERS.map(({ value, label }) => (
+          <button
+            key={value}
+            type="button"
+            className={`bookings-source-filters__btn${sourceFilter === value ? ' bookings-source-filters__btn--active' : ''}`}
+            onClick={() => setSourceFilter(value)}
+          >
+            {label}
+          </button>
+        ))}
+      </div>
+
       {error && <div className="error card pad-inline">{error}</div>}
 
       <div className="customers-table card">
@@ -78,10 +101,10 @@ function BookingsPageContent({ module }: { module: BookingModule }) {
             <tbody>
               {loading ? (
                 <tr><td colSpan={6} className="muted pad-inline">Loading bookings…</td></tr>
-              ) : data.length === 0 ? (
-                <tr><td colSpan={6} className="muted pad-inline">No bookings yet.</td></tr>
+              ) : filtered.length === 0 ? (
+                <tr><td colSpan={6} className="muted pad-inline">No bookings match this filter.</td></tr>
               ) : (
-                data.map((b) => (
+                filtered.map((b) => (
                   <BookingRow key={b.id} module={module} booking={b} overdueMap={overdueMap} />
                 ))
               )}
@@ -125,7 +148,7 @@ function BookingRow({
         />
       </td>
       <td className="mono">{routeCell(b)}</td>
-      <td><SourceTag source={b.source} /></td>
+      <td><BookingSourceTag source={b.source} /></td>
       <td>{STATUS_LABEL[b.status]}</td>
     </tr>
   )
@@ -162,10 +185,4 @@ function exporterLabel(b: Booking): string {
 
 function routeCell(b: Booking): string {
   return `${b.origin ?? '—'} → ${b.destination ?? '—'}`
-}
-
-function SourceTag({ source }: { source: BookingSource }) {
-  if (source === 'customer_portal') return <span className="pill transit">Portal</span>
-  if (source === 'email_parsed') return <span className="pill parsed">Parsed</span>
-  return <span className="muted">Manual</span>
 }

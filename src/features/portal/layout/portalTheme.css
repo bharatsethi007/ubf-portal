@@ -33,7 +33,7 @@
   --portal-card: #fff;
   --portal-ink: #171a21;
   --portal-ink2: #3c414d;
-  --portal-muted: #8a90a0;
+  --portal-muted: #64748B;
   --portal-faint: #b7bcc8;
   --portal-line: #eceef2;
   --portal-line2: #e4e7ec;
@@ -200,16 +200,78 @@
   color: var(--portal-muted);
 }
 
+.portal-nav__user-menu {
+  position: relative;
+  padding-left: 12px;
+  border-left: 1px solid var(--portal-line);
+}
+
 .portal-nav__user {
   display: flex;
   align-items: center;
   gap: 8px;
-  padding-left: 12px;
-  border-left: 1px solid var(--portal-line);
+  border: none;
+  background: transparent;
+  cursor: pointer;
   font-size: 13px;
   color: var(--portal-ink2);
   font-weight: 400;
+  padding: 4px 0;
 }
+
+.portal-nav__user-label {
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.portal-nav__chevron {
+  color: var(--portal-muted);
+  transition: transform 0.15s;
+}
+
+.portal-nav__chevron--open { transform: rotate(180deg); }
+
+.portal-nav__dropdown {
+  position: absolute;
+  top: calc(100% + 8px);
+  right: 0;
+  min-width: 200px;
+  padding: 8px;
+  background: #fff;
+  border: 1px solid var(--portal-line);
+  border-radius: 10px;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+  z-index: 30;
+}
+
+.portal-nav__dropdown-email {
+  display: block;
+  padding: 6px 10px 10px;
+  font-size: 12px;
+  color: var(--portal-muted);
+  border-bottom: 1px solid var(--portal-line);
+  margin-bottom: 4px;
+  word-break: break-all;
+}
+
+.portal-nav__dropdown-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  border: none;
+  background: transparent;
+  cursor: pointer;
+  font-size: 13px;
+  color: var(--portal-ink2);
+  padding: 8px 10px;
+  border-radius: 6px;
+  text-align: left;
+}
+
+.portal-nav__dropdown-item:hover { background: var(--portal-grey-bg); }
 
 .portal-avatar {
   width: 32px;

@@ -1,6 +1,6 @@
 export type BookingModule = 'EA' | 'ES' | 'IA' | 'IS'
 
-export type BookingSource = 'manual' | 'email_parsed' | 'customer_portal'
+export type BookingSource = 'manual' | 'email_parsed' | 'email_import' | 'customer_portal'
 
 export type BookingStatus =
   | 'draft'
