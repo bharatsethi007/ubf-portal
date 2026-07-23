@@ -27,6 +27,7 @@ const BOOKINGS = [
   { to: '/bookings/ES', label: 'Export Sea', icon: Ship },
   { to: '/bookings/IA', label: 'Import Air', icon: Plane },
   { to: '/bookings/IS', label: 'Import Sea', icon: Ship },
+  { to: '/bookings/import-sea', label: 'Import Sea board', icon: Ship },
 ]
 
 const linkBase: React.CSSProperties = {

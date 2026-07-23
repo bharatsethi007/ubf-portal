@@ -1,5 +1,6 @@
 import { Plane } from 'lucide-react'
 import AirlineSelect from './AirlineSelect'
+import FlightNoField from './FlightNoField'
 import IncotermSelect from './IncotermSelect'
 import IataPortSelect from './IataPortSelect'
 import { SectionCard } from './SectionCard'
@@ -13,11 +14,12 @@ type Props = {
   state: BookingFormState
   set: (patch: Partial<BookingFormState>) => void
   useIata: boolean
+  isAir?: boolean
   errors?: FieldErrors
   showErrors?: boolean
 }
 
-export default function ShipmentInfo({ state, set, useIata, errors = {}, showErrors }: Props) {
+export default function ShipmentInfo({ state, set, useIata, isAir = false, errors = {}, showErrors }: Props) {
   return (
     <SectionCard id="shipment" title="Shipment info">
       <ServiceTypeSegment
@@ -63,7 +65,18 @@ export default function ShipmentInfo({ state, set, useIata, errors = {}, showErr
           />
         </FormField>
         <FormField label="Flight No" className="bf-field--w32">
-          <TextInput value={state.flightNo} onChange={(v) => set({ flightNo: v })} />
+          {isAir ? (
+            <FlightNoField
+              value={state.flightNo}
+              onChange={(flightNo) => set({ flightNo })}
+              onPick={(flightNo, airline, airlineName) => set({ flightNo, airline, airlineName })}
+              origin={state.origin}
+              destination={state.destination}
+              enabled={isAir}
+            />
+          ) : (
+            <TextInput value={state.flightNo} onChange={(v) => set({ flightNo: v })} />
+          )}
         </FormField>
       </div>
       <div className="bf-inline-row">

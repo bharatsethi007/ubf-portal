@@ -43,7 +43,9 @@ export type BookingFormState = {
   shipperPostcode: string
   shipperCountry: string
   suppliers: SupplierRowState[]
+  clientCustomer: CustomerRef
   consigneeCustomer: CustomerRef
+  importerCustomer: CustomerRef
   consigneeCompany: string
   consigneePhone: string
   consigneeEmail: string
@@ -109,7 +111,9 @@ export function emptyFormState(): BookingFormState {
     shipperPostcode: '',
     shipperCountry: '',
     suppliers: [newSupplierRow()],
+    clientCustomer: null,
     consigneeCustomer: null,
+    importerCustomer: null,
     consigneeCompany: '',
     consigneePhone: '',
     consigneeEmail: '',
@@ -196,7 +200,10 @@ export function applyShipperCustomer(c: CustomerPickerValue | null): Partial<Boo
   }
 }
 
-export function applyConsigneeCustomer(c: CustomerPickerValue | null): Partial<BookingFormState> {
+export function applyConsigneeCustomer(
+  c: CustomerPickerValue | null,
+  state?: Pick<BookingFormState, 'clientCustomer' | 'importerCustomer'>,
+): Partial<BookingFormState> {
   if (!c) {
     return {
       consigneeCustomer: null,
@@ -211,7 +218,7 @@ export function applyConsigneeCustomer(c: CustomerPickerValue | null): Partial<B
       consigneeCountry: '',
     }
   }
-  return {
+  const next: Partial<BookingFormState> = {
     consigneeCustomer: c,
     consigneeCompany: c.name,
     consigneePhone: c.phone ?? '',
@@ -223,6 +230,31 @@ export function applyConsigneeCustomer(c: CustomerPickerValue | null): Partial<B
     consigneePostcode: c.postcode ?? '',
     consigneeCountry: c.country ?? '',
   }
+  if (!state?.clientCustomer) next.clientCustomer = c
+  if (!state?.importerCustomer) next.importerCustomer = c
+  return next
+}
+
+export function applyClientCustomer(
+  c: CustomerPickerValue | null,
+  state: Pick<BookingFormState, 'clientCustomer' | 'consigneeCustomer' | 'importerCustomer'>,
+): Partial<BookingFormState> {
+  if (!c) return { clientCustomer: null }
+
+  const prevId = state.clientCustomer?.account_id ?? null
+  const consigneeSynced =
+    !state.consigneeCustomer || state.consigneeCustomer.account_id === prevId
+  const importerSynced =
+    !state.importerCustomer || state.importerCustomer.account_id === prevId
+
+  const next: Partial<BookingFormState> = { clientCustomer: c }
+  if (consigneeSynced) Object.assign(next, applyConsigneeCustomer(c))
+  if (importerSynced) next.importerCustomer = c
+  return next
+}
+
+export function applyImporterCustomer(c: CustomerPickerValue | null): Partial<BookingFormState> {
+  return { importerCustomer: c }
 }
 
 function supplierFromRow(s: BookingSupplier): SupplierRowState {
@@ -270,11 +302,13 @@ export function formFromBooking(booking: Booking, suppliers: BookingSupplier[]):
     shipperCity: booking.shipper_city ?? first?.supplier_city ?? '',
     shipperCountry: booking.shipper_country ?? first?.supplier_country ?? '',
     suppliers: booking.is_consolidation && suppliers.length ? suppliers.map(supplierFromRow) : [newSupplierRow()],
-    consigneeCustomer: customerRef(
-      booking.consignee_account_id ?? booking.importer_account_id,
+    clientCustomer: customerRef(
+      booking.account_id,
       booking.consignee_name ?? booking.importer_name,
     ),
-    consigneeCompany: booking.consignee_name ?? booking.importer_name ?? '',
+    consigneeCustomer: customerRef(booking.consignee_account_id, booking.consignee_name),
+    importerCustomer: customerRef(booking.importer_account_id, booking.importer_name),
+    consigneeCompany: booking.consignee_name ?? '',
     consigneePhone: booking.consignee_phone ?? '',
     consigneeEmail: booking.consignee_email ?? '',
     consigneeAddress: booking.consignee_address ?? '',
@@ -337,10 +371,10 @@ export function formToSavePayload(
     module,
     source,
     status,
-    account_id: state.consigneeCustomer?.account_id ?? null,
+    account_id: state.clientCustomer?.account_id ?? state.consigneeCustomer?.account_id ?? null,
     is_consolidation: state.isConsolidation,
-    importer_name: state.consigneeCompany.trim() || state.consigneeCustomer?.name || null,
-    importer_account_id: state.consigneeCustomer?.account_id ?? null,
+    importer_name: state.importerCustomer?.name ?? null,
+    importer_account_id: state.importerCustomer?.account_id ?? null,
     origin: state.origin.trim() || null,
     destination: state.destination.trim() || null,
     etd: state.etd || null,

@@ -21,8 +21,11 @@ import {
 
 const MODULES: BookingModule[] = ['EA', 'ES', 'IA', 'IS']
 
-export default function BookingsPage() {
-  const { module } = useParams()
+type Props = { module?: BookingModule }
+
+export default function BookingsPage({ module: moduleProp }: Props) {
+  const { module: moduleParam } = useParams()
+  const module = moduleProp ?? moduleParam
   if (!module || !MODULES.includes(module as BookingModule)) {
     return <Navigate to="/bookings/ES" replace />
   }

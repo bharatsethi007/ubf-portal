@@ -2,7 +2,8 @@ import { supabase } from '../../supabase'
 import type { BookingDocument } from '../../types/bookingDocument'
 
 const BUCKET = 'booking-documents'
-const DOC_SELECT = 'id, booking_id, file_name, storage_path, mime_type, size_bytes, created_at'
+const DOC_SELECT =
+  'id, booking_id, file_name, storage_path, mime_type, size_bytes, tag_id, uploaded_by, created_at'
 
 export function formatFileSize(bytes: number | null | undefined): string {
   if (bytes == null || bytes <= 0) return '—'
@@ -29,6 +30,7 @@ export async function uploadBookingFile(
   file: File,
   bookingId: string,
   accountId: string,
+  opts?: { tagId?: string | null; uploadedBy?: string | null },
 ): Promise<BookingDocument> {
   const path = buildStoragePath(accountId, bookingId, file.name)
   const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(path, file, {
@@ -45,6 +47,8 @@ export async function uploadBookingFile(
       storage_path: path,
       mime_type: file.type || null,
       size_bytes: file.size,
+      tag_id: opts?.tagId ?? null,
+      uploaded_by: opts?.uploadedBy ?? null,
     })
     .select(DOC_SELECT)
     .single()
@@ -67,4 +71,12 @@ export async function signedDownloadUrl(storagePath: string): Promise<string> {
   const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(storagePath, 3600)
   if (error || !data?.signedUrl) throw new Error(error?.message ?? 'Failed to create download link')
   return data.signedUrl
+}
+
+export async function updateBookingDocumentTag(
+  docId: string,
+  tagId: string | null,
+): Promise<void> {
+  const { error } = await supabase.from('booking_documents').update({ tag_id: tagId }).eq('id', docId)
+  if (error) throw new Error(error.message)
 }

@@ -194,7 +194,7 @@ export default function BookingFormPage() {
 
       <div className={`bf-layout${showEmailPanel ? ' bf-layout--with-email' : ''}`}>
         <div className="bf-main">
-          <ShipmentInfo {...sectionProps} useIata={cfg.portKind === 'IATA'} />
+          <ShipmentInfo {...sectionProps} useIata={cfg.portKind === 'IATA'} isAir={cfg.mode === 'air'} />
           <div className={`bf-parties-grid${state.isConsolidation ? ' bf-parties-grid--wide-shipper' : ''}`}>
             <ShipperSection {...sectionProps} setSuppliers={setSuppliers} />
             <ConsigneeSection {...sectionProps} />

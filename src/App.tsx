@@ -18,9 +18,12 @@ import Shipments from './pages/Shipments'
 import Dashboard from './pages/DashboardPage'
 import ShipmentDetail from './pages/ShipmentDetail'
 import BookingsPage from './pages/BookingsPage'
+import { BookingRecordRoute } from './pages/BookingsRoute'
 import BookingFormPage from './pages/bookings/BookingFormPage'
 import StaffRoute from './components/StaffRoute'
 import SliPage from './features/sli/SliPage'
+import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
+import { Toaster } from './components/ui/sonner'
 
 function StaffDenied() {
   return (
@@ -122,6 +125,10 @@ export default function App() {
             <Route path="/new-booking" element={<NewBookingPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
             <Route
+              path="/bookings/import-sea"
+              element={<StaffRoute><ImportSeaBoardPage /></StaffRoute>}
+            />
+            <Route
               path="/bookings/:module/new"
               element={<StaffRoute><BookingFormPage /></StaffRoute>}
             />
@@ -129,9 +136,13 @@ export default function App() {
               path="/bookings/:module/:id/edit"
               element={<StaffRoute><BookingFormPage /></StaffRoute>}
             />
+            <Route path="/bookings/EA" element={<StaffRoute><BookingsPage module="EA" /></StaffRoute>} />
+            <Route path="/bookings/ES" element={<StaffRoute><BookingsPage module="ES" /></StaffRoute>} />
+            <Route path="/bookings/IA" element={<StaffRoute><BookingsPage module="IA" /></StaffRoute>} />
+            <Route path="/bookings/IS" element={<StaffRoute><BookingsPage module="IS" /></StaffRoute>} />
             <Route
-              path="/bookings/:module"
-              element={<StaffRoute><BookingsPage /></StaffRoute>}
+              path="/bookings/:bookingId"
+              element={<StaffRoute><BookingRecordRoute /></StaffRoute>}
             />
             <Route
               path="/customers/:accountId"
@@ -148,6 +159,7 @@ export default function App() {
           </Route>
         </Route>
       </Routes>
+      <Toaster richColors closeButton />
     </BrowserRouter>
   )
 }
