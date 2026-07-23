@@ -8,6 +8,7 @@ import type { BookingRecord, BookingRecordPatch, BookingShipment } from './booki
 import { useBookingTasks } from './useBookingTasks'
 
 import type { BookingTrackingEvent, ContainerTrackingRow } from './tracking/trackingTypes'
+import type { PortConnectFieldKey } from './portConnect/portConnectProvenance'
 
 type Props = {
   bookingId: string
@@ -23,7 +24,11 @@ type Props = {
   ) => void
   onRemoveContainer: (rowId: string) => void
   onResolveContainer: (rowId: string, resolution: ContainerConflictResolution) => void
+  onOverrideContainer: (rowId: string) => void
+  onRevertContainer: (rowId: string) => void
   containerResolveBusy?: boolean
+  lastSync?: string | null
+  isFlashing?: (key: PortConnectFieldKey) => boolean
   onPatch: (ui: Partial<BookingRecord>, db: BookingRecordPatch) => void
 }
 
@@ -36,7 +41,11 @@ export default function BookingDetailsTab({
   onSaveContainer,
   onRemoveContainer,
   onResolveContainer,
+  onOverrideContainer,
+  onRevertContainer,
   containerResolveBusy,
+  lastSync,
+  isFlashing,
   trackingContainers = [],
   trackingEvents = [],
   onPatch,
@@ -57,17 +66,25 @@ export default function BookingDetailsTab({
       <BookingMiddleColumn
         booking={booking}
         shipment={shipment}
+        trackingContainers={trackingContainers}
         containerRows={containerRows}
         onAddContainer={onAddContainer}
         onSaveContainer={onSaveContainer}
         onRemoveContainer={onRemoveContainer}
         onResolveContainer={onResolveContainer}
+        onOverrideContainer={onOverrideContainer}
+        onRevertContainer={onRevertContainer}
         containerResolveBusy={containerResolveBusy}
+        lastSync={lastSync}
+        isFlashing={isFlashing}
         onPatch={onPatch}
       />
       <BookingDatesColumn
         booking={booking}
         dischargePort={shipment?.destination ?? booking.m_discharge_port}
+        trackingContainers={trackingContainers}
+        lastSync={lastSync}
+        isFlashing={isFlashing}
         onPatch={onPatch}
       />
       <BookingTaskPanel

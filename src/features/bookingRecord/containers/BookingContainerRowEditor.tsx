@@ -3,15 +3,18 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  containerTypeLabel,
-  containerTypePillClass,
-} from '@/features/importSea/containerTypeUtils'
+  portConnectContainerSeal,
+  portConnectContainerType,
+} from '../portConnect/bookingPortConnectCoalesce'
 import ContainerHazardChip from './ContainerHazardChip'
 import BookingContainerConflictActions from './BookingContainerConflictActions'
 import {
   CONTAINER_TYPE_OPTIONS,
   type BookingContainerSource,
 } from './bookingContainerTypes'
+import ManualOverridePill from '../portConnect/ManualOverridePill'
+import PortConnectSourcePill from '../portConnect/PortConnectSourcePill'
+import { usePortConnectDetail } from '../portConnect/PortConnectDetailProvider'
 import ContainerSourceDot from './ContainerSourceDot'
 import {
   containerConflictMessage,
@@ -21,12 +24,18 @@ import {
   containerNoValidationMessage,
   normalizeContainerNo,
 } from './containerIso6346'
+import {
+  containerTypeLabel,
+  containerTypePillClass,
+} from '@/features/importSea/containerTypeUtils'
 import type { ContainerListItem } from './useBookingContainers'
 import { isDraftContainer } from './useBookingContainers'
+import type { ContainerTrackingRow } from '../tracking/trackingTypes'
 import type { ContainerConflictResolution } from './bookingContainerTypes'
 
 type Props = {
   row: ContainerListItem
+  tracking?: ContainerTrackingRow
   onSave: (payload: {
     container_no: string
     container_type: string | null
@@ -34,6 +43,12 @@ type Props = {
   }) => void
   onRemove: () => void
   onResolve?: (resolution: ContainerConflictResolution) => void
+  onOverride?: () => void
+  onRevert?: () => void
+  overridden?: boolean
+  lastSync?: string | null
+  flashType?: boolean
+  flashSeal?: boolean
   resolveBusy?: boolean
 }
 
@@ -44,12 +59,21 @@ function rowSource(row: ContainerListItem): BookingContainerSource {
 
 export default function BookingContainerRowEditor({
   row,
+  tracking,
   onSave,
   onRemove,
   onResolve,
+  onOverride,
+  onRevert,
+  overridden,
+  lastSync,
+  flashType,
+  flashSeal,
   resolveBusy,
 }: Props) {
+  const { openDetail } = usePortConnectDetail()
   const readOnly = !isDraftContainer(row) && row.source !== 'manual'
+  const isPortConnect = !isDraftContainer(row) && row.source === 'portconnect'
   const [containerNo, setContainerNo] = useState(row.container_no)
   const [containerType, setContainerType] = useState(row.container_type ?? '')
   const [sealNo, setSealNo] = useState(row.seal_no ?? '')
@@ -82,13 +106,18 @@ export default function BookingContainerRowEditor({
   }
 
   if (readOnly) {
-    const typeLabel = containerTypeLabel(
-      row.iso_type ?? row.tracking_container_type ?? row.container_type,
-      row.iso_desc,
-    )
+    const typeLabel = isPortConnect && tracking
+      ? portConnectContainerType(tracking)
+      : containerTypeLabel(
+          row.iso_type ?? row.tracking_container_type ?? row.container_type,
+          row.iso_desc,
+        )
+    const seal = isPortConnect && tracking
+      ? portConnectContainerSeal(tracking) ?? row.seal_no
+      : row.seal_no
     return (
       <div className={`booking-container-row booking-container-row--readonly${hasConflict ? ' booking-container-row--conflict' : ''}`}>
-        <ContainerSourceDot source={rowSource(row)} />
+        {rowSource(row) !== 'portconnect' ? <ContainerSourceDot source={rowSource(row)} /> : <span />}
         <span className="mono booking-container-row__no">
           {row.container_no}
           {!isDraftContainer(row) && (row.hazard_count ?? 0) > 0 ? (
@@ -99,14 +128,35 @@ export default function BookingContainerRowEditor({
             />
           ) : null}
         </span>
-        <span className="booking-container-row__type">
+        <span className={`booking-container-row__type${flashType ? ' booking-field--flash' : ''}`}>
+          {isPortConnect ? (
+            <PortConnectSourcePill
+              lastSync={lastSync}
+              onClick={() => openDetail('container_type', row.container_no)}
+            />
+          ) : null}
           {typeLabel ? (
             <span className={containerTypePillClass(typeLabel)}>{typeLabel}</span>
           ) : (
             row.container_type ?? '—'
           )}
         </span>
-        <span className="booking-container-row__seal">{row.seal_no ?? '—'}</span>
+        <span className={`booking-container-row__seal${flashSeal ? ' booking-field--flash' : ''}`}>
+          {isPortConnect ? (
+            <PortConnectSourcePill
+              lastSync={lastSync}
+              onClick={() => openDetail('seal', row.container_no)}
+            />
+          ) : null}
+          {seal ?? '—'}
+        </span>
+        {isPortConnect && onOverride ? (
+          <button type="button" className="text-link booking-field-override-link" onClick={onOverride}>
+            Override
+          </button>
+        ) : overridden && onRevert ? (
+          <ManualOverridePill onRevert={onRevert} />
+        ) : null}
         {hasConflict && conflictMessage ? (
           <div className="booking-container-conflict">
             <p className="booking-container-conflict__msg">{conflictMessage}</p>
@@ -125,7 +175,13 @@ export default function BookingContainerRowEditor({
 
   return (
     <div className={`booking-container-row${hasConflict ? ' booking-container-row--conflict' : ''}`}>
-      <ContainerSourceDot source="manual" />
+      {overridden && onRevert ? (
+        <span className="booking-container-row__override">
+          <ManualOverridePill onRevert={onRevert} />
+        </span>
+      ) : (
+        <ContainerSourceDot source="manual" />
+      )}
       <div className="booking-container-row__no-wrap">
         <Input
           className="input--xs mono booking-container-row__no-input"

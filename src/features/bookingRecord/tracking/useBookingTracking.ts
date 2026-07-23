@@ -1,6 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import {
+  diffPortConnectSnapshots,
+  formatRefreshChangeList,
+  type PortConnectFieldKey,
+  type PortConnectSnapshot,
+} from '../portConnect/portConnectProvenance'
+import {
   fetchBookingTrackingEvents,
   fetchBookingTrackingSettings,
   fetchContainerTrackingRows,
@@ -21,19 +27,30 @@ import type {
 
 const REFRESH_COOLDOWN_MS = 60_000
 
-function refreshToastSummary(summary: {
-  containers_found: number
-  fields_changed: number
-  events_written: number
-  containers_not_recognised: string[]
-}): string {
-  const parts = [
+export type PortConnectRefreshOptions = {
+  snapshotBefore?: PortConnectSnapshot | null
+  buildSnapshotAfter?: (containers: ContainerTrackingRow[]) => PortConnectSnapshot
+  onFieldChanges?: (keys: PortConnectFieldKey[]) => void
+}
+
+function refreshToastMessage(
+  summary: {
+    containers_found: number
+    events_written: number
+    containers_not_recognised: string[]
+  },
+  changedFields: PortConnectFieldKey[],
+): string {
+  const parts: string[] = []
+  if (changedFields.length) {
+    parts.push(`Updated: ${formatRefreshChangeList(changedFields)}`)
+  } else {
+    parts.push('No PortConnect field changes')
+  }
+  parts.push(
     `${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'} synced`,
     `${summary.events_written} event${summary.events_written === 1 ? '' : 's'}`,
-  ]
-  if (summary.fields_changed) {
-    parts.push(`${summary.fields_changed} field change${summary.fields_changed === 1 ? '' : 's'}`)
-  }
+  )
   if (summary.containers_not_recognised.length) {
     parts.push(`not found: ${summary.containers_not_recognised.join(', ')}`)
   }
@@ -43,6 +60,7 @@ function refreshToastSummary(summary: {
 export function useBookingTracking(
   bookingId: string | undefined,
   containerNumbers: string[],
+  onAfterRefresh?: () => void | Promise<void>,
 ) {
   const [settings, setSettings] = useState<BookingTrackingSettings | null>(null)
   const [containers, setContainers] = useState<ContainerTrackingRow[]>([])
@@ -53,14 +71,14 @@ export function useBookingTracking(
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null)
   const lastRefreshAttempt = useRef(0)
 
-  const reload = useCallback(async () => {
+  const reload = useCallback(async (): Promise<ContainerTrackingRow[]> => {
     if (!bookingId) {
       setSettings(null)
       setContainers([])
       setEvents([])
       setLastRefreshedAt(null)
       setLoading(false)
-      return
+      return []
     }
     setLoading(true)
     try {
@@ -74,12 +92,14 @@ export function useBookingTracking(
       setContainers(nextContainers)
       setEvents(nextEvents)
       setLastRefreshedAt(lastRefresh)
+      return nextContainers
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to load tracking')
       setSettings(null)
       setContainers([])
       setEvents([])
       setLastRefreshedAt(null)
+      return []
     } finally {
       setLoading(false)
     }
@@ -134,7 +154,7 @@ export function useBookingTracking(
     }
   }, [bookingId, reload])
 
-  const refreshPortConnectData = useCallback(async () => {
+  const refreshPortConnectData = useCallback(async (opts?: PortConnectRefreshOptions) => {
     if (!bookingId) return
     const now = Date.now()
     if (now - lastRefreshAttempt.current < REFRESH_COOLDOWN_MS) {
@@ -147,14 +167,23 @@ export function useBookingTracking(
     try {
       const summary = await refreshPortConnect(bookingId)
       setLastRefreshedAt(summary.last_refreshed_at)
-      toast.success(refreshToastSummary(summary))
-      await reload()
+      const nextContainers = await reload()
+      let changedFields: PortConnectFieldKey[] = []
+      if (opts?.snapshotBefore && opts.buildSnapshotAfter) {
+        changedFields = diffPortConnectSnapshots(
+          opts.snapshotBefore,
+          opts.buildSnapshotAfter(nextContainers),
+        )
+        opts.onFieldChanges?.(changedFields)
+      }
+      toast.success(refreshToastMessage(summary, changedFields))
+      await onAfterRefresh?.()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Refresh failed')
     } finally {
       setRefreshBusy(false)
     }
-  }, [bookingId, reload])
+  }, [bookingId, reload, onAfterRefresh])
 
   return {
     settings,

@@ -16,10 +16,12 @@ import {
   countUnresolvedContainerConflicts,
 } from '@/features/bookingRecord/containers/containerConflictUtils'
 import { containerTypeLabel, containerTypePillClass } from '../containerTypeUtils'
+import BoardPortConnectDot from './BoardPortConnectDot'
 import type { ImportSeaContainer } from '../types'
 
 type Props = {
   containers: ImportSeaContainer[] | null
+  lastSync?: string | null
 }
 
 function TypePill({
@@ -36,7 +38,7 @@ function TypePill({
   return <span className={containerTypePillClass(label)}>{label}</span>
 }
 
-export default function ContainerCell({ containers }: Props) {
+export default function ContainerCell({ containers, lastSync }: Props) {
   const list = (containers ?? []).filter((c) => c.container_no?.trim())
   if (!list.length) return <span className="muted">—</span>
 
@@ -74,6 +76,7 @@ export default function ContainerCell({ containers }: Props) {
         </Tooltip>
       ) : null}
       <span className="mono import-sea-container-cell__no">{firstNo}</span>
+      {first.source === 'portconnect' ? <BoardPortConnectDot lastSync={lastSync} /> : null}
       <TypePill
         type={first.container_type}
         isoType={first.iso_type}

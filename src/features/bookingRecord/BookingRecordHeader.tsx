@@ -4,7 +4,7 @@ import MatchBadge from '@/features/importSea/cells/MatchBadge'
 import { fmtBoardDate } from '@/features/importSea/importSeaBoardFormat'
 import { fmtDate } from '@/utils/format'
 import type { PortConnectRouteContext } from './tracking/portConnectRouteContext'
-import type { BookingRecord } from '../bookingRecordTypes'
+import type { BookingRecord } from './bookingRecordTypes'
 
 type Props = {
   booking: BookingRecord

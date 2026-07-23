@@ -94,24 +94,3 @@ export function deriveRefreshEvents(
 export function countChangedFields(before: VisitTimestamps, after: VisitTimestamps): number {
   return FIELD_SPECS.filter((s) => fieldChanged(before[s.key], after[s.key])).length
 }
-
-export function bookingPatchFromVisit(
-  visit: JsonRecord,
-  after: VisitTimestamps,
-  overrides: Record<string, boolean>,
-): Record<string, unknown> {
-  const patch: Record<string, unknown> = {}
-
-  if (!overrides.discharge_date && after.discharged_at) {
-    patch.discharge_date = after.discharged_at.slice(0, 10)
-  }
-  if (!overrides.delivery_date) {
-    const delivery = after.delivered_at ?? after.gate_out_at
-    if (delivery) patch.delivery_date = delivery.slice(0, 10)
-  }
-  if (!overrides.last_free_day && after.last_free_at) {
-    patch.last_free_day = after.last_free_at.slice(0, 10)
-  }
-
-  return patch
-}

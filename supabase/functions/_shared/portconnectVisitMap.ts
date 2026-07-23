@@ -57,7 +57,7 @@ export function mapVisitToContainerRow(
     line_release_at: asIso(visitField(visit, "lineReleaseDatetime")),
     customs_release_at: asIso(visitField(visit, "customsReleaseDatetime")),
     mpi_release_at: asIso(visitField(visit, "mpiReleaseDatetime")),
-    gate_out_at: asIso(visitField(visit, "seaPortGateOutDateTime", "inlandPortGateOutDateTime")),
+    gate_out_at: asIso(visitField(visit, "seaPortGateOutDateTime")),
     vbs_slot_at: asIso(visitField(visit, "vbsSlotDatetime")),
     last_free_at: asIso(visitField(visit, "lastFreeDatetime")),
     power_last_free_at: asIso(visitField(visit, "packedOffPowerDatetime")),

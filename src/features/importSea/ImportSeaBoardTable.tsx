@@ -2,8 +2,9 @@ import { SkeletonBusy } from '@/components/ui/skeleton'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ImportSeaBoardTableSkeleton from './ImportSeaBoardTableSkeleton'
-import BookingRefCell from './cells/BookingRefCell'
 import BoardDateCell from './cells/BoardDateCell'
+import BoardSourcedDateCell from './cells/BoardSourcedDateCell'
+import BookingRefCell from './cells/BookingRefCell'
 import ClientCell from './cells/ClientCell'
 import ContainerCell from './cells/ContainerCell'
 import HandledByCell from './cells/HandledByCell'
@@ -81,11 +82,30 @@ export default function ImportSeaBoardTable({ rows, loading }: Props) {
                           name={row.customer_name}
                         />
                       </td>
-                      <td><BoardDateCell value={row.eta} /></td>
-                      <td><ContainerCell containers={row.containers} /></td>
+                      <td>
+                        <BoardSourcedDateCell
+                          value={row.eta}
+                          source={row.eta_source}
+                          lastSync={row.portconnect_last_sync}
+                        />
+                      </td>
+                      <td><ContainerCell containers={row.containers} lastSync={row.portconnect_last_sync} /></td>
                       <td><BoardDateCell value={row.atf} /></td>
-                      <td><BoardDateCell value={row.last_free_day} lfd /></td>
-                      <td><BoardDateCell value={row.delivery_date} /></td>
+                      <td>
+                        <BoardSourcedDateCell
+                          value={row.last_free_day}
+                          source={row.last_free_day_source}
+                          lastSync={row.portconnect_last_sync}
+                          lfd
+                        />
+                      </td>
+                      <td>
+                        <BoardSourcedDateCell
+                          value={row.delivery_date}
+                          source={row.delivery_date_source}
+                          lastSync={row.portconnect_last_sync}
+                        />
+                      </td>
                       <td><BoardDateCell value={row.container_return_date} /></td>
                       <td><HoldCell label={row.hold_label} /></td>
                       <td>

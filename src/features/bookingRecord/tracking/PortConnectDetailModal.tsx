@@ -1,3 +1,4 @@
+import { useEffect, useRef } from 'react'
 import {
   Dialog,
   DialogContent,
@@ -15,12 +16,25 @@ import type { PortConnectVisitView } from './trackingTypes'
 
 type Props = {
   visit: PortConnectVisitView | null
+  focusLabel?: string | null
   onClose: () => void
 }
 
-export default function PortConnectDetailModal({ visit, onClose }: Props) {
+export default function PortConnectDetailModal({ visit, focusLabel, onClose }: Props) {
   const open = Boolean(visit)
   const row = visit?.row
+  const scrollRef = useRef<HTMLDivElement>(null)
+
+  useEffect(() => {
+    if (!open || !focusLabel || !scrollRef.current) return
+    const el = scrollRef.current.querySelector(`[data-pc-field="${CSS.escape(focusLabel)}"]`)
+    el?.scrollIntoView({ block: 'nearest', behavior: 'smooth' })
+    el?.classList.add('pc-detail-panel__row--focus')
+    const timer = window.setTimeout(() => {
+      el?.classList.remove('pc-detail-panel__row--focus')
+    }, 2500)
+    return () => window.clearTimeout(timer)
+  }, [open, focusLabel, visit?.row.container_no])
 
   return (
     <Dialog open={open} onOpenChange={(next) => { if (!next) onClose() }}>
@@ -34,7 +48,7 @@ export default function PortConnectDetailModal({ visit, onClose }: Props) {
           </DialogDescription>
         </DialogHeader>
         {row ? (
-          <div className="pc-detail-modal__panels">
+          <div ref={scrollRef} className="pc-detail-modal__panels">
             <PortConnectDetailPanel title="Container Details" fields={containerDetailFields(row)} />
             <PortConnectDetailPanel title="Visit Details" fields={visitDetailFields(row)} />
             <PortConnectDetailPanel title="Event Details" fields={eventDetailFields(row)} />

@@ -5,6 +5,7 @@ import type {
   TrackingSettingsPatch,
 } from "./types.ts"
 import { normalizeEventType } from "./parseEvent.ts"
+import { isLytteltonPort } from "../_shared/portconnectFields.ts"
 
 function parseTimestamp(value: string | null, fallback: string): string {
   if (!value?.trim()) return fallback
@@ -14,6 +15,16 @@ function parseTimestamp(value: string | null, fallback: string): string {
 
 function toDateOnly(iso: string): string {
   return iso.slice(0, 10)
+}
+
+function setBookingDate(
+  booking: BookingStatePatch,
+  overrides: Record<string, boolean>,
+  field: string,
+  value: string | null | undefined,
+): void {
+  if (!value || overrides[field]) return
+  booking[field] = toDateOnly(value)
 }
 
 function isDepotGateIn(event: ParsedWebhookEvent): boolean {
@@ -28,10 +39,12 @@ export function applyEventState(
   container: ContainerStatePatch,
   booking: BookingStatePatch,
   settings: TrackingSettingsPatch,
+  overrides: Record<string, boolean>,
 ): void {
   const type = normalizeEventType(event.eventTypeCode)
   const at = event.eventDatetime
   const parsedValueAt = parseTimestamp(event.eventValue, at)
+  const lyttelton = isLytteltonPort(event.partnerPortCode)
 
   container.latest_event_label = event.eventTypeCode
   container.latest_event_location = event.eventLocation
@@ -42,11 +55,11 @@ export function applyEventState(
   switch (type) {
     case "VESSELARRIVAL":
       container.inbound_ata = at
-      booking.m_atf = toDateOnly(at)
+      setBookingDate(booking, overrides, "m_eta", at)
       break
     case "DISCHARGE":
       container.discharged_at = at
-      booking.discharge_date = toDateOnly(at)
+      setBookingDate(booking, overrides, "discharge_date", at)
       if (event.eventValue) container.inbound_vessel_name = event.eventValue
       if (event.eventValue2) container.inbound_vessel_ref = event.eventValue2
       break
@@ -72,28 +85,28 @@ export function applyEventState(
       container.last_free_at = parsedValueAt
       container.lft_warning = false
       container.lft_overdue = false
-      booking.last_free_day = toDateOnly(parsedValueAt)
+      if (!lyttelton) setBookingDate(booking, overrides, "last_free_day", parsedValueAt)
       break
     case "LFT24HOURS":
       container.last_free_at = parsedValueAt
       container.lft_warning = true
-      booking.last_free_day = toDateOnly(parsedValueAt)
+      if (!lyttelton) setBookingDate(booking, overrides, "last_free_day", parsedValueAt)
       break
     case "LFTEXCEEDED":
       container.last_free_at = parsedValueAt
       container.lft_overdue = true
-      booking.last_free_day = toDateOnly(parsedValueAt)
+      if (!lyttelton) setBookingDate(booking, overrides, "last_free_day", parsedValueAt)
       break
     case "VBSCHANGED":
       container.vbs_slot_at = parsedValueAt
       break
     case "GATEOUT":
       container.gate_out_at = at
-      booking.delivery_date = toDateOnly(at)
+      setBookingDate(booking, overrides, "delivery_date", at)
       break
     case "GATEIN":
       if (isDepotGateIn(event)) {
-        booking.container_return_date = toDateOnly(at)
+        setBookingDate(booking, overrides, "container_return_date", at)
       }
       break
     case "PINAVAILABLE":
@@ -124,4 +137,41 @@ export function applyEventState(
 
 export function sortEvents(events: ParsedWebhookEvent[]): ParsedWebhookEvent[] {
   return [...events].sort((a, b) => a.eventDatetime.localeCompare(b.eventDatetime))
+}
+
+export function webhookTaskTrigger(
+  event: ParsedWebhookEvent,
+): "MPIRELEASE" | "GATEOUT" | "GATEIN_DEPOT" | null {
+  const type = normalizeEventType(event.eventTypeCode)
+  if (type === "MPIRELEASE") return "MPIRELEASE"
+  if (type === "GATEOUT") return "GATEOUT"
+  if (type === "GATEIN" && isDepotGateIn(event)) return "GATEIN_DEPOT"
+  return null
+}
+
+function parseOverrides(raw: unknown): Record<string, boolean> {
+  if (!raw || typeof raw !== "object") return {}
+  const out: Record<string, boolean> = {}
+  for (const [k, v] of Object.entries(raw as Record<string, unknown>)) {
+    if (v) out[k] = true
+  }
+  return out
+}
+
+export async function loadBookingOverrides(
+  db: import("jsr:@supabase/supabase-js@2").SupabaseClient,
+  cache: Map<string, Record<string, boolean>>,
+  bookingId: string,
+): Promise<Record<string, boolean>> {
+  const hit = cache.get(bookingId)
+  if (hit) return hit
+  const { data, error } = await db
+    .from("bookings")
+    .select("field_overrides")
+    .eq("id", bookingId)
+    .maybeSingle()
+  if (error) throw new Error(error.message)
+  const overrides = parseOverrides(data?.field_overrides)
+  cache.set(bookingId, overrides)
+  return overrides
 }

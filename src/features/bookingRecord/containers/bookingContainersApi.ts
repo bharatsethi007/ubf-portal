@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase'
+import { withContainerOverride, withoutContainerOverride } from '../bookingFieldOverrides'
 import type {
   BookingContainerRow,
   BookingContainerUpsert,
@@ -59,6 +60,58 @@ function mergeTracking(
       tracking_container_type: (t.container_type as string | null) ?? null,
     }
   })
+}
+
+export async function revertContainerToPortConnect(
+  bookingId: string,
+  containerId: string,
+  containerNo: string,
+  currentOverrides: Record<string, boolean> | null | undefined,
+): Promise<{ row: BookingContainerRow; field_overrides: Record<string, boolean> }> {
+  const field_overrides = withoutContainerOverride(containerNo, currentOverrides)
+
+  const { error: bookingErr } = await supabase
+    .from('bookings')
+    .update({ field_overrides })
+    .eq('id', bookingId)
+  if (bookingErr) throw bookingErr
+
+  const { data, error } = await supabase
+    .from('booking_containers')
+    .update({ source: 'portconnect' })
+    .eq('id', containerId)
+    .select(SELECT)
+    .single()
+  if (error) throw error
+  if (!data) throw new Error('Container not found')
+
+  return { row: data as BookingContainerRow, field_overrides }
+}
+
+export async function overrideContainerToManual(
+  bookingId: string,
+  containerId: string,
+  containerNo: string,
+  currentOverrides: Record<string, boolean> | null | undefined,
+): Promise<{ row: BookingContainerRow; field_overrides: Record<string, boolean> }> {
+  const field_overrides = withContainerOverride(containerNo, currentOverrides)
+
+  const { error: bookingErr } = await supabase
+    .from('bookings')
+    .update({ field_overrides })
+    .eq('id', bookingId)
+  if (bookingErr) throw bookingErr
+
+  const { data, error } = await supabase
+    .from('booking_containers')
+    .update({ source: 'manual' })
+    .eq('id', containerId)
+    .select(SELECT)
+    .single()
+  if (error) throw error
+  if (!data) throw new Error('Container not found')
+
+  return { row: data as BookingContainerRow, field_overrides }
 }
 
 export async function fetchBookingContainers(bookingId: string): Promise<BookingContainerRow[]> {

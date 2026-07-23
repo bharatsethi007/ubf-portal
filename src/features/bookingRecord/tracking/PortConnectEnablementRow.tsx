@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react'
 import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
-import PortConnectDetailModal from './PortConnectDetailModal'
+import { usePortConnectDetail } from '../portConnect/PortConnectDetailProvider'
 import PortConnectTrackTraceTable from './PortConnectTrackTraceTable'
 import { buildPortConnectVisitViews } from './portConnectVisitView'
 import { relativeUpdatedAt } from './trackingFormat'
@@ -41,7 +41,7 @@ export default function PortConnectEnablementRow({
   onRefresh,
 }: Props) {
   const [pending, setPending] = useState(false)
-  const [selected, setSelected] = useState<PortConnectVisitView | null>(null)
+  const { openVisit } = usePortConnectDetail()
   const noContainers = containerNumbers.length === 0
   const enabled = settings.portconnect_enabled
   const actionBusy = busy || refreshBusy
@@ -61,6 +61,10 @@ export default function PortConnectEnablementRow({
     } finally {
       setPending(false)
     }
+  }
+
+  const handleSelect = (visit: PortConnectVisitView) => {
+    openVisit(visit, null)
   }
 
   return (
@@ -103,7 +107,7 @@ export default function PortConnectEnablementRow({
         </div>
       </dl>
 
-      <PortConnectTrackTraceTable visits={visits} onSelect={setSelected} embedded />
+      <PortConnectTrackTraceTable visits={visits} onSelect={handleSelect} embedded />
 
       {noContainers ? (
         <p className="booking-tracking-enable__warn">
@@ -118,8 +122,6 @@ export default function PortConnectEnablementRow({
           Turn on PortConnect tracking, then use Refresh to pull the latest visit data on demand.
         </p>
       ) : null}
-
-      <PortConnectDetailModal visit={selected} onClose={() => setSelected(null)} />
     </div>
   )
 }

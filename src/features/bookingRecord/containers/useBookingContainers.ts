@@ -3,6 +3,8 @@ import { toast } from 'sonner'
 import {
   deleteBookingContainer,
   fetchBookingContainers,
+  overrideContainerToManual,
+  revertContainerToPortConnect,
   resolveContainerConflict,
   upsertBookingContainer,
 } from './bookingContainersApi'
@@ -26,8 +28,6 @@ export type ContainerListItem = BookingContainerRow | DraftBookingContainer
 export function isDraftContainer(row: ContainerListItem): row is DraftBookingContainer {
   return 'draft' in row && row.draft === true
 }
-
-import type { BookingContainerRow } from './bookingContainerTypes'
 
 const EMPTY_CONTAINERS: BookingContainerRow[] = []
 
@@ -149,12 +149,60 @@ export function useBookingContainers(
     }
   }, [bookingId, onResolved])
 
+  const overrideRow = useCallback(async (
+    rowId: string,
+    fieldOverrides: Record<string, boolean> | null | undefined,
+  ) => {
+    const row = rows.find((r) => r.id === rowId)
+    if (!row || isDraftContainer(row)) return null
+
+    try {
+      const result = await overrideContainerToManual(
+        bookingId,
+        rowId,
+        row.container_no,
+        fieldOverrides,
+      )
+      setRows((prev) => prev.map((r) => (r.id === rowId ? result.row : r)))
+      toast.success('Container switched to manual entry')
+      return result
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to override container')
+      return null
+    }
+  }, [bookingId, rows])
+
+  const revertRow = useCallback(async (
+    rowId: string,
+    fieldOverrides: Record<string, boolean> | null | undefined,
+  ) => {
+    const row = rows.find((r) => r.id === rowId)
+    if (!row || isDraftContainer(row)) return null
+
+    try {
+      const result = await revertContainerToPortConnect(
+        bookingId,
+        rowId,
+        row.container_no,
+        fieldOverrides,
+      )
+      setRows((prev) => prev.map((r) => (r.id === rowId ? result.row : r)))
+      toast.success('PortConnect values restored')
+      return result
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to revert container')
+      return null
+    }
+  }, [bookingId, rows])
+
   return {
     rows,
     addDraft,
     saveRow,
     removeRow,
     resolveConflict,
+    overrideRow,
+    revertRow,
     reload,
     portconnectEnabled,
     resolveBusy,

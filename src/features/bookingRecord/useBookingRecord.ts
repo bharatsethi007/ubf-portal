@@ -43,6 +43,16 @@ export function useBookingRecord(bookingId: string | undefined) {
     }
   }, [bookingId])
 
+  const reloadQuiet = useCallback(async () => {
+    if (!bookingId) return
+    try {
+      const data = await loadBookingRecordBundle(bookingId)
+      setBundle(data)
+    } catch {
+      // keep current bundle on background refresh failure
+    }
+  }, [bookingId])
+
   useEffect(() => {
     void reload()
   }, [reload])
@@ -69,5 +79,5 @@ export function useBookingRecord(bookingId: string | undefined) {
 
   const bumpHistory = useCallback(() => setHistoryTick((t) => t + 1), [])
 
-  return { bundle, loading, error, reload, patchBooking, historyTick, setBundle, bumpHistory }
+  return { bundle, loading, error, reload, reloadQuiet, patchBooking, historyTick, setBundle, bumpHistory }
 }

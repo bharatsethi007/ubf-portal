@@ -18,9 +18,13 @@ export type ImportSeaRow = {
   customer_id: string | null
   customer_name: string | null
   eta: string | null
+  eta_source?: string | null
   atf: string | null
+  atf_source?: string | null
   shipping_line: string | null
+  shipping_line_source?: string | null
   discharge_port: string | null
+  discharge_port_source?: string | null
   swb_released: boolean | null
   tlx_release_on_hand: boolean | null
   doc_handover_at: string | null
@@ -32,9 +36,13 @@ export type ImportSeaRow = {
   port_clearance_cancelled: boolean | null
   line_release_cancelled: boolean | null
   last_free_day: string | null
+  last_free_day_source?: string | null
   discharge_date: string | null
+  discharge_date_source?: string | null
   delivery_date: string | null
+  delivery_date_source?: string | null
   container_return_date: string | null
+  portconnect_last_sync?: string | null
   hold_reason: string | null
   hold_code: string | null
   hold_label: string | null

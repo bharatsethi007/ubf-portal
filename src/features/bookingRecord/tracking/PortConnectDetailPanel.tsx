@@ -13,6 +13,7 @@ export default function PortConnectDetailPanel({ title, fields }: Props) {
         {fields.map((field, i) => (
           <div
             key={field.label}
+            data-pc-field={field.label}
             className={`pc-detail-panel__row${i % 2 ? ' pc-detail-panel__row--alt' : ''}`}
           >
             <dt>{field.label}</dt>

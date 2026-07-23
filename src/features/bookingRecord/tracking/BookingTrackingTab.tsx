@@ -8,9 +8,14 @@ type TrackingState = ReturnType<typeof useBookingTracking>
 type Props = {
   containerNumbers: string[]
   tracking: TrackingState
+  onPortConnectRefresh?: () => void | Promise<void>
 }
 
-export default function BookingTrackingTab({ containerNumbers, tracking }: Props) {
+export default function BookingTrackingTab({
+  containerNumbers,
+  tracking,
+  onPortConnectRefresh,
+}: Props) {
   const {
     settings,
     containers,
@@ -39,6 +44,10 @@ export default function BookingTrackingTab({ containerNumbers, tracking }: Props
     )
   }
 
+  const handleRefresh = () => Promise.resolve(
+    (onPortConnectRefresh ?? (() => refreshPortConnect()))(),
+  )
+
   return (
     <TooltipProvider delay={300}>
       <div className="booking-tracking-tab">
@@ -53,7 +62,7 @@ export default function BookingTrackingTab({ containerNumbers, tracking }: Props
           lastRefreshedAt={lastRefreshedAt}
           onPortConnectSubscribe={subscribePortConnect}
           onPortConnectUnsubscribe={unsubscribePortConnect}
-          onPortConnectRefresh={refreshPortConnect}
+          onPortConnectRefresh={handleRefresh}
           onPatch={patchSettings}
         />
       </div>

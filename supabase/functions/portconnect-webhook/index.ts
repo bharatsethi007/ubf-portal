@@ -10,7 +10,8 @@ import {
 } from "./persist.ts"
 import { headerValue, parsePayload, parseWebhookEvent } from "./parseEvent.ts"
 import { resolveBookingId, touchSubscription } from "./resolveBooking.ts"
-import { applyEventState, sortEvents } from "./stateMap.ts"
+import { applyEventState, loadBookingOverrides, sortEvents, webhookTaskTrigger } from "./stateMap.ts"
+import { completePortConnectTask } from "../_shared/portconnectBookingAutomation.ts"
 import { rememberVisitUri, syncVisitUris } from "./visitSync.ts"
 import { autoUnsubscribeCompletedVisits } from "./autoUnsubscribe.ts"
 import type { ParsedWebhookEvent } from "./types.ts"
@@ -47,6 +48,7 @@ async function processEvents(
   const bookingPatches = new Map<string, Record<string, unknown>>()
   const settingsPatches = new Map<string, Record<string, unknown>>()
   const visitPairs = new Map<string, { bookingId: string; containerNo: string }>()
+  const overrideCache = new Map<string, Record<string, boolean>>()
 
   for (const event of sortEvents(events)) {
     try {
@@ -66,14 +68,21 @@ async function processEvents(
       await touchSubscription(db, bookingId, event)
       rememberVisitUri(visitPairs, event, bookingId)
 
+      const overrides = await loadBookingOverrides(db, overrideCache, bookingId)
       const containerPatch = getContainerPatch(containerBuckets, bookingId, event.containerNo)
       const booking = bookingPatches.get(bookingId) ?? {}
       const settings = settingsPatches.get(bookingId) ?? {}
 
-      applyEventState(event, containerPatch, booking, settings)
+      applyEventState(event, containerPatch, booking, settings, overrides)
 
       bookingPatches.set(bookingId, booking)
       settingsPatches.set(bookingId, settings)
+
+      const taskTrigger = webhookTaskTrigger(event)
+      if (taskTrigger && insertResult === "inserted") {
+        await completePortConnectTask(db, bookingId, taskTrigger)
+      }
+
       processed += 1
     } catch (err) {
       skipped += 1
