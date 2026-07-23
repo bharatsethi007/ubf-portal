@@ -24,9 +24,10 @@ export function containerConflictMessage(
 }
 
 export function boardContainerConflictTooltip(
-  containers: Array<Pick<BookingContainerRow, 'conflict_status' | 'resolved_at' | 'container_no'>>,
+  containers: Array<Pick<BookingContainerRow, 'conflict_status' | 'resolved_at' | 'container_no'>> | null | undefined,
 ): string | null {
-  const unresolved = containers.filter(isUnresolvedContainerConflict)
+  const list = containers ?? []
+  const unresolved = list.filter(isUnresolvedContainerConflict)
   if (!unresolved.length) return null
 
   const labels = new Map<ContainerConflictStatus, string>([

@@ -43,6 +43,7 @@ export async function fetchBookingRecord(id: string): Promise<BookingRecord | nu
     customer_name: customers?.name ?? null,
     consignee_name: consignee?.name ?? null,
     importer_name: importer?.name ?? null,
+    field_overrides: rest.field_overrides ?? {},
   }
 }
 

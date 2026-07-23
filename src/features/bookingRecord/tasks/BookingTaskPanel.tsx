@@ -15,8 +15,8 @@ type PatchFn = (ui: Partial<BookingRecord>, db: BookingRecordPatch) => void
 type Props = {
   bookingId: string
   booking: BookingRecord
-  trackingContainers: ContainerTrackingRow[]
-  trackingEvents: BookingTrackingEvent[]
+  trackingContainers?: ContainerTrackingRow[] | null
+  trackingEvents?: BookingTrackingEvent[] | null
   onPatch: PatchFn
   tasks: BookingTask[]
   staff: StaffUser[]
@@ -38,8 +38,8 @@ function PanelDivider() {
 export default function BookingTaskPanel({
   bookingId,
   booking,
-  trackingContainers,
-  trackingEvents,
+  trackingContainers = [],
+  trackingEvents = [],
   onPatch,
   tasks,
   staff,

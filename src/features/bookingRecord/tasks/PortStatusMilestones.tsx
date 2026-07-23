@@ -9,8 +9,8 @@ import type {
 } from '../tracking/trackingTypes'
 
 type Props = {
-  containers: ContainerTrackingRow[]
-  events: BookingTrackingEvent[]
+  containers?: ContainerTrackingRow[] | null
+  events?: BookingTrackingEvent[] | null
 }
 
 type Row = {
@@ -41,7 +41,10 @@ function PortStatusRow({ label, layer }: Row) {
   )
 }
 
-export default function PortStatusMilestones({ containers, events }: Props) {
+export default function PortStatusMilestones({
+  containers = [],
+  events = [],
+}: Props) {
   const rows: Row[] = [
     { label: 'MPI released', layer: releaseLayer(containers, 'mpi_release_at', events) },
     { label: 'Customs released', layer: releaseLayer(containers, 'customs_release_at', events) },

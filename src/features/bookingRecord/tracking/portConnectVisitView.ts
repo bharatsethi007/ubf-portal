@@ -72,9 +72,10 @@ function impedimentCodes(raw: Record<string, unknown> | null): string[] {
 
 export function clearedStatus(
   row: ContainerTrackingRow,
-  events: BookingTrackingEvent[],
+  events: BookingTrackingEvent[] | null | undefined,
 ): ClearedStatus {
-  const containerEvents = events.filter((e) => e.container_no === row.container_no)
+  const list = events ?? []
+  const containerEvents = list.filter((e) => e.container_no === row.container_no)
   if (containerEvents.some((e) => /CANCELLED/i.test(e.event_type_code))) return 'cancelled'
   if (row.customs_release_at && row.mpi_release_at) return 'cleared'
   return 'missing'
@@ -82,7 +83,7 @@ export function clearedStatus(
 
 export function buildPortConnectVisitView(
   row: ContainerTrackingRow,
-  events: BookingTrackingEvent[],
+  events: BookingTrackingEvent[] | null | undefined,
 ): PortConnectVisitView {
   const raw = row.raw
   const loadPort = row.load_port_name ?? asText(rawField(raw, 'loadPortName'))
@@ -128,7 +129,7 @@ export function buildPortConnectVisitView(
 
 export function buildPortConnectVisitViews(
   rows: ContainerTrackingRow[],
-  events: BookingTrackingEvent[],
+  events: BookingTrackingEvent[] | null | undefined,
 ): PortConnectVisitView[] {
-  return rows.map((row) => buildPortConnectVisitView(row, events))
+  return rows.map((row) => buildPortConnectVisitView(row, events ?? []))
 }

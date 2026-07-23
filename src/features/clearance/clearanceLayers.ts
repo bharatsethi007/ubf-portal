@@ -21,28 +21,30 @@ const CANCEL_BY_FIELD: Record<ReleaseField, string> = {
 }
 
 export function releaseLayer(
-  containers: ContainerTrackingRow[],
+  containers: ContainerTrackingRow[] | null | undefined,
   field: ReleaseField,
-  events: BookingTrackingEvent[],
+  events: BookingTrackingEvent[] | null | undefined,
 ): ReleaseLayer {
+  const safeContainers = containers ?? []
   const cancelled = hasEventCode(events, CANCEL_BY_FIELD[field])
-  if (!containers.length) return { released: false, cancelled, at: null }
-  const released = containers.every((c) => Boolean(c[field]))
+  if (!safeContainers.length) return { released: false, cancelled, at: null }
+  const released = safeContainers.every((c) => Boolean(c[field]))
   if (!released) return { released: false, cancelled, at: null }
-  const at = latestTimestamp(containers.map((c) => c[field]))
+  const at = latestTimestamp(safeContainers.map((c) => c[field]))
   return { released: true, cancelled, at }
 }
 
 export function portClearanceLayer(
-  containers: ContainerTrackingRow[],
-  events: BookingTrackingEvent[],
+  containers: ContainerTrackingRow[] | null | undefined,
+  events: BookingTrackingEvent[] | null | undefined,
 ): ReleaseLayer {
+  const safeContainers = containers ?? []
   const cancelled = hasEventCode(events, 'CUSTOMSRELEASECANCELLED', 'MPIRELEASECANCELLED')
-  if (!containers.length) return { released: false, cancelled, at: null }
-  const released = containers.every((c) => c.customs_release_at && c.mpi_release_at)
+  if (!safeContainers.length) return { released: false, cancelled, at: null }
+  const released = safeContainers.every((c) => c.customs_release_at && c.mpi_release_at)
   if (!released) return { released: false, cancelled, at: null }
   const at = latestTimestamp(
-    containers.map((c) => latestTimestamp([c.customs_release_at, c.mpi_release_at])),
+    safeContainers.map((c) => latestTimestamp([c.customs_release_at, c.mpi_release_at])),
   )
   return { released: true, cancelled, at }
 }
@@ -62,7 +64,11 @@ function latestTimestamp(values: Array<string | null | undefined>): string | nul
   return sorted[sorted.length - 1] ?? null
 }
 
-function hasEventCode(events: BookingTrackingEvent[], ...codes: string[]): boolean {
+function hasEventCode(
+  events: BookingTrackingEvent[] | null | undefined,
+  ...codes: string[]
+): boolean {
+  const list = events ?? []
   const wanted = new Set(codes.map((c) => c.toUpperCase()))
-  return events.some((e) => wanted.has(e.event_type_code.toUpperCase()))
+  return list.some((e) => wanted.has(e.event_type_code.toUpperCase()))
 }

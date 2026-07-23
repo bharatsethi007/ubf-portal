@@ -26,15 +26,15 @@ const UBF_MILESTONES: UbfMilestone[] = [
 
 type Props = {
   booking: BookingRecord
-  containers: ContainerTrackingRow[]
-  events: BookingTrackingEvent[]
+  containers?: ContainerTrackingRow[] | null
+  events?: BookingTrackingEvent[] | null
   onPatch: PatchFn
 }
 
 export default function MilestoneToggles({
   booking,
-  containers,
-  events,
+  containers = [],
+  events = [],
   onPatch,
 }: Props) {
   return (

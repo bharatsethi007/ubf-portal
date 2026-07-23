@@ -14,8 +14,8 @@ type Props = {
   booking: BookingRecord
   shipment: BookingShipment | null
   containerRows: ContainerListItem[]
-  trackingContainers: ContainerTrackingRow[]
-  trackingEvents: BookingTrackingEvent[]
+  trackingContainers?: ContainerTrackingRow[] | null
+  trackingEvents?: BookingTrackingEvent[] | null
   onAddContainer: () => void
   onSaveContainer: (
     rowId: string,
@@ -37,8 +37,8 @@ export default function BookingDetailsTab({
   onRemoveContainer,
   onResolveContainer,
   containerResolveBusy,
-  trackingContainers,
-  trackingEvents,
+  trackingContainers = [],
+  trackingEvents = [],
   onPatch,
 }: Props) {
   const {

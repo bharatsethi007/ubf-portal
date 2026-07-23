@@ -47,7 +47,7 @@ export default function PortConnectEnablementRow({
   const actionBusy = busy || refreshBusy
 
   const visits = useMemo(
-    () => buildPortConnectVisitViews(containers, events),
+    () => buildPortConnectVisitViews(containers ?? [], events ?? []),
     [containers, events],
   )
 
