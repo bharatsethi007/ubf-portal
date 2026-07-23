@@ -107,6 +107,8 @@ function BookingRecordPageContent() {
             booking={booking}
             shipment={shipment}
             containerRows={containerRows}
+            trackingContainers={tracking.containers}
+            trackingEvents={tracking.events}
             onAddContainer={onAddContainer}
             onSaveContainer={onSaveContainer}
             onRemoveContainer={onRemoveContainer}

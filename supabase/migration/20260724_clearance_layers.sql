@@ -1,4 +1,6 @@
 -- Clearance layers: port + line from PortConnect, UBF remains bookings.cleared
+DROP FUNCTION IF EXISTS public.get_import_sea_board();
+
 CREATE OR REPLACE FUNCTION public.get_import_sea_board()
  RETURNS TABLE(
   id uuid, booking_ref text, job_no text, customer_id text, customer_name text,

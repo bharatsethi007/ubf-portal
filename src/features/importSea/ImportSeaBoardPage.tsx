@@ -1,4 +1,5 @@
 import { useMemo } from 'react'
+import { TooltipProvider } from '@/components/ui/tooltip'
 import ImportSeaBoardSummary from './ImportSeaBoardSummary'
 import ImportSeaBoardTable from './ImportSeaBoardTable'
 import ImportSeaFilters from './ImportSeaFilters'
@@ -17,7 +18,8 @@ export default function ImportSeaBoardPage() {
   )
 
   return (
-    <div className="shipments-page">
+    <TooltipProvider delay={300}>
+      <div className="shipments-page">
       <header className="card pad-inline import-sea-header">
         <h1 className="import-sea-header__title">Import Sea board</h1>
         <p className="muted import-sea-header__sub">
@@ -43,6 +45,7 @@ export default function ImportSeaBoardPage() {
       </div>
 
       <ImportSeaBoardTable rows={filteredRows} loading={loading} />
-    </div>
+      </div>
+    </TooltipProvider>
   )
 }

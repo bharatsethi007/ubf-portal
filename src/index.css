@@ -662,6 +662,7 @@ a:hover { text-decoration: underline; }
 .import-sea-ops { display: inline-flex; gap: 5px; font-size: 10px; font-weight: 600; letter-spacing: 0.02em; }
 .import-sea-ops__off { color: var(--muted-foreground); opacity: 0.45; }
 .import-sea-ops__on { color: var(--color-accent); }
+.import-sea-ops__warn { color: #d97706; opacity: 1; }
 .import-sea-lfd--warn { color: #d97706; }
 .import-sea-lfd--past { color: #dc2626; }
 .import-sea-expand__grid {
@@ -761,6 +762,17 @@ a:hover { text-decoration: underline; }
 .booking-milestones__row {
   display: flex; align-items: center; justify-content: space-between; gap: 6px;
   padding: 1px 0; font-size: 11px;
+}
+.booking-milestones__group { margin-top: 8px; }
+.booking-milestones__group:first-of-type { margin-top: 0; }
+.booking-milestones__subheading {
+  margin: 0 0 4px; font-size: 10px; font-weight: 600; letter-spacing: 0.04em;
+  text-transform: uppercase; color: var(--muted-foreground);
+}
+.booking-milestones__hint { margin: 4px 0 0; font-size: 10px; line-height: 1.35; }
+.booking-milestones__row--warn { color: #d97706; }
+.booking-port-status__value {
+  display: inline-flex; align-items: center; gap: 6px; font-size: 11px;
 }
 .booking-tasks-section { display: flex; flex-direction: column; gap: 6px; }
 .booking-erp-readonly {

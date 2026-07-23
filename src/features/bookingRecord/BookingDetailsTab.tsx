@@ -7,11 +7,15 @@ import type { ContainerListItem } from './containers/useBookingContainers'
 import type { BookingRecord, BookingRecordPatch, BookingShipment } from './bookingRecordTypes'
 import { useBookingTasks } from './useBookingTasks'
 
+import type { BookingTrackingEvent, ContainerTrackingRow } from './tracking/trackingTypes'
+
 type Props = {
   bookingId: string
   booking: BookingRecord
   shipment: BookingShipment | null
   containerRows: ContainerListItem[]
+  trackingContainers: ContainerTrackingRow[]
+  trackingEvents: BookingTrackingEvent[]
   onAddContainer: () => void
   onSaveContainer: (
     rowId: string,
@@ -33,6 +37,8 @@ export default function BookingDetailsTab({
   onRemoveContainer,
   onResolveContainer,
   containerResolveBusy,
+  trackingContainers,
+  trackingEvents,
   onPatch,
 }: Props) {
   const {
@@ -67,6 +73,8 @@ export default function BookingDetailsTab({
       <BookingTaskPanel
         bookingId={bookingId}
         booking={booking}
+        trackingContainers={trackingContainers}
+        trackingEvents={trackingEvents}
         onPatch={onPatch}
         tasks={tasks}
         staff={staff}

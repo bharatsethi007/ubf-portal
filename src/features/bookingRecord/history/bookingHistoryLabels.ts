@@ -17,7 +17,7 @@ export const BOOKING_FIELD_LABELS: Record<string, string> = {
   tlx_release_on_hand: 'TLX release on hand',
   doc_handover_at: 'Doc handover',
   bacc_sent: 'BACC sent',
-  cleared: 'Cleared',
+  cleared: 'UBF cleared',
   truck_booked: 'Truck booked',
   last_free_day: 'Last free day',
   discharge_date: 'Discharge date',

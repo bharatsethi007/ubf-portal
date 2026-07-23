@@ -5,12 +5,18 @@ import { useBookingNotes } from '../notes/useBookingNotes'
 import BookingNotesSection from './BookingNotesSection'
 import BookingTaskRow, { taskProgressLabel } from './BookingTaskRow'
 import MilestoneToggles from './MilestoneToggles'
+import type {
+  BookingTrackingEvent,
+  ContainerTrackingRow,
+} from '../tracking/trackingTypes'
 
 type PatchFn = (ui: Partial<BookingRecord>, db: BookingRecordPatch) => void
 
 type Props = {
   bookingId: string
   booking: BookingRecord
+  trackingContainers: ContainerTrackingRow[]
+  trackingEvents: BookingTrackingEvent[]
   onPatch: PatchFn
   tasks: BookingTask[]
   staff: StaffUser[]
@@ -32,6 +38,8 @@ function PanelDivider() {
 export default function BookingTaskPanel({
   bookingId,
   booking,
+  trackingContainers,
+  trackingEvents,
   onPatch,
   tasks,
   staff,
@@ -72,7 +80,12 @@ export default function BookingTaskPanel({
 
   return (
     <aside className="card booking-task-panel">
-      <MilestoneToggles booking={booking} onPatch={onPatch} />
+      <MilestoneToggles
+        booking={booking}
+        containers={trackingContainers}
+        events={trackingEvents}
+        onPatch={onPatch}
+      />
 
       <PanelDivider />
 

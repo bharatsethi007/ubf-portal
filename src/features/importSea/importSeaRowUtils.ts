@@ -37,7 +37,9 @@ export function exportImportSeaCsv(rows: ImportSeaRow[]): void {
     'SWB',
     'TLX',
     'BACC',
-    'Cleared',
+    'Port cleared',
+    'Line released',
+    'UBF cleared',
     'Truck booked',
   ]
   const lines = rows.map((r) => [
@@ -54,6 +56,8 @@ export function exportImportSeaCsv(rows: ImportSeaRow[]): void {
     r.swb_released ? 'Y' : '',
     r.tlx_release_on_hand ? 'Y' : '',
     r.bacc_sent ? 'Y' : '',
+    r.port_cleared ? 'Y' : '',
+    r.line_released ? 'Y' : '',
     r.cleared ? 'Y' : '',
     r.truck_booked ? 'Y' : '',
   ])

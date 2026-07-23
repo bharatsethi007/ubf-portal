@@ -63,7 +63,7 @@ export default function OverviewTab({ booking, shipment }: Props) {
     { label: 'TLX on hand', value: fmt(booking.tlx_release_on_hand), source: 'Manual' },
     { label: 'Doc handover', value: fmt(booking.doc_handover_at), source: 'Manual' },
     { label: 'BACC sent', value: fmt(booking.bacc_sent), source: 'Manual' },
-    { label: 'Cleared', value: fmt(booking.cleared), source: 'Manual' },
+    { label: 'UBF cleared', value: fmt(booking.cleared), source: 'Manual' },
     { label: 'Truck booked', value: fmt(booking.truck_booked), source: 'Manual' },
     { label: 'LFD', value: fmt(booking.last_free_day), source: 'Manual' },
     { label: 'Discharge', value: fmt(booking.discharge_date), source: 'Manual' },
