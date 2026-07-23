@@ -6,7 +6,16 @@ export default defineConfig({
   plugins: [react()],
   server: { port: 5173 },
   build: {
-    sourcemap: true,
+    rollupOptions: {
+      output: {
+        manualChunks: {
+          'vendor-react': ['react', 'react-dom', 'react-router-dom'],
+          'vendor-supabase': ['@supabase/supabase-js'],
+          'vendor-mapbox': ['mapbox-gl'],
+          'vendor-recharts': ['recharts'],
+        },
+      },
+    },
   },
   resolve: {
     alias: { '@': path.resolve(__dirname, './src') },
