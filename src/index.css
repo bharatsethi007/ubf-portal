@@ -526,6 +526,15 @@ a:hover { text-decoration: underline; }
 .import-sea-toolbar-actions .pagination__btn {
   display: inline-flex; align-items: center; gap: 6px;
 }
+.shipment-filters--import-sea { align-items: center; }
+.shipment-filters--import-sea .shipment-filters__input,
+.shipment-filters--import-sea .shipment-filters__search,
+.shipment-filters--import-sea .shipment-filters__more-toggle,
+.shipment-filters--import-sea .import-sea-toolbar-actions .pagination__btn,
+.shipment-filters--import-sea .import-sea-new-booking {
+  height: 36px;
+  box-sizing: border-box;
+}
 .import-sea-new-booking { flex-shrink: 0; height: 40px; }
 .booking-record-nav {
   display: flex; align-items: center; justify-content: space-between;

@@ -61,17 +61,7 @@ export default function ImportSeaFilters({
   const { shippingLines, dischargePorts } = collectFilterOptions(rows)
 
   return (
-    <div className="shipment-filters">
-      <Button
-        type="button"
-        className="import-sea-new-booking"
-        disabled={loading}
-        onClick={onNewBooking}
-      >
-        <Plus size={16} />
-        New booking
-      </Button>
-
+    <div className="shipment-filters shipment-filters--import-sea">
       <label className="shipment-filters__search">
         <Search size={16} className="shipment-filters__search-icon" strokeWidth={2} />
         <input
@@ -173,6 +163,15 @@ export default function ImportSeaFilters({
             <Download size={14} />
             CSV export
           </button>
+          <Button
+            type="button"
+            className="import-sea-new-booking"
+            disabled={loading}
+            onClick={onNewBooking}
+          >
+            <Plus size={16} />
+            New booking
+          </Button>
         </div>
       </div>
     </div>

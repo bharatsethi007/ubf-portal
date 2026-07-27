@@ -82,25 +82,11 @@ export default function ImportSeaBoardPage() {
 
       <div className="shipments-page">
 
-      <header className="card pad-inline import-sea-header">
-
-        <h1 className="import-sea-header__title">Import Sea board</h1>
-
-        <p className="muted import-sea-header__sub">
-
-          Ops board for sea import bookings — release, customs, delivery, and holds.
-
-        </p>
-
-      </header>
-
-
-
       {error ? <div className="error card pad-inline">{error}</div> : null}
 
 
 
-      <div className="shipments-table-header">
+      <div className="shipments-table-header import-sea-board-toolbar [&_.shipment-filters]:items-center [&_.shipment-filters__input]:h-9 [&_.shipment-filters__input]:min-h-9 [&_.shipment-filters__more-toggle]:h-9 [&_.shipment-filters__more-toggle]:min-h-9 [&_.pagination__btn]:h-9 [&_.pagination__btn]:min-h-9 [&_.pagination__btn]:inline-flex [&_.pagination__btn]:items-center [&_.import-sea-new-booking]:!h-9 [&_.import-sea-new-booking]:!min-h-9 [&_.import-sea-new-booking]:!bg-ub-navy [&_.import-sea-new-booking]:!text-white [&_.import-sea-new-booking]:!border-ub-navy [&_.import-sea-new-booking:hover:not(:disabled)]:!bg-ub-navy/90">
 
         <ImportSeaFilters
 
