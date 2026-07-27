@@ -102,7 +102,7 @@ export default function App() {
       }
       setStaffReady(true)
     })()
-  }, [session])
+  }, [session?.user?.id])
 
   if (!ready) return <div className="center muted">Loading…</div>
 
