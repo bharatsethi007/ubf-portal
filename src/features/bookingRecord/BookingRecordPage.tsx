@@ -1,5 +1,6 @@
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { useCallback, useMemo, useRef } from 'react'
+import { useCallback, useMemo, useRef, useState } from 'react'
+import CreateImportSeaBookingDialog from '@/features/importSea/CreateImportSeaBookingDialog'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { importSeaBackHref } from '@/features/importSea/importSeaFilterUrl'
 import BookingTrackingTab from './tracking/BookingTrackingTab'
@@ -12,6 +13,7 @@ import BookingDocumentsTab from './documents/BookingDocumentsTab'
 import BookingDetailsTab from './BookingDetailsTab'
 import BookingHistoryTab from './tabs/BookingHistoryTab'
 import BookingRecordHeader from './BookingRecordHeader'
+import BookingRecordNav from './BookingRecordNav'
 import BookingRecordSkeleton from './BookingRecordSkeleton'
 import BookingRecordErrorBoundary from './BookingRecordErrorBoundary'
 import { useBookingRecord } from './useBookingRecord'
@@ -25,7 +27,11 @@ import type { ContainerTrackingRow } from './tracking/trackingTypes'
 
 const EMPTY_CONTAINERS: BookingContainerRow[] = []
 
-function BookingRecordPageContent() {
+function BookingRecordPageContent({
+  onNewBooking,
+}: {
+  onNewBooking: () => void
+}) {
   const { bookingId, module } = useParams()
   const id = bookingId ?? module
   const [searchParams] = useSearchParams()
@@ -86,9 +92,7 @@ function BookingRecordPageContent() {
   if (error) {
     return (
       <div className="detail-page booking-record-page">
-        <Link to={backHref} className="detail-back booking-record-back">
-          ← Back to Import Sea board
-        </Link>
+        <BookingRecordNav backHref={backHref} onNewBooking={onNewBooking} />
         <div className="empty card booking-record-error">
           <h2>Failed to load booking</h2>
           <p className="booking-record-error__message">{error.message}</p>
@@ -101,9 +105,7 @@ function BookingRecordPageContent() {
   if (!bundle) {
     return (
       <div className="detail-page booking-record-page">
-        <Link to={backHref} className="detail-back booking-record-back">
-          ← Back to Import Sea board
-        </Link>
+        <BookingRecordNav backHref={backHref} onNewBooking={onNewBooking} />
         <div className="empty card">
           Booking not found. <Link to={backHref}>Back to board</Link>
         </div>
@@ -118,9 +120,7 @@ function BookingRecordPageContent() {
   return (
     <PortConnectDetailProvider containers={tracking.containers}>
       <div className="detail-page booking-record-page">
-        <Link to={backHref} className="detail-back booking-record-back">
-          ← Back to Import Sea board
-        </Link>
+        <BookingRecordNav backHref={backHref} onNewBooking={onNewBooking} />
 
         <BookingRecordHeader
           booking={booking}
@@ -196,10 +196,12 @@ function BookingRecordPageContent() {
 export default function BookingRecordPage() {
   const [searchParams] = useSearchParams()
   const backHref = importSeaBackHref(searchParams)
+  const [createOpen, setCreateOpen] = useState(false)
 
   return (
     <BookingRecordErrorBoundary backHref={backHref}>
-      <BookingRecordPageContent />
+      <BookingRecordPageContent onNewBooking={() => setCreateOpen(true)} />
+      <CreateImportSeaBookingDialog open={createOpen} onOpenChange={setCreateOpen} />
     </BookingRecordErrorBoundary>
   )
 }

@@ -23,6 +23,7 @@ export const BOOKING_FIELD_LABELS: Record<string, string> = {
   discharge_date: 'Discharge date',
   delivery_date: 'Delivery date',
   container_return_date: 'Container return',
+  delivery_mode: 'Delivery mode',
   shipment_id: 'Shipment match',
 }
 

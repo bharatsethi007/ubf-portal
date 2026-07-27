@@ -1,4 +1,5 @@
-import { ChevronDown, Download, RefreshCw, Search } from 'lucide-react'
+import { ChevronDown, Download, Plus, Search } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import {
   collectFilterOptions,
   type ImportSeaFilterState,
@@ -17,8 +18,8 @@ type Props = {
   moreOpen: boolean
   setMoreOpen: (open: boolean) => void
   loading: boolean
-  onRefresh: () => void
   onExport: () => void
+  onNewBooking: () => void
 }
 
 function triSelect(
@@ -54,13 +55,23 @@ export default function ImportSeaFilters({
   moreOpen,
   setMoreOpen,
   loading,
-  onRefresh,
   onExport,
+  onNewBooking,
 }: Props) {
   const { shippingLines, dischargePorts } = collectFilterOptions(rows)
 
   return (
     <div className="shipment-filters">
+      <Button
+        type="button"
+        className="import-sea-new-booking"
+        disabled={loading}
+        onClick={onNewBooking}
+      >
+        <Plus size={16} />
+        New booking
+      </Button>
+
       <label className="shipment-filters__search">
         <Search size={16} className="shipment-filters__search-icon" strokeWidth={2} />
         <input
@@ -158,15 +169,6 @@ export default function ImportSeaFilters({
         </div>
 
         <div className="import-sea-toolbar-actions">
-          <button
-            type="button"
-            className="pagination__btn"
-            disabled={loading}
-            onClick={onRefresh}
-          >
-            <RefreshCw size={14} className={loading ? 'import-sea-spin' : undefined} />
-            Refresh
-          </button>
           <button type="button" className="pagination__btn" onClick={onExport}>
             <Download size={14} />
             CSV export

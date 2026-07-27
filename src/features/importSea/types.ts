@@ -43,6 +43,8 @@ export type ImportSeaRow = {
   delivery_date_source?: string | null
   container_return_date: string | null
   portconnect_last_sync?: string | null
+  portconnect_enabled?: boolean
+  delivery_mode?: string | null
   hold_reason: string | null
   hold_code: string | null
   hold_label: string | null
@@ -72,4 +74,7 @@ export type ImportSeaBookingPatch = {
   delivery_date?: string | null
   container_return_date?: string | null
   hold_reason?: string | null
+  hold_code?: string | null
+  handled_by?: string | null
+  delivery_mode?: string | null
 }

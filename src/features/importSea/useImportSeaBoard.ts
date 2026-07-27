@@ -21,9 +21,17 @@ export function useImportSeaBoard() {
     }
   }, [])
 
+  const patchRow = useCallback((id: string, patch: Partial<ImportSeaRow>) => {
+    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))
+  }, [])
+
+  const replaceRow = useCallback((row: ImportSeaRow) => {
+    setRows((prev) => prev.map((existing) => (existing.id === row.id ? row : existing)))
+  }, [])
+
   useEffect(() => {
     void reload()
   }, [reload])
 
-  return { rows, loading, error, reload }
+  return { rows, loading, error, reload, patchRow, replaceRow }
 }

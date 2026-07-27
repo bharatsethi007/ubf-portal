@@ -5,9 +5,8 @@ const ROW_COUNT = 12
 function SkeletonRow({ index }: { index: number }) {
   return (
     <tr className="import-sea-sk-row" aria-hidden>
-      <td>
-        <Skeleton className="import-sea-sk-ref" />
-      </td>
+      <td><Skeleton className="import-sea-sk-checkbox" /></td>
+      <td><Skeleton className="import-sea-sk-ref" /></td>
       <td className="import-sea-col-client">
         <Skeleton className="import-sea-sk-client" />
       </td>
@@ -22,11 +21,13 @@ function SkeletonRow({ index }: { index: number }) {
       <td>
         <Skeleton className={`import-sea-sk-status import-sea-sk-status--${index % 3}`} />
       </td>
+      <td><Skeleton className="import-sea-sk-refresh" /></td>
     </tr>
   )
 }
 
-export default function ImportSeaBoardTableSkeleton() {
+export default function ImportSeaBoardTableSkeleton({ colSpan = 13 }: { colSpan?: number }) {
+  void colSpan
   return (
     <>
       {Array.from({ length: ROW_COUNT }, (_, i) => (

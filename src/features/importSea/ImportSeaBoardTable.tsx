@@ -1,5 +1,10 @@
 import { SkeletonBusy } from '@/components/ui/skeleton'
 import { TooltipProvider } from '@/components/ui/tooltip'
+import BoardRowCheckbox, {
+  BoardCheckboxCell,
+  BoardHeaderCheckbox,
+} from '@/components/board/BoardRowCheckbox'
+import type { BoardHeaderCheckState } from '@/components/board/useBoardRowSelection'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import ImportSeaBoardTableSkeleton from './ImportSeaBoardTableSkeleton'
 import BoardDateCell from './cells/BoardDateCell'
@@ -9,18 +14,43 @@ import ClientCell from './cells/ClientCell'
 import ContainerCell from './cells/ContainerCell'
 import HandledByCell from './cells/HandledByCell'
 import HoldCell from './cells/HoldCell'
+import ImportSeaRowRefreshCell from './ImportSeaRowRefreshCell'
 import { bookingRecordHref } from './importSeaFilterUrl'
 import ImportSeaOpsStatus from './ImportSeaOpsStatus'
+import type { ImportSeaBoardCellKey } from './importSeaRowDiff'
 import type { ImportSeaRow } from './types'
 
-const COL_SPAN = 11
+const COL_SPAN = 13
 
 type Props = {
   rows: ImportSeaRow[]
   loading: boolean
+  selectedIds: Set<string>
+  headerCheckState: BoardHeaderCheckState
+  onToggleRow: (id: string, index: number, shiftKey: boolean) => void
+  onToggleAllVisible: (checked: boolean) => void
+  onRefreshRow: (row: ImportSeaRow) => void
+  isRowRefreshing: (id: string) => boolean
+  rowRefreshCooldownSec: (id: string) => number
+  isCellFlashing: (rowId: string, key: ImportSeaBoardCellKey) => boolean
 }
 
-export default function ImportSeaBoardTable({ rows, loading }: Props) {
+function flashClass(active: boolean): string {
+  return active ? ' import-sea-board-cell--flash' : ''
+}
+
+export default function ImportSeaBoardTable({
+  rows,
+  loading,
+  selectedIds,
+  headerCheckState,
+  onToggleRow,
+  onToggleAllVisible,
+  onRefreshRow,
+  isRowRefreshing,
+  rowRefreshCooldownSec,
+  isCellFlashing,
+}: Props) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
 
@@ -35,6 +65,13 @@ export default function ImportSeaBoardTable({ rows, loading }: Props) {
           <table className="data-table import-sea-board__table">
             <thead>
               <tr>
+                <th className="board-checkbox-col">
+                  <BoardHeaderCheckbox
+                    state={headerCheckState}
+                    disabled={loading || rows.length === 0}
+                    onChange={onToggleAllVisible}
+                  />
+                </th>
                 <th>Booking ref</th>
                 <th className="import-sea-col-client">Client</th>
                 <th>ETA</th>
@@ -46,11 +83,12 @@ export default function ImportSeaBoardTable({ rows, loading }: Props) {
                 <th>Hold</th>
                 <th>Handled by</th>
                 <th>Status</th>
+                <th className="import-sea-col-refresh" aria-label="Refresh" />
               </tr>
             </thead>
             <tbody>
               {loading ? (
-                <ImportSeaBoardTableSkeleton />
+                <ImportSeaBoardTableSkeleton colSpan={COL_SPAN} />
               ) : rows.length === 0 ? (
                 <tr>
                   <td colSpan={COL_SPAN} className="muted pad-inline">
@@ -58,15 +96,23 @@ export default function ImportSeaBoardTable({ rows, loading }: Props) {
                   </td>
                 </tr>
               ) : (
-                rows.map((row) => {
+                rows.map((row, index) => {
                   const onHold = Boolean(row.hold_code)
+                  const selected = selectedIds.has(row.id)
 
                   return (
                     <tr
                       key={row.id}
-                      className={`row-clickable${onHold ? ' import-sea-row--hold' : ''}`}
+                      className={`row-clickable${onHold ? ' import-sea-row--hold' : ''}${selected ? ' board-row--selected' : ''}`}
                       onClick={() => openRecord(row.id)}
                     >
+                      <BoardCheckboxCell>
+                        <BoardRowCheckbox
+                          checked={selected}
+                          ariaLabel={`Select ${row.booking_ref ?? 'booking'}`}
+                          onToggle={(shiftKey) => onToggleRow(row.id, index, shiftKey)}
+                        />
+                      </BoardCheckboxCell>
                       <td className="mono">
                         <BookingRefCell
                           bookingId={row.id}
@@ -82,16 +128,20 @@ export default function ImportSeaBoardTable({ rows, loading }: Props) {
                           name={row.customer_name}
                         />
                       </td>
-                      <td>
+                      <td className={flashClass(isCellFlashing(row.id, 'eta'))}>
                         <BoardSourcedDateCell
                           value={row.eta}
                           source={row.eta_source}
                           lastSync={row.portconnect_last_sync}
                         />
                       </td>
-                      <td><ContainerCell containers={row.containers} lastSync={row.portconnect_last_sync} /></td>
-                      <td><BoardDateCell value={row.atf} /></td>
-                      <td>
+                      <td className={flashClass(isCellFlashing(row.id, 'containers'))}>
+                        <ContainerCell containers={row.containers} lastSync={row.portconnect_last_sync} />
+                      </td>
+                      <td className={flashClass(isCellFlashing(row.id, 'atf'))}>
+                        <BoardDateCell value={row.atf} />
+                      </td>
+                      <td className={flashClass(isCellFlashing(row.id, 'last_free_day'))}>
                         <BoardSourcedDateCell
                           value={row.last_free_day}
                           source={row.last_free_day_source}
@@ -99,14 +149,16 @@ export default function ImportSeaBoardTable({ rows, loading }: Props) {
                           lfd
                         />
                       </td>
-                      <td>
+                      <td className={flashClass(isCellFlashing(row.id, 'delivery_date'))}>
                         <BoardSourcedDateCell
                           value={row.delivery_date}
                           source={row.delivery_date_source}
                           lastSync={row.portconnect_last_sync}
                         />
                       </td>
-                      <td><BoardDateCell value={row.container_return_date} /></td>
+                      <td className={flashClass(isCellFlashing(row.id, 'container_return_date'))}>
+                        <BoardDateCell value={row.container_return_date} />
+                      </td>
                       <td><HoldCell label={row.hold_label} /></td>
                       <td>
                         <HandledByCell
@@ -115,6 +167,14 @@ export default function ImportSeaBoardTable({ rows, loading }: Props) {
                         />
                       </td>
                       <td><ImportSeaOpsStatus row={row} /></td>
+                      <td className="import-sea-col-refresh">
+                        <ImportSeaRowRefreshCell
+                          row={row}
+                          busy={isRowRefreshing(row.id)}
+                          cooldownSec={rowRefreshCooldownSec(row.id)}
+                          onRefresh={() => onRefreshRow(row)}
+                        />
+                      </td>
                     </tr>
                   )
                 })
