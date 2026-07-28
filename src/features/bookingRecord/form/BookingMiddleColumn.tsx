@@ -11,6 +11,7 @@ import type {
   BookingShipment,
 } from '../bookingRecordTypes'
 import type { ContainerTrackingRow } from '../tracking/trackingTypes'
+import AtfAutocomplete from './AtfAutocomplete'
 import TriSourceField from './TriSourceField'
 import FormCard from './FormCard'
 
@@ -82,15 +83,9 @@ export default function BookingMiddleColumn({
         />
         <label className="filter-field booking-form-field">
           <span className="filter-field__label">ATF</span>
-          <input
-            type="text"
-            className="input input--sm"
-            defaultValue={booking.m_atf ?? ''}
-            onBlur={(e) => {
-              const next = e.target.value.trim() || null
-              const prev = booking.m_atf?.trim() || null
-              if (next !== prev) onPatch({ m_atf: next }, { m_atf: next })
-            }}
+          <AtfAutocomplete
+            value={booking.m_atf}
+            onChange={(code) => onPatch({ m_atf: code }, { m_atf: code })}
           />
         </label>
         <TriSourceField

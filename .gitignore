@@ -6,3 +6,4 @@ dist
 airlines_raw.json
 supabase_key.txt
 *.fdb
+atf_facilities.csv

@@ -1,3 +1,4 @@
+import { MailPlus } from 'lucide-react'
 import ImportSeaDateField from '@/features/importSea/ImportSeaDateField'
 import type { BookingRecord, BookingRecordPatch } from '../bookingRecordTypes'
 import FormCard from './FormCard'
@@ -60,9 +61,11 @@ export default function BookingCartageCard({
         <button
           type="button"
           className="text-link booking-cartage__email-btn"
+          title="Open in Outlook"
+          aria-label="Open in Outlook"
           onClick={onEmailDelivery}
         >
-          Email
+          <MailPlus size={16} />
         </button>
       </div>
 
@@ -75,9 +78,11 @@ export default function BookingCartageCard({
         <button
           type="button"
           className="text-link booking-cartage__email-btn"
+          title="Open in Outlook"
+          aria-label="Open in Outlook"
           onClick={onEmailEmptyPickup}
         >
-          Email
+          <MailPlus size={16} />
         </button>
       </div>
     </FormCard>
