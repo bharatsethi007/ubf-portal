@@ -16,7 +16,7 @@ type Props = {
   onAdd: () => void
   onSave: (
     rowId: string,
-    payload: { container_no: string; container_type: string | null; seal_no: string | null },
+    payload: { container_no: string; container_type: string | null },
   ) => void
   onRemove: (rowId: string) => void
   onResolve?: (rowId: string, resolution: ContainerConflictResolution) => void
@@ -56,7 +56,7 @@ export default function BookingContainersField({
             <span />
             <span>Number</span>
             <span>Type</span>
-            <span>Seal</span>
+            <span>Weight</span>
             <span />
           </div>
           {rows.map((row) => (
@@ -72,7 +72,6 @@ export default function BookingContainersField({
               overridden={isContainerOverridden(row.container_no, fieldOverrides)}
               lastSync={lastSync}
               flashType={isFlashing?.('container_type')}
-              flashSeal={isFlashing?.('seal')}
               resolveBusy={resolveBusy}
             />
           ))}

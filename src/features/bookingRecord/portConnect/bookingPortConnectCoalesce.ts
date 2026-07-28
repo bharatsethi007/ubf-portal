@@ -105,6 +105,13 @@ export function portConnectContainerType(row: ContainerTrackingRow): string | nu
     ?? asText(rawField(raw, 'containerIsoTypeCode'))
 }
 
+export function portConnectContainerWeight(row: ContainerTrackingRow): number | null {
+  const raw = row.raw
+  const val = rawField(raw, 'declaredWeight', 'declaredWeightVgm')
+  const n = typeof val === 'number' ? val : Number(val)
+  return Number.isFinite(n) && n > 0 ? n : null
+}
+
 export function portConnectContainerSeal(row: ContainerTrackingRow): string | null {
   return firstSeal(row.raw)
 }

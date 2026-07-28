@@ -151,7 +151,6 @@ export async function upsertBookingContainer(
       .update({
         container_no: payload.container_no,
         container_type: payload.container_type,
-        seal_no: payload.seal_no,
         sort_order: payload.sort_order,
       })
       .eq('id', row.id)

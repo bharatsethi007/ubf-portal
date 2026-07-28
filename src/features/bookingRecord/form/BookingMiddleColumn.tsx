@@ -13,8 +13,6 @@ import type {
 import type { ContainerTrackingRow } from '../tracking/trackingTypes'
 import TriSourceField from './TriSourceField'
 import FormCard from './FormCard'
-import HoldReasonField from './HoldReasonField'
-import { Textarea } from '@/components/ui/textarea'
 
 type PatchFn = (ui: Partial<BookingRecord>, db: BookingRecordPatch) => void
 
@@ -131,29 +129,6 @@ export default function BookingMiddleColumn({
           onRevert={(rowId) => onRevertContainer(rowId)}
           resolveBusy={containerResolveBusy}
         />
-      </FormCard>
-
-      <FormCard title="Hold">
-        <HoldReasonField
-          value={booking.hold_code}
-          onChange={(code, label) =>
-            onPatch({ hold_code: code, hold_label: label }, { hold_code: code })
-          }
-        />
-        <label className="filter-field booking-form-field">
-          <span className="filter-field__label">Hold notes</span>
-          <Textarea
-            className="booking-compact-textarea"
-            rows={2}
-            defaultValue={booking.hold_reason ?? ''}
-            onBlur={(e) => {
-              const next = e.target.value.trim() || null
-              if (next !== (booking.hold_reason?.trim() || null)) {
-                onPatch({ hold_reason: next }, { hold_reason: next })
-              }
-            }}
-          />
-        </label>
       </FormCard>
     </div>
   )

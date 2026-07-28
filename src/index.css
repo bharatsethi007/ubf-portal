@@ -535,6 +535,10 @@ a:hover { text-decoration: underline; }
   height: 36px;
   box-sizing: border-box;
 }
+.sortable-th { cursor: pointer; user-select: none; white-space: nowrap; }
+.sortable-th:hover { color: var(--color-accent); }
+.sortable-th__ind { margin-left: 4px; font-size: 10px; opacity: 0.5; }
+.sortable-th__ind--active { opacity: 1; }
 .import-sea-new-booking { flex-shrink: 0; height: 40px; }
 .booking-record-nav {
   display: flex; align-items: center; justify-content: space-between;
@@ -819,6 +823,12 @@ a:hover { text-decoration: underline; }
 .booking-details-grid .booking-erp-readonly { min-height: 26px; padding: 0 7px; font-size: 11px; }
 .booking-details-grid .booking-hold-select,
 .booking-details-grid .booking-staff-select { min-height: 26px; height: 26px; padding: 0 7px; font-size: 11px; }
+
+/* Cartage card */
+.booking-cartage__date-row { display: flex; align-items: flex-end; gap: 8px; }
+.booking-cartage__date-row > *:first-child { flex: 1; min-width: 0; }
+.booking-cartage__email-btn { flex-shrink: 0; white-space: nowrap; padding-bottom: 6px; }
+
 .booking-compact-textarea { min-height: 44px; padding: 5px 7px; font-size: 11px; border-radius: 5px; resize: vertical; }
 .booking-panel-subtitle {
   margin: 0 0 4px; font-size: 10px; font-weight: 600; text-transform: uppercase;

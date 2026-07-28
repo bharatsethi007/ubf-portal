@@ -24,6 +24,7 @@ import { useImportSeaRowRefresh } from './useImportSeaRowRefresh'
 import { useImportSeaBoard } from './useImportSeaBoard'
 
 import { useImportSeaFilters } from './useImportSeaFilters'
+import { useImportSeaSort } from './useImportSeaSort'
 
 
 
@@ -47,9 +48,9 @@ export default function ImportSeaBoardPage() {
 
   )
 
+  const { sortedRows, sortKey, sortDir, toggleSort } = useImportSeaSort(filteredRows)
 
-
-  const visibleIds = useMemo(() => filteredRows.map((row) => row.id), [filteredRows])
+  const visibleIds = useMemo(() => sortedRows.map((row) => row.id), [sortedRows])
 
 
 
@@ -132,9 +133,15 @@ export default function ImportSeaBoardPage() {
 
       <ImportSeaBoardTable
 
-        rows={filteredRows}
+        rows={sortedRows}
 
         loading={loading}
+
+        sortKey={sortKey}
+
+        sortDir={sortDir}
+
+        onSort={toggleSort}
 
         selectedIds={selection.selectedIds}
 

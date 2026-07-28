@@ -82,16 +82,6 @@ export default function BookingDatesColumn({
           onPatch={patchDb}
         />
         <TriSourceDateField
-          label="Delivery date"
-          portConnectValue={pc?.deliveryDate ?? null}
-          manualValue={booking.delivery_date}
-          overrideField="delivery_date"
-          fieldOverrides={overrides}
-          lastSync={lastSync}
-          flash={isFlashing?.('delivery_date')}
-          onPatch={patchDb}
-        />
-        <TriSourceDateField
           label="Container return"
           portConnectValue={pc?.containerReturnDate ?? null}
           manualValue={booking.container_return_date}

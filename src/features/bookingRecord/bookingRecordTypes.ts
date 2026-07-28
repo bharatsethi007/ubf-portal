@@ -27,6 +27,9 @@ export type BookingRecord = {
   last_free_day: string | null
   discharge_date: string | null
   delivery_date: string | null
+  door_direction: 'front' | 'rear' | null
+  pickup_peak: 'peak' | 'offpeak' | null
+  empty_pickup_date: string | null
   container_return_date: string | null
   hold_reason: string | null
   hold_code: string | null
@@ -108,6 +111,9 @@ export type BookingRecordPatch = {
   last_free_day?: string | null
   discharge_date?: string | null
   delivery_date?: string | null
+  door_direction?: 'front' | 'rear' | null
+  pickup_peak?: 'peak' | 'offpeak' | null
+  empty_pickup_date?: string | null
   container_return_date?: string | null
   field_overrides?: Record<string, boolean>
 }

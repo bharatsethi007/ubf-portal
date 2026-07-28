@@ -22,9 +22,57 @@ import type { ImportSeaRow } from './types'
 
 const COL_SPAN = 13
 
+type SortableThProps = {
+  label: string
+  columnKey: keyof ImportSeaRow
+  sortKey: keyof ImportSeaRow | null
+  sortDir: 'asc' | 'desc'
+  onSort: (key: keyof ImportSeaRow) => void
+  className?: string
+}
+
+function SortableTh({
+  label,
+  columnKey,
+  sortKey,
+  sortDir,
+  onSort,
+  className,
+}: SortableThProps) {
+  const active = sortKey === columnKey
+  const indicator = active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'
+
+  function activate() {
+    onSort(columnKey)
+  }
+
+  return (
+    <th
+      role="button"
+      tabIndex={0}
+      className={`sortable-th${className ? ` ${className}` : ''}`}
+      onClick={activate}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault()
+          activate()
+        }
+      }}
+    >
+      {label}
+      <span className={`sortable-th__ind${active ? ' sortable-th__ind--active' : ' muted'}`}>
+        {indicator}
+      </span>
+    </th>
+  )
+}
+
 type Props = {
   rows: ImportSeaRow[]
   loading: boolean
+  sortKey: keyof ImportSeaRow | null
+  sortDir: 'asc' | 'desc'
+  onSort: (key: keyof ImportSeaRow) => void
   selectedIds: Set<string>
   headerCheckState: BoardHeaderCheckState
   onToggleRow: (id: string, index: number, shiftKey: boolean) => void
@@ -42,6 +90,9 @@ function flashClass(active: boolean): string {
 export default function ImportSeaBoardTable({
   rows,
   loading,
+  sortKey,
+  sortDir,
+  onSort,
   selectedIds,
   headerCheckState,
   onToggleRow,
@@ -72,15 +123,15 @@ export default function ImportSeaBoardTable({
                     onChange={onToggleAllVisible}
                   />
                 </th>
-                <th>Booking ref</th>
-                <th className="import-sea-col-client">Client</th>
-                <th>ETA</th>
+                <SortableTh label="Booking ref" columnKey="booking_ref" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortableTh label="Client" columnKey="customer_name" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-client" />
+                <SortableTh label="ETA" columnKey="eta" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <th>Container</th>
-                <th>ATF</th>
-                <th>LFD</th>
-                <th>Delivery</th>
-                <th>Return</th>
-                <th>Hold</th>
+                <SortableTh label="ATF" columnKey="atf" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortableTh label="LFD" columnKey="last_free_day" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortableTh label="Delivery" columnKey="delivery_date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortableTh label="Return" columnKey="container_return_date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortableTh label="Hold" columnKey="hold_code" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <th>Handled by</th>
                 <th>Status</th>
                 <th className="import-sea-col-refresh" aria-label="Refresh" />

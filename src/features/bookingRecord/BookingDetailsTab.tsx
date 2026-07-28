@@ -1,7 +1,11 @@
+import { useMemo } from 'react'
 import BookingDatesColumn from './form/BookingDatesColumn'
+import BookingCartageCard from './form/BookingCartageCard'
+import { openDeliveryEmail, openEmptyPickupEmail } from './form/cartageMail'
 import BookingLeftColumn from './form/BookingLeftColumn'
 import BookingMiddleColumn from './form/BookingMiddleColumn'
 import BookingTaskPanel from './tasks/BookingTaskPanel'
+import { aggregatePortConnectBookingFields } from './portConnect/bookingPortConnectCoalesce'
 import type { ContainerConflictResolution } from './containers/bookingContainerTypes'
 import type { ContainerListItem } from './containers/useBookingContainers'
 import type { BookingRecord, BookingRecordPatch, BookingShipment } from './bookingRecordTypes'
@@ -60,6 +64,15 @@ export default function BookingDetailsTab({
     setDueDate,
   } = useBookingTasks(bookingId)
 
+  const deliveryPrefill = useMemo(
+    () =>
+      aggregatePortConnectBookingFields(
+        trackingContainers,
+        shipment?.destination ?? booking.m_discharge_port,
+      )?.deliveryDate ?? null,
+    [trackingContainers, shipment?.destination, booking.m_discharge_port],
+  )
+
   return (
     <div className="booking-details-grid">
       <BookingLeftColumn booking={booking} staff={staff} onPatch={onPatch} />
@@ -86,6 +99,17 @@ export default function BookingDetailsTab({
         lastSync={lastSync}
         isFlashing={isFlashing}
         onPatch={onPatch}
+      />
+      <BookingCartageCard
+        booking={booking}
+        deliveryPrefill={deliveryPrefill}
+        onPatch={onPatch}
+        onEmailDelivery={() =>
+          void openDeliveryEmail({ booking, rows: containerRows, tracking: trackingContainers })
+        }
+        onEmailEmptyPickup={() =>
+          void openEmptyPickupEmail({ booking, rows: containerRows, tracking: trackingContainers })
+        }
       />
       <BookingTaskPanel
         bookingId={bookingId}

@@ -71,7 +71,7 @@ export function useBookingContainers(
 
   const saveRow = useCallback(async (
     rowId: string,
-    payload: { container_no: string; container_type: string | null; seal_no: string | null },
+    payload: { container_no: string; container_type: string | null },
   ) => {
     const normalizedNo = payload.container_no.trim().toUpperCase()
     if (!normalizedNo) {
@@ -88,7 +88,6 @@ export function useBookingContainers(
         id: isDraft ? undefined : rowId,
         container_no: normalizedNo,
         container_type: payload.container_type,
-        seal_no: payload.seal_no?.trim() || null,
         sort_order: rows.filter((r) => !isDraftContainer(r)).length,
       })
 

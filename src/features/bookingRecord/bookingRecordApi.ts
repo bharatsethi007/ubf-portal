@@ -15,7 +15,7 @@ const BOOKING_SELECT = `
   m_eta, m_atf, m_shipping_line, m_discharge_port,
   swb_released, tlx_release_on_hand, doc_handover_at,
   bacc_sent, cleared, truck_booked,
-  last_free_day, discharge_date, delivery_date, container_return_date,
+  last_free_day, discharge_date, delivery_date, door_direction, pickup_peak, empty_pickup_date, container_return_date,
   hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides,
   customers!bookings_account_id_fkey ( name ),
   consignee:customers!bookings_consignee_account_id_fkey ( name ),

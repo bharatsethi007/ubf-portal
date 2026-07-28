@@ -3,8 +3,8 @@ import { Trash2 } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import {
-  portConnectContainerSeal,
   portConnectContainerType,
+  portConnectContainerWeight,
 } from '../portConnect/bookingPortConnectCoalesce'
 import ContainerHazardChip from './ContainerHazardChip'
 import BookingContainerConflictActions from './BookingContainerConflictActions'
@@ -39,7 +39,6 @@ type Props = {
   onSave: (payload: {
     container_no: string
     container_type: string | null
-    seal_no: string | null
   }) => void
   onRemove: () => void
   onResolve?: (resolution: ContainerConflictResolution) => void
@@ -48,7 +47,6 @@ type Props = {
   overridden?: boolean
   lastSync?: string | null
   flashType?: boolean
-  flashSeal?: boolean
   resolveBusy?: boolean
 }
 
@@ -68,7 +66,6 @@ export default function BookingContainerRowEditor({
   overridden,
   lastSync,
   flashType,
-  flashSeal,
   resolveBusy,
 }: Props) {
   const { openDetail } = usePortConnectDetail()
@@ -76,7 +73,6 @@ export default function BookingContainerRowEditor({
   const isPortConnect = !isDraftContainer(row) && row.source === 'portconnect'
   const [containerNo, setContainerNo] = useState(row.container_no)
   const [containerType, setContainerType] = useState(row.container_type ?? '')
-  const [sealNo, setSealNo] = useState(row.seal_no ?? '')
   const [warning, setWarning] = useState<string | null>(null)
 
   const hasConflict = !isDraftContainer(row) && isUnresolvedContainerConflict(row)
@@ -85,8 +81,7 @@ export default function BookingContainerRowEditor({
   useEffect(() => {
     setContainerNo(row.container_no)
     setContainerType(row.container_type ?? '')
-    setSealNo(row.seal_no ?? '')
-  }, [row.id, row.container_no, row.container_type, row.seal_no])
+  }, [row.id, row.container_no, row.container_type])
 
   function handleNoChange(raw: string) {
     const next = normalizeContainerNo(raw)
@@ -101,7 +96,6 @@ export default function BookingContainerRowEditor({
     onSave({
       container_no: normalized,
       container_type: containerType || null,
-      seal_no: sealNo.trim() || null,
     })
   }
 
@@ -112,9 +106,7 @@ export default function BookingContainerRowEditor({
           row.iso_type ?? row.tracking_container_type ?? row.container_type,
           row.iso_desc,
         )
-    const seal = isPortConnect && tracking
-      ? portConnectContainerSeal(tracking) ?? row.seal_no
-      : row.seal_no
+    const weightKg = isPortConnect && tracking ? portConnectContainerWeight(tracking) : null
     return (
       <div className={`booking-container-row booking-container-row--readonly${hasConflict ? ' booking-container-row--conflict' : ''}`}>
         {rowSource(row) !== 'portconnect' ? <ContainerSourceDot source={rowSource(row)} /> : <span />}
@@ -141,14 +133,14 @@ export default function BookingContainerRowEditor({
             row.container_type ?? '—'
           )}
         </span>
-        <span className={`booking-container-row__seal${flashSeal ? ' booking-field--flash' : ''}`}>
+        <span className="booking-container-row__weight">
           {isPortConnect ? (
             <PortConnectSourcePill
               lastSync={lastSync}
-              onClick={() => openDetail('seal', row.container_no)}
+              onClick={() => openDetail('container_type', row.container_no)}
             />
           ) : null}
-          {seal ?? '—'}
+          {weightKg != null ? `${weightKg.toLocaleString()} kg` : '—'}
         </span>
         {isPortConnect && onOverride ? (
           <button type="button" className="text-link booking-field-override-link" onClick={onOverride}>
@@ -203,13 +195,7 @@ export default function BookingContainerRowEditor({
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      <Input
-        className="input--xs booking-container-row__seal-input"
-        value={sealNo}
-        placeholder="Seal"
-        onChange={(e) => setSealNo(e.target.value)}
-        onBlur={commit}
-      />
+      <span className="booking-container-row__weight muted">—</span>
       <Button
         type="button"
         variant="ghost"
