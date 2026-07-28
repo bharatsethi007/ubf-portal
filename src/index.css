@@ -1572,6 +1572,12 @@ a:hover { text-decoration: underline; }
 .quote-form__flags { display: flex; flex-direction: column; gap: 8px; }
 .quote-form__hazard { margin-top: 4px; }
 .quote-form__textarea { min-height: 64px; resize: vertical; padding: 6px 8px; }
+.quote-detail__back {
+  display: inline-flex; align-items: center; gap: 4px; font-size: 13px; margin-bottom: 4px;
+}
+.quote-detail__meta { margin: 4px 0 0; font-size: 13px; }
+.quote-detail__title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.quote-detail__cargo-bar { justify-content: space-between; }
 
 .customer-name-cell {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;
