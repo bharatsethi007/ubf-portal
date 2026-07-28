@@ -24,7 +24,7 @@ type Props = {
   onAddContainer: () => void
   onSaveContainer: (
     rowId: string,
-    payload: { container_no: string; container_type: string | null; seal_no: string | null },
+    payload: { container_no: string; container_type: string | null },
   ) => void
   onRemoveContainer: (rowId: string) => void
   onResolveContainer: (rowId: string, resolution: ContainerConflictResolution) => void
