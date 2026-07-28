@@ -13,6 +13,8 @@ import {
   UsersPage,
 } from './pages/stubs/StubPages'
 import CustomersPage from './pages/CustomersPage'
+import QuotesPage from './pages/quotes/QuotesPage'
+import QuoteFormPage from './pages/quotes/QuoteFormPage'
 import CustomerProfile from './pages/CustomerProfile'
 import Shipments from './pages/Shipments'
 import Dashboard from './pages/DashboardPage'
@@ -124,6 +126,10 @@ export default function App() {
             <Route path="/shipments" element={<Shipments globalSearch={search} />} />
             <Route path="/new-booking" element={<NewBookingPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
+            <Route path="/quotes" element={<StaffRoute><QuotesPage /></StaffRoute>} />
+            <Route path="/quotes/new" element={<StaffRoute><QuoteFormPage /></StaffRoute>} />
+            <Route path="/quotes/:id/edit" element={<StaffRoute><QuoteFormPage /></StaffRoute>} />
+            <Route path="/quotes/:id" element={<StaffRoute><QuotesPage /></StaffRoute>} />
             <Route
               path="/bookings/import-sea"
               element={<StaffRoute><ImportSeaBoardPage /></StaffRoute>}

@@ -13,7 +13,7 @@ const ORANGE = '#F7941D'
 
 const NAV = [
   { to: '/', label: 'Control Tower', icon: TowerControl, end: true },
-  { to: '/estimates', label: 'Quotes', icon: FileText },
+  { to: '/quotes', label: 'Quotes', icon: FileText },
   { to: '/shipments', label: 'Shipments', icon: Package },
 ]
 const NAV2 = [
