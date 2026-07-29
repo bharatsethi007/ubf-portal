@@ -1579,6 +1579,54 @@ a:hover { text-decoration: underline; }
 .quote-detail__meta { margin: 4px 0 0; font-size: 13px; }
 .quote-detail__title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
 .quote-detail__cargo-bar { justify-content: space-between; }
+.quote-detail__load-head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 8px;
+}
+.quote-detail__stackable { min-width: 160px; }
+
+/* Quote responses */
+.quote-responses__head {
+  display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 12px;
+  margin-bottom: 12px;
+}
+.quote-responses__empty { margin: 0; font-size: 13px; }
+.quote-responses__list { display: flex; flex-direction: column; gap: 10px; }
+.quote-response-card {
+  padding: 12px 14px; border: 1px solid var(--color-line); border-radius: 8px;
+  background: var(--color-surface); cursor: pointer; transition: border-color .15s ease, box-shadow .15s ease;
+}
+.quote-response-card:hover {
+  border-color: color-mix(in srgb, var(--color-accent) 40%, var(--color-line));
+  box-shadow: 0 1px 4px color-mix(in srgb, var(--color-accent) 8%, transparent);
+}
+.quote-response-card__top {
+  display: flex; align-items: flex-start; justify-content: space-between; gap: 8px;
+}
+.quote-response-card__title-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.quote-response-card__title { margin: 0; font-size: 14px; font-weight: 600; }
+.quote-response-card__meta { margin: 4px 0 8px; font-size: 12px; }
+.quote-response-card__actions { display: flex; gap: 2px; flex-shrink: 0; }
+.quote-response-card__icon {
+  border: none; background: none; padding: 4px; cursor: pointer; color: #64748b;
+  border-radius: 4px; line-height: 0;
+}
+.quote-response-card__icon:hover { background: #f1f5f9; color: #334155; }
+.quote-response-card__icon--danger:hover { color: #b91c1c; background: #fef2f2; }
+.quote-response-card__totals {
+  display: flex; flex-direction: column; gap: 2px; font-size: 12px;
+  font-family: var(--font-mono); font-variant-numeric: tabular-nums lining-nums;
+}
+.quote-response-card__profit { color: #047857; font-weight: 500; }
+.quote-response-pill {
+  display: inline-block; font-size: 11px; font-weight: 500; padding: 2px 7px; border-radius: 4px;
+  white-space: nowrap;
+}
+.quote-response-pill--draft { color: #475569; background: #F1F5F9; }
+.quote-response-pill--published { color: #1D4ED8; background: #EFF6FF; }
+.quote-response-pill--sent-for-approval { color: #4338CA; background: #EEF2FF; }
+.quote-response-pill--approved { color: #047857; background: #ECFDF5; }
+.quote-response__flags { margin: 8px 0; }
 
 .customer-name-cell {
   display: flex; flex-wrap: wrap; align-items: baseline; gap: 6px;

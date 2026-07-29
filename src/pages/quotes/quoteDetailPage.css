@@ -30,6 +30,8 @@
 .nqd-field__hint { color: #94a3b8; }
 .nqd-input { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 10px; font-size: 13px; color: #0f172a; background: #fff; width: 100%; box-sizing: border-box; height: 36px; }
 .nqd-input:focus { outline: none; border-color: #3B5BFE; box-shadow: 0 0 0 2px rgba(59,91,254,0.15); }
+.nqd-check { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #0f172a; height: 36px; cursor: pointer; }
+.nqd-check input { width: 15px; height: 15px; accent-color: #3B5BFE; cursor: pointer; }
 
 .nqd-cgroup { display: grid; grid-template-columns: 60px 1.5fr 1fr 1fr 1fr; gap: 16px; align-items: center; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 16px; }
 .nqd-cgroup + .nqd-cgroup { margin-top: 8px; }

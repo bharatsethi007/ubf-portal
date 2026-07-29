@@ -134,3 +134,11 @@
 .cargo-table__chargeable strong {
   color: var(--color-ink);
 }
+
+.cargo-table--quote-loads { min-width: 1280px; }
+.cargo-table__pkg { min-width: 100px; }
+.cargo-table__override {
+  width: 52px;
+  text-align: center;
+  vertical-align: middle;
+}

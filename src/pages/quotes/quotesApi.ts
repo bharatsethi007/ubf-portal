@@ -34,6 +34,8 @@ export type QuoteDraft = {
   need_refrigeration: boolean
   is_hazardous: boolean
   hazard_comments: string | null
+  dg_un_number: string | null
+  dg_class: string | null
   stackable: string | null
 }
 
@@ -79,6 +81,8 @@ export function emptyQuoteDraft(): QuoteDraft {
     need_refrigeration: false,
     is_hazardous: false,
     hazard_comments: null,
+    dg_un_number: null,
+    dg_class: null,
     stackable: null,
   }
 }

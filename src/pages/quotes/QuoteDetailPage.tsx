@@ -16,6 +16,7 @@ import {
   type ContainerType,
 } from './quoteContainersApi'
 import { quoteStatusPill } from './quotesTableColumns'
+import { DG_CLASS_OPTIONS } from './quoteDgClasses'
 import './quoteDetailPage.css'
 
 const SIZES: { value: ContainerSize; label: string }[] = [
@@ -36,6 +37,9 @@ type Fields = {
   consignee: string | null
   sales_executive_id: string | null
   pricing_executive_id: string | null
+  is_hazardous: boolean
+  dg_un_number: string | null
+  dg_class: string | null
 }
 
 function pickFields(q: QuoteRecord): Fields {
@@ -47,6 +51,9 @@ function pickFields(q: QuoteRecord): Fields {
     consignee: q.consignee,
     sales_executive_id: q.sales_executive_id,
     pricing_executive_id: q.pricing_executive_id,
+    is_hazardous: q.is_hazardous,
+    dg_un_number: q.dg_un_number,
+    dg_class: q.dg_class,
   }
 }
 
@@ -279,6 +286,43 @@ export default function QuoteDetailPage() {
             <span className="nqd-field__label">Consignee {fields.movement_type === 'import' && <span className="nqd-field__hint">· defaults to customer</span>}</span>
             <input className="nqd-input" value={fields.consignee ?? ''} onChange={(e) => patch({ consignee: e.target.value || null })} />
           </div>
+          <div className="nqd-field">
+            <span className="nqd-field__label">Dangerous goods</span>
+            <label className="nqd-check">
+              <input
+                type="checkbox"
+                checked={fields.is_hazardous}
+                onChange={(e) => patch({ is_hazardous: e.target.checked })}
+              />
+              Hazardous cargo
+            </label>
+          </div>
+          {fields.is_hazardous && (
+            <>
+              <div className="nqd-field">
+                <span className="nqd-field__label">UN number</span>
+                <input
+                  className="nqd-input"
+                  placeholder="e.g. UN1263"
+                  value={fields.dg_un_number ?? ''}
+                  onChange={(e) => patch({ dg_un_number: e.target.value || null })}
+                />
+              </div>
+              <div className="nqd-field">
+                <span className="nqd-field__label">Class</span>
+                <select
+                  className="nqd-input"
+                  value={fields.dg_class ?? ''}
+                  onChange={(e) => patch({ dg_class: e.target.value || null })}
+                >
+                  <option value="">—</option>
+                  {DG_CLASS_OPTIONS.map((o) => (
+                    <option key={o.value} value={o.value}>{o.label}</option>
+                  ))}
+                </select>
+              </div>
+            </>
+          )}
         </div>
       </div>
 
