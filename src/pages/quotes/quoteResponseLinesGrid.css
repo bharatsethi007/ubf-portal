@@ -1,0 +1,24 @@
+.qrl-wrap { margin-top: 20px; }
+.qrl-scroll { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 10px; }
+.qrl-table { border-collapse: collapse; width: 100%; min-width: 1400px; font-size: 12px; }
+.qrl-table th { text-align: left; font-weight: 600; color: #475569; background: #f8fafc; padding: 8px; border-bottom: 1px solid #e2e8f0; white-space: nowrap; position: sticky; top: 0; z-index: 1; }
+.qrl-table td { padding: 4px 6px; border-bottom: 1px solid #f1f5f9; vertical-align: middle; }
+.qrl-in { border: 1px solid #e2e8f0; border-radius: 6px; padding: 5px 7px; font-size: 12px; width: 100%; box-sizing: border-box; height: 30px; background: #fff; color: #0f172a; }
+.qrl-in:focus { outline: none; border-color: #3B5BFE; box-shadow: 0 0 0 2px rgba(59,91,254,0.15); }
+.qrl-in--ro { background: #f8fafc; color: #64748b; text-align: right; font-variant-numeric: tabular-nums; }
+.qrl-num { text-align: right; }
+.qrl-actions { display: flex; gap: 1px; align-items: center; }
+.qrl-iconbtn { border: none; background: none; cursor: pointer; color: #94a3b8; padding: 3px; line-height: 0; border-radius: 4px; }
+.qrl-iconbtn:hover { color: #3B5BFE; background: #eff6ff; }
+.qrl-iconbtn--danger:hover { color: #dc2626; background: #fef2f2; }
+.qrl-iconbtn:disabled { opacity: 0.3; cursor: default; }
+.qrl-add { margin-top: 12px; font-size: 13px; color: #3B5BFE; border: 1px solid #c7d2fe; background: #eef2ff; border-radius: 8px; padding: 8px 14px; cursor: pointer; display: inline-flex; align-items: center; gap: 6px; }
+.qrl-add:hover { background: #e0e7ff; }
+.qrl-empty { padding: 24px; text-align: center; color: #94a3b8; font-size: 13px; }
+.qrl-c-act { width: 104px; }
+.qrl-c-desc { min-width: 200px; }
+.qrl-c-unit { width: 120px; }
+.qrl-c-cur { width: 84px; }
+.qrl-c-tax { width: 110px; }
+.qrl-c-num { width: 82px; }
+.qrl-c-total { width: 100px; }

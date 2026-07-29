@@ -11,6 +11,8 @@ import {
   type QuoteResponseRecord,
 } from './quoteResponsesApi'
 import { fetchQuote, type QuoteRecord } from './quotesApi'
+import QuoteResponseLinesGrid from './QuoteResponseLinesGrid'
+import { fetchQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
 import './quoteResponseModal.css'
 
 type Props = {
@@ -38,6 +40,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
   const [quote, setQuote] = useState<QuoteRecord | null>(null)
   const [response, setResponse] = useState<QuoteResponseRecord | null>(null)
   const [header, setHeader] = useState<QuoteResponseHeader | null>(null)
+  const [lines, setLines] = useState<QuoteResponseLine[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -61,10 +64,15 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [q, r] = await Promise.all([fetchQuote(quoteId), fetchQuoteResponse(responseId)])
+      const [q, r, ls] = await Promise.all([
+        fetchQuote(quoteId),
+        fetchQuoteResponse(responseId),
+        fetchQuoteResponseLines(responseId),
+      ])
       setQuote(q)
       setResponse(r)
       setHeader(r ? headerFromRecord(r) : null)
+      setLines(ls)
     } catch {
       toast.error('Failed to load response')
     } finally {
@@ -172,7 +180,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                 </Field>
               </div>
 
-              <div className="qrm-stub">Rate lines &amp; totals — coming in the next step</div>
+              <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} onChange={setLines} />
             </>
           )}
         </div>
