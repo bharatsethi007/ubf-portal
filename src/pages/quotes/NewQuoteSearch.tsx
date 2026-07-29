@@ -1,11 +1,12 @@
 import { useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
+import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap } from 'lucide-react'
 import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
-import { emptyQuoteDraft, type QuoteDraft } from './quotesApi'
-import { emptyContainerGroup, type QuoteContainerDraft } from './quoteContainersApi'
+import { createQuote, emptyQuoteDraft, type QuoteDraft } from './quotesApi'
+import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft } from './quoteContainersApi'
 import './newQuoteSearch.css'
 
 const SIZE_LABEL: Record<string, string> = { '20': '20ft', '40': '40ft', '40HC': '40ft HC', '45HC': '45ft HC' }
@@ -20,6 +21,7 @@ function loadsSummary(groups: QuoteContainerDraft[]): string {
 }
 
 export default function NewQuoteSearch() {
+  const navigate = useNavigate()
   const [customer, setCustomer] = useState<CustomerPickerValue | null>(null)
   const [draft, setDraft] = useState<QuoteDraft>(() => ({
     ...emptyQuoteDraft(),
@@ -30,15 +32,46 @@ export default function NewQuoteSearch() {
   }))
   const [groups, setGroups] = useState<QuoteContainerDraft[]>([emptyContainerGroup(0)])
   const [loadsOpen, setLoadsOpen] = useState(false)
+  const [searched, setSearched] = useState(false)
+  const [creating, setCreating] = useState(false)
 
+  // Any change to the request invalidates a prior search.
   function patch(p: Partial<QuoteDraft>) {
     setDraft((d) => ({ ...d, ...p }))
+    setSearched(false)
+  }
+  function onCustomerChange(c: CustomerPickerValue | null) {
+    setCustomer(c)
+    setSearched(false)
+  }
+  function onGroupsChange(g: QuoteContainerDraft[]) {
+    setGroups(g)
+    setSearched(false)
   }
 
   const canSearch = useMemo(
     () => Boolean(customer && draft.from_port_code && draft.to_port_code),
     [customer, draft.from_port_code, draft.to_port_code],
   )
+
+  async function handleCreate() {
+    if (!customer) return
+    setCreating(true)
+    try {
+      const payload: QuoteDraft = {
+        ...draft,
+        customer_account_id: customer.account_id,
+        customer_name: customer.name,
+      }
+      const { id } = await createQuote(payload)
+      await replaceQuoteContainers(id, groups)
+      toast.success('Quote created')
+      navigate(`/quotes/${id}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to create quote')
+      setCreating(false)
+    }
+  }
 
   return (
     <div className="nqs-page">
@@ -52,7 +85,7 @@ export default function NewQuoteSearch() {
         </div>
 
         <div className="nqs-customer">
-          <CustomerPicker label="Customer" required value={customer} onChange={setCustomer} />
+          <CustomerPicker label="Customer" required value={customer} onChange={onCustomerChange} />
         </div>
 
         <div className="nqs-modes">
@@ -85,7 +118,7 @@ export default function NewQuoteSearch() {
             className="nqs-search-btn"
             disabled={!canSearch}
             title={canSearch ? '' : 'Pick a customer and both ports'}
-            onClick={() => { /* Step 5 wires search → create quote */ }}
+            onClick={() => setSearched(true)}
           >
             <Search size={16} /> Search
           </button>
@@ -94,10 +127,26 @@ export default function NewQuoteSearch() {
         {loadsOpen && (
           <ContainerGroupsEditor
             groups={groups}
-            onChange={setGroups}
+            onChange={onGroupsChange}
             onApply={() => setLoadsOpen(false)}
             onCancel={() => setLoadsOpen(false)}
           />
+        )}
+
+        {searched && (
+          <div className="nqs-results">
+            <div className="nqs-results__empty">
+              <div className="nqs-results__icon"><Zap size={20} /></div>
+              <div className="nqs-results__title">No live rates yet</div>
+              <div className="nqs-results__text">
+                Rate search isn't connected yet. Create the quote from this request now —
+                you'll add a priced response on the quote.
+              </div>
+              <button type="button" className="nqs-results__create" disabled={creating} onClick={handleCreate}>
+                {creating ? 'Creating…' : 'Create quote from this request'}
+              </button>
+            </div>
+          </div>
         )}
       </div>
     </div>
