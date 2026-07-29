@@ -1,5 +1,4 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
-import { useNavigate } from 'react-router-dom'
 import { Pencil, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -9,14 +8,15 @@ import {
   type QuoteResponseSummary,
 } from './quoteResponsesApi'
 import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
+import QuoteResponseModal from './QuoteResponseModal'
 
 type Props = { quoteId: string }
 
 export default function QuoteResponsesPanel({ quoteId }: Props) {
-  const navigate = useNavigate()
   const [responses, setResponses] = useState<QuoteResponseSummary[]>([])
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(null)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -38,7 +38,8 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
     setCreating(true)
     try {
       const { id } = await createQuoteResponse(quoteId)
-      navigate(`/quotes/${quoteId}/responses/${id}`)
+      await reload()
+      setOpenId(id)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to create response')
     } finally {
@@ -60,7 +61,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
   }
 
   function openEditor(responseId: string) {
-    navigate(`/quotes/${quoteId}/responses/${responseId}`)
+    setOpenId(responseId)
   }
 
   return (
@@ -130,6 +131,15 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
             </article>
           ))}
         </div>
+      )}
+
+      {openId && (
+        <QuoteResponseModal
+          quoteId={quoteId}
+          responseId={openId}
+          onClose={() => setOpenId(null)}
+          onSaved={reload}
+        />
       )}
     </section>
   )

@@ -16,6 +16,7 @@ import {
 } from './quoteContainersApi'
 import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
+import QuoteResponsesPanel from './QuoteResponsesPanel'
 import './quoteDetailPage.css'
 
 const SIZES: { value: ContainerSize; label: string }[] = [
@@ -433,7 +434,7 @@ export default function QuoteDetailPage() {
       </div>
 
       <div className="nqd-band">
-        <div className="nqd-responses">Responses — priced offers land here next</div>
+        <QuoteResponsesPanel quoteId={quote.id} />
       </div>
     </div>
   )

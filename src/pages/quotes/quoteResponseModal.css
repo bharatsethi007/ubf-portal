@@ -1,0 +1,15 @@
+.qrm-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 2.5vh 2.5vw; }
+.qrm-modal { width: 95vw; height: 95vh; max-width: 1600px; background: #fff; border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.qrm-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
+.qrm-title { font-size: 18px; font-weight: 700; color: #0f172a; }
+.qrm-sub { font-size: 13px; color: #64748b; margin-top: 2px; }
+.qrm-close { border: none; background: none; cursor: pointer; color: #64748b; padding: 4px; line-height: 0; }
+.qrm-close:hover { color: #0f172a; }
+.qrm-body { flex: 1; overflow-y: auto; padding: 20px 24px; }
+.qrm-foot { display: flex; justify-content: flex-end; gap: 10px; padding: 14px 24px; border-top: 1px solid #e2e8f0; background: #f8fafc; flex-shrink: 0; }
+.qrm-section-title { font-size: 13px; font-weight: 700; color: #334155; text-transform: uppercase; letter-spacing: 0.03em; margin: 0 0 12px; }
+.qrm-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px 16px; }
+.qrm-field { display: flex; flex-direction: column; gap: 5px; }
+.qrm-field__label { font-size: 12px; color: #475569; font-weight: 500; }
+.qrm-input--ro { background: #f1f5f9; color: #64748b; cursor: not-allowed; }
+.qrm-stub { margin-top: 24px; border: 1px dashed #cbd5e1; border-radius: 10px; padding: 28px; text-align: center; color: #94a3b8; font-size: 14px; }
