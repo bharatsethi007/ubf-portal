@@ -7,7 +7,7 @@ type Resolved = { code: string; name: string; cc: string | null }
 
 function Flag({ cc }: { cc: string | null }) {
   if (cc && /^[a-z]{2}$/.test(cc)) return <span className={`fi fi-${cc} qlane__flag`} aria-hidden />
-  return <Globe size={18} className="qlane__globe" aria-hidden />
+  return <Globe size={16} className="qlane__globe" aria-hidden />
 }
 
 function PortLabel({ side, p }: { side: 'o' | 'd'; p: Resolved | null }) {
@@ -47,14 +47,10 @@ export default function QuoteLaneMap({
         <PortLabel side="o" p={from} />
         <span className="qlane__conn">
           <span className="qlane__dash" />
-          <span className="qlane__ship"><Ship size={16} /></span>
+          <span className="qlane__ship"><Ship size={14} /></span>
           <span className="qlane__dash" />
         </span>
         <PortLabel side="d" p={to} />
-      </div>
-      <div className="qlane__badges">
-        <span className="qlane__badge">Sea</span>
-        <span className="qlane__badge">FCL</span>
       </div>
     </div>
   )

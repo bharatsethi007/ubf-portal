@@ -185,18 +185,17 @@ export default function QuoteDetailPage() {
         </div>
       </div>
 
-      <div className="nqd-lane-row">
-        <div className="nqd-band">
-          <QuoteLaneMap fromCode={quote.from_port_code} toCode={quote.to_port_code} />
+      <div className="nqd-band nqd-band--pad">
+        <div className="nqd-section-head">
+          <span className="nqd-section-title">FCL</span>
+          <button className="nqd-btn nqd-btn--accent" disabled={!loadsDirty || savingLoads} onClick={handleSaveLoads}>
+            {savingLoads ? 'Saving…' : 'Save loads'}
+          </button>
         </div>
 
-        <div className="nqd-band nqd-band--pad">
-          <div className="nqd-section-head">
-            <span className="nqd-section-title">FCL load details</span>
-            <button className="nqd-btn nqd-btn--accent" disabled={!loadsDirty || savingLoads} onClick={handleSaveLoads}>
-              {savingLoads ? 'Saving…' : 'Save loads'}
-            </button>
-          </div>
+        <div className="nqd-lane-top">
+          <QuoteLaneMap fromCode={quote.from_port_code} toCode={quote.to_port_code} />
+        </div>
 
           {groups.length === 0 && <p className="nqd-empty">No containers yet.</p>}
 
@@ -227,7 +226,7 @@ export default function QuoteDetailPage() {
                   <span className="nqd-field__label">Weight / ctr (MT)</span>
                   <input className="nqd-input" type="number" value={g.weight_per_container_mt ?? ''} onChange={(e) => patchGroup(i, { weight_per_container_mt: e.target.value === '' ? null : Number(e.target.value) })} />
                 </div>
-                <div className="nqd-field full">
+                <div className="nqd-field">
                   <span className="nqd-field__label">Commodity</span>
                   <input className="nqd-input" type="text" placeholder="General" value={g.commodity ?? ''} onChange={(e) => patchGroup(i, { commodity: e.target.value || null })} />
                 </div>
@@ -235,8 +234,7 @@ export default function QuoteDetailPage() {
             </div>
           ))}
 
-          <button className="nqd-addgrp" onClick={addGroup}><Plus size={15} /> Add another group</button>
-        </div>
+        <button className="nqd-addgrp" onClick={addGroup}><Plus size={15} /> Add another group</button>
       </div>
 
       <div className="nqd-band nqd-band--pad">
