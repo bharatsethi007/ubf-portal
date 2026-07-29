@@ -3,12 +3,14 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import QuoteCargoLines from './QuoteCargoLines'
+import QuoteFclSummary from './QuoteFclSummary'
 import {
   fetchQuoteCargo,
   newQuoteCargoLine,
   saveQuoteCargo,
   type QuoteCargoLine,
 } from './quoteCargoApi'
+import { fetchQuoteContainers, type QuoteContainer } from './quoteContainersApi'
 import { fetchQuote, type QuoteRecord } from './quotesApi'
 import { quoteStatusPill } from './quotesTableColumns'
 
@@ -17,6 +19,7 @@ export default function QuoteDetailPage() {
   const navigate = useNavigate()
   const [quote, setQuote] = useState<QuoteRecord | null>(null)
   const [cargoLines, setCargoLines] = useState<QuoteCargoLine[]>([newQuoteCargoLine(0)])
+  const [containers, setContainers] = useState<QuoteContainer[]>([])
   const [loading, setLoading] = useState(true)
   const [savingCargo, setSavingCargo] = useState(false)
 
@@ -24,9 +27,14 @@ export default function QuoteDetailPage() {
     if (!id) return
     setLoading(true)
     try {
-      const [q, cargo] = await Promise.all([fetchQuote(id), fetchQuoteCargo(id)])
+      const [q, cargo, cons] = await Promise.all([
+        fetchQuote(id),
+        fetchQuoteCargo(id),
+        fetchQuoteContainers(id),
+      ])
       setQuote(q)
       setCargoLines(cargo.length ? cargo : [newQuoteCargoLine(0)])
+      setContainers(cons)
     } catch {
       toast.error('Failed to load quote')
       setQuote(null)
@@ -101,20 +109,24 @@ export default function QuoteDetailPage() {
         </div>
       </div>
 
-      <section className="card booking-form-card quote-form__section">
-        <h2 className="booking-form-card__title">Load Details</h2>
-        <div className="booking-form-card__body">
-          <QuoteCargoLines lines={cargoLines} onChange={setCargoLines} />
-          <div className="quote-form-page__footer quote-detail__cargo-bar">
-            <button type="button" className="cargo-table__add" onClick={addLine}>
-              + Add line
-            </button>
-            <button type="button" className="btn" disabled={savingCargo} onClick={handleSaveCargo}>
-              {savingCargo ? 'Saving…' : 'Save cargo'}
-            </button>
+      {quote.shipment_type === 'FCL' ? (
+        <QuoteFclSummary quote={quote} containers={containers} />
+      ) : (
+        <section className="card booking-form-card quote-form__section">
+          <h2 className="booking-form-card__title">Load Details</h2>
+          <div className="booking-form-card__body">
+            <QuoteCargoLines lines={cargoLines} onChange={setCargoLines} />
+            <div className="quote-form-page__footer quote-detail__cargo-bar">
+              <button type="button" className="cargo-table__add" onClick={addLine}>
+                + Add line
+              </button>
+              <button type="button" className="btn" disabled={savingCargo} onClick={handleSaveCargo}>
+                {savingCargo ? 'Saving…' : 'Save cargo'}
+              </button>
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
       <div className="card pad muted">Responses — coming next</div>
     </div>

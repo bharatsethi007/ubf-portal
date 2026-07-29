@@ -1,0 +1,19 @@
+.qfcl-lane { display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+.qfcl-port { display: flex; align-items: center; gap: 10px; }
+.qfcl-port__flag { width: 26px; height: 19px; border-radius: 3px; flex-shrink: 0; object-fit: cover; }
+.qfcl-port__globe { color: #94a3b8; flex-shrink: 0; }
+.qfcl-port__block { display: flex; flex-direction: column; }
+.qfcl-port__code { font-size: 18px; font-weight: 600; letter-spacing: 0.04em; color: #0f172a; line-height: 1.1; }
+.qfcl-port__name { font-size: 12px; color: #64748b; }
+.qfcl-lane__arrow { color: #94a3b8; flex-shrink: 0; }
+.qfcl-badges { display: flex; gap: 8px; margin-left: auto; }
+.qfcl-badge { font-size: 12px; font-weight: 500; color: #3730a3; background: #eef2ff; border-radius: 6px; padding: 4px 10px; }
+
+.qfcl-containers { display: flex; flex-direction: column; gap: 10px; }
+.qfcl-cgroup { display: flex; align-items: center; gap: 12px; border: 1px solid #e2e8f0; border-radius: 8px; padding: 12px 14px; }
+.qfcl-cgroup__qty { font-size: 16px; font-weight: 600; color: #0f172a; min-width: 42px; }
+.qfcl-cgroup__main { display: flex; flex-direction: column; min-width: 0; }
+.qfcl-cgroup__size { font-size: 14px; font-weight: 500; color: #0f172a; }
+.qfcl-cgroup__type { font-size: 12px; color: #64748b; }
+.qfcl-cgroup__meta { margin-left: auto; text-align: right; font-size: 12px; color: #64748b; }
+.qfcl-empty { font-size: 13px; color: #94a3b8; }
