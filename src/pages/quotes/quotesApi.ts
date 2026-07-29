@@ -3,6 +3,8 @@ import { supabase } from '../../supabase'
 export type QuoteDraft = {
   shipment_mode: string | null
   shipment_type: string | null
+  from_port_code: string | null
+  to_port_code: string | null
   incoterms: string | null
   incoterm_place: string | null
   customer_account_id: string | null
@@ -32,6 +34,7 @@ export type QuoteDraft = {
   need_refrigeration: boolean
   is_hazardous: boolean
   hazard_comments: string | null
+  stackable: string | null
 }
 
 export type QuoteRecord = QuoteDraft & {
@@ -45,6 +48,8 @@ export function emptyQuoteDraft(): QuoteDraft {
   return {
     shipment_mode: null,
     shipment_type: null,
+    from_port_code: null,
+    to_port_code: null,
     incoterms: null,
     incoterm_place: null,
     customer_account_id: null,
@@ -74,6 +79,7 @@ export function emptyQuoteDraft(): QuoteDraft {
     need_refrigeration: false,
     is_hazardous: false,
     hazard_comments: null,
+    stackable: null,
   }
 }
 
