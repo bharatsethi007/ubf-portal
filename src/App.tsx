@@ -15,7 +15,9 @@ import {
 import CustomersPage from './pages/CustomersPage'
 import QuotesPage from './pages/quotes/QuotesPage'
 import QuoteFormPage from './pages/quotes/QuoteFormPage'
+import NewQuoteSearch from './pages/quotes/NewQuoteSearch'
 import QuoteDetailPage from './pages/quotes/QuoteDetailPage'
+import QuoteResponsePage from './pages/quotes/QuoteResponsePage'
 import CustomerProfile from './pages/CustomerProfile'
 import Shipments from './pages/Shipments'
 import Dashboard from './pages/DashboardPage'
@@ -128,8 +130,9 @@ export default function App() {
             <Route path="/new-booking" element={<NewBookingPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
             <Route path="/quotes" element={<StaffRoute><QuotesPage /></StaffRoute>} />
-            <Route path="/quotes/new" element={<StaffRoute><QuoteFormPage /></StaffRoute>} />
+            <Route path="/quotes/new" element={<StaffRoute><NewQuoteSearch /></StaffRoute>} />
             <Route path="/quotes/:id/edit" element={<StaffRoute><QuoteFormPage /></StaffRoute>} />
+            <Route path="/quotes/:id/responses/:responseId" element={<StaffRoute><QuoteResponsePage /></StaffRoute>} />
             <Route path="/quotes/:id" element={<StaffRoute><QuoteDetailPage /></StaffRoute>} />
             <Route
               path="/bookings/import-sea"
