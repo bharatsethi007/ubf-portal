@@ -5,6 +5,8 @@ export type SeaPort = {
   code: string
   name: string
   country_code: string | null
+  lat: number | null
+  lng: number | null
 }
 
 let cache: SeaPort[] | null = null
@@ -13,7 +15,7 @@ let pending: Promise<SeaPort[]> | null = null
 async function loadSeaPorts(): Promise<SeaPort[]> {
   const { data, error } = await supabase
     .from('ports')
-    .select('code,name,country_code')
+    .select('code,name,country_code,lat,lng')
     .eq('kind', 'sea')
     .order('name', { ascending: true })
   if (error || !data) return []
@@ -21,6 +23,8 @@ async function loadSeaPorts(): Promise<SeaPort[]> {
     code: String(r.code),
     name: String(r.name ?? r.code),
     country_code: r.country_code ? String(r.country_code).toLowerCase() : null,
+    lat: r.lat == null ? null : Number(r.lat),
+    lng: r.lng == null ? null : Number(r.lng),
   }))
 }
 

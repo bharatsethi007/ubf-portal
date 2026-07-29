@@ -107,3 +107,8 @@ export async function updateQuote(id: string, patch: Partial<QuoteDraft>): Promi
   const { error } = await supabase.from('quotes').update(patch).eq('id', id)
   if (error) throw error
 }
+
+export async function setQuoteStatus(id: string, status: string): Promise<void> {
+  const { error } = await supabase.from('quotes').update({ status }).eq('id', id)
+  if (error) throw error
+}

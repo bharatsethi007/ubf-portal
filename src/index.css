@@ -1535,6 +1535,7 @@ a:hover { text-decoration: underline; }
 .quote-pill--sent { color: #4338CA; background: #EEF2FF; }
 .quote-pill--won { color: #047857; background: #ECFDF5; }
 .quote-pill--lost { color: #B91C1C; background: #FEF2F2; }
+.quote-pill--crosswin { color: #0F766E; background: #F0FDFA; }
 
 /* Quote form */
 .quote-form-page { width: 100%; max-width: 1100px; }

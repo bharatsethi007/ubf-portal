@@ -19,6 +19,7 @@ export const STATUS_TABS = [
   { key: 'sent', label: 'Sent' },
   { key: 'won', label: 'Won' },
   { key: 'lost', label: 'Lost' },
+  { key: 'crosswin', label: 'Cross win' },
 ] as const
 
 function fmtCreated(iso: string): string {
@@ -30,7 +31,7 @@ function fmtCreated(iso: string): string {
 
 export function quoteStatusPill(status: string) {
   const key = status.toLowerCase()
-  const label = status.charAt(0).toUpperCase() + status.slice(1)
+  const label = key === 'crosswin' ? 'Cross win' : status.charAt(0).toUpperCase() + status.slice(1)
   return <span className={`quote-pill quote-pill--${key}`}>{label}</span>
 }
 
