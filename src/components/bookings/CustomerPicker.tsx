@@ -6,7 +6,7 @@ import './customerPicker.css'
 export type { CustomerPickerValue }
 
 type Props = {
-  label: string
+  label?: string
   value: CustomerPickerValue | null
   onChange: (v: CustomerPickerValue | null) => void
   required?: boolean

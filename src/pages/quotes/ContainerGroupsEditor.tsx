@@ -8,9 +8,9 @@ import {
 
 const SIZES: { value: ContainerSize; label: string }[] = [
   { value: '20', label: '20ft' },
+  { value: '20HC', label: '20ft HC' },
   { value: '40', label: '40ft' },
   { value: '40HC', label: '40ft HC' },
-  { value: '45HC', label: '45ft HC' },
 ]
 
 const TYPES: { value: ContainerType; label: string }[] = [

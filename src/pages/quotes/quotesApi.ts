@@ -28,10 +28,13 @@ export type QuoteDraft = {
   drop_location: string | null
   drop_postal_code: string | null
   drop_address: string | null
+  shipper_address: string | null
+  consignee_address: string | null
   cargo_value: number | null
   cargo_value_currency: string | null
   need_insurance: boolean
   need_refrigeration: boolean
+  reefer_temp_c: number | null
   is_hazardous: boolean
   hazard_comments: string | null
   dg_un_number: string | null
@@ -75,10 +78,13 @@ export function emptyQuoteDraft(): QuoteDraft {
     drop_location: null,
     drop_postal_code: null,
     drop_address: null,
+    shipper_address: null,
+    consignee_address: null,
     cargo_value: null,
     cargo_value_currency: 'NZD',
     need_insurance: false,
     need_refrigeration: false,
+    reefer_temp_c: null,
     is_hazardous: false,
     hazard_comments: null,
     dg_un_number: null,

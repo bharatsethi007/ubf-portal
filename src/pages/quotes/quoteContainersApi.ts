@@ -1,6 +1,6 @@
 import { supabase } from '../../supabase'
 
-export type ContainerSize = '20' | '40' | '40HC' | '45HC'
+export type ContainerSize = '20' | '20HC' | '40' | '40HC'
 export type ContainerType =
   | 'standard' | 'reefer' | 'opentop' | 'flatrack' | 'isotank' | 'openside'
 
