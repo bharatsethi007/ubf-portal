@@ -38,7 +38,7 @@ const emptyComponents = (): AddressComponents => ({})
 
 export default function PartyPicker({ kind, name, address = '', onPick, onNameChange }: Props) {
   const [focused, setFocused] = useState(false)
-  const [linked, setLinked] = useState(false)
+  const [source, setSource] = useState<'none' | 'fdb' | 'saved'>('none')
   const [savedFlag, setSavedFlag] = useState(false)
   const [dialogOpen, setDialogOpen] = useState(false)
   const [savedHits, setSavedHits] = useState<SavedParty[]>([])
@@ -85,19 +85,19 @@ export default function PartyPicker({ kind, name, address = '', onPick, onNameCh
 
   function handleNameChange(v: string) {
     onNameChange(v)
-    setLinked(false)
+    setSource('none')
     setSavedFlag(false)
   }
 
   function pickCustomer(c: CustomerPickerValue) {
     onPick({ name: c.name, address: composeAddress(c) })
-    setLinked(true)
+    setSource('fdb')
     setFocused(false)
   }
 
   function pickSaved(p: SavedParty) {
     onPick({ name: p.name, address: p.address ?? '' })
-    setLinked(true)
+    setSource('saved')
     setFocused(false)
   }
 
@@ -118,7 +118,7 @@ export default function PartyPicker({ kind, name, address = '', onPick, onNameCh
         account_id: null,
       })
       setSavedFlag(true)
-      setLinked(true)
+      setSource('saved')
       setDialogOpen(false)
       onPick({ name: dlgName.trim(), address: addr })
       toast.success(`${kindLabel} saved`)
@@ -133,15 +133,17 @@ export default function PartyPicker({ kind, name, address = '', onPick, onNameCh
     <div className="party-picker">
       <div className="party-picker__wrap">
         <input
-          className="nqd-input party-picker__input"
+          className={`nqd-input party-picker__input${source === 'fdb' ? ' party-picker__input--pill' : ''}`}
           value={name}
           onChange={(e) => handleNameChange(e.target.value)}
           onFocus={() => setFocused(true)}
           onBlur={() => window.setTimeout(() => setFocused(false), 150)}
         />
-        {savedFlag ? (
+        {source === 'fdb' ? (
+          <span className="party-pill">Cyberfreight</span>
+        ) : source === 'saved' || savedFlag ? (
           <Check size={16} className="party-picker__saved" aria-label="Saved party" />
-        ) : name.trim() && !linked ? (
+        ) : name.trim() ? (
           <button
             type="button"
             className="party-picker__save"

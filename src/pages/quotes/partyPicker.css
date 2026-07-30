@@ -1,6 +1,13 @@
 .party-picker { position: relative; }
 .party-picker__wrap { position: relative; display: flex; align-items: center; }
 .party-picker__input { width: 100%; padding-right: 28px; }
+.party-picker__input--pill { padding-right: 92px; }
+.party-pill {
+  position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
+  display: inline-flex; font-size: 10px; font-weight: 600; letter-spacing: 0.02em;
+  padding: 1px 6px; border: 1px solid #c7d2fe; border-radius: 5px; color: #3B5BFE;
+  background: #eef2ff; line-height: normal; white-space: nowrap; pointer-events: none;
+}
 .party-picker__saved {
   position: absolute; right: 8px; top: 50%; transform: translateY(-50%);
   color: #16a34a; pointer-events: none;
