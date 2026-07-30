@@ -6,11 +6,15 @@ export type ExchangeRate = {
   rate: number
   as_of: string
   source: string
+  buy_correction_pct: number
+  sell_correction_pct: number
 }
 
-export type FxMargin = {
-  currency: string
-  margin_pct: number
+export type SetupCurrency = {
+  code: string
+  name: string
+  symbol: string | null
+  active: boolean
 }
 
 export type FxSyncState = {
@@ -25,11 +29,15 @@ type RateRow = {
   rate: number | string
   as_of: string
   source: string
+  buy_correction_pct: number | string | null
+  sell_correction_pct: number | string | null
 }
 
-type MarginRow = {
-  currency: string
-  margin_pct: number | string | null
+type CurrencyRow = {
+  code: string
+  name: string
+  symbol: string | null
+  active: boolean | null
 }
 
 type SyncRow = {
@@ -45,52 +53,107 @@ function mapRate(row: RateRow): ExchangeRate {
     rate: Number(row.rate),
     as_of: String(row.as_of),
     source: String(row.source),
+    buy_correction_pct: Number(row.buy_correction_pct ?? 0),
+    sell_correction_pct: Number(row.sell_correction_pct ?? 0),
   }
 }
 
-function mapMargin(row: MarginRow): FxMargin {
+function mapCurrency(row: CurrencyRow): SetupCurrency {
   return {
-    currency: String(row.currency),
-    margin_pct: Number(row.margin_pct ?? 0),
+    code: String(row.code),
+    name: String(row.name ?? row.code),
+    symbol: row.symbol ? String(row.symbol) : null,
+    active: row.active ?? true,
   }
 }
 
-function sortMargins(rows: FxMargin[]): FxMargin[] {
-  return [...rows].sort((a, b) => {
-    if (a.currency === '*') return -1
-    if (b.currency === '*') return 1
-    return a.currency.localeCompare(b.currency)
-  })
-}
+const RATE_COLUMNS = 'base_currency, quote_currency, rate, as_of, source, buy_correction_pct, sell_correction_pct'
 
 export async function fetchExchangeRates(): Promise<ExchangeRate[]> {
   const { data, error } = await supabase
     .from('exchange_rates')
-    .select('base_currency, quote_currency, rate, as_of, source')
+    .select(RATE_COLUMNS)
     .order('base_currency', { ascending: true })
     .order('quote_currency', { ascending: true })
   if (error) throw error
   return ((data ?? []) as RateRow[]).map(mapRate)
 }
 
-export async function fetchFxMargins(): Promise<FxMargin[]> {
+export async function fetchRatesForBase(base: string): Promise<ExchangeRate[]> {
   const { data, error } = await supabase
-    .from('fx_margins')
-    .select('currency, margin_pct')
+    .from('exchange_rates')
+    .select(RATE_COLUMNS)
+    .eq('base_currency', base)
+    .order('quote_currency', { ascending: true })
   if (error) throw error
-  return sortMargins(((data ?? []) as MarginRow[]).map(mapMargin))
+  return ((data ?? []) as RateRow[]).map(mapRate)
 }
 
-export async function upsertFxMargin(currency: string, margin_pct: number): Promise<void> {
-  const { error } = await supabase.from('fx_margins').upsert(
-    { currency, margin_pct, updated_at: new Date().toISOString() },
-    { onConflict: 'currency' },
+export async function fetchEffectiveRates(base: string): Promise<Map<string, { buy: number; sell: number }>> {
+  const rows = await fetchRatesForBase(base)
+  const m = new Map<string, { buy: number; sell: number }>()
+  for (const r of rows) {
+    m.set(r.quote_currency, {
+      buy: r.rate * (1 + (r.buy_correction_pct || 0) / 100),
+      sell: r.rate * (1 + (r.sell_correction_pct || 0) / 100),
+    })
+  }
+  return m
+}
+
+export async function updatePairCorrection(
+  base: string,
+  quote: string,
+  buy_correction_pct: number,
+  sell_correction_pct: number,
+): Promise<void> {
+  const { error } = await supabase
+    .from('exchange_rates')
+    .update({ buy_correction_pct, sell_correction_pct, updated_at: new Date().toISOString() })
+    .eq('base_currency', base)
+    .eq('quote_currency', quote)
+  if (error) throw error
+}
+
+export async function fetchCurrencies(includeInactive = true): Promise<SetupCurrency[]> {
+  let query = supabase
+    .from('currencies')
+    .select('code, name, symbol, active')
+    .order('sort_order', { ascending: true })
+    .order('code', { ascending: true })
+  if (!includeInactive) query = query.eq('active', true)
+  const { data, error } = await query
+  if (error) throw error
+  return ((data ?? []) as CurrencyRow[]).map(mapCurrency)
+}
+
+export async function upsertCurrency(currency: SetupCurrency): Promise<void> {
+  const code = currency.code.trim().toUpperCase()
+  const { error } = await supabase.from('currencies').upsert(
+    {
+      code,
+      name: currency.name.trim() || code,
+      symbol: currency.symbol?.trim() || null,
+      sort_order: 0,
+      active: currency.active,
+    },
+    { onConflict: 'code' },
   )
   if (error) throw error
 }
 
-export async function deleteFxMargin(currency: string): Promise<void> {
-  const { error } = await supabase.from('fx_margins').delete().eq('currency', currency)
+export async function setCurrencyActive(code: string, active: boolean): Promise<void> {
+  const { error } = await supabase.from('currencies').update({ active }).eq('code', code)
+  if (error) throw error
+}
+
+export async function deleteCurrency(code: string): Promise<void> {
+  const { error: ratesErr } = await supabase
+    .from('exchange_rates')
+    .delete()
+    .or(`base_currency.eq.${code},quote_currency.eq.${code}`)
+  if (ratesErr) throw ratesErr
+  const { error } = await supabase.from('currencies').delete().eq('code', code)
   if (error) throw error
 }
 

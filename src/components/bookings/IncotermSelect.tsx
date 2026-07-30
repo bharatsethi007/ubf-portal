@@ -13,6 +13,7 @@ export default function IncotermSelect({ value, onChange }: Props) {
       value={value}
       onChange={(e) => onChange(e.target.value)}
     >
+      <option value="">— Select incoterm —</option>
       {INCOTERMS_2020.map(({ code, name }) => (
         <option key={code} value={code}>
           {code} – {name}

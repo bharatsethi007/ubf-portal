@@ -17,6 +17,7 @@ import {
 import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
 import QuoteResponsesPanel from './QuoteResponsesPanel'
+import PartyPicker from './PartyPicker'
 import './quoteDetailPage.css'
 
 const SIZES: { value: ContainerSize; label: string }[] = [
@@ -371,11 +372,23 @@ export default function QuoteDetailPage() {
         <div className="nqd-parties">
           <div className="nqd-field">
             <span className="nqd-field__label">Shipper {fields.movement_type === 'export' && <span className="nqd-field__hint">· defaults to customer</span>}</span>
-            <input className="nqd-input" value={fields.shipper ?? ''} onChange={(e) => patch({ shipper: e.target.value || null })} />
+            <PartyPicker
+              kind="shipper"
+              name={fields.shipper ?? ''}
+              address={fields.shipper_address ?? ''}
+              onNameChange={(v) => patch({ shipper: v || null })}
+              onPick={(v) => patch({ shipper: v.name || null, shipper_address: v.address || null })}
+            />
           </div>
           <div className="nqd-field">
             <span className="nqd-field__label">Consignee {fields.movement_type === 'import' && <span className="nqd-field__hint">· defaults to customer</span>}</span>
-            <input className="nqd-input" value={fields.consignee ?? ''} onChange={(e) => patch({ consignee: e.target.value || null })} />
+            <PartyPicker
+              kind="consignee"
+              name={fields.consignee ?? ''}
+              address={fields.consignee_address ?? ''}
+              onNameChange={(v) => patch({ consignee: v || null })}
+              onPick={(v) => patch({ consignee: v.name || null, consignee_address: v.address || null })}
+            />
           </div>
           <div className="nqd-field">
             <span className="nqd-field__label">Shipper address</span>

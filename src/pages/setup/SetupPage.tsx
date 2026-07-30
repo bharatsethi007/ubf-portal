@@ -24,13 +24,18 @@ const ACTIVE: ActiveSection[] = [
   {
     icon: ArrowLeftRight,
     title: 'Exchange rates',
-    description: 'Daily FX rates and margins for buy/sell pricing',
+    description: 'Currencies, daily FX mid rates, and buy/sell corrections',
+    to: '/setup/exchange-rates',
+  },
+  {
+    icon: Coins,
+    title: 'Currencies',
+    description: 'ISO currency codes — managed on the exchange rates page',
     to: '/setup/exchange-rates',
   },
 ]
 
 const COMING: ComingSection[] = [
-  { icon: Coins, title: 'Currencies' },
   { icon: Ruler, title: 'Units' },
   { icon: Percent, title: 'Tax codes' },
   { icon: Scale, title: 'Incoterms' },

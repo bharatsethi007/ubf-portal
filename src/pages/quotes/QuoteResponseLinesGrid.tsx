@@ -3,6 +3,7 @@ import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X } from 'lucide-rea
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
 import { useChargeUnits, useTaxRates, useCurrencies, useChargeGroups, useChargeCodes } from '../../hooks/useQuoteRefData'
+import { useEffectiveRates } from '../../hooks/useEffectiveRates'
 import { createChargeCodeAuto } from '../setup/chargeCodesApi'
 import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
 import './quoteResponseLinesGrid.css'
@@ -23,6 +24,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
   const { items: currencies } = useCurrencies()
   const { items: groups } = useChargeGroups()
   const { items: chargeCodes, refresh: refreshCodes } = useChargeCodes()
+  const { rates: fxRates, loading: fxLoading, reload: reloadFx } = useEffectiveRates(currency)
   const [addingFor, setAddingFor] = useState<string | null>(null)
   const [addGroup, setAddGroup] = useState('freight')
 
@@ -35,6 +37,14 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
     for (const c of chargeCodes) m.set(c.description.toLowerCase(), c.charge_group)
     return m
   }, [chargeCodes])
+
+  const round4 = (n: number) => String(Math.round(n * 10000) / 10000)
+  function exFor(cur: string, side: 'buy' | 'sell'): string | null {
+    if (!cur || cur === currency) return '1'
+    const e = fxRates.get(cur)
+    if (!e) return null
+    return round4(side === 'buy' ? e.buy : e.sell)
+  }
 
   function update(id: string, patch: Partial<QuoteResponseLine>) {
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
@@ -140,8 +150,18 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
                   <td className="qrl-c-group"><RefSelect className="qrl-in" value={l.charge_group} options={groupOptions} allowEmpty={false} onChange={(v) => update(l.id, { charge_group: v ?? 'freight' })} /></td>
                   <td className="qrl-c-unit"><RefSelect className="qrl-in" value={l.unit} options={unitOptions} placeholder="Unit" onChange={(v) => update(l.id, { unit: v ?? '' })} /></td>
                   <td className="qrl-c-num">{numInput(l.qty, (v) => update(l.id, { qty: v }))}</td>
-                  <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.buy_currency} options={curOptions} allowEmpty={false} onChange={(v) => update(l.id, { buy_currency: v ?? currency })} /></td>
-                  <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.sell_currency} options={curOptions} allowEmpty={false} onChange={(v) => update(l.id, { sell_currency: v ?? currency })} /></td>
+                  <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.buy_currency} options={curOptions} allowEmpty={false}
+                    onChange={(v) => {
+                      const cur = v ?? currency
+                      const ex = exFor(cur, 'buy')
+                      update(l.id, { buy_currency: cur, ...(ex != null ? { ex_rate_buy: ex } : {}) })
+                    }} /></td>
+                  <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.sell_currency} options={curOptions} allowEmpty={false}
+                    onChange={(v) => {
+                      const cur = v ?? currency
+                      const ex = exFor(cur, 'sell')
+                      update(l.id, { sell_currency: cur, ...(ex != null ? { ex_rate_sell: ex } : {}) })
+                    }} /></td>
                   <td className="qrl-c-num">{numInput(l.min_buy, (v) => update(l.id, { min_buy: v }))}</td>
                   <td className="qrl-c-num">{numInput(l.min_sell, (v) => update(l.id, { min_sell: v }))}</td>
                   <td className="qrl-c-num">{numInput(l.buy_rate, (v) => update(l.id, { buy_rate: v }))}</td>
@@ -157,7 +177,28 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
           </tbody>
         </table>
       </div>
-      <button type="button" className="qrl-add" onClick={addLine}><Plus size={15} /> Add Line</button>
+      <div style={{ display: 'flex', gap: 8, marginTop: 12, flexWrap: 'wrap' }}>
+        <button type="button" className="qrl-add" onClick={addLine}><Plus size={15} /> Add Line</button>
+        <button
+          type="button"
+          className="qrl-add"
+          disabled={fxLoading || fxRates.size === 0}
+          onClick={() => {
+            onChange(lines.map((l) => {
+              const eb = exFor(l.buy_currency, 'buy')
+              const es = exFor(l.sell_currency, 'sell')
+              return {
+                ...l,
+                ...(eb != null ? { ex_rate_buy: eb } : {}),
+                ...(es != null ? { ex_rate_sell: es } : {}),
+              }
+            }))
+            toast.success('Applied live FX rates')
+          }}
+        >
+          Apply live FX
+        </button>
+      </div>
       <datalist id="qrl-charge-codes">
         {chargeCodes.map((c) => <option key={c.code} value={c.description}>{c.code} — {c.description}</option>)}
       </datalist>
