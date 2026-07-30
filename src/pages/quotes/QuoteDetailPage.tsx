@@ -32,6 +32,8 @@ const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP', 'CNY', 'FJD', 'SGD']
 
 type Fields = {
   movement_type: string | null
+  shipping_line: string | null
+  service_type: string | null
   incoterms: string | null
   customer_po: string | null
   shipper: string | null
@@ -55,6 +57,7 @@ type Cargo = {
 function pickFields(q: QuoteRecord): Fields {
   return {
     movement_type: q.movement_type, incoterms: q.incoterms, customer_po: q.customer_po,
+    shipping_line: q.shipping_line, service_type: q.service_type,
     shipper: q.shipper, consignee: q.consignee,
     shipper_address: q.shipper_address, consignee_address: q.consignee_address,
     sales_executive_id: q.sales_executive_id, pricing_executive_id: q.pricing_executive_id,
@@ -336,6 +339,16 @@ export default function QuoteDetailPage() {
           <div className="nqd-field">
             <span className="nqd-field__label">Incoterms</span>
             <IncotermSelect value={fields.incoterms ?? ''} onChange={(v) => patch({ incoterms: v || null })} />
+          </div>
+          <div className="nqd-field">
+            <span className="nqd-field__label">Movement type</span>
+            <select className="nqd-input" value={fields.service_type ?? ''} onChange={(e) => patch({ service_type: e.target.value || null })}>
+              <option value="">—</option>
+              <option value="Door to Door">Door to Door</option>
+              <option value="Port to Port">Port to Port</option>
+              <option value="Door to Port">Door to Port</option>
+              <option value="Port to Door">Port to Door</option>
+            </select>
           </div>
           <div className="nqd-field">
             <span className="nqd-field__label">Customer ref #</span>

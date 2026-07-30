@@ -18,7 +18,7 @@ function makeRefHook<T>(table: string, columns: string, map: (r: Row) => T) {
     return (data as Row[]).map(map)
   }
 
-  return function useRef(): { items: T[]; loading: boolean } {
+  return function useRef(): { items: T[]; loading: boolean; refresh: () => Promise<void> } {
     const [items, setItems] = useState<T[]>(cache ?? [])
     const [loading, setLoading] = useState(!cache)
     useEffect(() => {
@@ -31,7 +31,14 @@ function makeRefHook<T>(table: string, columns: string, map: (r: Row) => T) {
       })
       return () => { cancelled = true }
     }, [])
-    return { items, loading }
+    const refresh = async () => {
+      pending = load()
+      const list = await pending
+      cache = list
+      setItems(list)
+      setLoading(false)
+    }
+    return { items, loading, refresh }
   }
 }
 
@@ -55,4 +62,16 @@ export const useTaxRates = makeRefHook<TaxRate>(
 export const useShippingLines = makeRefHook<ShippingLine>(
   'shipping_lines', 'code,name,sort_order',
   (r) => ({ code: String(r.code), name: String(r.name ?? r.code) }),
+)
+
+export type ChargeGroup = { code: string; label: string }
+export type ChargeCode = { code: string; description: string; charge_group: string }
+
+export const useChargeGroups = makeRefHook<ChargeGroup>(
+  'charge_groups', 'code,label,sort_order',
+  (r) => ({ code: String(r.code), label: String(r.label ?? r.code) }),
+)
+export const useChargeCodes = makeRefHook<ChargeCode>(
+  'charge_codes', 'code,description,charge_group,sort_order',
+  (r) => ({ code: String(r.code), description: String(r.description ?? ''), charge_group: String(r.charge_group ?? 'freight') }),
 )

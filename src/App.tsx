@@ -27,6 +27,8 @@ import BookingFormPage from './pages/bookings/BookingFormPage'
 import StaffRoute from './components/StaffRoute'
 import SliPage from './features/sli/SliPage'
 import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
+import SetupPage from './pages/setup/SetupPage'
+import ChargeCodesPage from './pages/setup/ChargeCodesPage'
 import { Toaster } from './components/ui/sonner'
 
 function StaffDenied() {
@@ -163,6 +165,8 @@ export default function App() {
             <Route path="/schedules" element={<SchedulesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/setup" element={<StaffRoute><SetupPage /></StaffRoute>} />
+            <Route path="/setup/charge-codes" element={<StaffRoute><ChargeCodesPage /></StaffRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

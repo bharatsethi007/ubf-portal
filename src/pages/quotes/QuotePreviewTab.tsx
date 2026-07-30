@@ -2,16 +2,16 @@ import { useEffect, useMemo, useState } from 'react'
 import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer'
 import { toast } from 'sonner'
 import { supabase } from '../../supabase'
-import { useChargeUnits, useTaxRates } from '../../hooks/useQuoteRefData'
+import { useChargeUnits, useTaxRates, useChargeGroups } from '../../hooks/useQuoteRefData'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
 import { fetchQuote, type QuoteRecord } from './quotesApi'
-import { fetchQuoteResponse, type QuoteResponseRecord } from './quoteResponsesApi'
-import { fetchQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
+import { fetchQuoteResponse } from './quoteResponsesApi'
+import { fetchQuoteResponseLines } from './quoteResponseLinesApi'
 import { fetchQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
 import { fetchQuoteContainers, type QuoteContainer } from './quoteContainersApi'
 import { registerQuoteFonts } from './pdf/quotePdfFonts'
 import QuotePdfDocument from './pdf/QuotePdfDocument'
-import { buildQuotePdfData, type PdfRefs, type PdfCustomer } from './pdf/buildQuotePdfData'
+import { buildQuotePdfData, type PdfRefs, type PdfCustomer, type PdfResponseInput } from './pdf/buildQuotePdfData'
 
 registerQuoteFonts()
 
@@ -30,10 +30,8 @@ async function fetchCustomerLite(accountId: string): Promise<PdfCustomer> {
 }
 
 export default function QuotePreviewTab({ quoteId, responses }: Props) {
-  const [selectedId, setSelectedId] = useState<string | null>(responses[0]?.id ?? null)
   const [quote, setQuote] = useState<QuoteRecord | null>(null)
-  const [response, setResponse] = useState<QuoteResponseRecord | null>(null)
-  const [lines, setLines] = useState<QuoteResponseLine[]>([])
+  const [responseInputs, setResponseInputs] = useState<PdfResponseInput[]>([])
   const [cargo, setCargo] = useState<QuoteCargoLine[]>([])
   const [containers, setContainers] = useState<QuoteContainer[]>([])
   const [customer, setCustomer] = useState<PdfCustomer>(null)
@@ -41,28 +39,34 @@ export default function QuotePreviewTab({ quoteId, responses }: Props) {
 
   const { items: units } = useChargeUnits()
   const { items: taxes } = useTaxRates()
+  const { items: chargeGroups } = useChargeGroups()
   const { ports } = useSeaPorts()
 
   useEffect(() => {
-    if (!responses.find((r) => r.id === selectedId)) setSelectedId(responses[0]?.id ?? null)
-  }, [responses, selectedId])
-
-  useEffect(() => {
-    if (!selectedId) { setQuote(null); return }
+    if (!responses.length) { setQuote(null); setResponseInputs([]); return }
     let cancelled = false
     setLoading(true)
     ;(async () => {
       try {
         const q = await fetchQuote(quoteId)
-        const [r, l, cg, ct, cust] = await Promise.all([
-          fetchQuoteResponse(selectedId),
-          fetchQuoteResponseLines(selectedId),
+        const [cg, ct, cust, ...loaded] = await Promise.all([
           fetchQuoteCargo(quoteId),
           fetchQuoteContainers(quoteId),
           q?.customer_account_id ? fetchCustomerLite(q.customer_account_id) : Promise.resolve(null),
+          ...responses.map(async (r) => {
+            const [record, lines] = await Promise.all([
+              fetchQuoteResponse(r.id),
+              fetchQuoteResponseLines(r.id),
+            ])
+            return { record, lines } as PdfResponseInput
+          }),
         ])
         if (cancelled) return
-        setQuote(q); setResponse(r); setLines(l); setCargo(cg); setContainers(ct); setCustomer(cust)
+        setQuote(q)
+        setResponseInputs(loaded.filter(Boolean) as PdfResponseInput[])
+        setCargo(cg)
+        setContainers(ct)
+        setCustomer(cust)
       } catch {
         if (!cancelled) toast.error('Failed to load quote for preview')
       } finally {
@@ -70,7 +74,7 @@ export default function QuotePreviewTab({ quoteId, responses }: Props) {
       }
     })()
     return () => { cancelled = true }
-  }, [quoteId, selectedId])
+  }, [quoteId, responses])
 
   const refs = useMemo<PdfRefs>(() => {
     const unitMap = new Map(units.map((u) => [u.code, u.label]))
@@ -87,24 +91,20 @@ export default function QuotePreviewTab({ quoteId, responses }: Props) {
         const p = portMap.get(code)
         return p ? { code: p.code, name: p.name, cc: p.country_code } : { code, name: code, cc: null }
       },
+      chargeGroups,
     }
-  }, [units, taxes, ports])
+  }, [units, taxes, ports, chargeGroups])
 
   const data = useMemo(() => {
-    if (!quote || !response) return null
-    return buildQuotePdfData(quote, response, lines, cargo, containers, customer, refs)
-  }, [quote, response, lines, cargo, containers, customer, refs])
+    if (!quote || !responseInputs.length) return null
+    return buildQuotePdfData(quote, responseInputs, cargo, containers, customer, refs)
+  }, [quote, responseInputs, cargo, containers, customer, refs])
 
   if (!responses.length) return <p className="qr-placeholder">Add a response first to preview the quote PDF.</p>
 
   return (
     <div className="qr-preview">
       <div className="qr-preview__bar">
-        {responses.length > 1 && (
-          <select className="nqd-input qr-preview__pick" value={selectedId ?? ''} onChange={(e) => setSelectedId(e.target.value)}>
-            {responses.map((r) => <option key={r.id} value={r.id}>{r.response_no ?? 'Draft'}</option>)}
-          </select>
-        )}
         {data && (
           <PDFDownloadLink document={<QuotePdfDocument data={data} />} fileName={`${data.quoteNo || 'quotation'}.pdf`} className="nqd-btn nqd-btn--accent">
             {({ loading: dl }) => (dl ? 'Preparing…' : 'Download PDF')}

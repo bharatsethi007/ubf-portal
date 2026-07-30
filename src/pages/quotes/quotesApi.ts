@@ -13,6 +13,8 @@ export type QuoteDraft = {
   shipper: string | null
   consignee: string | null
   movement_type: string | null
+  shipping_line: string | null
+  service_type: string | null
   sales_executive_id: string | null
   pricing_executive_id: string | null
   request_received_from: string | null
@@ -63,6 +65,8 @@ export function emptyQuoteDraft(): QuoteDraft {
     shipper: null,
     consignee: null,
     movement_type: null,
+    shipping_line: null,
+    service_type: null,
     sales_executive_id: null,
     pricing_executive_id: null,
     request_received_from: null,

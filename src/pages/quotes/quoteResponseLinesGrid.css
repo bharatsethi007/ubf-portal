@@ -23,3 +23,6 @@
 .qrl-c-num { width: 82px; }
 .qrl-c-total { width: 100px; }
 .qrl-c-group { width: 108px; }
+.qrl-addcode-btn { margin-top: 4px; padding: 0; border: none; background: none; color: #3B5BFE; font-size: 11px; cursor: pointer; text-align: left; }
+.qrl-addcode-btn:hover { text-decoration: underline; }
+.qrl-addcode-row { display: flex; gap: 4px; margin-top: 4px; align-items: center; }

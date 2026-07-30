@@ -1,7 +1,9 @@
-import { useMemo } from 'react'
-import { ChevronUp, ChevronDown, Copy, Trash2, Plus } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X } from 'lucide-react'
+import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
-import { useChargeUnits, useTaxRates, useCurrencies } from '../../hooks/useQuoteRefData'
+import { useChargeUnits, useTaxRates, useCurrencies, useChargeGroups, useChargeCodes } from '../../hooks/useQuoteRefData'
+import { createChargeCodeAuto } from '../setup/chargeCodesApi'
 import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
 import './quoteResponseLinesGrid.css'
 
@@ -19,16 +21,20 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
   const { items: units } = useChargeUnits()
   const { items: taxes } = useTaxRates()
   const { items: currencies } = useCurrencies()
+  const { items: groups } = useChargeGroups()
+  const { items: chargeCodes, refresh: refreshCodes } = useChargeCodes()
+  const [addingFor, setAddingFor] = useState<string | null>(null)
+  const [addGroup, setAddGroup] = useState('freight')
 
   const unitOptions = useMemo(() => units.map((u) => ({ value: u.code, label: u.label })), [units])
   const taxOptions = useMemo(() => taxes.map((t) => ({ value: t.code, label: t.label })), [taxes])
   const curOptions = useMemo(() => currencies.map((c) => ({ value: c.code, label: c.code })), [currencies])
-
-  const GROUP_OPTIONS = [
-    { value: 'origin', label: 'Origin' },
-    { value: 'freight', label: 'Freight' },
-    { value: 'destination', label: 'Destination' },
-  ]
+  const groupOptions = useMemo(() => groups.map((g) => ({ value: g.code, label: g.label })), [groups])
+  const codeByDesc = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const c of chargeCodes) m.set(c.description.toLowerCase(), c.charge_group)
+    return m
+  }, [chargeCodes])
 
   function update(id: string, patch: Partial<QuoteResponseLine>) {
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
@@ -98,8 +104,40 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
                       <button type="button" className="qrl-iconbtn qrl-iconbtn--danger" aria-label="Delete" onClick={() => removeLine(l.id)}><Trash2 size={14} /></button>
                     </div>
                   </td>
-                  <td className="qrl-c-desc"><input className="qrl-in" value={l.description} onChange={(e) => update(l.id, { description: e.target.value })} /></td>
-                  <td className="qrl-c-group"><RefSelect className="qrl-in" value={l.charge_group} options={GROUP_OPTIONS} allowEmpty={false} onChange={(v) => update(l.id, { charge_group: v ?? 'freight' })} /></td>
+                  <td className="qrl-c-desc">
+                    <input className="qrl-in" list="qrl-charge-codes" value={l.description}
+                      onChange={(e) => {
+                        const v = e.target.value
+                        const grp = codeByDesc.get(v.toLowerCase())
+                        update(l.id, grp ? { description: v, charge_group: grp } : { description: v })
+                      }} />
+                    {l.description.trim() && !codeByDesc.has(l.description.trim().toLowerCase()) && (
+                      addingFor === l.id ? (
+                        <div className="qrl-addcode-row">
+                          <RefSelect className="qrl-in" value={addGroup} options={groupOptions} allowEmpty={false}
+                            onChange={(v) => setAddGroup(v ?? 'freight')} />
+                          <button type="button" className="qrl-iconbtn" aria-label="Save charge code"
+                            onClick={async () => {
+                              try {
+                                await createChargeCodeAuto(l.description, addGroup)
+                                await refreshCodes()
+                                update(l.id, { charge_group: addGroup })
+                                setAddingFor(null)
+                                toast.success('Charge code added to Setup')
+                              } catch { toast.error('Could not add charge code') }
+                            }}><Check size={14} /></button>
+                          <button type="button" className="qrl-iconbtn" aria-label="Cancel"
+                            onClick={() => setAddingFor(null)}><X size={14} /></button>
+                        </div>
+                      ) : (
+                        <button type="button" className="qrl-addcode-btn"
+                          onClick={() => { setAddingFor(l.id); setAddGroup(l.charge_group || 'freight') }}>
+                          + Add &ldquo;{l.description.trim()}&rdquo; to charge codes
+                        </button>
+                      )
+                    )}
+                  </td>
+                  <td className="qrl-c-group"><RefSelect className="qrl-in" value={l.charge_group} options={groupOptions} allowEmpty={false} onChange={(v) => update(l.id, { charge_group: v ?? 'freight' })} /></td>
                   <td className="qrl-c-unit"><RefSelect className="qrl-in" value={l.unit} options={unitOptions} placeholder="Unit" onChange={(v) => update(l.id, { unit: v ?? '' })} /></td>
                   <td className="qrl-c-num">{numInput(l.qty, (v) => update(l.id, { qty: v }))}</td>
                   <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.buy_currency} options={curOptions} allowEmpty={false} onChange={(v) => update(l.id, { buy_currency: v ?? currency })} /></td>
@@ -120,6 +158,9 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
         </table>
       </div>
       <button type="button" className="qrl-add" onClick={addLine}><Plus size={15} /> Add Line</button>
+      <datalist id="qrl-charge-codes">
+        {chargeCodes.map((c) => <option key={c.code} value={c.description}>{c.code} — {c.description}</option>)}
+      </datalist>
     </div>
   )
 }

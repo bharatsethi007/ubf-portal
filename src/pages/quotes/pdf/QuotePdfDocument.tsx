@@ -1,6 +1,6 @@
 import { Document, Page, View, Text, Image, Svg, Path, Line, StyleSheet } from '@react-pdf/renderer'
 import { QUOTE_TERMS } from './quoteTerms'
-import type { QuotePdfData, PdfCharge } from './buildQuotePdfData'
+import type { QuotePdfData, PdfOption } from './buildQuotePdfData'
 
 const NAVY = '#002753', ORANGE = '#F99D29', BLACK = '#111111', MUTE = '#6b7280', LINE = '#e2e6ea', SOFT = '#f4f6f8'
 
@@ -12,7 +12,8 @@ const s = StyleSheet.create({
   qBar: { marginTop: 10, backgroundColor: NAVY, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', height: 26, paddingHorizontal: 12, borderRadius: 2 },
   qBarTitle: { color: '#fff', fontSize: 11.5, fontWeight: 700, letterSpacing: 2, lineHeight: 1 },
   qBarNo: { color: ORANGE, fontSize: 9, fontWeight: 600, letterSpacing: 1, lineHeight: 1 },
-  route: { marginTop: 12, flexDirection: 'row', alignItems: 'center' },
+  qDateUnder: { textAlign: 'right', fontSize: 6.8, color: MUTE, fontFamily: 'Helvetica', fontStyle: 'italic', marginTop: 3 },
+  route: { marginTop: 10, flexDirection: 'row', alignItems: 'center' },
   routeEnd: { flexDirection: 'row', alignItems: 'center', gap: 7 },
   routeText: { flexDirection: 'column' },
   flag: { width: 24, height: 16, borderRadius: 1.5, border: '0.5 solid ' + LINE, objectFit: 'cover' },
@@ -20,33 +21,28 @@ const s = StyleSheet.create({
   routeCode: { fontSize: 16, color: NAVY, fontWeight: 700, lineHeight: 1 },
   routeName: { fontSize: 6.5, color: MUTE, marginTop: 3, lineHeight: 1 },
   routeMid: { flex: 1, alignItems: 'center', paddingHorizontal: 12 },
-  grid: { marginTop: 14, flexDirection: 'row', gap: 12 },
+  grid: { marginTop: 12, flexDirection: 'row', gap: 12 },
   col: { flex: 1 },
   colLabel: { color: ORANGE, fontWeight: 700, fontSize: 8, letterSpacing: 0.4, marginBottom: 5, paddingBottom: 3, borderBottom: '1 solid ' + NAVY },
   field: { marginBottom: 4 },
   fieldK: { color: MUTE, fontSize: 6.5, fontWeight: 500, letterSpacing: 0.2 },
   fieldV: { color: BLACK, fontWeight: 600, fontSize: 7.8, marginTop: 0.5 },
-  secHead: { marginTop: 14, color: NAVY, fontWeight: 700, fontSize: 8.5, letterSpacing: 0.5, marginBottom: 4 },
+  secHead: { marginTop: 12, color: NAVY, fontWeight: 700, fontSize: 8.5, letterSpacing: 0.5, marginBottom: 4 },
   tRow: { flexDirection: 'row', alignItems: 'center' },
   tHead: { backgroundColor: NAVY },
   tHeadCell: { color: '#fff', fontWeight: 600, fontSize: 6.6, letterSpacing: 0.2, paddingVertical: 4.5, paddingHorizontal: 4 },
-  tCell: { fontSize: 7.3, paddingVertical: 4, paddingHorizontal: 4, color: BLACK },
+  tCell: { fontSize: 7.3, paddingVertical: 3, paddingHorizontal: 4, color: BLACK },
   tRowB: { borderBottom: '0.5 solid ' + LINE },
   totalRow: { borderTop: '0.75 solid ' + NAVY, backgroundColor: SOFT },
   grpRow: { backgroundColor: SOFT },
   grpCell: { color: NAVY, fontWeight: 700, fontSize: 7, letterSpacing: 0.3, paddingVertical: 3.5, paddingHorizontal: 4 },
-  meta: { marginTop: 12, flexDirection: 'row', borderTop: '0.5 solid ' + LINE, borderBottom: '0.5 solid ' + LINE, paddingVertical: 7 },
-  metaItem: { flex: 1, flexDirection: 'column' },
-  metaK: { color: MUTE, fontSize: 6.5, fontWeight: 500, letterSpacing: 0.3, marginBottom: 2, lineHeight: 1 },
-  metaV: { color: NAVY, fontWeight: 600, fontSize: 8.5, lineHeight: 1 },
-  totals: { marginTop: 8, alignSelf: 'flex-end', width: 200 },
   totLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
   totK: { color: MUTE, fontSize: 8, fontWeight: 500 },
   totV: { color: BLACK, fontWeight: 600, fontSize: 8 },
   grand: { borderTop: '1 solid ' + NAVY, marginTop: 3, paddingTop: 4 },
   grandK: { color: NAVY, fontWeight: 700, fontSize: 9.5 },
   grandV: { color: NAVY, fontWeight: 700, fontSize: 10 },
-  notesWrap: { marginTop: 14 },
+  notesWrap: { marginTop: 6 },
   noteLine: { color: BLACK, fontSize: 7.2, lineHeight: 1.4, marginBottom: 1.5 },
   termsHead: { color: NAVY, fontWeight: 700, fontSize: 10, marginBottom: 8, textAlign: 'center' },
   termRow: { flexDirection: 'row', marginBottom: 4 },
@@ -54,9 +50,19 @@ const s = StyleSheet.create({
   termTxt: { flex: 1, color: BLACK, fontSize: 7, lineHeight: 1.35 },
   subRow: { flexDirection: 'row', marginBottom: 2, marginLeft: 13 },
   subNo: { width: 13, color: BLACK, fontSize: 7 },
+  optWrap: { marginTop: 10 },
+  optHead: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eef2f7', borderLeft: '3 solid ' + ORANGE, paddingVertical: 4, paddingHorizontal: 8 },
+  optHeadNo: { fontWeight: 700, color: NAVY, fontSize: 9, letterSpacing: 0.5 },
+  optHeadRef: { color: MUTE, fontSize: 7.5, marginLeft: 6 },
+  optHeadRight: { marginLeft: 'auto', color: NAVY, fontSize: 7.5, fontWeight: 500 },
+  optMeta: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 2, borderBottom: '0.5 solid ' + LINE, marginBottom: 2 },
+  optMetaItem: { flex: 1, flexDirection: 'column' },
+  optMetaK: { color: MUTE, fontSize: 6, fontWeight: 500, letterSpacing: 0.3, marginBottom: 1.5, lineHeight: 1 },
+  optMetaV: { color: NAVY, fontSize: 7.8, fontWeight: 600, lineHeight: 1 },
+  optTotals: { marginTop: 4, alignSelf: 'flex-end', width: 200 },
 })
 
-const CH: { k: keyof Extract<PdfCharge, { desc: string }>; f: number; a: 'left' | 'right' }[] = [
+const CH: { k: 'desc' | 'qty' | 'unit' | 'min' | 'price' | 'ex' | 'tax' | 'frcr' | 'amt'; f: number; a: 'left' | 'right' }[] = [
   { k: 'desc', f: 2.7, a: 'left' }, { k: 'qty', f: 0.7, a: 'left' }, { k: 'unit', f: 1.8, a: 'left' },
   { k: 'min', f: 1.0, a: 'left' }, { k: 'price', f: 1.0, a: 'left' }, { k: 'ex', f: 0.8, a: 'left' },
   { k: 'tax', f: 0.6, a: 'left' }, { k: 'frcr', f: 1.1, a: 'right' }, { k: 'amt', f: 1.15, a: 'right' },
@@ -97,6 +103,45 @@ function MidIcon({ mode }: { mode: 'air' | 'sea' }) {
   )
 }
 
+function OptionBlock({ opt }: { opt: PdfOption }) {
+  return (
+    <View style={s.optWrap} wrap={false}>
+      <View style={s.optHead}>
+        <Text style={s.optHeadNo}>OPTION {opt.optionNo}</Text>
+        <Text style={s.optHeadRef}>{opt.responseNo}</Text>
+        <Text style={s.optHeadRight}>Valid till {opt.validTill}</Text>
+      </View>
+      <View style={s.optMeta}>
+        <View style={s.optMetaItem}><Text style={s.optMetaK}>SHIPPING LINE</Text><Text style={s.optMetaV}>{opt.shippingLine || '\u2014'}</Text></View>
+        <View style={s.optMetaItem}><Text style={s.optMetaK}>VIA</Text><Text style={s.optMetaV}>{opt.via || '\u2014'}</Text></View>
+        <View style={s.optMetaItem}><Text style={s.optMetaK}>TRANSIT TIME</Text><Text style={s.optMetaV}>{opt.transitTime || '\u2014'}</Text></View>
+        <View style={s.optMetaItem}><Text style={s.optMetaK}>FREE DAYS</Text><Text style={s.optMetaV}>{opt.freeDays || '\u2014'}</Text></View>
+      </View>
+      <View style={[s.tRow, s.tHead]}>
+        {CH.map((c, i) => <Text key={i} style={[s.tHeadCell, { flex: c.f, textAlign: c.a }]}>{CHLABEL[c.k]}</Text>)}
+      </View>
+      {opt.charges.map((row, i) =>
+        'grp' in row ? (
+          <View key={i} style={[s.tRow, s.grpRow]}><Text style={s.grpCell}>{row.grp}</Text></View>
+        ) : (
+          <View key={i} style={[s.tRow, s.tRowB]}>
+            {CH.map((col, j) => <Text key={j} style={[s.tCell, { flex: col.f, textAlign: col.a }]}>{row[col.k] || ''}</Text>)}
+          </View>
+        )
+      )}
+      <View style={s.optTotals}>
+        <View style={s.totLine}><Text style={s.totK}>SUB TOTAL</Text><Text style={s.totV}>{opt.subTotal}</Text></View>
+        <View style={[s.totLine, s.grand]}><Text style={s.grandK}>TOTAL</Text><Text style={s.grandV}>{opt.total}</Text></View>
+      </View>
+      {opt.notes.length > 0 && (
+        <View style={s.notesWrap}>
+          {opt.notes.map((n, i) => <Text key={i} style={s.noteLine}>{'\u2022  ' + n}</Text>)}
+        </View>
+      )}
+    </View>
+  )
+}
+
 export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
   return (
     <Document>
@@ -113,6 +158,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           <Text style={s.qBarTitle}>QUOTATION</Text>
           <Text style={s.qBarNo}>{data.quoteNo}</Text>
         </View>
+        <Text style={s.qDateUnder}>Quote date: {data.quoteDate}</Text>
 
         <View style={s.route}>
           <RouteEnd code={data.from.code} name={data.from.name} cc={data.from.cc} />
@@ -141,11 +187,10 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           </View>
           <View style={s.col}>
             <Text style={s.colLabel}>DETAILS</Text>
-            <Field k="QUOTATION #" v={data.details.quoteNo} />
+            <Field k="INCOTERMS" v={data.details.term} />
             <Field k="PO #" v={data.details.po} />
-            <Field k="SHIPMENT TYPE" v={data.details.shipmentType} />
             <Field k="MOVEMENT TYPE" v={data.details.movement} />
-            <Field k="SHIPMENT TERM" v={data.details.term} />
+            <Field k="SHIPMENT TYPE" v={data.details.shipmentType} />
           </View>
         </View>
 
@@ -178,37 +223,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           </>
         )}
 
-        <View style={s.meta}>
-          <View style={s.metaItem}><Text style={s.metaK}>QUOTE DATE</Text><Text style={s.metaV}>{data.quoteDate}</Text></View>
-          <View style={s.metaItem}><Text style={s.metaK}>VALID FROM</Text><Text style={s.metaV}>{data.validFrom}</Text></View>
-          <View style={s.metaItem}><Text style={s.metaK}>VALID TILL</Text><Text style={s.metaV}>{data.validTill}</Text></View>
-          <View style={s.metaItem}><Text style={s.metaK}>CURRENCY</Text><Text style={s.metaV}>{data.currency}</Text></View>
-        </View>
-
-        <View style={[s.tRow, s.tHead, { marginTop: 12 }]}>
-          {CH.map((c, i) => <Text key={i} style={[s.tHeadCell, { flex: c.f, textAlign: c.a }]}>{CHLABEL[c.k]}</Text>)}
-        </View>
-        {data.charges.map((row, i) =>
-          'grp' in row ? (
-            <View key={i} style={[s.tRow, s.grpRow]}><Text style={s.grpCell}>{row.grp}</Text></View>
-          ) : (
-            <View key={i} style={[s.tRow, s.tRowB]}>
-              {CH.map((col, j) => <Text key={j} style={[s.tCell, { flex: col.f, textAlign: col.a }]}>{row[col.k] || ''}</Text>)}
-            </View>
-          )
-        )}
-
-        <View style={s.totals}>
-          <View style={s.totLine}><Text style={s.totK}>SUB TOTAL</Text><Text style={s.totV}>{data.subTotal}</Text></View>
-          <View style={[s.totLine, s.grand]}><Text style={s.grandK}>TOTAL</Text><Text style={s.grandV}>{data.total}</Text></View>
-        </View>
-
-        {data.notes.length > 0 && (
-          <View style={s.notesWrap}>
-            <Text style={s.secHead}>NOTES</Text>
-            {data.notes.map((n, i) => <Text key={i} style={s.noteLine}>{'\u2022  ' + n}</Text>)}
-          </View>
-        )}
+        {data.options.map((opt) => <OptionBlock key={opt.optionNo} opt={opt} />)}
       </Page>
 
       <Page size="A4" style={s.page}>
