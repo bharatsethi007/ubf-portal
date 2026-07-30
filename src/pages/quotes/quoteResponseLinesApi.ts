@@ -5,6 +5,7 @@ export type QuoteResponseLine = {
   ord: number
   description: string
   is_service_charge: boolean
+  charge_group: string
   vendor: string
   unit: string
   qty: string
@@ -25,6 +26,7 @@ export function newQuoteResponseLine(ord = 0, currency = 'NZD'): QuoteResponseLi
     ord,
     description: '',
     is_service_charge: false,
+    charge_group: 'freight',
     vendor: '',
     unit: '',
     qty: '1',
@@ -59,6 +61,7 @@ function mapRow(row: Record<string, unknown>): QuoteResponseLine {
     ord: Number(row.ord) || 0,
     description: (row.description as string | null) ?? '',
     is_service_charge: Boolean(row.is_service_charge),
+    charge_group: (row.charge_group as string | null) || 'freight',
     vendor: (row.vendor as string | null) ?? '',
     unit: (row.unit as string | null) ?? '',
     qty: numStr(row.qty),
@@ -168,6 +171,7 @@ export async function saveQuoteResponseLines(
         ord: index,
         description: line.description.trim() || null,
         is_service_charge: line.is_service_charge,
+        charge_group: line.charge_group || 'freight',
         vendor: line.vendor.trim() || null,
         unit: line.unit.trim() || null,
         qty: parseNumField(line.qty),

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
-import { useShippingLines, useCurrencies } from '../../hooks/useQuoteRefData'
+import { useShippingLines, useCurrencies, useTaxRates } from '../../hooks/useQuoteRefData'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
 import {
   fetchQuoteResponse,
@@ -12,7 +12,13 @@ import {
 } from './quoteResponsesApi'
 import { fetchQuote, type QuoteRecord } from './quotesApi'
 import QuoteResponseLinesGrid from './QuoteResponseLinesGrid'
-import { fetchQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
+import {
+  fetchQuoteResponseLines,
+  saveQuoteResponseLines,
+  updateResponseTotals,
+  computeResponseTotals,
+  type QuoteResponseLine,
+} from './quoteResponseLinesApi'
 import './quoteResponseModal.css'
 
 type Props = {
@@ -25,6 +31,10 @@ type Props = {
 function headerFromRecord(r: QuoteResponseRecord): QuoteResponseHeader {
   const { id: _i, response_no: _n, quote_id: _q, status: _s, ...header } = r
   return header
+}
+
+function fmtMoney(n: number): string {
+  return n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
@@ -60,6 +70,14 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
     () => ports.map((p) => ({ value: p.code, label: `${p.code} — ${p.name}` })),
     [ports],
   )
+
+  const { items: taxes } = useTaxRates()
+  const taxRateByCode = useMemo(() => {
+    const m: Record<string, number> = {}
+    for (const t of taxes) m[t.code] = t.rate_pct
+    return m
+  }, [taxes])
+  const totals = useMemo(() => computeResponseTotals(lines, taxRateByCode), [lines, taxRateByCode])
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -102,6 +120,8 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
     setSaving(true)
     try {
       await updateQuoteResponseHeader(responseId, header)
+      await saveQuoteResponseLines(responseId, lines)
+      await updateResponseTotals(responseId, totals)
       onSaved()
       return true
     } catch (e) {
@@ -181,6 +201,14 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
               </div>
 
               <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} onChange={setLines} />
+
+              <div className="qrm-totals">
+                <div className="qrm-totrow"><span>Sub Total</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.subTotal)}</span></div>
+                <div className="qrm-totrow"><span>Total Tax</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.totalTax)}</span></div>
+                <div className="qrm-totrow qrm-totrow--strong"><span>Total Sell Amount</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.totalSell)}</span></div>
+                <div className="qrm-totrow qrm-totrow--buy"><span>Total Buy Amount</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.totalBuy)}</span></div>
+                <div className="qrm-totrow qrm-totrow--profit"><span>Net Profit (Margin %)</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.netProfit)} ({totals.marginPct.toFixed(1)}%)</span></div>
+              </div>
             </>
           )}
         </div>

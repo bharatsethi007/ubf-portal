@@ -24,6 +24,12 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
   const taxOptions = useMemo(() => taxes.map((t) => ({ value: t.code, label: t.label })), [taxes])
   const curOptions = useMemo(() => currencies.map((c) => ({ value: c.code, label: c.code })), [currencies])
 
+  const GROUP_OPTIONS = [
+    { value: 'origin', label: 'Origin' },
+    { value: 'freight', label: 'Freight' },
+    { value: 'destination', label: 'Destination' },
+  ]
+
   function update(id: string, patch: Partial<QuoteResponseLine>) {
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }
@@ -61,6 +67,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
             <tr>
               <th className="qrl-c-act">Actions</th>
               <th className="qrl-c-desc">Description</th>
+              <th className="qrl-c-group">Group</th>
               <th className="qrl-c-unit">Unit</th>
               <th className="qrl-c-num">Qty</th>
               <th className="qrl-c-cur">Buy Cur</th>
@@ -78,7 +85,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
           </thead>
           <tbody>
             {lines.length === 0 ? (
-              <tr><td colSpan={15} className="qrl-empty">No charge lines yet — add one to start pricing.</td></tr>
+              <tr><td colSpan={16} className="qrl-empty">No charge lines yet — add one to start pricing.</td></tr>
             ) : lines.map((l, idx) => {
               const c = computeResponseLine(l)
               return (
@@ -92,6 +99,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
                     </div>
                   </td>
                   <td className="qrl-c-desc"><input className="qrl-in" value={l.description} onChange={(e) => update(l.id, { description: e.target.value })} /></td>
+                  <td className="qrl-c-group"><RefSelect className="qrl-in" value={l.charge_group} options={GROUP_OPTIONS} allowEmpty={false} onChange={(v) => update(l.id, { charge_group: v ?? 'freight' })} /></td>
                   <td className="qrl-c-unit"><RefSelect className="qrl-in" value={l.unit} options={unitOptions} placeholder="Unit" onChange={(v) => update(l.id, { unit: v ?? '' })} /></td>
                   <td className="qrl-c-num">{numInput(l.qty, (v) => update(l.id, { qty: v }))}</td>
                   <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.buy_currency} options={curOptions} allowEmpty={false} onChange={(v) => update(l.id, { buy_currency: v ?? currency })} /></td>
