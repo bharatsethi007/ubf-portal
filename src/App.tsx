@@ -29,6 +29,7 @@ import SliPage from './features/sli/SliPage'
 import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
 import SetupPage from './pages/setup/SetupPage'
 import ChargeCodesPage from './pages/setup/ChargeCodesPage'
+import ExchangeRatesPage from './pages/setup/ExchangeRatesPage'
 import { Toaster } from './components/ui/sonner'
 
 function StaffDenied() {
@@ -167,6 +168,7 @@ export default function App() {
             <Route path="/users" element={<UsersPage />} />
             <Route path="/setup" element={<StaffRoute><SetupPage /></StaffRoute>} />
             <Route path="/setup/charge-codes" element={<StaffRoute><ChargeCodesPage /></StaffRoute>} />
+            <Route path="/setup/exchange-rates" element={<StaffRoute><ExchangeRatesPage /></StaffRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>
