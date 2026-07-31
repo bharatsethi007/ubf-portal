@@ -42,6 +42,8 @@ export type QuoteDraft = {
   dg_un_number: string | null
   dg_class: string | null
   stackable: string | null
+  internal_notes: string | null
+  external_notes: string | null
 }
 
 export type QuoteRecord = QuoteDraft & {
@@ -94,6 +96,8 @@ export function emptyQuoteDraft(): QuoteDraft {
     dg_un_number: null,
     dg_class: null,
     stackable: null,
+    internal_notes: null,
+    external_notes: null,
   }
 }
 

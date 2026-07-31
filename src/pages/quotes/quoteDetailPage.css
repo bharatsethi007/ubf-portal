@@ -64,6 +64,10 @@
 .nqd-parties { display: grid; grid-template-columns: 1fr 1fr; gap: 12px 14px; margin-top: 14px; }
 @media (max-width: 560px) { .nqd-parties { grid-template-columns: 1fr; } }
 .nqd-textarea { height: auto; min-height: 58px; resize: vertical; font-family: inherit; line-height: 1.4; }
+.nqd-textarea--scroll { height: 80px; max-height: 140px; overflow-y: auto; resize: vertical; }
+.nqd-notes { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+@media (max-width: 560px) { .nqd-notes { grid-template-columns: 1fr; } }
+.nqd-note-external { color: #b91c1c; background: #fff; }
 .nqd-cargo { display: grid; grid-template-columns: 1fr 1.4fr; gap: 24px; align-items: start; }
 @media (max-width: 720px) { .nqd-cargo { grid-template-columns: 1fr; } }
 .nqd-cargo__value { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }

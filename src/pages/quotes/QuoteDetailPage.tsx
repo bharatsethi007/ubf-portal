@@ -43,6 +43,8 @@ type Fields = {
   consignee_address: string | null
   sales_executive_id: string | null
   pricing_executive_id: string | null
+  internal_notes: string | null
+  external_notes: string | null
 }
 type Cargo = {
   cargo_value: number | null
@@ -62,6 +64,7 @@ function pickFields(q: QuoteRecord): Fields {
     shipper: q.shipper, consignee: q.consignee,
     shipper_address: q.shipper_address, consignee_address: q.consignee_address,
     sales_executive_id: q.sales_executive_id, pricing_executive_id: q.pricing_executive_id,
+    internal_notes: q.internal_notes, external_notes: q.external_notes,
   }
 }
 function pickCargo(q: QuoteRecord): Cargo {
@@ -461,6 +464,33 @@ export default function QuoteDetailPage() {
 
       <div className="nqd-band">
         <QuoteResponsesPanel quoteId={quote.id} />
+      </div>
+
+      <div className="nqd-band nqd-band--pad">
+        <div className="nqd-section-head">
+          <span className="nqd-section-title">Notes</span>
+          <button className="nqd-btn nqd-btn--accent" disabled={!dirty || saving} onClick={handleSave}>
+            {saving ? 'Saving…' : 'Save'}
+          </button>
+        </div>
+        <div className="nqd-notes">
+          <div className="nqd-field">
+            <span className="nqd-field__label">Internal notes (not shown on quote)</span>
+            <textarea
+              className="nqd-input nqd-textarea nqd-textarea--scroll"
+              value={fields.internal_notes ?? ''}
+              onChange={(e) => patch({ internal_notes: e.target.value || null })}
+            />
+          </div>
+          <div className="nqd-field">
+            <span className="nqd-field__label">External notes (shown on quote)</span>
+            <textarea
+              className="nqd-input nqd-textarea nqd-textarea--scroll nqd-note-external"
+              value={fields.external_notes ?? ''}
+              onChange={(e) => patch({ external_notes: e.target.value || null })}
+            />
+          </div>
+        </div>
       </div>
     </div>
   )
