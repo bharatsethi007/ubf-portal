@@ -31,7 +31,7 @@ export type QuotePdfData = {
   to: { code: string; name: string; cc: string | null }
   portLabel: string
   requestedBy: { company: string; contact: string; address: string; phone: string; email: string }
-  origin: { port: string }
+  origin: { shipper: string; address: string; port: string }
   destination: { consignee: string; address: string; port: string }
   details: { po: string; shipmentType: string; movement: string; term: string }
   commodities: { desc: string; pkg: string; gross: string; vol: string; chg: string }[]
@@ -147,6 +147,11 @@ export function buildQuotePdfData(
   const quoteDate = responses.length ? upDate(responses[0].record.quotation_date) : '\u2014'
   const options = responses.map((r, i) => buildOption(r, i, refs))
 
+  const st = (quote.service_type || '').toLowerCase()
+  const parts = st.split(' to ')
+  const originIsDoor = st ? /^\s*door/.test(parts[0] || '') : true
+  const destIsDoor = st ? /^\s*door/.test(parts[1] || '') : true
+
   return {
     quoteNo: quote.quote_no || '',
     mode,
@@ -161,10 +166,14 @@ export function buildQuotePdfData(
       phone: customer?.phone || '',
       email: customer?.email || '',
     },
-    origin: { port: fromP ? `${fromP.code} - ${fromP.name.toUpperCase()}` : quote.from_port_code || '' },
+    origin: {
+      shipper: (quote.shipper || '').toUpperCase(),
+      address: originIsDoor ? (quote.shipper_address || '') : '',
+      port: fromP ? `${fromP.code} - ${fromP.name.toUpperCase()}` : quote.from_port_code || '',
+    },
     destination: {
       consignee: (quote.consignee || quote.customer_name || '').toUpperCase(),
-      address: quote.consignee_address || '',
+      address: destIsDoor ? (quote.consignee_address || '') : '',
       port: toP ? `${toP.code} - ${toP.name.toUpperCase()}` : quote.to_port_code || '',
     },
     details: {

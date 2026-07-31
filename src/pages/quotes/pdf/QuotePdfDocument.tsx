@@ -177,12 +177,14 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           </View>
           <View style={s.col}>
             <Text style={s.colLabel}>ORIGIN</Text>
+            {data.origin.shipper ? <Field k="SHIPPER" v={data.origin.shipper} /> : null}
+            {data.origin.address ? <Field k="SHIPPER ADDRESS" v={data.origin.address} /> : null}
             <Field k={data.portLabel} v={data.origin.port} />
           </View>
           <View style={s.col}>
             <Text style={s.colLabel}>DESTINATION</Text>
             <Field k="CONSIGNEE" v={data.destination.consignee} />
-            <Field k="CONSIGNEE ADDRESS" v={data.destination.address} />
+            {data.destination.address ? <Field k="CONSIGNEE ADDRESS" v={data.destination.address} /> : null}
             <Field k={data.portLabel} v={data.destination.port} />
           </View>
           <View style={s.col}>
