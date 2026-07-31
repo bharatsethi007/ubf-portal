@@ -18,6 +18,7 @@ import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
 import QuoteResponsesPanel from './QuoteResponsesPanel'
 import PartyPicker from './PartyPicker'
+import ExternalNotesField from './ExternalNotesField'
 import './quoteDetailPage.css'
 
 const SIZES: { value: ContainerSize; label: string }[] = [
@@ -482,14 +483,10 @@ export default function QuoteDetailPage() {
               onChange={(e) => patch({ internal_notes: e.target.value || null })}
             />
           </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">External notes (shown on quote)</span>
-            <textarea
-              className="nqd-input nqd-textarea nqd-textarea--scroll nqd-note-external"
-              value={fields.external_notes ?? ''}
-              onChange={(e) => patch({ external_notes: e.target.value || null })}
-            />
-          </div>
+          <ExternalNotesField
+            value={fields.external_notes ?? ''}
+            onChange={(v) => patch({ external_notes: v || null })}
+          />
         </div>
       </div>
     </div>
