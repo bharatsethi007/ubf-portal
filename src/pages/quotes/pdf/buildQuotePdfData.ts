@@ -38,6 +38,7 @@ export type QuotePdfData = {
   commTotal: { units: string; gross: string; vol: string; chg: string }
   quoteDate: string
   options: PdfOption[]
+  externalNote: string
 }
 
 export type PdfRefs = {
@@ -186,5 +187,6 @@ export function buildQuotePdfData(
     commTotal,
     quoteDate,
     options,
+    externalNote: (quote.external_notes || '').trim(),
   }
 }

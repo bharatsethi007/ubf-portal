@@ -60,6 +60,9 @@ const s = StyleSheet.create({
   optMetaK: { color: MUTE, fontSize: 6, fontWeight: 500, letterSpacing: 0.3, marginBottom: 1.5, lineHeight: 1 },
   optMetaV: { color: NAVY, fontSize: 7.8, fontWeight: 600, lineHeight: 1 },
   optTotals: { marginTop: 4, alignSelf: 'flex-end', width: 200 },
+  extNoteWrap: { marginTop: 12, paddingTop: 8, borderTop: '0.5px solid #d0d5dd' },
+  extNoteLabel: { fontSize: 7, fontWeight: 600, color: BLACK, marginBottom: 3, letterSpacing: 0.3 },
+  extNoteBody: { fontSize: 7.2, color: BLACK, lineHeight: 1.4 },
 })
 
 const CH: { k: 'desc' | 'qty' | 'unit' | 'min' | 'price' | 'ex' | 'tax' | 'frcr' | 'amt'; f: number; a: 'left' | 'right' }[] = [
@@ -226,6 +229,13 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
         )}
 
         {data.options.map((opt) => <OptionBlock key={opt.optionNo} opt={opt} />)}
+
+        {data.externalNote ? (
+          <View style={s.extNoteWrap} wrap>
+            <Text style={s.extNoteLabel}>NOTES</Text>
+            <Text style={s.extNoteBody}>{data.externalNote}</Text>
+          </View>
+        ) : null}
       </Page>
 
       <Page size="A4" style={s.page}>
