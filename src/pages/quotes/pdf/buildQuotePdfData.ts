@@ -36,6 +36,8 @@ export type QuotePdfData = {
   details: { po: string; shipmentType: string; movement: string; term: string }
   commodities: { desc: string; pkg: string; gross: string; vol: string; chg: string }[]
   commTotal: { units: string; gross: string; vol: string; chg: string }
+  isFcl: boolean
+  cargoFlags: { insurance: string; dg: string }
   quoteDate: string
   options: PdfOption[]
   externalNote: string
@@ -144,6 +146,7 @@ export function buildQuotePdfData(
     const totalCtrs = containers.reduce((s, c) => s + (c.qty || 0), 0)
     commTotal = { units: `${totalCtrs} CONTAINER(S)`, gross: '', vol: '', chg: '' }
   }
+  const isFcl = !nonEmptyCargo.length && containers.length > 0
 
   const quoteDate = responses.length ? upDate(responses[0].record.quotation_date) : '\u2014'
   const options = responses.map((r, i) => buildOption(r, i, refs))
@@ -185,6 +188,11 @@ export function buildQuotePdfData(
     },
     commodities,
     commTotal,
+    isFcl,
+    cargoFlags: {
+      insurance: quote.need_insurance ? 'Yes' : 'No',
+      dg: quote.is_hazardous ? 'Yes' : 'No',
+    },
     quoteDate,
     options,
     externalNote: (quote.external_notes || '').trim(),

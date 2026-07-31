@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useState } from 'react'
-import { LayoutTemplate, Save } from 'lucide-react'
+import { useCallback, useEffect, useState, type MouseEvent } from 'react'
+import { LayoutTemplate, Pencil, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import {
@@ -9,7 +9,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog'
-import { createNoteTemplate, fetchNoteTemplates, type NoteTemplate } from './noteTemplatesApi'
+import {
+  createNoteTemplate,
+  deleteNoteTemplate,
+  fetchNoteTemplates,
+  updateNoteTemplate,
+  type NoteTemplate,
+} from './noteTemplatesApi'
 import './externalNotesField.css'
 
 type Props = {
@@ -18,7 +24,8 @@ type Props = {
 }
 
 function oneLinePreview(body: string): string {
-  return body.replace(/\s+/g, ' ').trim()
+  const flat = body.replace(/\s+/g, ' ').trim()
+  return flat.length > 120 ? `${flat.slice(0, 120)}…` : flat
 }
 
 export default function ExternalNotesField({ value, onChange }: Props) {
@@ -27,11 +34,21 @@ export default function ExternalNotesField({ value, onChange }: Props) {
   const [templates, setTemplates] = useState<NoteTemplate[]>([])
   const [newTplName, setNewTplName] = useState('')
   const [savingTpl, setSavingTpl] = useState(false)
+  const [editingId, setEditingId] = useState<string | null>(null)
+  const [editName, setEditName] = useState('')
+  const [editBody, setEditBody] = useState('')
+  const [savingEdit, setSavingEdit] = useState(false)
 
   const loadTemplates = useCallback(async () => {
     const list = await fetchNoteTemplates('external')
     setTemplates(list)
   }, [])
+
+  const clearEdit = () => {
+    setEditingId(null)
+    setEditName('')
+    setEditBody('')
+  }
 
   useEffect(() => {
     loadTemplates().catch(() => {})
@@ -39,6 +56,7 @@ export default function ExternalNotesField({ value, onChange }: Props) {
 
   useEffect(() => {
     if (templatesOpen) loadTemplates().catch(() => toast.error('Could not load templates'))
+    else clearEdit()
   }, [templatesOpen, loadTemplates])
 
   const insertTemplate = (t: NoteTemplate) => {
@@ -46,6 +64,40 @@ export default function ExternalNotesField({ value, onChange }: Props) {
     onChange(cur.trim() ? `${cur}\n${t.body}` : t.body)
     setTemplatesOpen(false)
     toast.success('Template inserted')
+  }
+
+  const startEdit = (t: NoteTemplate) => {
+    setEditingId(t.id)
+    setEditName(t.name)
+    setEditBody(t.body)
+  }
+
+  const handleUpdateTemplate = async () => {
+    if (!editingId || !editName.trim()) return
+    setSavingEdit(true)
+    try {
+      await updateNoteTemplate(editingId, editName.trim(), editBody)
+      await loadTemplates()
+      clearEdit()
+      toast.success('Template updated')
+    } catch {
+      toast.error('Could not update template')
+    } finally {
+      setSavingEdit(false)
+    }
+  }
+
+  const handleDeleteTemplate = async (t: NoteTemplate, e: MouseEvent) => {
+    e.stopPropagation()
+    if (!window.confirm(`Delete template "${t.name}"?`)) return
+    try {
+      await deleteNoteTemplate(t.id)
+      if (editingId === t.id) clearEdit()
+      await loadTemplates()
+      toast.success('Template deleted')
+    } catch {
+      toast.error('Could not delete template')
+    }
   }
 
   const handleSaveTemplate = async () => {
@@ -95,7 +147,7 @@ export default function ExternalNotesField({ value, onChange }: Props) {
       />
 
       <Dialog open={templatesOpen} onOpenChange={setTemplatesOpen}>
-        <DialogContent className="sm:max-w-md">
+        <DialogContent className="nqd-tpl-dialog sm:max-w-[520px]">
           <DialogHeader>
             <DialogTitle>Insert a template</DialogTitle>
           </DialogHeader>
@@ -104,11 +156,61 @@ export default function ExternalNotesField({ value, onChange }: Props) {
           ) : (
             <ul className="nqd-tpl-list">
               {templates.map((t) => (
-                <li key={t.id}>
-                  <button type="button" className="nqd-tpl-row" onClick={() => insertTemplate(t)}>
-                    <span className="nqd-tpl-name">{t.name}</span>
-                    <span className="nqd-tpl-preview">{oneLinePreview(t.body)}</span>
-                  </button>
+                <li key={t.id} className="nqd-tpl-item">
+                  {editingId === t.id ? (
+                    <div className="nqd-tpl-edit">
+                      <input
+                        className="nqd-input"
+                        value={editName}
+                        onChange={(e) => setEditName(e.target.value)}
+                        placeholder="Template name"
+                      />
+                      <textarea
+                        className="nqd-input nqd-textarea nqd-tpl-edit-body"
+                        value={editBody}
+                        onChange={(e) => setEditBody(e.target.value)}
+                        rows={3}
+                      />
+                      <div className="nqd-tpl-edit-actions">
+                        <Button type="button" variant="outline" size="sm" onClick={clearEdit}>Cancel</Button>
+                        <Button
+                          type="button"
+                          size="sm"
+                          disabled={!editName.trim() || savingEdit}
+                          onClick={() => void handleUpdateTemplate()}
+                        >
+                          {savingEdit ? 'Saving…' : 'Save'}
+                        </Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="nqd-tpl-row">
+                      <button type="button" className="nqd-tpl-text" onClick={() => insertTemplate(t)}>
+                        <span className="nqd-tpl-name">{t.name}</span>
+                        <span className="nqd-tpl-preview">{oneLinePreview(t.body)}</span>
+                      </button>
+                      <div className="nqd-tpl-actions">
+                        <button
+                          type="button"
+                          className="nqd-tpl-icon-btn"
+                          title="Edit template"
+                          aria-label="Edit template"
+                          onClick={(e) => { e.stopPropagation(); startEdit(t) }}
+                        >
+                          <Pencil size={14} />
+                        </button>
+                        <button
+                          type="button"
+                          className="nqd-tpl-icon-btn nqd-tpl-icon-btn--danger"
+                          title="Delete template"
+                          aria-label="Delete template"
+                          onClick={(e) => void handleDeleteTemplate(t, e)}
+                        >
+                          <Trash2 size={14} />
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </li>
               ))}
             </ul>

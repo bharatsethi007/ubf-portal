@@ -31,3 +31,19 @@ export async function createNoteTemplate(
   if (error) throw error
   return mapRow(data as NoteTemplateRow)
 }
+
+export async function updateNoteTemplate(id: string, name: string, body: string): Promise<NoteTemplate> {
+  const { data, error } = await supabase
+    .from('note_templates')
+    .update({ name, body })
+    .eq('id', id)
+    .select('id, name, body, scope')
+    .single()
+  if (error) throw error
+  return mapRow(data as NoteTemplateRow)
+}
+
+export async function deleteNoteTemplate(id: string): Promise<void> {
+  const { error } = await supabase.from('note_templates').delete().eq('id', id)
+  if (error) throw error
+}

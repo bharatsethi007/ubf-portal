@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeftRight, Coins, ListOrdered, Percent, Ruler, Scale } from 'lucide-react'
+import { ArrowLeftRight, Coins, Layers, ListOrdered, Percent, Ruler, Scale } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 type ActiveSection = {
@@ -26,6 +26,12 @@ const ACTIVE: ActiveSection[] = [
     title: 'Exchange rates',
     description: 'Currencies, daily FX mid rates, and buy/sell corrections',
     to: '/setup/exchange-rates',
+  },
+  {
+    icon: Layers,
+    title: 'Charge templates',
+    description: 'Reusable sets of quote charge lines (rates refreshed on use)',
+    to: '/setup/charge-templates',
   },
   {
     icon: Coins,

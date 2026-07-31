@@ -202,29 +202,62 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
         {data.commodities.length > 0 && (
           <>
             <Text style={s.secHead}>COMMODITIES</Text>
-            <View style={[s.tRow, s.tHead]}>
-              <Text style={[s.tHeadCell, { flex: 2.6 }]}>DESCRIPTION</Text>
-              <Text style={[s.tHeadCell, { flex: 2.2 }]}>PACKAGE TYPE</Text>
-              <Text style={[s.tHeadCell, { flex: 1.1 }]}>GROSS WEIGHT</Text>
-              <Text style={[s.tHeadCell, { flex: 1.1 }]}>VOLUME (CBM)</Text>
-              <Text style={[s.tHeadCell, { flex: 1.3 }]}>CHARGEABLE WEIGHT</Text>
-            </View>
-            {data.commodities.map((c, i) => (
-              <View key={i} style={[s.tRow, s.tRowB]}>
-                <Text style={[s.tCell, { flex: 2.6 }]}>{c.desc || ' '}</Text>
-                <Text style={[s.tCell, { flex: 2.2 }]}>{c.pkg}</Text>
-                <Text style={[s.tCell, { flex: 1.1 }]}>{c.gross}</Text>
-                <Text style={[s.tCell, { flex: 1.1 }]}>{c.vol}</Text>
-                <Text style={[s.tCell, { flex: 1.3 }]}>{c.chg}</Text>
-              </View>
-            ))}
-            <View style={[s.tRow, s.totalRow]}>
-              <Text style={[s.tCell, { flex: 2.6, fontWeight: 700 }]}>TOTAL</Text>
-              <Text style={[s.tCell, { flex: 2.2, fontWeight: 700 }]}>{data.commTotal.units}</Text>
-              <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.gross}</Text>
-              <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
-              <Text style={[s.tCell, { flex: 1.3, fontWeight: 700 }]}>{data.commTotal.chg}</Text>
-            </View>
+            {data.isFcl ? (
+              <>
+                <View style={[s.tRow, s.tHead]}>
+                  <Text style={[s.tHeadCell, { flex: 2.4 }]}>DESCRIPTION</Text>
+                  <Text style={[s.tHeadCell, { flex: 2.0 }]}>PACKAGE TYPE</Text>
+                  <Text style={[s.tHeadCell, { flex: 1.1 }]}>GROSS WEIGHT</Text>
+                  <Text style={[s.tHeadCell, { flex: 1.0 }]}>VOLUME (CBM)</Text>
+                  <Text style={[s.tHeadCell, { flex: 0.9 }]}>INSURANCE</Text>
+                  <Text style={[s.tHeadCell, { flex: 0.7 }]}>DG</Text>
+                </View>
+                {data.commodities.map((c, i) => (
+                  <View key={i} style={[s.tRow, s.tRowB]}>
+                    <Text style={[s.tCell, { flex: 2.4 }]}>{c.desc || ' '}</Text>
+                    <Text style={[s.tCell, { flex: 2.0 }]}>{c.pkg}</Text>
+                    <Text style={[s.tCell, { flex: 1.1 }]}>{c.gross}</Text>
+                    <Text style={[s.tCell, { flex: 1.0 }]}>{c.vol}</Text>
+                    <Text style={[s.tCell, { flex: 0.9 }]}>{data.cargoFlags.insurance}</Text>
+                    <Text style={[s.tCell, { flex: 0.7 }]}>{data.cargoFlags.dg}</Text>
+                  </View>
+                ))}
+                <View style={[s.tRow, s.totalRow]}>
+                  <Text style={[s.tCell, { flex: 2.4, fontWeight: 700 }]}>TOTAL</Text>
+                  <Text style={[s.tCell, { flex: 2.0, fontWeight: 700 }]}>{data.commTotal.units}</Text>
+                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.gross}</Text>
+                  <Text style={[s.tCell, { flex: 1.0, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
+                  <Text style={[s.tCell, { flex: 0.9, fontWeight: 700 }]}>{''}</Text>
+                  <Text style={[s.tCell, { flex: 0.7, fontWeight: 700 }]}>{''}</Text>
+                </View>
+              </>
+            ) : (
+              <>
+                <View style={[s.tRow, s.tHead]}>
+                  <Text style={[s.tHeadCell, { flex: 2.6 }]}>DESCRIPTION</Text>
+                  <Text style={[s.tHeadCell, { flex: 2.2 }]}>PACKAGE TYPE</Text>
+                  <Text style={[s.tHeadCell, { flex: 1.1 }]}>GROSS WEIGHT</Text>
+                  <Text style={[s.tHeadCell, { flex: 1.1 }]}>VOLUME (CBM)</Text>
+                  <Text style={[s.tHeadCell, { flex: 1.3 }]}>CHARGEABLE WEIGHT</Text>
+                </View>
+                {data.commodities.map((c, i) => (
+                  <View key={i} style={[s.tRow, s.tRowB]}>
+                    <Text style={[s.tCell, { flex: 2.6 }]}>{c.desc || ' '}</Text>
+                    <Text style={[s.tCell, { flex: 2.2 }]}>{c.pkg}</Text>
+                    <Text style={[s.tCell, { flex: 1.1 }]}>{c.gross}</Text>
+                    <Text style={[s.tCell, { flex: 1.1 }]}>{c.vol}</Text>
+                    <Text style={[s.tCell, { flex: 1.3 }]}>{c.chg}</Text>
+                  </View>
+                ))}
+                <View style={[s.tRow, s.totalRow]}>
+                  <Text style={[s.tCell, { flex: 2.6, fontWeight: 700 }]}>TOTAL</Text>
+                  <Text style={[s.tCell, { flex: 2.2, fontWeight: 700 }]}>{data.commTotal.units}</Text>
+                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.gross}</Text>
+                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
+                  <Text style={[s.tCell, { flex: 1.3, fontWeight: 700 }]}>{data.commTotal.chg}</Text>
+                </View>
+              </>
+            )}
           </>
         )}
 

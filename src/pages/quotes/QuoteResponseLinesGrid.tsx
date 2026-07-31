@@ -1,11 +1,19 @@
-import { useMemo, useState } from 'react'
-import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X } from 'lucide-react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
+import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X, LayoutTemplate, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
 import { useChargeUnits, useTaxRates, useCurrencies, useChargeGroups, useChargeCodes } from '../../hooks/useQuoteRefData'
 import { useEffectiveRates } from '../../hooks/useEffectiveRates'
 import { createChargeCodeAuto } from '../setup/chargeCodesApi'
+import {
+  createChargeTemplate,
+  fetchChargeTemplateLines,
+  fetchChargeTemplates,
+  type ChargeTemplate,
+} from '../setup/chargeTemplatesApi'
+import { fetchEffectiveRates } from '../setup/fxRatesApi'
 import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
+import QuoteResponseTemplateDialogs from './QuoteResponseTemplateDialogs'
 import './quoteResponseLinesGrid.css'
 
 type Props = {
@@ -27,6 +35,25 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
   const { rates: fxRates, loading: fxLoading, reload: reloadFx } = useEffectiveRates(currency)
   const [addingFor, setAddingFor] = useState<string | null>(null)
   const [addGroup, setAddGroup] = useState('freight')
+  const [templates, setTemplates] = useState<ChargeTemplate[]>([])
+  const [useTplOpen, setUseTplOpen] = useState(false)
+  const [saveTplOpen, setSaveTplOpen] = useState(false)
+  const [newTplName, setNewTplName] = useState('')
+  const [savingTpl, setSavingTpl] = useState(false)
+  const [applyingTpl, setApplyingTpl] = useState(false)
+
+  const loadTemplates = useCallback(async () => {
+    setTemplates(await fetchChargeTemplates())
+  }, [])
+
+  useEffect(() => {
+    loadTemplates().catch(() => {})
+  }, [loadTemplates])
+
+  const hasNonEmptyLines = useMemo(
+    () => lines.some((l) => l.description.trim() || l.buy_rate.trim() || l.sell_rate.trim()),
+    [lines],
+  )
 
   const unitOptions = useMemo(() => units.map((u) => ({ value: u.code, label: u.label })), [units])
   const taxOptions = useMemo(() => taxes.map((t) => ({ value: t.code, label: t.label })), [taxes])
@@ -71,12 +98,76 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
     onChange(next)
   }
 
+  async function applyTemplate(t: ChargeTemplate) {
+    setApplyingTpl(true)
+    try {
+      const [tplLines, rates] = await Promise.all([
+        fetchChargeTemplateLines(t.id),
+        fetchEffectiveRates(currency),
+      ])
+      reloadFx()
+      const exForRates = (cur: string, side: 'buy' | 'sell'): string | null => {
+        if (!cur || cur === currency) return '1'
+        const e = rates.get(cur)
+        if (!e) return null
+        return round4(side === 'buy' ? e.buy : e.sell)
+      }
+      const withFx = tplLines.map((l) => ({
+        ...l,
+        ex_rate_buy: exForRates(l.buy_currency, 'buy') ?? l.ex_rate_buy,
+        ex_rate_sell: exForRates(l.sell_currency, 'sell') ?? l.ex_rate_sell,
+      }))
+      onChange([...lines, ...withFx.map((l, i) => ({ ...l, ord: lines.length + i }))])
+      setUseTplOpen(false)
+      toast.success('Template applied with latest FX')
+    } catch {
+      toast.error('Could not apply template')
+    } finally {
+      setApplyingTpl(false)
+    }
+  }
+
+  async function handleSaveTemplate() {
+    const name = newTplName.trim()
+    if (!name) return
+    const nonEmpty = lines.filter((l) => l.description.trim() || l.buy_rate.trim() || l.sell_rate.trim())
+    setSavingTpl(true)
+    try {
+      await createChargeTemplate(name, nonEmpty)
+      await loadTemplates()
+      setSaveTplOpen(false)
+      setNewTplName('')
+      toast.success('Template saved')
+    } catch {
+      toast.error('Could not save template')
+    } finally {
+      setSavingTpl(false)
+    }
+  }
+
   const numInput = (value: string, onCh: (v: string) => void) => (
     <input type="number" className="qrl-in qrl-num" value={value} onChange={(e) => onCh(e.target.value)} />
   )
 
   return (
     <div className="qrl-wrap">
+      <div className="qrl-table-head">
+        <div className="qrl-tpl-actions">
+          <button type="button" className="qrl-tpl-btn" onClick={() => setUseTplOpen(true)}>
+            <LayoutTemplate size={12} aria-hidden />
+            Use template
+          </button>
+          <button
+            type="button"
+            className="qrl-tpl-btn"
+            disabled={!hasNonEmptyLines}
+            onClick={() => setSaveTplOpen(true)}
+          >
+            <Save size={12} aria-hidden />
+            Save as template
+          </button>
+        </div>
+      </div>
       <div className="qrl-scroll">
         <table className="qrl-table">
           <thead>
@@ -199,6 +290,21 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
           Apply live FX
         </button>
       </div>
+
+      <QuoteResponseTemplateDialogs
+        templates={templates}
+        useTplOpen={useTplOpen}
+        onUseTplOpenChange={setUseTplOpen}
+        saveTplOpen={saveTplOpen}
+        onSaveTplOpenChange={setSaveTplOpen}
+        newTplName={newTplName}
+        onNewTplNameChange={setNewTplName}
+        savingTpl={savingTpl}
+        applyingTpl={applyingTpl}
+        onApplyTemplate={(t) => void applyTemplate(t)}
+        onSaveTemplate={() => void handleSaveTemplate()}
+      />
+
       <datalist id="qrl-charge-codes">
         {chargeCodes.map((c) => <option key={c.code} value={c.description}>{c.code} — {c.description}</option>)}
       </datalist>
