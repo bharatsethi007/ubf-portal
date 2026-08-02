@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeftRight, Coins, Layers, ListOrdered, Percent, Ruler, Scale } from 'lucide-react'
+import { ArrowLeftRight, Coins, Layers, ListOrdered, Percent, Ruler, Scale, Table2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 type ActiveSection = {
@@ -15,6 +15,12 @@ type ComingSection = {
 }
 
 const ACTIVE: ActiveSection[] = [
+  {
+    icon: Table2,
+    title: 'Rates',
+    description: 'Carrier rate cards, parsing rules, and port groups for FCL pricing',
+    to: '/setup/rates',
+  },
   {
     icon: ListOrdered,
     title: 'Charge codes',

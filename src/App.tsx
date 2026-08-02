@@ -28,6 +28,8 @@ import StaffRoute from './components/StaffRoute'
 import SliPage from './features/sli/SliPage'
 import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
 import SetupPage from './pages/setup/SetupPage'
+import RatesPage from './pages/rates/RatesPage'
+import RateModulePage from './pages/rates/RateModulePage'
 import ChargeCodesPage from './pages/setup/ChargeCodesPage'
 import ChargeTemplatesPage from './pages/setup/ChargeTemplatesPage'
 import ExchangeRatesPage from './pages/setup/ExchangeRatesPage'
@@ -167,6 +169,15 @@ export default function App() {
             <Route path="/schedules" element={<SchedulesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UsersPage />} />
+            <Route path="/setup/rates" element={<StaffRoute><RatesPage /></StaffRoute>} />
+            <Route path="/setup/rates/fcl" element={<StaffRoute><RateModulePage title="Sea FCL Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/lcl" element={<StaffRoute><RateModulePage title="Sea LCL Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/air" element={<StaffRoute><RateModulePage title="Air Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/fcl-local" element={<StaffRoute><RateModulePage title="Sea FCL Local/Port Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/lcl-local" element={<StaffRoute><RateModulePage title="Sea LCL Local/Port Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/air-local" element={<StaffRoute><RateModulePage title="Air Local/Port Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/rules" element={<StaffRoute><RateModulePage title="Rules" /></StaffRoute>} />
+            <Route path="/setup/rates/ports" element={<StaffRoute><RateModulePage title="Ports & Groups" /></StaffRoute>} />
             <Route path="/setup" element={<StaffRoute><SetupPage /></StaffRoute>} />
             <Route path="/setup/charge-codes" element={<StaffRoute><ChargeCodesPage /></StaffRoute>} />
             <Route path="/setup/charge-templates" element={<StaffRoute><ChargeTemplatesPage /></StaffRoute>} />
