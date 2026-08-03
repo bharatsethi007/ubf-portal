@@ -123,7 +123,7 @@ export default function FclSurchargesGrid({ rows, defaultCurrency, onChange }: P
           </tbody>
         </table>
       </div>
-      <button type="button" className="btn" style={{ marginTop: 10 }} onClick={add}>
+      <button type="button" className="btn btn--inline" style={{ marginTop: 10 }} onClick={add}>
         <Plus size={15} strokeWidth={2} /> Add surcharge
       </button>
     </div>

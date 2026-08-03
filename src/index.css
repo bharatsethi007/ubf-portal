@@ -221,6 +221,7 @@ a:hover { text-decoration: underline; }
 }
 .btn:hover { background: var(--primary-ink); }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
+.btn--inline { width: auto; }
 .text-link { background: none; border: none; color: var(--color-accent); font-size: 13px; font-weight: 500; padding: 0; }
 .text-link:hover { text-decoration: underline; }
 .error { color: #dc2626; font-size: 14px; margin-top: 10px; }

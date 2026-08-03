@@ -181,7 +181,7 @@ export default function FclRateCardDetail() {
               <input type="date" className="input" value={card.valid_to ?? ''} onChange={(e) => setField('valid_to', e.target.value || null)} />
             </div>
           </div>
-          <button type="button" className="btn" style={{ marginTop: 16 }} onClick={saveHeader} disabled={savingHeader}>
+          <button type="button" className="btn btn--inline" style={{ marginTop: 16 }} onClick={saveHeader} disabled={savingHeader}>
             {savingHeader ? 'Saving…' : 'Save details'}
           </button>
         </section>
@@ -192,7 +192,7 @@ export default function FclRateCardDetail() {
           <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Lane rates</h2>
           <FclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} onChange={setLines} />
           <div style={{ marginTop: 14 }}>
-            <button type="button" className="btn" onClick={saveLines} disabled={savingLines}>
+            <button type="button" className="btn btn--inline" onClick={saveLines} disabled={savingLines}>
               {savingLines ? 'Saving…' : 'Save lines'}
             </button>
           </div>
@@ -204,7 +204,7 @@ export default function FclRateCardDetail() {
           <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Surcharges</h2>
           <FclSurchargesGrid rows={surcharges} defaultCurrency={card.currency_code ?? ''} onChange={setSurcharges} />
           <div style={{ marginTop: 14 }}>
-            <button type="button" className="btn" onClick={saveSurcharges} disabled={savingSurcharges}>
+            <button type="button" className="btn btn--inline" onClick={saveSurcharges} disabled={savingSurcharges}>
               {savingSurcharges ? 'Saving…' : 'Save surcharges'}
             </button>
           </div>
