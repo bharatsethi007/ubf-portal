@@ -201,3 +201,75 @@ export async function saveFclLines(cardId: string, lines: FclLineDraft[], origin
     }
   }
 }
+
+export type FclSurchargeDraft = {
+  key: string
+  dbId: string | null
+  charge_code: string
+  label: string
+  amount: string
+  currency_code: string
+  basis: string
+  scope: string
+  container_type: string
+  condition: string
+  charge_group: string
+}
+
+export async function listFclSurcharges(cardId: string): Promise<FclSurchargeDraft[]> {
+  const { data, error } = await supabase
+    .from('rate_surcharges')
+    .select('id, charge_code, label, amount, currency_code, basis, scope, container_type, condition, charge_group')
+    .eq('rate_card_id', cardId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return ((data as Record<string, any>[]) ?? []).map((r) => ({
+    key: String(r.id),
+    dbId: String(r.id),
+    charge_code: r.charge_code ? String(r.charge_code) : '',
+    label: r.label ? String(r.label) : '',
+    amount: r.amount == null ? '' : String(r.amount),
+    currency_code: r.currency_code ? String(r.currency_code) : '',
+    basis: r.basis ? String(r.basis) : 'per_container',
+    scope: r.scope ? String(r.scope) : '',
+    container_type: r.container_type ? String(r.container_type) : '',
+    condition: r.condition ? String(r.condition) : '',
+    charge_group: r.charge_group ? String(r.charge_group) : '',
+  }))
+}
+
+export async function saveFclSurcharges(
+  cardId: string,
+  rows: FclSurchargeDraft[],
+  originalIds: string[],
+): Promise<void> {
+  const keptIds = new Set(rows.filter((r) => r.dbId).map((r) => r.dbId as string))
+  const toDelete = originalIds.filter((id) => !keptIds.has(id))
+  if (toDelete.length) {
+    const { error } = await supabase.from('rate_surcharges').delete().in('id', toDelete)
+    if (error) throw error
+  }
+  for (const r of rows) {
+    const payload = {
+      rate_card_id: cardId,
+      charge_code: r.charge_code || null,
+      label: r.label.trim(),
+      amount: Number(r.amount),
+      currency_code: r.currency_code || null,
+      basis: r.basis || 'per_container',
+      scope: r.scope || null,
+      container_type: r.container_type || null,
+      condition: r.condition.trim() || null,
+      charge_group: r.charge_group || null,
+      origin_port_code: null as string | null,
+      origin_group_code: null as string | null,
+    }
+    if (r.dbId) {
+      const { error } = await supabase.from('rate_surcharges').update(payload).eq('id', r.dbId)
+      if (error) throw error
+    } else {
+      const { error } = await supabase.from('rate_surcharges').insert(payload)
+      if (error) throw error
+    }
+  }
+}

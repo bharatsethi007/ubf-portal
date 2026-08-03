@@ -5,9 +5,11 @@ import { toast } from 'sonner'
 import { useShippingLines, useCurrencies } from '../../../hooks/useQuoteRefData'
 import {
   fetchFclRateCard, updateFclRateCardHeader, listFclLines, saveFclLines,
-  type FclRateCardDetail as CardDetail, type FclLineDraft,
+  listFclSurcharges, saveFclSurcharges,
+  type FclRateCardDetail as CardDetail, type FclLineDraft, type FclSurchargeDraft,
 } from '../ratesApi'
 import FclLinesGrid from './FclLinesGrid'
+import FclSurchargesGrid from './FclSurchargesGrid'
 
 const STATUSES = ['draft', 'validated', 'active', 'expired'] as const
 
@@ -22,6 +24,9 @@ export default function FclRateCardDetail() {
   const [card, setCard] = useState<CardDetail | null>(null)
   const [lines, setLines] = useState<FclLineDraft[]>([])
   const [originalIds, setOriginalIds] = useState<string[]>([])
+  const [surcharges, setSurcharges] = useState<FclSurchargeDraft[]>([])
+  const [surchargeIds, setSurchargeIds] = useState<string[]>([])
+  const [savingSurcharges, setSavingSurcharges] = useState(false)
   const [savingHeader, setSavingHeader] = useState(false)
   const [savingLines, setSavingLines] = useState(false)
   const [err, setErr] = useState('')
@@ -39,6 +44,10 @@ export default function FclRateCardDetail() {
         if (cancelled) return
         setLines(ls)
         setOriginalIds(ls.map((l) => l.dbId as string))
+        const scs = await listFclSurcharges(id)
+        if (cancelled) return
+        setSurcharges(scs)
+        setSurchargeIds(scs.map((s) => s.dbId as string))
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to load')
       } finally {
@@ -91,6 +100,28 @@ export default function FclRateCardDetail() {
       toast.error(e instanceof Error ? e.message : 'Save failed')
     } finally {
       setSavingLines(false)
+    }
+  }
+
+  async function saveSurcharges() {
+    if (savingSurcharges) return
+    for (const s of surcharges) {
+      if (!s.label.trim() || s.amount === '' || isNaN(Number(s.amount))) {
+        toast.error('Each surcharge needs a label and a numeric amount')
+        return
+      }
+    }
+    setSavingSurcharges(true)
+    try {
+      await saveFclSurcharges(id, surcharges, surchargeIds)
+      const scs = await listFclSurcharges(id)
+      setSurcharges(scs)
+      setSurchargeIds(scs.map((s) => s.dbId as string))
+      toast.success('Surcharges saved')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Save failed')
+    } finally {
+      setSavingSurcharges(false)
     }
   }
 
@@ -163,6 +194,18 @@ export default function FclRateCardDetail() {
           <div style={{ marginTop: 14 }}>
             <button type="button" className="btn" onClick={saveLines} disabled={savingLines}>
               {savingLines ? 'Saving…' : 'Save lines'}
+            </button>
+          </div>
+        </section>
+
+        <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border, rgba(0,0,0,.08))' }} />
+
+        <section>
+          <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Surcharges</h2>
+          <FclSurchargesGrid rows={surcharges} defaultCurrency={card.currency_code ?? ''} onChange={setSurcharges} />
+          <div style={{ marginTop: 14 }}>
+            <button type="button" className="btn" onClick={saveSurcharges} disabled={savingSurcharges}>
+              {savingSurcharges ? 'Saving…' : 'Save surcharges'}
             </button>
           </div>
         </section>
