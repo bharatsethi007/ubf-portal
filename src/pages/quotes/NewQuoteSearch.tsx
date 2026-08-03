@@ -7,6 +7,10 @@ import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import { createQuote, emptyQuoteDraft, type QuoteDraft } from './quotesApi'
 import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft } from './quoteContainersApi'
+import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponsesApi'
+import { saveQuoteResponseLines, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
+import { searchFclRates, containerTotals, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
+import RateOptionCard from '../rates/RateOptionCard'
 import './newQuoteSearch.css'
 
 const SIZE_LABEL: Record<string, string> = { '20': '20ft', '40': '40ft', '40HC': '40ft HC', '45HC': '45ft HC' }
@@ -33,20 +37,24 @@ export default function NewQuoteSearch() {
   const [groups, setGroups] = useState<QuoteContainerDraft[]>([emptyContainerGroup(0)])
   const [loadsOpen, setLoadsOpen] = useState(false)
   const [searched, setSearched] = useState(false)
-  const [creating, setCreating] = useState(false)
+  const [searching, setSearching] = useState(false)
+  const [options, setOptions] = useState<RateOption[]>([])
+  const [busyId, setBusyId] = useState<string | null>(null)
+  const creating = busyId !== null
 
   // Any change to the request invalidates a prior search.
+  function invalidate() { setSearched(false); setOptions([]) }
   function patch(p: Partial<QuoteDraft>) {
     setDraft((d) => ({ ...d, ...p }))
-    setSearched(false)
+    invalidate()
   }
   function onCustomerChange(c: CustomerPickerValue | null) {
     setCustomer(c)
-    setSearched(false)
+    invalidate()
   }
   function onGroupsChange(g: QuoteContainerDraft[]) {
     setGroups(g)
-    setSearched(false)
+    invalidate()
   }
 
   const canSearch = useMemo(
@@ -54,9 +62,63 @@ export default function NewQuoteSearch() {
     [customer, draft.from_port_code, draft.to_port_code],
   )
 
-  async function handleCreate() {
+  async function runSearch() {
+    if (!canSearch) return
+    setSearched(true)
+    setSearching(true)
+    try {
+      const lane: QuoteLane = {
+        from_port_code: draft.from_port_code ?? null,
+        to_port_code: draft.to_port_code ?? null,
+        currency: null,
+        containers: groups.map((g) => ({ size: g.container_size, qty: g.qty })),
+      }
+      setOptions(await searchFclRates(lane))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Rate search failed')
+      setOptions([])
+    } finally {
+      setSearching(false)
+    }
+  }
+
+  function buildBuyLines(o: RateOption): QuoteResponseLine[] {
+    const { qtyByCode, totalContainers, totalTeu } = containerTotals(groups.map((g) => ({ size: g.container_size, qty: g.qty })))
+    const cur = o.currency || 'NZD'
+    const lines: QuoteResponseLine[] = []
+    let ord = 0
+    for (const chip of o.chips) {
+      const l = newQuoteResponseLine(ord++, cur)
+      l.description = `Ocean freight ${chip.container_type}`
+      l.charge_group = 'freight'
+      l.vendor = o.carrierName
+      l.unit = 'Per container'
+      l.qty = String(qtyByCode.get(chip.container_type) ?? 1)
+      l.buy_currency = cur
+      l.sell_currency = cur
+      l.buy_rate = String(chip.base_rate)
+      lines.push(l)
+    }
+    for (const s of o.surcharges) {
+      if (s.basis === 'per_cbm' || s.basis === 'percent') continue
+      const l = newQuoteResponseLine(ord++, cur)
+      l.description = s.label
+      l.charge_group = s.scope === 'origin' ? 'origin' : s.scope === 'dest' ? 'dest' : 'freight'
+      l.vendor = o.carrierName
+      l.buy_currency = cur
+      l.sell_currency = cur
+      l.buy_rate = String(s.amount)
+      if (s.basis === 'per_container') { l.unit = 'Per container'; l.qty = String(totalContainers) }
+      else if (s.basis === 'per_teu') { l.unit = 'Per TEU'; l.qty = String(totalTeu) }
+      else { l.unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1' }
+      lines.push(l)
+    }
+    return lines
+  }
+
+  async function handleCreate(chosen?: RateOption) {
     if (!customer) return
-    setCreating(true)
+    setBusyId(chosen?.cardId ?? '__plain__')
     try {
       const payload: QuoteDraft = {
         ...draft,
@@ -65,11 +127,16 @@ export default function NewQuoteSearch() {
       }
       const { id } = await createQuote(payload)
       await replaceQuoteContainers(id, groups)
-      toast.success('Quote created')
+      if (chosen) {
+        const { id: responseId } = await createQuoteResponse(id)
+        await saveQuoteResponseLines(responseId, buildBuyLines(chosen))
+        if (chosen.currency) await updateQuoteResponseHeader(responseId, { currency: chosen.currency })
+      }
+      toast.success(chosen ? 'Quote created with buy rates' : 'Quote created')
       navigate(`/quotes/${id}`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to create quote')
-      setCreating(false)
+      setBusyId(null)
     }
   }
 
@@ -118,7 +185,7 @@ export default function NewQuoteSearch() {
             className="nqs-search-btn"
             disabled={!canSearch}
             title={canSearch ? '' : 'Pick a customer and both ports'}
-            onClick={() => setSearched(true)}
+            onClick={runSearch}
           >
             <Search size={16} /> Search
           </button>
@@ -135,17 +202,30 @@ export default function NewQuoteSearch() {
 
         {searched && (
           <div className="nqs-results">
-            <div className="nqs-results__empty">
-              <div className="nqs-results__icon"><Zap size={20} /></div>
-              <div className="nqs-results__title">No live rates yet</div>
-              <div className="nqs-results__text">
-                Rate search isn't connected yet. Create the quote from this request now —
-                you'll add a priced response on the quote.
+            {searching ? (
+              <div className="nqs-results__empty"><div className="nqs-results__title">Searching your rate cards…</div></div>
+            ) : options.length > 0 ? (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                  <span className="text-muted-foreground" style={{ fontSize: 12 }}>{options.length} rate{options.length === 1 ? '' : 's'} for {draft.from_port_code} → {draft.to_port_code}</span>
+                  <button type="button" className="btn btn--inline" style={{ marginTop: 0, background: 'transparent', color: 'var(--color-ink)', border: '1px solid var(--color-line)' }} disabled={creating} onClick={() => handleCreate()}>
+                    {busyId === '__plain__' ? 'Creating…' : 'Create without a rate'}
+                  </button>
+                </div>
+                {options.map((o) => (
+                  <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreate(o)} busy={busyId === o.cardId} />
+                ))}
               </div>
-              <button type="button" className="nqs-results__create" disabled={creating} onClick={handleCreate}>
-                {creating ? 'Creating…' : 'Create quote from this request'}
-              </button>
-            </div>
+            ) : (
+              <div className="nqs-results__empty">
+                <div className="nqs-results__icon"><Zap size={20} /></div>
+                <div className="nqs-results__title">No live rates for this lane</div>
+                <div className="nqs-results__text">No active rate card matches {draft.from_port_code} → {draft.to_port_code} for these containers. Create the quote and add a priced response manually.</div>
+                <button type="button" className="nqs-results__create" disabled={creating} onClick={() => handleCreate()}>
+                  {busyId === '__plain__' ? 'Creating…' : 'Create quote from this request'}
+                </button>
+              </div>
+            )}
           </div>
         )}
       </div>

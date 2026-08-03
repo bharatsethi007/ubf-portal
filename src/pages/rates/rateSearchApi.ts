@@ -146,3 +146,16 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
   options.sort((a, b) => a.total - b.total)
   return options
 }
+
+export function containerTotals(containers: { size: string; qty: number }[]) {
+  const qtyByCode = new Map<string, number>()
+  let totalContainers = 0
+  let totalTeu = 0
+  for (const c of containers) {
+    const code = normSize(c.size)
+    qtyByCode.set(code, (qtyByCode.get(code) ?? 0) + c.qty)
+    totalContainers += c.qty
+    totalTeu += teuFor(code) * c.qty
+  }
+  return { qtyByCode, totalContainers, totalTeu }
+}
