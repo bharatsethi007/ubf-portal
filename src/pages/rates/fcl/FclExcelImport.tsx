@@ -59,6 +59,9 @@ export default function FclExcelImport({ cardId, defaultCurrency, onImported }: 
         currency_code: l.currency_code || defaultCurrency || '',
         transit_days: l.transit_days != null ? String(l.transit_days) : '',
         via: l.via || '',
+        confidence: l.confidence === 'amber' || l.confidence === 'red' ? l.confidence : 'green',
+        raw_origin: l.raw_origin || '',
+        note: l.note || '',
       }))
       setDraft(drafts)
       toast.success(`Parsed ${drafts.length} line${drafts.length === 1 ? '' : 's'} — review before saving`)

@@ -151,6 +151,9 @@ export type FclLineDraft = {
   currency_code: string
   transit_days: string
   via: string
+  confidence?: 'green' | 'amber' | 'red'
+  raw_origin?: string
+  note?: string
 }
 
 export async function listFclLines(cardId: string): Promise<FclLineDraft[]> {
@@ -330,6 +333,7 @@ export async function insertFclLines(cardId: string, lines: FclLineDraft[]): Pro
     currency_code: l.currency_code || null,
     transit_days: l.transit_days ? Number(l.transit_days) : null,
     via: l.via.trim() || null,
+    confidence: l.confidence ?? 'green',
   }))
   const { error } = await supabase.from('rate_card_fcl_lines').insert(payload) // single call = atomic
   if (error) throw error

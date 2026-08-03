@@ -1,7 +1,14 @@
+import type { CSSProperties } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
 import { useSeaPorts } from '../../../hooks/useSeaPorts'
 import { useContainerTypes, useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { FclLineDraft } from '../ratesApi'
+
+function rowStyle(c?: string): CSSProperties | undefined {
+  if (c === 'red') return { background: 'rgba(220,38,38,0.08)' }
+  if (c === 'amber') return { background: 'rgba(245,158,11,0.10)' }
+  return undefined
+}
 
 let tmpSeq = 0
 export function newFclLine(defaultCurrency: string): FclLineDraft {
@@ -54,7 +61,7 @@ export default function FclLinesGrid({ lines, defaultCurrency, onChange }: Props
             {lines.length === 0 ? (
               <tr><td colSpan={8} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
             ) : lines.map((l) => (
-              <tr key={l.key}>
+              <tr key={l.key} style={rowStyle(l.confidence)} title={l.confidence && l.confidence !== 'green' ? (l.note || (l.raw_origin ? `Sheet said: ${l.raw_origin}` : '')) : undefined}>
                 <td>
                   <select className="input input--sm" value={l.origin_port_code} onChange={(e) => update(l.key, { origin_port_code: e.target.value })}>
                     <option value="">—</option>
