@@ -10,6 +10,7 @@ import {
 } from '../ratesApi'
 import FclLinesGrid from './FclLinesGrid'
 import FclSurchargesGrid from './FclSurchargesGrid'
+import FclExcelImport from './FclExcelImport'
 
 const STATUSES = ['draft', 'validated', 'active', 'expired'] as const
 
@@ -208,6 +209,13 @@ export default function FclRateCardDetail() {
               {savingSurcharges ? 'Saving…' : 'Save surcharges'}
             </button>
           </div>
+        </section>
+
+        <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border, rgba(0,0,0,.08))' }} />
+
+        <section>
+          <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Import from Excel <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>(beta — preview only)</span></h2>
+          <FclExcelImport />
         </section>
 
         {err && <p style={{ color: '#B23B3B', fontSize: 13, marginTop: 10 }}>{err}</p>}
