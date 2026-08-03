@@ -317,3 +317,21 @@ export async function saveRateRules(id: string, patch: { title: string; content:
   if (error) throw error
   return String((data as Record<string, any>).updated_at)
 }
+
+export async function insertFclLines(cardId: string, lines: FclLineDraft[]): Promise<number> {
+  if (lines.length === 0) return 0
+  const payload = lines.map((l) => ({
+    rate_card_id: cardId,
+    origin_port_code: l.origin_port_code || null,
+    origin_group_code: null as string | null,
+    dest_port_code: l.dest_port_code,
+    container_type: l.container_type,
+    base_rate: Number(l.base_rate),
+    currency_code: l.currency_code || null,
+    transit_days: l.transit_days ? Number(l.transit_days) : null,
+    via: l.via.trim() || null,
+  }))
+  const { error } = await supabase.from('rate_card_fcl_lines').insert(payload) // single call = atomic
+  if (error) throw error
+  return payload.length
+}

@@ -14,6 +14,8 @@ export const SYSTEM_PROMPT =
   "If a header combines two (e.g. '40GP/HC'), pick the closest canonical code and set confidence 'amber'. " +
   "If no canonical code fits (e.g. 'NOR' non-operating reefer), set container_type '', put the header in raw_container, confidence 'red'.\n" +
   "- Ignore surcharge/adjustment columns (FAF, BAF, WRS, ORS, LSS, etc.) - those are NOT lane base rates.\n" +
+  "- ONLY parse the main port-to-port freight rate table (origin POL -> destination POD with per-container rates). SKIP local/destination/terminal charge blocks entirely (e.g. sections titled 'Destination charges', 'Local charges', Terminal Handling/THC, Infrastructure Levy, Security Surcharge) - those are NOT lane freight rates.\n" +
+  "- NEVER emit a line without a resolvable origin POL. If a row or section has no clear origin port, skip it.\n" +
   "- Resolve POL->origin_port_code and POD->dest_port_code using the PORTS list and ALIASES. " +
   "Always keep the sheet's original text in raw_origin/raw_dest. Exact/alias match keeps confidence; fuzzy match -> 'amber'; unresolved -> '' and 'red'.\n" +
   "- currency_code: from a CURRENCY column if present, else the card default.\n" +

@@ -4,7 +4,7 @@ import { FileSpreadsheet, X, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '../../../supabase'
 import FclLinesGrid from './FclLinesGrid'
-import { saveFclLines, type FclLineDraft } from '../ratesApi'
+import { insertFclLines, type FclLineDraft } from '../ratesApi'
 
 type Parsed = { sheetName: string; rows: string[][]; totalRows: number }
 
@@ -72,15 +72,14 @@ export default function FclExcelImport({ cardId, defaultCurrency, onImported }: 
   async function save() {
     if (saving) return
     if (draft.length === 0) { toast.error('Nothing to import'); return }
-    for (const l of draft) {
-      if (!l.dest_port_code || !l.container_type || l.base_rate === '' || isNaN(Number(l.base_rate))) {
-        toast.error('Each line needs a destination, container, and numeric base rate')
-        return
-      }
+    const bad = draft.filter((l) => !l.origin_port_code || !l.dest_port_code || !l.container_type || l.base_rate === '' || isNaN(Number(l.base_rate)))
+    if (bad.length) {
+      toast.error(`${bad.length} line${bad.length === 1 ? '' : 's'} still need an origin, destination, container and numeric rate — fix the “—” rows before saving`)
+      return
     }
     setSaving(true)
     try {
-      await saveFclLines(cardId, draft, [])
+      await insertFclLines(cardId, draft)
       toast.success(`Imported ${draft.length} line${draft.length === 1 ? '' : 's'}`)
       setOpen(false)
       onImported()
