@@ -9,6 +9,7 @@ import {
 } from './quoteResponsesApi'
 import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
 import QuoteResponseModal from './QuoteResponseModal'
+import QuoteVendorRates from './QuoteVendorRates'
 import './quoteResponsesPanel.css'
 
 import { lazy, Suspense } from 'react'
@@ -175,7 +176,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
       )}
 
       {tab === 'vendor' && (
-        <p className="qr-placeholder">Vendor rates will show your costs here.</p>
+        <QuoteVendorRates quoteId={quoteId} />
       )}
       {tab === 'preview' && (
         <Suspense fallback={<p className="qr-placeholder">Loading preview…</p>}>
