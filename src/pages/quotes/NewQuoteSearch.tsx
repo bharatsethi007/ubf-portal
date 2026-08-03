@@ -11,7 +11,7 @@ import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponses
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
 import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
 import { buildBuyLinesFromOption, createQuoteWithBuyRates } from '../rates/quoteFromRate'
-import RateSearchChat from '../rates/RateSearchChat'
+import RateSearchModal from '../rates/RateSearchModal'
 import RateOptionCard from '../rates/RateOptionCard'
 import './newQuoteSearch.css'
 
@@ -43,6 +43,7 @@ export default function NewQuoteSearch() {
   const [options, setOptions] = useState<RateOption[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
+  const [aiQuery, setAiQuery] = useState('')
   const creating = busyId !== null
 
   // Any change to the request invalidates a prior search.
@@ -137,20 +138,20 @@ export default function NewQuoteSearch() {
           <Link to="/quotes" className="nqs-quoteno">Cancel</Link>
         </div>
 
-        <div style={{ marginBottom: 12 }}>
-          <button type="button" onClick={() => setChatOpen(true)}
-            style={{ width: '100%', display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer', border: 'none', color: '#fff', fontWeight: 600, fontSize: 13, padding: '12px 16px', borderRadius: 12, background: 'linear-gradient(120deg,#0A2472,#3B5BFE 55%,#F5A623 150%)', boxShadow: '0 6px 18px rgba(59,91,254,.28)' }}>
-            <Sparkles size={16} /> Ask AI to find rates
-            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, opacity: .9 }}>e.g. “Ningbo to Auckland, 2×40ft”</span>
+        <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
+          <div style={{ position: 'relative', flex: 1 }}>
+            <Sparkles size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#3B5BFE' }} />
+            <input value={aiQuery} onChange={(e) => setAiQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && aiQuery.trim()) setChatOpen(true) }}
+              placeholder="Ask AI to find rates — e.g. “Ningbo to Auckland, 2×40ft”"
+              style={{ width: '100%', height: 46, padding: '0 16px 0 40px', border: '1px solid var(--color-line)', borderRadius: 12, fontSize: 14, outline: 'none' }} />
+          </div>
+          <button type="button" disabled={!aiQuery.trim()} onClick={() => setChatOpen(true)}
+            style={{ height: 46, padding: '0 18px', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 600, cursor: aiQuery.trim() ? 'pointer' : 'not-allowed', opacity: aiQuery.trim() ? 1 : .5, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(120deg,#0A2472,#3B5BFE 55%,#F5A623 150%)', boxShadow: '0 6px 18px rgba(59,91,254,.28)' }}>
+            <Search size={16} /> Search
           </button>
         </div>
         {chatOpen && (
-          <div onMouseDown={(e) => { if (e.target === e.currentTarget) setChatOpen(false) }}
-            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 120, display: 'flex', justifyContent: 'flex-end' }}>
-            <div style={{ width: 'min(440px, 92vw)', height: '100%', boxShadow: '-8px 0 30px rgba(0,0,0,0.2)' }} onMouseDown={(e) => e.stopPropagation()}>
-              <RateSearchChat onUseRate={useRateFromChat} onClose={() => setChatOpen(false)} />
-            </div>
-          </div>
+          <RateSearchModal initialQuery={aiQuery} onUseRate={useRateFromChat} onClose={() => setChatOpen(false)} />
         )}
         <div className="nqs-customer">
           <CustomerPicker label="Customer" required value={customer} onChange={onCustomerChange} />
