@@ -4,7 +4,8 @@ import { FileSpreadsheet, X, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '../../../supabase'
 import FclLinesGrid from './FclLinesGrid'
-import { insertFclLines, type FclLineDraft } from '../ratesApi'
+import { useSeaPorts } from '../../../hooks/useSeaPorts'
+import { insertFclLines, learnPortAliases, type FclLineDraft } from '../ratesApi'
 
 type Parsed = { sheetName: string; rows: string[][]; totalRows: number }
 
@@ -18,6 +19,7 @@ export default function FclExcelImport({ cardId, defaultCurrency, onImported }: 
   const [draft, setDraft] = useState<FclLineDraft[]>([])
   const [saving, setSaving] = useState(false)
   const [parsing, setParsing] = useState(false)
+  const { ports } = useSeaPorts()
 
   async function onFile(e: ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0]
@@ -84,6 +86,18 @@ export default function FclExcelImport({ cardId, defaultCurrency, onImported }: 
     try {
       await insertFclLines(cardId, draft)
       toast.success(`Imported ${draft.length} line${draft.length === 1 ? '' : 's'}`)
+      try {
+        const portByCode = new Map(ports.map((p) => [p.code, (p.name || '').toLowerCase()]))
+        const pairs = draft
+          .filter((l) => l.raw_origin && l.origin_port_code)
+          .map((l) => ({ alias: (l.raw_origin as string).trim(), port_code: l.origin_port_code }))
+          .filter((p) => {
+            const raw = p.alias.toLowerCase()
+            return raw && raw !== p.port_code.toLowerCase() && raw !== portByCode.get(p.port_code)
+          })
+        const learned = await learnPortAliases(pairs)
+        if (learned > 0) toast.success(`Learned ${learned} new port alias${learned === 1 ? '' : 'es'}`)
+      } catch { /* non-fatal */ }
       setOpen(false)
       onImported()
     } catch (e2) {

@@ -339,3 +339,23 @@ export async function insertFclLines(cardId: string, lines: FclLineDraft[]): Pro
   if (error) throw error
   return payload.length
 }
+
+export async function learnPortAliases(pairs: { alias: string; port_code: string }[]): Promise<number> {
+  const candidates = new Map<string, { alias: string; port_code: string }>()
+  for (const p of pairs) {
+    const a = (p.alias || '').trim()
+    if (!a || !p.port_code) continue
+    candidates.set(a.toLowerCase(), { alias: a, port_code: p.port_code })
+  }
+  if (candidates.size === 0) return 0
+  const { data: existing, error: exErr } = await supabase.from('port_aliases').select('alias')
+  if (exErr) throw exErr
+  const existingLower = new Set(((existing as { alias: string }[]) ?? []).map((r) => r.alias.toLowerCase()))
+  const toInsert = [...candidates.values()]
+    .filter((c) => !existingLower.has(c.alias.toLowerCase()))
+    .map((c) => ({ alias: c.alias, port_code: c.port_code, source: 'human' }))
+  if (toInsert.length === 0) return 0
+  const { error } = await supabase.from('port_aliases').insert(toInsert)
+  if (error) throw error
+  return toInsert.length
+}
