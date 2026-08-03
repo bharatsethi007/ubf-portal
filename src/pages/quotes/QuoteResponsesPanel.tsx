@@ -1,15 +1,20 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
-import { Pencil, Trash2, Search, Plus } from 'lucide-react'
+import { Pencil, Trash2, Search, Plus, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   createQuoteResponse,
   deleteQuoteResponse,
   fetchQuoteResponses,
+  updateQuoteResponseHeader,
   type QuoteResponseSummary,
 } from './quoteResponsesApi'
 import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
 import QuoteResponseModal from './QuoteResponseModal'
 import QuoteVendorRates from './QuoteVendorRates'
+import { saveQuoteResponseLines } from './quoteResponseLinesApi'
+import RateSearchChat from '../rates/RateSearchChat'
+import { buildBuyLinesFromOption } from '../rates/quoteFromRate'
+import type { RateOption, QuoteLane } from '../rates/rateSearchApi'
 import './quoteResponsesPanel.css'
 
 import { lazy, Suspense } from 'react'
@@ -33,6 +38,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
   const [creating, setCreating] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
   const [tab, setTab] = useState<TabKey>('responses')
+  const [chatOpen, setChatOpen] = useState(false)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -84,8 +90,32 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
     setOpenId(responseId)
   }
 
+  async function useRateFromChat(o: RateOption, lane: QuoteLane) {
+    const { id: responseId } = await createQuoteResponse(quoteId)
+    await saveQuoteResponseLines(responseId, buildBuyLinesFromOption(o, lane.containers))
+    if (o.currency) await updateQuoteResponseHeader(responseId, { currency: o.currency })
+    await reload()
+    setChatOpen(false)
+    setTab('responses')
+    setOpenId(responseId)
+  }
+
   return (
     <section className="qr-panel">
+      <div style={{ display: 'flex', justifyContent: 'flex-end', marginBottom: 8 }}>
+        <button type="button" onClick={() => setChatOpen(true)} title="Find rates with AI"
+          style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: 'none', cursor: 'pointer', color: '#fff', fontSize: 12, fontWeight: 600, padding: '7px 12px', borderRadius: 999, background: 'linear-gradient(120deg,#3B5BFE,#0A2472 60%,#F5A623 160%)', boxShadow: '0 3px 10px rgba(59,91,254,.3)' }}>
+          <Sparkles size={14} /> Find rates
+        </button>
+      </div>
+      {chatOpen && (
+        <div onMouseDown={(e) => { if (e.target === e.currentTarget) setChatOpen(false) }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 120, display: 'flex', justifyContent: 'flex-end' }}>
+          <div style={{ width: 'min(440px, 92vw)', height: '100%', boxShadow: '-8px 0 30px rgba(0,0,0,0.2)' }} onMouseDown={(e) => e.stopPropagation()}>
+            <RateSearchChat onUseRate={useRateFromChat} onClose={() => setChatOpen(false)} />
+          </div>
+        </div>
+      )}
       <div className="qr-tabs">
         {TABS.map((t) => (
           <button

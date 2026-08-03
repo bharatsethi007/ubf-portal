@@ -159,3 +159,8 @@ export function containerTotals(containers: { size: string; qty: number }[]) {
   }
   return { qtyByCode, totalContainers, totalTeu }
 }
+
+export async function fetchPortAliases(): Promise<{ alias: string; port_code: string }[]> {
+  const { data } = await supabase.from('port_aliases').select('alias, port_code')
+  return ((data as Record<string, any>[]) ?? []).map((r) => ({ alias: String(r.alias), port_code: String(r.port_code) }))
+}
