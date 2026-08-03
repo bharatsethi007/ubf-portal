@@ -99,7 +99,7 @@ export default function FclRateCardsList() {
                 <tr><td colSpan={colSpan} className="text-muted-foreground pad-inline">No FCL rate cards yet. Create one to get started.</td></tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id}>
+                  <tr key={row.id} className="row-clickable" onClick={() => navigate(`/setup/rates/fcl/${row.original.id}`)}>
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
                     ))}

@@ -75,3 +75,9 @@ export const useChargeCodes = makeRefHook<ChargeCode>(
   'charge_codes', 'code,description,charge_group,sort_order',
   (r) => ({ code: String(r.code), description: String(r.description ?? ''), charge_group: String(r.charge_group ?? 'freight') }),
 )
+
+export type ContainerType = { code: string; label: string }
+export const useContainerTypes = makeRefHook<ContainerType>(
+  'container_types', 'code,label,sort_order',
+  (r) => ({ code: String(r.code), label: String(r.label ?? r.code) }),
+)
