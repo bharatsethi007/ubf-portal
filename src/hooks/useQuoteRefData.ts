@@ -64,6 +64,12 @@ export const useShippingLines = makeRefHook<ShippingLine>(
   (r) => ({ code: String(r.code), name: String(r.name ?? r.code) }),
 )
 
+export type CoLoader = { code: string; name: string }
+export const useCoLoaders = makeRefHook<CoLoader>(
+  'co_loaders', 'code,name,sort_order',
+  (r) => ({ code: String(r.code), name: String(r.name ?? r.code) }),
+)
+
 export type ChargeGroup = { code: string; label: string }
 export type ChargeCode = { code: string; description: string; charge_group: string }
 
