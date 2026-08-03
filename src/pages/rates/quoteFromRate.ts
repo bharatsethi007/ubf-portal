@@ -1,4 +1,7 @@
-import { newQuoteResponseLine, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
+import { newQuoteResponseLine, saveQuoteResponseLines, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
+import { createQuote, emptyQuoteDraft } from '../quotes/quotesApi'
+import { emptyContainerGroup, replaceQuoteContainers, type ContainerSize } from '../quotes/quoteContainersApi'
+import { createQuoteResponse, updateQuoteResponseHeader } from '../quotes/quoteResponsesApi'
 import { containerTotals, type RateOption } from './rateSearchApi'
 
 export function buildBuyLinesFromOption(o: RateOption, containers: { size: string; qty: number }[]): QuoteResponseLine[] {
@@ -31,4 +34,32 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     lines.push(l)
   }
   return lines
+}
+
+export async function createQuoteWithBuyRates(args: {
+  customerAccountId: string
+  customerName: string
+  fromPortCode: string
+  toPortCode: string
+  containers: { size: string; qty: number }[]
+  option: RateOption
+}): Promise<{ quoteId: string }> {
+  const draft = {
+    ...emptyQuoteDraft(),
+    from_port_code: args.fromPortCode,
+    to_port_code: args.toPortCode,
+    customer_account_id: args.customerAccountId,
+    customer_name: args.customerName,
+  }
+  const { id: quoteId } = await createQuote(draft)
+  const groups = args.containers.map((c, i) => ({
+    ...emptyContainerGroup(i),
+    container_size: c.size as ContainerSize,
+    qty: c.qty,
+  }))
+  await replaceQuoteContainers(quoteId, groups)
+  const { id: responseId } = await createQuoteResponse(quoteId)
+  await saveQuoteResponseLines(responseId, buildBuyLinesFromOption(args.option, args.containers))
+  if (args.option.currency) await updateQuoteResponseHeader(responseId, { currency: args.option.currency })
+  return { quoteId }
 }

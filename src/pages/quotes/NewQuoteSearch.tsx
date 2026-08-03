@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap } from 'lucide-react'
+import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Sparkles } from 'lucide-react'
 import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
@@ -10,7 +10,8 @@ import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft }
 import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponsesApi'
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
 import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
-import { buildBuyLinesFromOption } from '../rates/quoteFromRate'
+import { buildBuyLinesFromOption, createQuoteWithBuyRates } from '../rates/quoteFromRate'
+import RateSearchChat from '../rates/RateSearchChat'
 import RateOptionCard from '../rates/RateOptionCard'
 import './newQuoteSearch.css'
 
@@ -41,6 +42,7 @@ export default function NewQuoteSearch() {
   const [searching, setSearching] = useState(false)
   const [options, setOptions] = useState<RateOption[]>([])
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [chatOpen, setChatOpen] = useState(false)
   const creating = busyId !== null
 
   // Any change to the request invalidates a prior search.
@@ -111,6 +113,19 @@ export default function NewQuoteSearch() {
     }
   }
 
+  async function useRateFromChat(o: RateOption, lane: QuoteLane) {
+    if (!customer) throw new Error('Pick a customer above first, then tap Use rate again.')
+    const { quoteId } = await createQuoteWithBuyRates({
+      customerAccountId: customer.account_id,
+      customerName: customer.name,
+      fromPortCode: lane.from_port_code!,
+      toPortCode: lane.to_port_code!,
+      containers: lane.containers,
+      option: o,
+    })
+    navigate(`/quotes/${quoteId}`)
+  }
+
   return (
     <div className="nqs-page">
       <div className="nqs-card">
@@ -122,6 +137,21 @@ export default function NewQuoteSearch() {
           <Link to="/quotes" className="nqs-quoteno">Cancel</Link>
         </div>
 
+        <div style={{ marginBottom: 12 }}>
+          <button type="button" onClick={() => setChatOpen(true)}
+            style={{ width: '100%', display: 'inline-flex', alignItems: 'center', gap: 10, cursor: 'pointer', border: 'none', color: '#fff', fontWeight: 600, fontSize: 13, padding: '12px 16px', borderRadius: 12, background: 'linear-gradient(120deg,#0A2472,#3B5BFE 55%,#F5A623 150%)', boxShadow: '0 6px 18px rgba(59,91,254,.28)' }}>
+            <Sparkles size={16} /> Ask AI to find rates
+            <span style={{ marginLeft: 'auto', fontSize: 12, fontWeight: 500, opacity: .9 }}>e.g. “Ningbo to Auckland, 2×40ft”</span>
+          </button>
+        </div>
+        {chatOpen && (
+          <div onMouseDown={(e) => { if (e.target === e.currentTarget) setChatOpen(false) }}
+            style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.4)', zIndex: 120, display: 'flex', justifyContent: 'flex-end' }}>
+            <div style={{ width: 'min(440px, 92vw)', height: '100%', boxShadow: '-8px 0 30px rgba(0,0,0,0.2)' }} onMouseDown={(e) => e.stopPropagation()}>
+              <RateSearchChat onUseRate={useRateFromChat} onClose={() => setChatOpen(false)} />
+            </div>
+          </div>
+        )}
         <div className="nqs-customer">
           <CustomerPicker label="Customer" required value={customer} onChange={onCustomerChange} />
         </div>
