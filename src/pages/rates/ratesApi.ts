@@ -273,3 +273,47 @@ export async function saveFclSurcharges(
     }
   }
 }
+
+export type RateRulesDoc = {
+  id: string
+  title: string
+  content: string
+  updated_at: string | null
+}
+
+function mapRateRules(r: Record<string, any>): RateRulesDoc {
+  return {
+    id: String(r.id),
+    title: r.title ? String(r.title) : 'Rate Card House Rules',
+    content: r.content ? String(r.content) : '',
+    updated_at: r.updated_at ? String(r.updated_at) : null,
+  }
+}
+
+export async function fetchGlobalRateRules(): Promise<RateRulesDoc> {
+  const { data, error } = await supabase
+    .from('rate_rules')
+    .select('id, title, content, updated_at')
+    .is('shipping_line_code', null)
+    .maybeSingle()
+  if (error) throw error
+  if (data) return mapRateRules(data as Record<string, any>)
+  const { data: created, error: insErr } = await supabase
+    .from('rate_rules')
+    .insert({ shipping_line_code: null, title: 'Rate Card House Rules', content: '' })
+    .select('id, title, content, updated_at')
+    .single()
+  if (insErr) throw insErr
+  return mapRateRules(created as Record<string, any>)
+}
+
+export async function saveRateRules(id: string, patch: { title: string; content: string }): Promise<string> {
+  const { data, error } = await supabase
+    .from('rate_rules')
+    .update({ title: patch.title, content: patch.content, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select('updated_at')
+    .single()
+  if (error) throw error
+  return String((data as Record<string, any>).updated_at)
+}

@@ -30,6 +30,7 @@ import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
 import SetupPage from './pages/setup/SetupPage'
 import RatesPage from './pages/rates/RatesPage'
 import RateModulePage from './pages/rates/RateModulePage'
+import RateRulesPage from './pages/rates/RateRulesPage'
 import FclRateCardsList from './pages/rates/fcl/FclRateCardsList'
 import FclRateCardForm from './pages/rates/fcl/FclRateCardForm'
 import FclRateCardDetail from './pages/rates/fcl/FclRateCardDetail'
@@ -181,7 +182,7 @@ export default function App() {
             <Route path="/setup/rates/fcl-local" element={<StaffRoute><RateModulePage title="Sea FCL Local/Port Charges" /></StaffRoute>} />
             <Route path="/setup/rates/lcl-local" element={<StaffRoute><RateModulePage title="Sea LCL Local/Port Charges" /></StaffRoute>} />
             <Route path="/setup/rates/air-local" element={<StaffRoute><RateModulePage title="Air Local/Port Charges" /></StaffRoute>} />
-            <Route path="/setup/rates/rules" element={<StaffRoute><RateModulePage title="Rules" /></StaffRoute>} />
+            <Route path="/setup/rates/rules" element={<StaffRoute><RateRulesPage /></StaffRoute>} />
             <Route path="/setup/rates/ports" element={<StaffRoute><RateModulePage title="Ports & Groups" /></StaffRoute>} />
             <Route path="/setup" element={<StaffRoute><SetupPage /></StaffRoute>} />
             <Route path="/setup/charge-codes" element={<StaffRoute><ChargeCodesPage /></StaffRoute>} />
