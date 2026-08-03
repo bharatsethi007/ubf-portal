@@ -126,6 +126,14 @@ export default function FclRateCardDetail() {
     }
   }
 
+  async function reloadLines() {
+    try {
+      const ls = await listFclLines(id)
+      setLines(ls)
+      setOriginalIds(ls.map((l) => l.dbId as string))
+    } catch { /* ignore */ }
+  }
+
   if (loading) return <div className="quotes-page"><div className="card quotes-page__card">Loading…</div></div>
   if (notFound) return (
     <div className="quotes-page"><div className="card quotes-page__card">
@@ -214,8 +222,8 @@ export default function FclRateCardDetail() {
         <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border, rgba(0,0,0,.08))' }} />
 
         <section>
-          <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Import from Excel <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>(beta — preview only)</span></h2>
-          <FclExcelImport />
+          <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Import from Excel <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>(beta)</span></h2>
+          <FclExcelImport cardId={id} defaultCurrency={card.currency_code ?? ''} onImported={reloadLines} />
         </section>
 
         {err && <p style={{ color: '#B23B3B', fontSize: 13, marginTop: 10 }}>{err}</p>}
