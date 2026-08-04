@@ -54,15 +54,7 @@ export default function BookingDetailsTab({
   trackingEvents = [],
   onPatch,
 }: Props) {
-  const {
-    tasks,
-    staff,
-    doneCount,
-    toggleDone,
-    addTask,
-    removeTask,
-    setDueDate,
-  } = useBookingTasks(bookingId)
+  const { staff } = useBookingTasks(bookingId)
 
   const deliveryPrefill = useMemo(
     () =>
@@ -112,18 +104,10 @@ export default function BookingDetailsTab({
         }
       />
       <BookingTaskPanel
-        bookingId={bookingId}
         booking={booking}
         trackingContainers={trackingContainers}
         trackingEvents={trackingEvents}
         onPatch={onPatch}
-        tasks={tasks}
-        staff={staff}
-        doneCount={doneCount}
-        onToggle={toggleDone}
-        onAdd={addTask}
-        onDelete={removeTask}
-        onDueDate={setDueDate}
       />
     </div>
   )

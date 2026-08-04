@@ -106,7 +106,7 @@ export default function BookingContainerRowEditor({
           row.iso_type ?? row.tracking_container_type ?? row.container_type,
           row.iso_desc,
         )
-    const weightKg = isPortConnect && tracking ? portConnectContainerWeight(tracking) : null
+    const weightKg = tracking ? portConnectContainerWeight(tracking) : null
     return (
       <div className={`booking-container-row booking-container-row--readonly${hasConflict ? ' booking-container-row--conflict' : ''}`}>
         {rowSource(row) !== 'portconnect' ? <ContainerSourceDot source={rowSource(row)} /> : <span />}

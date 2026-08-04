@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { deleteBookingRecord, setBookingArchived } from './bookingRecordApi'
+import BookingTasksBell from './tasks/BookingTasksBell'
 import type { PortConnectRouteContext } from './tracking/portConnectRouteContext'
 import type { BookingRecord } from './bookingRecordTypes'
 
@@ -152,7 +153,8 @@ export default function BookingRecordHeader({
           </>
         ) : null}
 
-        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4 }}>
+        <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
+          <BookingTasksBell bookingId={booking.id} />
           <button
             type="button"
             className="master-bill-field__copy"

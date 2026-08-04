@@ -839,6 +839,16 @@ a:hover { text-decoration: underline; }
 .task-collapse__chev.open { transform: rotate(180deg); }
 .task-collapse__body { padding: 4px 10px 10px; border-top: 1px solid var(--line); }
 
+.tasks-bell { position: relative; display: inline-flex; }
+.tasks-bell__badge { position: absolute; top: -6px; right: -8px; background: #D92D20; color: #fff; font-size: 9px; font-weight: 700; line-height: 1; padding: 2px 4px; border-radius: 999px; min-width: 14px; text-align: center; border: 1px solid var(--paper); }
+.tasks-bell__badge--done { background: #12B76A; min-width: 10px; width: 10px; height: 10px; padding: 0; }
+.tasks-bell__panel { position: absolute; top: calc(100% + 8px); right: 0; z-index: 50; width: 340px; max-height: 460px; display: flex; flex-direction: column; background: var(--paper); border: 1px solid var(--line); border-radius: 12px; box-shadow: 0 12px 32px rgba(16,24,40,.16); overflow: hidden; }
+.tasks-bell__tabs { display: flex; border-bottom: 1px solid var(--line); }
+.tasks-bell__tab { flex: 1; padding: 9px 8px; background: none; border: 0; cursor: pointer; font-size: 12px; font-weight: 600; color: var(--muted-foreground); border-bottom: 2px solid transparent; }
+.tasks-bell__tab.on { color: var(--color-accent); border-bottom-color: var(--color-accent); }
+.tasks-bell__body { padding: 10px; overflow-y: auto; }
+.tasks-bell__progress-label { font-size: 11px; color: var(--muted-foreground); margin-bottom: 6px; }
+
 /* Cartage card */
 .booking-cartage__date-row { display: flex; align-items: flex-end; gap: 8px; }
 .booking-cartage__date-row > *:first-child { flex: 1; min-width: 0; }
