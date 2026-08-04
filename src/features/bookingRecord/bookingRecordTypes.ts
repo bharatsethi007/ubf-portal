@@ -29,6 +29,9 @@ export type BookingRecord = {
   delivery_date: string | null
   door_direction: 'front' | 'rear' | null
   pickup_peak: 'peak' | 'offpeak' | null
+  ubf_bay: string | null
+  ubf_time_slot: string | null
+  ubf_devanner: string | null
   empty_pickup_date: string | null
   container_return_date: string | null
   hold_reason: string | null
@@ -36,6 +39,7 @@ export type BookingRecord = {
   hold_label: string | null
   handled_by: string | null
   erp_ref_confirmed_at: string | null
+  archived_at: string | null
   field_overrides?: Record<string, boolean> | null
   consignee_account_id: string | null
   importer_account_id: string | null
@@ -113,6 +117,9 @@ export type BookingRecordPatch = {
   delivery_date?: string | null
   door_direction?: 'front' | 'rear' | null
   pickup_peak?: 'peak' | 'offpeak' | null
+  ubf_bay?: string | null
+  ubf_time_slot?: string | null
+  ubf_devanner?: string | null
   empty_pickup_date?: string | null
   container_return_date?: string | null
   field_overrides?: Record<string, boolean>

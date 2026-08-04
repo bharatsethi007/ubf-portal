@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { fetchImportSeaBoard } from './importSeaApi'
 import type { ImportSeaRow } from './types'
 
-export function useImportSeaBoard() {
+export function useImportSeaBoard(includeArchived = false) {
   const [rows, setRows] = useState<ImportSeaRow[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -10,7 +10,7 @@ export function useImportSeaBoard() {
   const reload = useCallback(async () => {
     setLoading(true)
     try {
-      const data = await fetchImportSeaBoard()
+      const data = await fetchImportSeaBoard(includeArchived)
       setRows(data)
       setError('')
     } catch (err) {
@@ -19,7 +19,7 @@ export function useImportSeaBoard() {
     } finally {
       setLoading(false)
     }
-  }, [])
+  }, [includeArchived])
 
   const patchRow = useCallback((id: string, patch: Partial<ImportSeaRow>) => {
     setRows((prev) => prev.map((row) => (row.id === id ? { ...row, ...patch } : row)))

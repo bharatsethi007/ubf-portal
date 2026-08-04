@@ -52,6 +52,71 @@ export default function BookingCartageCard({
         </select>
       </label>
 
+      {booking.m_atf?.trim() === '31853' ? (
+        <>
+          {(() => {
+            const BAY_COLORS = ['#FFD6D6','#FFE7CC','#FFF6CC','#E6F7D0','#D2F4EA','#D6EEFF','#DCE4FF','#E7DBFF','#F6D6FF','#FFD6EC']
+            const bayIdx = booking.ubf_bay ? Number(booking.ubf_bay.replace(/\D/g, '')) - 1 : -1
+            const bayBg = bayIdx >= 0 && bayIdx < 10 ? BAY_COLORS[bayIdx] : undefined
+            return (
+              <label className="filter-field booking-form-field">
+                <span className="filter-field__label">UBF Bay</span>
+                <select
+                  className="input input--sm"
+                  value={booking.ubf_bay ?? ''}
+                  style={bayBg ? { background: bayBg, fontWeight: 600, color: '#344054' } : undefined}
+                  onChange={(e) => {
+                    const v = e.target.value || null
+                    onPatch({ ubf_bay: v }, { ubf_bay: v })
+                  }}
+                >
+                  <option value="">Select bay…</option>
+                  {BAY_COLORS.map((c, i) => (
+                    <option key={i} value={`Bay ${i + 1}`} style={{ background: c, color: '#344054' }}>
+                      Bay {i + 1}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            )
+          })()}
+
+          <div style={{ display: 'flex', gap: 8 }}>
+            <label className="filter-field booking-form-field" style={{ flex: 1, minWidth: 0 }}>
+              <span className="filter-field__label">Time slot</span>
+              <select
+                className="input input--sm"
+                value={booking.ubf_time_slot ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value || null
+                  onPatch({ ubf_time_slot: v }, { ubf_time_slot: v })
+                }}
+              >
+                <option value="">Select slot…</option>
+                <option value="Morning">Morning</option>
+                <option value="Afternoon">Afternoon</option>
+                <option value="Night">Night</option>
+              </select>
+            </label>
+            <label className="filter-field booking-form-field" style={{ flex: 1, minWidth: 0 }}>
+              <span className="filter-field__label">Devanner</span>
+              <select
+                className="input input--sm"
+                value={booking.ubf_devanner ?? ''}
+                onChange={(e) => {
+                  const v = e.target.value || null
+                  onPatch({ ubf_devanner: v }, { ubf_devanner: v })
+                }}
+              >
+                <option value="">Select…</option>
+                <option value="UBF">UBF</option>
+                <option value="Lee">Lee</option>
+              </select>
+            </label>
+          </div>
+        </>
+      ) : null}
+
       <div className="booking-cartage__date-row">
         <ImportSeaDateField
           label="Delivery date"

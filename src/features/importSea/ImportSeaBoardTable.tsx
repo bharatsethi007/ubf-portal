@@ -1,3 +1,4 @@
+import { Archive } from 'lucide-react'
 import { SkeletonBusy } from '@/components/ui/skeleton'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import BoardRowCheckbox, {
@@ -12,7 +13,6 @@ import BoardSourcedDateCell from './cells/BoardSourcedDateCell'
 import BookingRefCell from './cells/BookingRefCell'
 import ClientCell from './cells/ClientCell'
 import ContainerCell from './cells/ContainerCell'
-import HandledByCell from './cells/HandledByCell'
 import HoldCell from './cells/HoldCell'
 import ImportSeaRowRefreshCell from './ImportSeaRowRefreshCell'
 import { bookingRecordHref } from './importSeaFilterUrl'
@@ -20,7 +20,7 @@ import ImportSeaOpsStatus from './ImportSeaOpsStatus'
 import type { ImportSeaBoardCellKey } from './importSeaRowDiff'
 import type { ImportSeaRow } from './types'
 
-const COL_SPAN = 13
+const COL_SPAN = 14
 
 type SortableThProps = {
   label: string
@@ -124,15 +124,16 @@ export default function ImportSeaBoardTable({
                   />
                 </th>
                 <SortableTh label="Booking ref" columnKey="booking_ref" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortableTh label="Job #" columnKey="job_no" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-job" />
                 <SortableTh label="Client" columnKey="customer_name" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-client" />
                 <SortableTh label="ETA" columnKey="eta" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <th>Container</th>
                 <SortableTh label="ATF" columnKey="atf" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <th>Devanner</th>
                 <SortableTh label="LFD" columnKey="last_free_day" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortableTh label="Delivery" columnKey="delivery_date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortableTh label="Return" columnKey="container_return_date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortableTh label="Hold" columnKey="hold_code" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-                <th>Handled by</th>
                 <th>Status</th>
                 <th className="import-sea-col-refresh" aria-label="Refresh" />
               </tr>
@@ -154,7 +155,7 @@ export default function ImportSeaBoardTable({
                   return (
                     <tr
                       key={row.id}
-                      className={`row-clickable${onHold ? ' import-sea-row--hold' : ''}${selected ? ' board-row--selected' : ''}`}
+                      className={`row-clickable${onHold ? ' import-sea-row--hold' : ''}${selected ? ' board-row--selected' : ''}${row.archived_at ? ' opacity-60 italic' : ''}`}
                       onClick={() => openRecord(row.id)}
                     >
                       <BoardCheckboxCell>
@@ -172,6 +173,12 @@ export default function ImportSeaBoardTable({
                           matched={row.matched}
                           boardParams={searchParams}
                         />
+                        {row.archived_at ? (
+                          <Archive size={12} className="text-muted-foreground" aria-label="Archived" />
+                        ) : null}
+                      </td>
+                      <td className="mono import-sea-col-job" onClick={(e) => e.stopPropagation()}>
+                        {row.job_no ?? '—'}
                       </td>
                       <td className="import-sea-col-client">
                         <ClientCell
@@ -190,7 +197,40 @@ export default function ImportSeaBoardTable({
                         <ContainerCell containers={row.containers} lastSync={row.portconnect_last_sync} />
                       </td>
                       <td className={flashClass(isCellFlashing(row.id, 'atf'))}>
-                        <BoardDateCell value={row.atf} />
+                        {(() => {
+                          const code = row.m_atf?.trim()
+                          if (!code) return <span className="muted">–</span>
+                          const ubf = code === '31853'
+                          return (
+                            <span
+                              title={ubf ? 'UBF yard (ATF 31853)' : `Client facility (ATF ${code})`}
+                              style={{
+                                display: 'inline-flex',
+                                padding: '2px 8px',
+                                borderRadius: 999,
+                                fontSize: 11,
+                                fontWeight: 600,
+                                background: ubf ? '#DCFAE6' : '#EFF8FF',
+                                color: ubf ? '#067647' : '#175CD3',
+                              }}
+                            >
+                              {ubf ? 'UBF' : 'Client'}
+                            </span>
+                          )
+                        })()}
+                      </td>
+                      <td>
+                        {row.m_atf?.trim() === '31853'
+                          ? (row.ubf_devanner?.trim()
+                              ? <span
+                                  style={{
+                                    display: 'inline-flex', padding: '2px 8px', borderRadius: 999,
+                                    fontSize: 11, fontWeight: 600,
+                                    background: '#F2F4F7', color: '#344054',
+                                  }}
+                                >{row.ubf_devanner}</span>
+                              : <span className="muted">–</span>)
+                          : <span className="muted">–</span>}
                       </td>
                       <td className={flashClass(isCellFlashing(row.id, 'last_free_day'))}>
                         <BoardSourcedDateCell
@@ -211,12 +251,6 @@ export default function ImportSeaBoardTable({
                         <BoardDateCell value={row.container_return_date} />
                       </td>
                       <td><HoldCell label={row.hold_label} /></td>
-                      <td>
-                        <HandledByCell
-                          initials={row.handler_initials}
-                          name={row.handler_name}
-                        />
-                      </td>
                       <td><ImportSeaOpsStatus row={row} /></td>
                       <td className="import-sea-col-refresh">
                         <ImportSeaRowRefreshCell

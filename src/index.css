@@ -622,6 +622,7 @@ a:hover { text-decoration: underline; }
 }
 .import-sea-client-wrap { display: block; max-width: 180px; min-width: 0; }
 .import-sea-col-client { width: 180px; max-width: 180px; }
+.import-sea-col-job { width: 90px; white-space: nowrap; }
 .import-sea-board__table .import-sea-date {
   font-size: 12px; font-variant-numeric: tabular-nums lining-nums;
 }
@@ -801,7 +802,7 @@ a:hover { text-decoration: underline; }
 }
 .booking-details-grid {
   display: grid;
-  grid-template-columns: minmax(0, 22fr) minmax(0, 20fr) minmax(0, 20fr) minmax(0, 38fr);
+  grid-template-columns: minmax(0, 20fr) minmax(0, 19fr) minmax(0, 19fr) minmax(0, 20fr) minmax(0, 26fr);
   gap: 8px;
   align-items: start;
 }
@@ -824,6 +825,19 @@ a:hover { text-decoration: underline; }
 .booking-details-grid .booking-erp-readonly { min-height: 26px; padding: 0 7px; font-size: 11px; }
 .booking-details-grid .booking-hold-select,
 .booking-details-grid .booking-staff-select { min-height: 26px; height: 26px; padding: 0 7px; font-size: 11px; }
+
+/* Collapsible tasks widget */
+.task-collapse { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; margin-top: 6px; background: var(--paper); }
+.task-collapse__head { display: flex; align-items: center; gap: 10px; width: 100%; padding: 8px 10px; background: none; border: 0; cursor: pointer; text-align: left; transition: background .12s ease; }
+.task-collapse__head:hover { background: color-mix(in srgb, var(--color-accent) 6%, var(--paper)); }
+.task-collapse__ring { --pct: 0; flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%; display: grid; place-items: center; font-size: 9px; font-weight: 700; color: var(--color-accent); background: conic-gradient(var(--color-accent) calc(var(--pct) * 1%), color-mix(in srgb, var(--color-accent) 15%, transparent) 0); }
+.task-collapse__ring span { width: 22px; height: 22px; border-radius: 50%; background: var(--paper); display: grid; place-items: center; }
+.task-collapse__meta { min-width: 0; flex: 1; }
+.task-collapse__title { font-size: 11px; font-weight: 600; }
+.task-collapse__sub { font-size: 10px; color: var(--muted-foreground); }
+.task-collapse__chev { flex-shrink: 0; transition: transform .18s ease; color: var(--muted-foreground); }
+.task-collapse__chev.open { transform: rotate(180deg); }
+.task-collapse__body { padding: 4px 10px 10px; border-top: 1px solid var(--line); }
 
 /* Cartage card */
 .booking-cartage__date-row { display: flex; align-items: flex-end; gap: 8px; }

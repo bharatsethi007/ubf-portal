@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { Download, RefreshCw } from 'lucide-react'
+import { Archive, ArchiveRestore, Download, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import type { BoardBulkAction, BoardSelectionProgress } from '@/components/board/BoardSelectionBar'
 import { toastBulkUpdateResult } from '@/components/board/bulkResultToast'
@@ -8,6 +8,7 @@ import ImportSeaBulkSetDeliveryMode from './bulk/ImportSeaBulkSetDeliveryMode'
 import ImportSeaBulkSetHold from './bulk/ImportSeaBulkSetHold'
 import ImportSeaPortConnectConfirmDialog from './bulk/ImportSeaPortConnectConfirmDialog'
 import { exportImportSeaCsv } from './importSeaRowUtils'
+import { setBookingsArchived } from './importSeaApi'
 import {
   bulkRefreshPortConnect,
   splitPortConnectBulkItems,
@@ -36,6 +37,21 @@ export function useImportSeaBoardBulkActions({
     () => splitPortConnectBulkItems(selectedRows),
     [selectedRows],
   )
+
+  const activeSelected = selectedRows.filter((r) => !r.archived_at)
+  const archivedSelected = selectedRows.filter((r) => r.archived_at)
+
+  async function runArchive(archived: boolean) {
+    const ids = (archived ? activeSelected : archivedSelected).map((r) => r.id)
+    if (ids.length === 0) return
+    try {
+      await setBookingsArchived(ids, archived)
+      toast.success(`${archived ? 'Archived' : 'Unarchived'} ${ids.length} booking${ids.length === 1 ? '' : 's'}`)
+      await onReload()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Action failed')
+    }
+  }
 
   async function runPortConnectBulk() {
     setPcBusy(true)
@@ -121,13 +137,27 @@ export function useImportSeaBoardBulkActions({
       ),
     },
     {
+      id: 'archive',
+      label: 'Archive',
+      icon: <Archive size={14} />,
+      disabled: busy || pcBusy || activeSelected.length === 0,
+      onClick: () => void runArchive(true),
+    },
+    {
+      id: 'unarchive',
+      label: 'Unarchive',
+      icon: <ArchiveRestore size={14} />,
+      disabled: busy || pcBusy || archivedSelected.length === 0,
+      onClick: () => void runArchive(false),
+    },
+    {
       id: 'export',
       label: 'Export selected',
       icon: <Download size={14} />,
       disabled: busy || pcBusy || selectedRows.length === 0,
       onClick: () => exportImportSeaCsv(selectedRows),
     },
-  ], [busy, pcBusy, eligible.length, ineligible.length, onReload, selectedRows])
+  ], [busy, pcBusy, eligible.length, ineligible.length, onReload, selectedRows, activeSelected.length, archivedSelected.length])
 
   const dialogs = (
     <ImportSeaPortConnectConfirmDialog

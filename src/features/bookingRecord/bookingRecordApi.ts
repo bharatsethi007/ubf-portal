@@ -15,8 +15,8 @@ const BOOKING_SELECT = `
   m_eta, m_atf, m_shipping_line, m_discharge_port,
   swb_released, tlx_release_on_hand, doc_handover_at,
   bacc_sent, cleared, truck_booked,
-  last_free_day, discharge_date, delivery_date, door_direction, pickup_peak, empty_pickup_date, container_return_date,
-  hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides,
+  last_free_day, discharge_date, delivery_date, door_direction, pickup_peak, ubf_bay, ubf_time_slot, ubf_devanner, empty_pickup_date, container_return_date,
+  hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides, archived_at,
   customers!bookings_account_id_fkey ( name ),
   consignee:customers!bookings_consignee_account_id_fkey ( name ),
   importer:customers!bookings_importer_account_id_fkey ( name )
@@ -159,5 +159,21 @@ export async function updateBookingTask(
 
 export async function deleteBookingTask(taskId: string): Promise<void> {
   const { error } = await supabase.from('booking_tasks').delete().eq('id', taskId)
+  if (error) throw error
+}
+
+export async function setBookingArchived(id: string, archived: boolean): Promise<string | null> {
+  const { data: auth } = await supabase.auth.getUser()
+  const archivedAt = archived ? new Date().toISOString() : null
+  const { error } = await supabase
+    .from('bookings')
+    .update({ archived_at: archivedAt, archived_by: archived ? (auth.user?.id ?? null) : null })
+    .eq('id', id)
+  if (error) throw error
+  return archivedAt
+}
+
+export async function deleteBookingRecord(id: string): Promise<void> {
+  const { error } = await supabase.from('bookings').delete().eq('id', id)
   if (error) throw error
 }

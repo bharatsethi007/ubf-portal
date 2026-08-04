@@ -1,4 +1,5 @@
 import { useMemo, useRef, useState } from 'react'
+import { ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { BookingRecord, BookingRecordPatch, BookingTask, StaffUser } from '../bookingRecordTypes'
 import { useBookingNotes } from '../notes/useBookingNotes'
@@ -50,6 +51,7 @@ export default function BookingTaskPanel({
   onDueDate,
 }: Props) {
   const [text, setText] = useState('')
+  const [tasksOpen, setTasksOpen] = useState(false)
   const [mentionOpen, setMentionOpen] = useState(false)
   const pendingAssignee = useRef<string | null>(null)
   const { notes, loading: notesLoading, addNote } = useBookingNotes(bookingId)
@@ -90,68 +92,77 @@ export default function BookingTaskPanel({
       <PanelDivider />
 
       <section className="booking-tasks-section">
-        <h4 className="booking-panel-subtitle">Tasks</h4>
-        <div className="booking-task-panel__progress">
-          <div className="booking-task-panel__progress-bar">
+        <div className="task-collapse">
+          <button type="button" className="task-collapse__head" onClick={() => setTasksOpen((v) => !v)}>
             <div
-              className="booking-task-panel__progress-fill"
-              style={{ width: tasks.length ? `${(doneCount / tasks.length) * 100}%` : '0%' }}
-            />
-          </div>
-          <span className="booking-task-panel__progress-label">
-            {taskProgressLabel(doneCount, tasks.length)}
-          </span>
-        </div>
+              className="task-collapse__ring"
+              style={{ ['--pct' as string]: tasks.length ? Math.round((doneCount / tasks.length) * 100) : 0 }}
+            >
+              <span>{doneCount}/{tasks.length}</span>
+            </div>
+            <div className="task-collapse__meta">
+              <div className="task-collapse__title">Tasks</div>
+              <div className="task-collapse__sub">
+                {taskProgressLabel(doneCount, tasks.length)}
+              </div>
+            </div>
+            <ChevronDown size={16} className={`task-collapse__chev${tasksOpen ? ' open' : ''}`} />
+          </button>
 
-        <div className="booking-task-panel__list">
-          {tasks.map((task) => (
-            <BookingTaskRow
-              key={task.id}
-              task={task}
-              onToggle={(done) => onToggle(task, done)}
-              onDueDate={(iso) => onDueDate(task, iso)}
-              onDelete={task.is_default ? undefined : () => onDelete(task)}
-            />
-          ))}
-        </div>
-
-        <div className="booking-task-panel__add">
-          <div className="booking-task-panel__add-wrap">
-            <input
-              type="text"
-              className="input input--xs booking-task-panel__input"
-              placeholder="Add task… (@ to assign)"
-              value={text}
-              onChange={(e) => {
-                const v = e.target.value
-                setText(v)
-                setMentionOpen(v.includes('@'))
-              }}
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  e.preventDefault()
-                  submitTask()
-                }
-              }}
-            />
-            {showMention && filteredStaff.length > 0 ? (
-              <div className="booking-combobox-menu">
-                {filteredStaff.map((user) => (
-                  <button
-                    key={user.user_id}
-                    type="button"
-                    className="booking-mention-option"
-                    onClick={() => pickStaff(user)}
-                  >
-                    {user.email}
-                  </button>
+          {tasksOpen ? (
+            <div className="task-collapse__body">
+              <div className="booking-task-panel__list">
+                {tasks.map((task) => (
+                  <BookingTaskRow
+                    key={task.id}
+                    task={task}
+                    onToggle={(done) => onToggle(task, done)}
+                    onDueDate={(iso) => onDueDate(task, iso)}
+                    onDelete={task.is_default ? undefined : () => onDelete(task)}
+                  />
                 ))}
               </div>
-            ) : null}
-          </div>
-          <Button type="button" size="xs" variant="outline" onClick={submitTask}>
-            Add
-          </Button>
+
+              <div className="booking-task-panel__add">
+                <div className="booking-task-panel__add-wrap">
+                  <input
+                    type="text"
+                    className="input input--xs booking-task-panel__input"
+                    placeholder="Add task… (@ to assign)"
+                    value={text}
+                    onChange={(e) => {
+                      const v = e.target.value
+                      setText(v)
+                      setMentionOpen(v.includes('@'))
+                    }}
+                    onKeyDown={(e) => {
+                      if (e.key === 'Enter') {
+                        e.preventDefault()
+                        submitTask()
+                      }
+                    }}
+                  />
+                  {showMention && filteredStaff.length > 0 ? (
+                    <div className="booking-combobox-menu">
+                      {filteredStaff.map((user) => (
+                        <button
+                          key={user.user_id}
+                          type="button"
+                          className="booking-mention-option"
+                          onClick={() => pickStaff(user)}
+                        >
+                          {user.email}
+                        </button>
+                      ))}
+                    </div>
+                  ) : null}
+                </div>
+                <Button type="button" size="xs" variant="outline" onClick={submitTask}>
+                  Add
+                </Button>
+              </div>
+            </div>
+          ) : null}
         </div>
       </section>
 

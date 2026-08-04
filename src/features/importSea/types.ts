@@ -21,6 +21,8 @@ export type ImportSeaRow = {
   eta_source?: string | null
   atf: string | null
   atf_source?: string | null
+  m_atf: string | null
+  ubf_devanner: string | null
   shipping_line: string | null
   shipping_line_source?: string | null
   discharge_port: string | null
@@ -55,6 +57,8 @@ export type ImportSeaRow = {
   containers: ImportSeaContainer[] | null
   matched: boolean
   erp_ref_confirmed_at: string | null
+  archived_at: string | null
+  archived_by: string | null
 }
 
 /** Columns written back to `bookings` on inline edit. */

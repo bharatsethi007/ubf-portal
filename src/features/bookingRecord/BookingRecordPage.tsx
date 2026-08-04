@@ -127,6 +127,10 @@ function BookingRecordPageContent({
           matched={matched}
           eta={eta}
           portConnectRoute={portConnectRoute}
+          backHref={backHref}
+          onArchivedChange={(archivedAt) =>
+            patchBooking({ archived_at: archivedAt }, { archived_at: archivedAt })
+          }
         />
 
         <Tabs defaultValue="details" className="booking-record-tabs">

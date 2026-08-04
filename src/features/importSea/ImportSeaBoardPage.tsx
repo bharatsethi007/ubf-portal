@@ -30,11 +30,12 @@ import { useImportSeaSort } from './useImportSeaSort'
 
 export default function ImportSeaBoardPage() {
 
-  const { rows, loading, error, reload, replaceRow } = useImportSeaBoard()
+  const [createOpen, setCreateOpen] = useState(false)
+  const [showArchived, setShowArchived] = useState(false)
+
+  const { rows, loading, error, reload, replaceRow } = useImportSeaBoard(showArchived)
 
   const { filters, setFilter, clearFilters, moreOpen, setMoreOpen } = useImportSeaFilters()
-
-  const [createOpen, setCreateOpen] = useState(false)
 
   const selection = useBoardRowSelection()
 
@@ -108,6 +109,9 @@ export default function ImportSeaBoardPage() {
           onExport={() => exportImportSeaCsv(filteredRows)}
 
           onNewBooking={() => setCreateOpen(true)}
+
+          showArchived={showArchived}
+          onToggleArchived={() => setShowArchived((v) => !v)}
 
         />
 

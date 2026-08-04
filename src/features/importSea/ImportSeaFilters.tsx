@@ -1,4 +1,4 @@
-import { ChevronDown, Download, Plus, Search } from 'lucide-react'
+import { Archive, ChevronDown, Download, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import {
   collectFilterOptions,
@@ -20,6 +20,8 @@ type Props = {
   loading: boolean
   onExport: () => void
   onNewBooking: () => void
+  showArchived: boolean
+  onToggleArchived: () => void
 }
 
 function triSelect(
@@ -57,6 +59,8 @@ export default function ImportSeaFilters({
   loading,
   onExport,
   onNewBooking,
+  showArchived,
+  onToggleArchived,
 }: Props) {
   const { shippingLines, dischargePorts } = collectFilterOptions(rows)
 
@@ -159,6 +163,16 @@ export default function ImportSeaFilters({
         </div>
 
         <div className="import-sea-toolbar-actions">
+          <button
+            type="button"
+            className="pagination__btn"
+            onClick={onToggleArchived}
+            title={showArchived ? 'Hide archived jobs' : 'Show archived jobs'}
+            aria-pressed={showArchived}
+            style={showArchived ? { background: '#0A2472', color: '#fff', borderColor: '#0A2472' } : undefined}
+          >
+            <Archive size={14} />
+          </button>
           <button type="button" className="pagination__btn" onClick={onExport}>
             <Download size={14} />
             CSV export

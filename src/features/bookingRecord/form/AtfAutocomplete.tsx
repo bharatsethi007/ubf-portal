@@ -73,16 +73,33 @@ export default function AtfAutocomplete({ value, onChange }: Props) {
       <input
         type="text"
         className="input input--sm"
-        placeholder={value ? `${value}` : 'Search ATF code or facility…'}
-        value={query}
+        title={value && resolved ? `${resolved.facility} · ${value}` : undefined}
+        placeholder="Search ATF code or facility…"
+        value={query || (value ? (resolved ? `${resolved.facility} · ${value}` : `ATF ${value}`) : '')}
         onChange={(e) => setQuery(e.target.value)}
         onFocus={() => {
+          setQuery('')
           if (hits.length) setOpen(true)
         }}
       />
       {value ? (
         <div className="atf-combobox__resolved">
-          <span>{resolved ? `${value} — ${resolved.facility}` : `ATF ${value}`}</span>
+          <div style={{ minWidth: 0, flex: 1 }}>
+            {resolved && (resolved.address || resolved.city) ? (
+              <div
+                title={[resolved.address, resolved.city].filter(Boolean).join(', ')}
+                style={{
+                  whiteSpace: 'nowrap',
+                  overflow: 'hidden',
+                  textOverflow: 'ellipsis',
+                  fontSize: 11,
+                  color: 'var(--muted-foreground)',
+                }}
+              >
+                {[resolved.address, resolved.city].filter(Boolean).join(', ')}
+              </div>
+            ) : null}
+          </div>
           <button
             type="button"
             className="text-link"
