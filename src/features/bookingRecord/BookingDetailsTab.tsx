@@ -67,7 +67,7 @@ export default function BookingDetailsTab({
 
   return (
     <div className="booking-details-grid">
-      <BookingLeftColumn booking={booking} staff={staff} onPatch={onPatch} />
+      <BookingLeftColumn booking={booking} staff={staff} onPatch={onPatch} containerRows={containerRows} />
       <BookingMiddleColumn
         booking={booking}
         shipment={shipment}
