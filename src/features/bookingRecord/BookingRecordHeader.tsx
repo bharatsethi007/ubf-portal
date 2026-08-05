@@ -1,6 +1,6 @@
 import { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Archive, ArchiveRestore, Copy, Trash2 } from 'lucide-react'
+import { Archive, ArchiveRestore, Building2, Check, Copy, DollarSign, Ship, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import MatchBadge from '@/features/importSea/cells/MatchBadge'
 import { fmtBoardDate } from '@/features/importSea/importSeaBoardFormat'
@@ -83,7 +83,10 @@ export default function BookingRecordHeader({
   return (
     <header className="card booking-record-header booking-record-header--compact">
       <div className="booking-record-header__row">
-        <span className="mono booking-record-header__ref">{ref}</span>
+        <span className="booking-record-header__ref-wrap">
+          <span className="mono booking-record-header__ref">{ref}</span>
+          <span className="booking-record-header__job-sub">CF Job {booking.job_no ?? '—'}</span>
+        </span>
         {booking.booking_ref ? (
           <button
             type="button"
@@ -115,34 +118,57 @@ export default function BookingRecordHeader({
           </span>
         ) : null}
         <span className="booking-record-header__sep" aria-hidden>·</span>
-        <span className="booking-record-header__client">{booking.customer_name ?? '—'}</span>
-        <span className="booking-record-header__sep" aria-hidden>·</span>
-        <span className="booking-record-header__meta">
-          Job # <span className="mono">{booking.job_no ?? '—'}</span>
+        <span className="booking-record-header__client">
+          <Building2 size={13} className="booking-record-header__client-ico" />
+          {booking.customer_name ?? '—'}
         </span>
-        <span className="booking-record-header__sep" aria-hidden>·</span>
-        <span className="booking-record-header__meta">
-          ETA <span className="mono tabular-nums">{fmtBoardDate(eta)}</span>
+        {(() => {
+          const isCod = (booking.account_terms ?? '').toLowerCase() === 'cod'
+          return isCod ? (
+            <span className="acct-ind acct-ind--cod" title="COD account">
+              <DollarSign size={13} />
+            </span>
+          ) : (
+            <span className="acct-ind acct-ind--acct" title="Account customer">
+              <Check size={13} />
+            </span>
+          )
+        })()}
+
+        <span className="hdr-pill hdr-pill--eta" title="ETA">
+          ETA <strong className="tabular-nums">{fmtBoardDate(eta)}</strong>
         </span>
+
         {portConnectRoute ? (
-          <>
-            <span className="booking-record-header__sep" aria-hidden>·</span>
-            <span className="booking-record-header__meta">
-              Load port {portConnectRoute.loadPort}
+          <div className="route-lane" title={`${portConnectRoute.loadPort} → ${portConnectRoute.dischargePort}`}>
+            <span className="route-lane__code">
+              {portConnectRoute.loadPortCode ?? portConnectRoute.loadPort ?? '—'}
             </span>
-            <span className="booking-record-header__sep" aria-hidden>·</span>
-            <span className="booking-record-header__meta">
-              Discharge port {portConnectRoute.dischargePort}
+            <span className="route-lane__line" aria-hidden />
+            {portConnectRoute.transitPortCode ? (
+              <>
+                <span className="route-lane__code route-lane__code--transit">{portConnectRoute.transitPortCode}</span>
+                <span className="route-lane__line" aria-hidden />
+              </>
+            ) : null}
+            {portConnectRoute.vesselName || portConnectRoute.voyage ? (
+              <span className="hdr-pill hdr-pill--vessel">
+                <Ship size={12} />
+                <span className="route-lane__vessel-txt">
+                  {portConnectRoute.vesselName}
+                  {portConnectRoute.voyage && portConnectRoute.voyage !== '—'
+                    ? <> · <span className="mono">{portConnectRoute.voyage}</span></>
+                    : null}
+                </span>
+              </span>
+            ) : (
+              <Ship size={13} className="route-lane__ship" aria-hidden />
+            )}
+            <span className="route-lane__line" aria-hidden />
+            <span className="route-lane__code">
+              {portConnectRoute.dischargePortCode ?? portConnectRoute.dischargePort ?? '—'}
             </span>
-            <span className="booking-record-header__sep" aria-hidden>·</span>
-            <span className="booking-record-header__meta">
-              {portConnectRoute.vesselName}
-            </span>
-            <span className="booking-record-header__sep" aria-hidden>·</span>
-            <span className="booking-record-header__meta">
-              Voyage <span className="mono">{portConnectRoute.voyage}</span>
-            </span>
-          </>
+          </div>
         ) : null}
         {booking.erp_ref_confirmed_at ? (
           <>

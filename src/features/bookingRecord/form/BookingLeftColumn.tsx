@@ -62,7 +62,7 @@ export default function BookingLeftColumn({ booking, staff, onPatch }: Props) {
           <input type="text" className="input input--xs" value={booking.booking_ref ?? ''} readOnly />
         </label>
         <label className="filter-field booking-form-field">
-          <span className="filter-field__label">Job #</span>
+          <span className="filter-field__label">CF Job #</span>
           <input
             type="text"
             className="input input--xs mono"

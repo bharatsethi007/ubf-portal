@@ -1,3 +1,4 @@
+import { Check } from 'lucide-react'
 import {
   formatReleaseTimestamp,
   releaseLayer,
@@ -28,7 +29,10 @@ function PortStatusRow({ label, layer }: Row) {
 
   return (
     <li className={`booking-milestones__row${cancelled ? ' booking-milestones__row--warn' : ''}`}>
-      <span>{label}</span>
+      <span className="booking-milestones__label">
+        {label}
+        {layer.released ? <Check size={13} style={{ color: '#12B76A' }} /> : null}
+      </span>
       <span className="booking-port-status__value">
         <span className="tabular-nums">{value}</span>
         <span

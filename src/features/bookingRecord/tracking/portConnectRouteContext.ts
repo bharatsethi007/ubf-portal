@@ -3,6 +3,9 @@ import type { ContainerTrackingRow } from './trackingTypes'
 export type PortConnectRouteContext = {
   loadPort: string
   dischargePort: string
+  loadPortCode: string | null
+  dischargePortCode: string | null
+  transitPortCode: string | null
   vesselName: string
   voyage: string
 }
@@ -32,6 +35,13 @@ export function buildPortConnectRouteContext(
   const raw = row.raw
   const loadPort = row.load_port_name ?? asText(rawField(raw, 'loadPortName'))
   const dischargePort = row.discharge_port_name ?? asText(rawField(raw, 'dischargePortName'))
+  const loadPortCode = row.port_code && false ? null : asText(rawField(raw, 'loadPortCode'))
+  const dischargePortCode = asText(rawField(raw, 'dischargePortCode'))
+  const destinationPortCode = asText(rawField(raw, 'destinationPortCode'))
+  const transitPortCode =
+    destinationPortCode && dischargePortCode && destinationPortCode !== dischargePortCode
+      ? null
+      : null
   const vesselName = row.inbound_vessel_name ?? asText(rawField(raw, 'inboundVesselName'))
   const voyage =
     row.operator_voyage_id
@@ -44,6 +54,9 @@ export function buildPortConnectRouteContext(
   return {
     loadPort: loadPort ?? '—',
     dischargePort: dischargePort ?? '—',
+    loadPortCode: loadPortCode ?? null,
+    dischargePortCode: dischargePortCode ?? null,
+    transitPortCode: transitPortCode ?? null,
     vesselName: vesselName ?? '—',
     voyage: voyage ?? '—',
   }

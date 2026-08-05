@@ -1,6 +1,8 @@
 import { MailPlus } from 'lucide-react'
 import ImportSeaDateField from '@/features/importSea/ImportSeaDateField'
 import type { BookingRecord, BookingRecordPatch } from '../bookingRecordTypes'
+import DropOffDepotSelect from './DropOffDepotSelect'
+import CartageInstructions from './CartageInstructions'
 import FormCard from './FormCard'
 
 type Props = {
@@ -150,6 +152,21 @@ export default function BookingCartageCard({
           <MailPlus size={16} />
         </button>
       </div>
+
+      <DropOffDepotSelect
+        value={booking.drop_off_depot}
+        onChange={(code) => onPatch({ drop_off_depot: code }, { drop_off_depot: code })}
+      />
+
+      <CartageInstructions
+        full={booking.cartage_instructions_full}
+        empty={booking.cartage_instructions_empty}
+        onChange={(slice, value) =>
+          slice === 'full'
+            ? onPatch({ cartage_instructions_full: value }, { cartage_instructions_full: value })
+            : onPatch({ cartage_instructions_empty: value }, { cartage_instructions_empty: value })
+        }
+      />
     </FormCard>
   )
 }

@@ -195,7 +195,11 @@ export default function BookingContainerRowEditor({
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      <span className="booking-container-row__weight muted">—</span>
+      <span className={`booking-container-row__weight${tracking && portConnectContainerWeight(tracking) != null ? '' : ' muted'}`}>
+        {tracking && portConnectContainerWeight(tracking) != null
+          ? `${portConnectContainerWeight(tracking)!.toLocaleString()} kg`
+          : '—'}
+      </span>
       <Button
         type="button"
         variant="ghost"

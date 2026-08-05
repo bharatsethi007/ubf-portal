@@ -12,6 +12,7 @@ export type BookingRecord = {
   booking_ref: string | null
   job_no: string | null
   account_id: string | null
+  account_terms: string | null
   mode: string | null
   shipment_id: number | null
   m_eta: string | null
@@ -32,6 +33,9 @@ export type BookingRecord = {
   ubf_bay: string | null
   ubf_time_slot: string | null
   ubf_devanner: string | null
+  drop_off_depot: string | null
+  cartage_instructions_full: string | null
+  cartage_instructions_empty: string | null
   empty_pickup_date: string | null
   container_return_date: string | null
   hold_reason: string | null
@@ -120,6 +124,9 @@ export type BookingRecordPatch = {
   ubf_bay?: string | null
   ubf_time_slot?: string | null
   ubf_devanner?: string | null
+  drop_off_depot?: string | null
+  cartage_instructions_full?: string | null
+  cartage_instructions_empty?: string | null
   empty_pickup_date?: string | null
   container_return_date?: string | null
   field_overrides?: Record<string, boolean>

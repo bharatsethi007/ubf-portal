@@ -18,6 +18,7 @@ import BookingRecordSkeleton from './BookingRecordSkeleton'
 import BookingRecordErrorBoundary from './BookingRecordErrorBoundary'
 import { useBookingRecord } from './useBookingRecord'
 import { PortConnectDetailProvider } from './portConnect/PortConnectDetailProvider'
+import { aggregatePortConnectBookingFields } from './portConnect/bookingPortConnectCoalesce'
 import {
   buildPortConnectSnapshot,
   portConnectLastSync,
@@ -115,7 +116,8 @@ function BookingRecordPageContent({
 
   const { booking, shipment } = bundle
   const matched = Boolean(booking.shipment_id)
-  const eta = shipment?.eta ?? booking.m_eta
+  const pcFields = aggregatePortConnectBookingFields(tracking.containers)
+  const eta = pcFields?.eta ?? shipment?.eta ?? booking.m_eta
 
   return (
     <PortConnectDetailProvider containers={tracking.containers}>
