@@ -11,7 +11,7 @@ type Props = {
   accountId: string | null
   consigneeName: string | null
   expectedContainers: string[]
-  onLinked: (jobUnique: number, jobNo: number | null) => void
+  onLinked: (jobUnique: number, consolKey: string | null) => void
 }
 
 function fmtDate(iso: string | null): string {
@@ -69,8 +69,8 @@ export default function ShipmentLinkModal({ open, onOpenChange, bookingId, accou
   async function link(s: LinkShipment) {
     setBusyId(s.job_unique)
     try {
-      await linkBookingToShipment(bookingId, s.job_unique, s.job_no)
-      onLinked(s.job_unique, s.job_no)
+      await linkBookingToShipment(bookingId, s.job_unique, s.consol_key)
+      onLinked(s.job_unique, s.consol_key)
       toast.success(`Linked to ${s.consol_key ?? s.job_unique}`)
       onOpenChange(false)
     } catch (e) {
@@ -84,7 +84,7 @@ export default function ShipmentLinkModal({ open, onOpenChange, bookingId, accou
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent style={{ width: 'min(920px, 94vw)', maxWidth: 'min(920px, 94vw)' }}>
         <DialogHeader>
-          <DialogTitle>Link FDB shipment{consigneeName ? ` — ${consigneeName}` : ''}</DialogTitle>
+          <DialogTitle>Link Cyber Freight shipment{consigneeName ? ` — ${consigneeName}` : ''}</DialogTitle>
         </DialogHeader>
 
         <div className="link-search">
@@ -102,7 +102,7 @@ export default function ShipmentLinkModal({ open, onOpenChange, bookingId, accou
           <div style={{ padding: 32, display: 'flex', justifyContent: 'center' }}><Loader2 className="spin" /></div>
         ) : filtered.length === 0 ? (
           <p className="muted" style={{ fontSize: 13, padding: 16, textAlign: 'center' }}>
-            {rows.length === 0 ? 'No import-sea shipments found for this consignee in the FDB.' : 'No shipments match your search.'}
+            {rows.length === 0 ? 'No import-sea shipments found for this consignee in Cyber Freight.' : 'No shipments match your search.'}
           </p>
         ) : (
           <div className="link-list">

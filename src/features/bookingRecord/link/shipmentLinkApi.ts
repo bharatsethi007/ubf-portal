@@ -30,10 +30,9 @@ export async function findConsigneeShipments(accountId: string | null, consignee
   return (data ?? []) as LinkShipment[]
 }
 
-export async function linkBookingToShipment(bookingId: string, jobUnique: number, jobNo: number | null): Promise<void> {
-  const { error } = await supabase
-    .from('bookings')
-    .update({ shipment_id: jobUnique, job_no: jobNo != null ? String(jobNo) : null, erp_ref_confirmed_at: new Date().toISOString() })
+export async function linkBookingToShipment(bookingId: string, jobUnique: number, consolKey: string | null): Promise<void> {
+  const { error } = await supabase.from('bookings')
+    .update({ shipment_id: jobUnique, job_no: consolKey, erp_ref_confirmed_at: new Date().toISOString() })
     .eq('id', bookingId)
   if (error) throw error
 }

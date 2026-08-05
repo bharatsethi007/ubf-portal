@@ -10,7 +10,6 @@ import { useBookingTracking } from './tracking/useBookingTracking'
 import { useBookingContainers, isDraftContainer } from './containers/useBookingContainers'
 import type { BookingContainerRow } from './containers/bookingContainerTypes'
 import BookingDocumentsTab from './documents/BookingDocumentsTab'
-import BookingInvoicesTab from './invoices/BookingInvoicesTab'
 import BookingDetailsTab from './BookingDetailsTab'
 import BookingHistoryTab from './tabs/BookingHistoryTab'
 import BookingRecordHeader from './BookingRecordHeader'
@@ -141,7 +140,6 @@ function BookingRecordPageContent({
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
-            <TabsTrigger value="invoices">Invoices</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
@@ -191,9 +189,6 @@ function BookingRecordPageContent({
           </TabsContent>
           <TabsContent value="documents">
             <BookingDocumentsTab bookingId={booking.id} accountId={booking.account_id} />
-          </TabsContent>
-          <TabsContent value="invoices">
-            <BookingInvoicesTab shipmentId={booking.shipment_id} />
           </TabsContent>
           <TabsContent value="history">
             <BookingHistoryTab bookingId={booking.id} refreshKey={historyTick} />

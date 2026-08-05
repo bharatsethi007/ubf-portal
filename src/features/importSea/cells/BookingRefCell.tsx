@@ -38,14 +38,13 @@ export default function BookingRefCell({
 
   return (
     <span className="master-bill-field__value">
-      {onHold ? <span className="import-sea-dot import-sea-dot--hold" aria-hidden /> : null}
-      {!matched && !onHold ? (
-        <span
-          className="import-sea-dot import-sea-dot--unmatched"
-          title="Not yet matched in ERP"
-          aria-hidden
-        />
-      ) : null}
+      {onHold ? (
+        <span className="import-sea-dot import-sea-dot--hold" aria-hidden />
+      ) : !matched ? (
+        <span className="import-sea-dot import-sea-dot--unmatched" title="Not yet matched in ERP" aria-hidden />
+      ) : (
+        <span className="import-sea-dot import-sea-dot--synced" title="Linked to ERP shipment" aria-hidden />
+      )}
       <Link to={bookingRecordHref(bookingId, boardParams)} className="link-mono">
         {ref}
       </Link>

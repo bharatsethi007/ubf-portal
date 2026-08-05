@@ -126,15 +126,18 @@ export default function BookingLeftColumn({ booking, staff, containerRows, onPat
         </label>
         <label className="filter-field booking-form-field">
           <span className="filter-field__label">Mode</span>
-          <input
-            type="text"
+          <select
             className="input input--xs"
-            defaultValue={booking.mode ?? ''}
-            onBlur={(e) => {
-              const next = e.target.value.trim() || null
-              if (next !== (booking.mode?.trim() || null)) onPatch({ mode: next }, { mode: next })
+            value={booking.mode ?? ''}
+            onChange={(e) => {
+              const next = e.target.value || null
+              onPatch({ mode: next }, { mode: next })
             }}
-          />
+          >
+            <option value="">Select…</option>
+            <option value="FCL">FCL</option>
+            <option value="LCL">LCL</option>
+          </select>
         </label>
         <StaffField
           value={booking.handled_by}
@@ -148,7 +151,7 @@ export default function BookingLeftColumn({ booking, staff, containerRows, onPat
           accountId={booking.consignee_account_id}
           consigneeName={booking.consignee_name}
           expectedContainers={containerRows.map((r) => r.container_no).filter(Boolean)}
-          onLinked={(jobUnique, jobNo) => onPatch({ shipment_id: jobUnique, job_no: jobNo != null ? String(jobNo) : null }, {})}
+          onLinked={(jobUnique, consolKey) => onPatch({ shipment_id: jobUnique, job_no: consolKey }, {})}
         />
         <Dialog open={confirmUnsync} onOpenChange={(o) => { if (!unsyncBusy) setConfirmUnsync(o) }}>
           <DialogContent>

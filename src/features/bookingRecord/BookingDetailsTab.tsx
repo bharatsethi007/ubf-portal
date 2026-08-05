@@ -2,6 +2,7 @@ import { useMemo } from 'react'
 import BookingDatesColumn from './form/BookingDatesColumn'
 import BookingCartageCard from './form/BookingCartageCard'
 import { openDeliveryEmail, openEmptyPickupEmail } from './form/cartageMail'
+import BookingInvoicesTab from './invoices/BookingInvoicesTab'
 import BookingLeftColumn from './form/BookingLeftColumn'
 import BookingMiddleColumn from './form/BookingMiddleColumn'
 import BookingTaskPanel from './tasks/BookingTaskPanel'
@@ -66,7 +67,8 @@ export default function BookingDetailsTab({
   )
 
   return (
-    <div className="booking-details-grid">
+    <>
+      <div className="booking-details-grid">
       <BookingLeftColumn booking={booking} staff={staff} onPatch={onPatch} containerRows={containerRows} />
       <BookingMiddleColumn
         booking={booking}
@@ -109,6 +111,12 @@ export default function BookingDetailsTab({
         trackingEvents={trackingEvents}
         onPatch={onPatch}
       />
-    </div>
+      </div>
+      {booking.shipment_id != null ? (
+        <div style={{ marginTop: 16 }}>
+          <BookingInvoicesTab shipmentId={booking.shipment_id} />
+        </div>
+      ) : null}
+    </>
   )
 }
