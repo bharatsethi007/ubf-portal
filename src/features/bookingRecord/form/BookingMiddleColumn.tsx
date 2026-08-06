@@ -123,6 +123,12 @@ export default function BookingMiddleColumn({
           onOverride={(rowId) => onOverrideContainer(rowId)}
           onRevert={(rowId) => onRevertContainer(rowId)}
           resolveBusy={containerResolveBusy}
+          acknowledgedWeights={booking.weight_flags_ack ?? []}
+          onToggleWeightAck={(no) => {
+            const cur = booking.weight_flags_ack ?? []
+            const next = cur.includes(no) ? cur.filter((x) => x !== no) : [...cur, no]
+            onPatch({ weight_flags_ack: next }, { weight_flags_ack: next })
+          }}
         />
       </FormCard>
     </div>

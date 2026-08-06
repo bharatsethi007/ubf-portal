@@ -16,6 +16,7 @@ import ManualOverridePill from '../portConnect/ManualOverridePill'
 import PortConnectSourcePill from '../portConnect/PortConnectSourcePill'
 import { usePortConnectDetail } from '../portConnect/PortConnectDetailProvider'
 import ContainerSourceDot from './ContainerSourceDot'
+import { weightFlag } from './weightFlag'
 import {
   containerConflictMessage,
   isUnresolvedContainerConflict,
@@ -48,6 +49,8 @@ type Props = {
   lastSync?: string | null
   flashType?: boolean
   resolveBusy?: boolean
+  acknowledged?: boolean
+  onToggleAck?: () => void
 }
 
 function rowSource(row: ContainerListItem): BookingContainerSource {
@@ -67,6 +70,8 @@ export default function BookingContainerRowEditor({
   lastSync,
   flashType,
   resolveBusy,
+  acknowledged,
+  onToggleAck,
 }: Props) {
   const { openDetail } = usePortConnectDetail()
   const readOnly = !isDraftContainer(row) && row.source !== 'manual'
@@ -142,6 +147,20 @@ export default function BookingContainerRowEditor({
           ) : null}
           {weightKg != null ? `${weightKg.toLocaleString()} kg` : '—'}
         </span>
+        {(() => {
+          const f = weightFlag(weightKg)
+          if (!f) return null
+          return (
+            <button
+              type="button"
+              className={`wflag ${f.className}${acknowledged ? ' wflag--ack' : ''}`}
+              title={acknowledged ? 'Acknowledged — click to un-flag' : 'Click to acknowledge'}
+              onClick={(e) => { e.stopPropagation(); onToggleAck?.() }}
+            >
+              {f.label}
+            </button>
+          )
+        })()}
         {isPortConnect && onOverride ? (
           <button type="button" className="text-link booking-field-override-link" onClick={onOverride}>
             Override
@@ -164,6 +183,8 @@ export default function BookingContainerRowEditor({
       </div>
     )
   }
+
+  const wkg = tracking ? portConnectContainerWeight(tracking) : null
 
   return (
     <div className={`booking-container-row${hasConflict ? ' booking-container-row--conflict' : ''}`}>
@@ -195,11 +216,23 @@ export default function BookingContainerRowEditor({
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      <span className={`booking-container-row__weight${tracking && portConnectContainerWeight(tracking) != null ? '' : ' muted'}`}>
-        {tracking && portConnectContainerWeight(tracking) != null
-          ? `${portConnectContainerWeight(tracking)!.toLocaleString()} kg`
-          : '—'}
+      <span className={`booking-container-row__weight${wkg != null ? '' : ' muted'}`}>
+        {wkg != null ? `${wkg.toLocaleString()} kg` : '—'}
       </span>
+      {(() => {
+        const f = weightFlag(wkg)
+        if (!f) return null
+        return (
+          <button
+            type="button"
+            className={`wflag ${f.className}${acknowledged ? ' wflag--ack' : ''}`}
+            title={acknowledged ? 'Acknowledged — click to un-flag' : 'Click to acknowledge'}
+            onClick={(e) => { e.stopPropagation(); onToggleAck?.() }}
+          >
+            {f.label}
+          </button>
+        )
+      })()}
       <Button
         type="button"
         variant="ghost"

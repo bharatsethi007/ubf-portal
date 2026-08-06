@@ -15,6 +15,7 @@ import {
 } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { deleteBookingRecord, setBookingArchived } from './bookingRecordApi'
+import CreditUsagePill from './CreditUsagePill'
 import BookingTasksBell from './tasks/BookingTasksBell'
 import type { PortConnectRouteContext } from './tracking/portConnectRouteContext'
 import type { BookingRecord } from './bookingRecordTypes'
@@ -123,17 +124,28 @@ export default function BookingRecordHeader({
           {booking.customer_name ?? '—'}
         </span>
         {(() => {
-          const isCod = (booking.account_terms ?? '').toLowerCase() === 'cod'
-          return isCod ? (
-            <span className="acct-ind acct-ind--cod" title="COD account">
-              <DollarSign size={13} />
-            </span>
-          ) : (
-            <span className="acct-ind acct-ind--acct" title="Account customer">
-              <Check size={13} />
-            </span>
-          )
+          const terms = (booking.account_terms ?? '').toLowerCase()
+          if (terms === 'account') {
+            return <span className="acct-ind acct-ind--acct" title="Credit account"><Check size={13} /></span>
+          }
+          if (terms === 'cod') {
+            return <span className="acct-ind acct-ind--cod" title="COD — no credit account"><DollarSign size={13} /></span>
+          }
+          return null
         })()}
+
+        <CreditUsagePill accountId={booking.account_id} />
+
+        {matched && booking.customs_payment_type ? (
+          <span
+            className={`acct-pill ${booking.customs_payment_type === 'Broker' ? 'acct-pill--broker' : 'acct-pill--deferred'}`}
+            title={booking.customs_payment_type === 'Broker'
+              ? 'Broker — UBF pays Customs; collect GST/duty before release'
+              : 'Deferred — customer pays NZ Customs directly'}
+          >
+            {booking.customs_payment_type}
+          </span>
+        ) : null}
 
         <span className="hdr-pill hdr-pill--eta" title="ETA">
           ETA <strong className="tabular-nums">{fmtBoardDate(eta)}</strong>

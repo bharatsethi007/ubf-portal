@@ -16,14 +16,14 @@ const BOOKING_SELECT = `
   swb_released, tlx_release_on_hand, doc_handover_at,
   bacc_sent, cleared, truck_booked,
   last_free_day, discharge_date, delivery_date, door_direction, pickup_peak, ubf_bay, ubf_time_slot, ubf_devanner, drop_off_depot, cartage_instructions_full, cartage_instructions_empty, empty_pickup_date, container_return_date,
-  hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides, archived_at,
-  customers!bookings_account_id_fkey ( name ),
+  hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides, weight_flags_ack, archived_at,
+  customers!bookings_account_id_fkey ( name, account_terms, customs_payment_type, credit_limit ),
   consignee:customers!bookings_consignee_account_id_fkey ( name ),
   importer:customers!bookings_importer_account_id_fkey ( name )
 `
 
 type BookingRow = Omit<BookingRecord, 'customer_name' | 'consignee_name' | 'importer_name'> & {
-  customers: { name: string | null } | null
+  customers: { name: string | null; account_terms: string | null; customs_payment_type: string | null; credit_limit: number | null } | null
   consignee: { name: string | null } | null
   importer: { name: string | null } | null
 }
@@ -41,9 +41,13 @@ export async function fetchBookingRecord(id: string): Promise<BookingRecord | nu
   return {
     ...rest,
     customer_name: customers?.name ?? null,
+    account_terms: customers?.account_terms ?? null,
+    account_credit_limit: customers?.credit_limit ?? null,
+    customs_payment_type: customers?.customs_payment_type ?? null,
     consignee_name: consignee?.name ?? null,
     importer_name: importer?.name ?? null,
     field_overrides: rest.field_overrides ?? {},
+    weight_flags_ack: rest.weight_flags_ack ?? [],
   }
 }
 

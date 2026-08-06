@@ -801,6 +801,9 @@ a:hover { text-decoration: underline; }
 .acct-pill--cod { background: #FEF0C7; color: #B54708; }
 .acct-pill--account { background: #D1FADF; color: #027A48; }
 .acct-pill--muted { background: #F2F4F7; color: #667085; }
+.acct-pill--broker { background: #FEE4E2; color: #B42318; }
+.acct-pill--deferred { background: #D1FADF; color: #027A48; }
+.acct-pill--limit { background: #EEF4FF; color: #0A2472; }
 .acct-ind { display: inline-flex; align-items: center; justify-content: center; width: 18px; height: 18px; border-radius: 50%; margin-left: 6px; }
 .acct-ind--acct { background: #D1FADF; color: #027A48; }
 .acct-ind--cod { background: #FEE4E2; color: #B42318; }
@@ -1060,6 +1063,11 @@ a:hover { text-decoration: underline; }
 .booking-container-row__type-select { width: 100%; }
 .booking-container-row__weight { font-size: 12px; }
 .booking-container-row__weight { text-align: center; justify-self: stretch; }
+.wflag { margin-left: 8px; border: 0; cursor: pointer; padding: 1px 7px; border-radius: 999px; font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .02em; line-height: 1.5; }
+.wflag--heavy { background: #FEF7C3; color: #854A0E; }
+.wflag--very  { background: #FEE4E2; color: #B42318; }
+.wflag--super { background: #B42318; color: #fff; }
+.wflag--ack { text-decoration: line-through; opacity: 0.55; }
 .booking-container-row__remove { flex-shrink: 0; }
 .booking-container-source-dot {
   width: 8px; height: 8px; border-radius: 50%; margin-top: 9px; flex-shrink: 0;

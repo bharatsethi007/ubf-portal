@@ -23,6 +23,8 @@ type Props = {
   onOverride?: (rowId: string) => void
   onRevert?: (rowId: string) => void
   resolveBusy?: boolean
+  acknowledgedWeights?: string[]
+  onToggleWeightAck?: (containerNo: string) => void
 }
 
 export default function BookingContainersField({
@@ -38,6 +40,8 @@ export default function BookingContainersField({
   onOverride,
   onRevert,
   resolveBusy,
+  acknowledgedWeights,
+  onToggleWeightAck,
 }: Props) {
   const trackingByNo = new Map(
     (trackingContainers ?? []).map((row) => [row.container_no.trim().toUpperCase(), row]),
@@ -73,6 +77,8 @@ export default function BookingContainersField({
               lastSync={lastSync}
               flashType={isFlashing?.('container_type')}
               resolveBusy={resolveBusy}
+              acknowledged={(acknowledgedWeights ?? []).includes(row.container_no.trim().toUpperCase())}
+              onToggleAck={onToggleWeightAck ? () => onToggleWeightAck(row.container_no.trim().toUpperCase()) : undefined}
             />
           ))}
         </div>

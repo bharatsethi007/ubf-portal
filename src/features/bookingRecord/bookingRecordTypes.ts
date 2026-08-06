@@ -13,6 +13,8 @@ export type BookingRecord = {
   job_no: string | null
   account_id: string | null
   account_terms: string | null
+  account_credit_limit: number | null
+  customs_payment_type: string | null
   mode: string | null
   shipment_id: number | null
   m_eta: string | null
@@ -44,6 +46,7 @@ export type BookingRecord = {
   handled_by: string | null
   erp_ref_confirmed_at: string | null
   archived_at: string | null
+  weight_flags_ack: string[]
   field_overrides?: Record<string, boolean> | null
   consignee_account_id: string | null
   importer_account_id: string | null
@@ -130,4 +133,5 @@ export type BookingRecordPatch = {
   empty_pickup_date?: string | null
   container_return_date?: string | null
   field_overrides?: Record<string, boolean>
+  weight_flags_ack?: string[]
 }
