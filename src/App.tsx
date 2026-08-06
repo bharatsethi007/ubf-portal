@@ -8,10 +8,10 @@ import { portalRoutes } from './routes/portalRoutes'
 import {
   EstimatesPage,
   NewBookingPage,
-  ReportsPage,
   SchedulesPage,
   UsersPage,
 } from './pages/stubs/StubPages'
+import ReportsPage from './pages/reports/ReportsPage'
 import CustomersPage from './pages/CustomersPage'
 import QuotesPage from './pages/quotes/QuotesPage'
 import NewQuoteSearch from './pages/quotes/NewQuoteSearch'
