@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import VolumesLanesTab from './VolumesLanesTab'
+import CustomerInsightsTab from './CustomerInsightsTab'
 
 type Tab = 'volumes' | 'customers' | 'sales'
 
@@ -12,11 +13,11 @@ export default function ReportsPage() {
       </div>
       <div className="quotes-tabs">
         <button className={`quotes-tabs__btn${tab === 'volumes' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('volumes')}>Volumes &amp; Lanes</button>
-        <button className={`quotes-tabs__btn${tab === 'customers' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('customers')}>Customers</button>
+        <button className={`quotes-tabs__btn${tab === 'customers' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('customers')}>Customer Insights</button>
         <button className={`quotes-tabs__btn${tab === 'sales' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('sales')}>Sales analytics</button>
       </div>
       {tab === 'volumes' ? <VolumesLanesTab /> : null}
-      {tab === 'customers' ? <div className="pad-inline text-muted-foreground">Coming next.</div> : null}
+      {tab === 'customers' ? <CustomerInsightsTab /> : null}
       {tab === 'sales' ? <div className="pad-inline text-muted-foreground">Coming next.</div> : null}
     </div>
   )
