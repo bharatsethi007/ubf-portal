@@ -55,15 +55,15 @@ export function Seg<T extends string>({ options, value, onChange }: { options: {
 
 export type Kpi = { label: string; value: string; delta?: string; accent?: string }
 export const KpiRail = ({ items }: { items: Kpi[] }) => (
-  <Card pad={0} style={{ display: 'flex', flexWrap: 'wrap' }}>
+  <Card pad={0} style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
     {items.map((k, i) => (
-      <div key={i} style={{ flex: '1 1 18%', minWidth: 150, padding: '16px 18px', borderLeft: i ? `1px solid ${C.line}` : 'none' }}>
+      <div key={i} style={{ minWidth: 0, padding: '16px 16px', borderLeft: i ? `1px solid ${C.line}` : 'none' }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
           <span style={{ width: 2, height: 11, background: k.accent || C.faint, borderRadius: 2 }} />
-          <span style={{ fontSize: 11.5, color: C.ink2, fontWeight: 450 }}>{k.label}</span>
+          <span style={{ fontSize: 11.5, color: C.ink2, fontWeight: 450, whiteSpace: 'nowrap' }}>{k.label}</span>
         </div>
         <div style={{ display: 'flex', alignItems: 'baseline', gap: 7 }}>
-          <span style={{ fontSize: 21, fontWeight: 600, letterSpacing: '-.01em', fontVariantNumeric: 'tabular-nums' }}>{k.value}</span>
+          <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{k.value}</span>
           {k.delta && <span style={{ fontSize: 11.5, color: C.mut, fontWeight: 500 }}>{k.delta}</span>}
         </div>
       </div>

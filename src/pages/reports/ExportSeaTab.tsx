@@ -6,13 +6,11 @@ import { usePorts } from '@/hooks/usePorts'
 import { resolvePortCountryCode } from '@/features/portal/dashboard/portalPortDisplay'
 import { NAVY, BLUE, C, FONT, glass, nf, cf, Card, Title, LegendDot, KpiRail, Th, Td, Seg, SearchSelect, type Opt } from './reportsUi'
 
-const cfKg = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', maximumFractionDigits: 2 })
-
 const PAGE_SIZE = 20
 
-type TrendRow = { month: string; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number }
-type LaneRow = { origin: string; destination: string; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number }
-type PartyRow = { customer_account_id: string | null; customer_name: string | null; consignee_name: string | null; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number }
+type TrendRow = { month: string; masters: number; houses: number; teu: number; cbm: number; revenue: number }
+type LaneRow = { origin: string; destination: string; masters: number; houses: number; teu: number; cbm: number; revenue: number }
+type PartyRow = { customer_account_id: string | null; customer_name: string | null; consignee_name: string | null; masters: number; houses: number; teu: number; cbm: number; revenue: number }
 type DestRow = { destination: string; houses: number }
 type CustomerRow = { customer_account_id: string; customer_name: string | null; houses: number }
 type ConsigneeRow = { consignee_name: string; houses: number }
@@ -33,6 +31,12 @@ const PRESETS = [
 ] as const
 type Preset = (typeof PRESETS)[number]['k'] | 'custom'
 
+const LOADS = [
+  { k: 'FCL', label: 'FCL' },
+  { k: 'LCL', label: 'LCL' },
+] as const
+type Load = (typeof LOADS)[number]['k']
+
 function rangeFor(k: Preset): { from: string; to: string } {
   const today = new Date()
   let start = addMonths(today, -12)
@@ -43,36 +47,12 @@ function rangeFor(k: Preset): { from: string; to: string } {
   return { from: isoDate(start), to: isoDate(today) }
 }
 
-function ChartTip({ active, payload, label }: any) {
-  if (!active || !payload?.length) return null
-  return (
-    <div style={{ ...glass, background: 'rgba(255,255,255,.92)', padding: '10px 12px', borderRadius: 11 }}>
-      <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 7 }}>{label}</div>
-      {payload.map((p: any, i: number) => (
-        <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginTop: i ? 5 : 0 }}>
-          <span style={{ width: 7, height: 7, borderRadius: 99, background: p.color ?? p.stroke ?? p.fill }} />
-          <span style={{ color: C.ink2 }}>{p.name}</span>
-          <span style={{ marginLeft: 'auto', fontWeight: 600 }}>
-            {p.dataKey === 'revenue' ? cf.format(num(p.value)) : nf.format(num(p.value)) + ' kg'}
-          </span>
-        </div>
-      ))}
-    </div>
-  )
-}
-
-const Field = ({ label, children }: { label: string; children: any }) => (
-  <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
-    <span style={{ fontSize: 11.5, color: C.ink2 }}>{label}</span>
-    {children}
-  </div>
-)
-
-export default function ExportAirTab() {
+export default function ExportSeaTab() {
   const initial = rangeFor('1y')
   const [from, setFrom] = useState(initial.from)
   const [to, setTo] = useState(initial.to)
   const [preset, setPreset] = useState<Preset>('1y')
+  const [load, setLoad] = useState<Load>('FCL')
   const [destination, setDestination] = useState<string | null>(null)
   const [customer, setCustomer] = useState<string | null>(null)
   const [consignee, setConsignee] = useState<string | null>(null)
@@ -90,22 +70,29 @@ export default function ExportAirTab() {
 
   const { ports } = usePorts()
   const flag = (code: string) => (
-    <span className={`fi fi-${resolvePortCountryCode(code, 'air', ports)}`} aria-hidden style={{ marginRight: 6, borderRadius: 2 }} />
+    <span className={`fi fi-${resolvePortCountryCode(code, 'sea', ports)}`} aria-hidden style={{ marginRight: 6, borderRadius: 2 }} />
   )
+
+  // FCL is measured in TEU, LCL in CBM. Only the active metric is shown.
+  const metric: 'teu' | 'cbm' = load === 'LCL' ? 'cbm' : 'teu'
+  const metricLabel = metric === 'teu' ? 'TEU' : 'CBM (m³)'
+  const metricCol = metric === 'teu' ? 'TEU' : 'CBM'
+  const metricVal = (r: { teu: number; cbm: number }) => (metric === 'teu' ? num(r.teu) : num(r.cbm))
+  const p_load_type = load
 
   function pickPreset(k: Preset) {
     const r = rangeFor(k)
     setFrom(r.from); setTo(r.to); setPreset(k)
   }
 
-  // dropdown option lists — depend only on the date range
+  // dropdown option lists — depend on date range + load type
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       const [de, cu, co] = await Promise.all([
-        supabase.rpc('report_expair_destinations', { p_from: from, p_to: to }),
-        supabase.rpc('report_expair_customers', { p_from: from, p_to: to }),
-        supabase.rpc('report_expair_consignees', { p_from: from, p_to: to }),
+        supabase.rpc('report_expsea_destinations', { p_from: from, p_to: to, p_load_type }),
+        supabase.rpc('report_expsea_customers', { p_from: from, p_to: to, p_load_type }),
+        supabase.rpc('report_expsea_consignees', { p_from: from, p_to: to, p_load_type }),
       ])
       if (cancelled) return
       setDests((de.data ?? []) as DestRow[])
@@ -113,18 +100,18 @@ export default function ExportAirTab() {
       setConsignees((co.data ?? []) as ConsigneeRow[])
     })()
     return () => { cancelled = true }
-  }, [from, to])
+  }, [from, to, p_load_type])
 
   // report data — depends on all filters
   useEffect(() => {
     let cancelled = false
     ;(async () => {
       setLoading(true); setErr(null)
-      const args = { p_from: from, p_to: to, p_destination: destination, p_customer: customer, p_consignee: consignee }
+      const args = { p_from: from, p_to: to, p_destination: destination, p_customer: customer, p_consignee: consignee, p_load_type }
       const [tr, ln, pa] = await Promise.all([
-        supabase.rpc('report_expair_trend', args),
-        supabase.rpc('report_expair_lanes', { ...args, p_limit: 300 }),
-        supabase.rpc('report_expair_parties', { ...args, p_limit: 300 }),
+        supabase.rpc('report_expsea_trend', args),
+        supabase.rpc('report_expsea_lanes', { ...args, p_limit: 300 }),
+        supabase.rpc('report_expsea_parties', { ...args, p_limit: 300 }),
       ])
       if (cancelled) return
       const e = tr.error || ln.error || pa.error
@@ -137,19 +124,20 @@ export default function ExportAirTab() {
       setLoading(false); setLanePage(1); setPartyPage(1)
     })()
     return () => { cancelled = true }
-  }, [from, to, destination, customer, consignee])
+  }, [from, to, destination, customer, consignee, p_load_type])
 
   const totals = useMemo(() => {
     const masters = trend.reduce((s, r) => s + num(r.masters), 0)
     const houses = trend.reduce((s, r) => s + num(r.houses), 0)
-    const kg = trend.reduce((s, r) => s + num(r.chargeable_kg), 0)
+    const teu = trend.reduce((s, r) => s + num(r.teu), 0)
+    const cbm = trend.reduce((s, r) => s + num(r.cbm), 0)
     const rev = trend.reduce((s, r) => s + num(r.revenue), 0)
-    return { masters, houses, kg, rev, avg: houses ? rev / houses : 0 }
+    return { masters, houses, teu, cbm, rev, avg: houses ? rev / houses : 0, avgTeu: teu ? rev / teu : 0, avgCbm: cbm ? rev / cbm : 0 }
   }, [trend])
 
   const chartData = useMemo(
-    () => trend.map((r) => ({ label: monthLabel(r.month), chargeable_kg: num(r.chargeable_kg), revenue: num(r.revenue) })),
-    [trend],
+    () => trend.map((r) => ({ label: monthLabel(r.month), metric: metric === 'teu' ? num(r.teu) : num(r.cbm), revenue: num(r.revenue) })),
+    [trend, metric],
   )
 
   const destOpts: Opt[] = useMemo(() => dests.map((d) => ({ value: d.destination, label: `${d.destination} (${nf.format(num(d.houses))})` })), [dests])
@@ -158,6 +146,33 @@ export default function ExportAirTab() {
 
   const laneSlice = lanes.slice((lanePage - 1) * PAGE_SIZE, lanePage * PAGE_SIZE)
   const partySlice = parties.slice((partyPage - 1) * PAGE_SIZE, partyPage * PAGE_SIZE)
+
+  function ChartTip({ active, payload, label }: any) {
+    if (!active || !payload?.length) return null
+    return (
+      <div style={{ ...glass, background: 'rgba(255,255,255,.92)', padding: '10px 12px', borderRadius: 11 }}>
+        <div style={{ fontSize: 12, fontWeight: 600, marginBottom: 7 }}>{label}</div>
+        {payload.map((p: any, i: number) => (
+          <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, marginTop: i ? 5 : 0 }}>
+            <span style={{ width: 7, height: 7, borderRadius: 99, background: p.color ?? p.stroke ?? p.fill }} />
+            <span style={{ color: C.ink2 }}>{p.name}</span>
+            <span style={{ marginLeft: 'auto', fontWeight: 600 }}>
+              {p.dataKey === 'revenue'
+                ? cf.format(num(p.value))
+                : nf.format(num(p.value)) + (metric === 'teu' ? ' TEU' : ' m³')}
+            </span>
+          </div>
+        ))}
+      </div>
+    )
+  }
+
+  const Field = ({ label, children }: { label: string; children: any }) => (
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 5 }}>
+      <span style={{ fontSize: 11.5, color: C.ink2 }}>{label}</span>
+      {children}
+    </div>
+  )
 
   const dateInput: CSSProperties = {
     border: `1px solid ${C.border}`, borderRadius: 9, padding: '7px 10px',
@@ -171,7 +186,10 @@ export default function ExportAirTab() {
       <Card style={{ position: 'relative', zIndex: 40 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
-            <Seg options={PRESETS as any} value={preset as any} onChange={(k) => pickPreset(k as Preset)} />
+            <div style={{ display: 'flex', alignItems: 'center', gap: 12, flexWrap: 'wrap' }}>
+              <Seg options={PRESETS as any} value={preset as any} onChange={(k) => pickPreset(k as Preset)} />
+              <Seg options={LOADS as any} value={load} onChange={(k) => setLoad(k as Load)} />
+            </div>
             {loading && <span style={{ fontSize: 12, color: C.mut }}>Loading…</span>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
@@ -190,15 +208,14 @@ export default function ExportAirTab() {
         items={[
           { label: 'Master bills', value: nf.format(totals.masters), accent: NAVY },
           { label: 'House bills', value: nf.format(totals.houses), accent: NAVY },
-          { label: 'Chargeable kg', value: nf.format(Math.round(totals.kg)) },
+          { label: metricCol, value: nf.format(Math.round(metric === 'teu' ? totals.teu : totals.cbm)), accent: NAVY },
           { label: 'Revenue', value: cf.format(totals.rev) },
-          { label: 'Avg / house', value: cf.format(totals.avg) },
-          { label: 'Avg / kg', value: totals.kg ? cfKg.format(totals.rev / totals.kg) : '—' },
+          { label: `Avg / ${metricCol}`, value: cf.format(metric === 'teu' ? totals.avgTeu : totals.avgCbm) },
         ]}
       />
 
       <Card>
-        <Title right={<div style={{ display: 'flex', gap: 14 }}><LegendDot c={NAVY} t="Chargeable kg" /><LegendDot c={BLUE} t="Revenue" /></div>}>
+        <Title right={<div style={{ display: 'flex', gap: 14 }}><LegendDot c={NAVY} t={metricLabel} /><LegendDot c={BLUE} t="Revenue" /></div>}>
           Monthly trend
         </Title>
         <ResponsiveContainer width="100%" height={260}>
@@ -208,7 +225,7 @@ export default function ExportAirTab() {
             <YAxis yAxisId="l" tick={{ fontSize: 11, fill: C.mut }} axisLine={false} tickLine={false} tickFormatter={(v) => nf.format(Number(v))} />
             <YAxis yAxisId="r" orientation="right" tick={{ fontSize: 11, fill: C.mut }} axisLine={false} tickLine={false} tickFormatter={(v) => '$' + nf.format(Number(v))} />
             <Tooltip content={<ChartTip />} cursor={{ stroke: C.border }} />
-            <Line yAxisId="l" type="monotone" dataKey="chargeable_kg" name="Chargeable kg" stroke={NAVY} strokeWidth={2.2} dot={false} activeDot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: NAVY }} />
+            <Line yAxisId="l" type="monotone" dataKey="metric" name={metricLabel} stroke={NAVY} strokeWidth={2.2} dot={false} activeDot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: NAVY }} />
             <Line yAxisId="r" type="monotone" dataKey="revenue" name="Revenue" stroke={BLUE} strokeWidth={2.2} dot={false} activeDot={{ r: 4, fill: '#fff', strokeWidth: 2, stroke: BLUE }} />
           </LineChart>
         </ResponsiveContainer>
@@ -219,15 +236,16 @@ export default function ExportAirTab() {
           <div style={{ padding: '16px 18px 0' }}><span style={{ fontSize: 14, fontWeight: 600 }}>Lanes</span></div>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: 66 }} /><col /><col style={{ width: 62 }} /><col style={{ width: 62 }} /><col style={{ width: 84 }} /><col style={{ width: 104 }} />
+              <col style={{ width: 98 }} /><col style={{ width: 98 }} /><col style={{ width: 60 }} /><col style={{ width: 60 }} /><col style={{ width: 68 }} /><col style={{ width: 104 }} />
             </colgroup>
-            <thead><tr><Th>Origin</Th><Th>Dest</Th><Th right>Master</Th><Th right>House</Th><Th right>Chg kg</Th><Th right>Revenue</Th></tr></thead>
+            <thead><tr><Th>Origin</Th><Th>Dest</Th><Th right>Master</Th><Th right>House</Th><Th right>{metricCol}</Th><Th right>Revenue</Th></tr></thead>
             <tbody>
               {laneSlice.map((r, i) => (
                 <tr key={`${r.origin}-${r.destination}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
                   <Td strong>{flag(r.origin)}{r.origin}</Td><Td>{flag(r.destination)}{r.destination}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
-                  <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td>
+                  <Td right strong>{nf.format(Math.round(metricVal(r)))}</Td>
+                  <Td right strong>{cf.format(num(r.revenue))}</Td>
                 </tr>
               ))}
               {!loading && lanes.length === 0 && (
@@ -244,16 +262,17 @@ export default function ExportAirTab() {
           <div style={{ padding: '16px 18px 0' }}><span style={{ fontSize: 14, fontWeight: 600 }}>Customers / Consignees</span></div>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col /><col /><col style={{ width: 62 }} /><col style={{ width: 62 }} /><col style={{ width: 84 }} /><col style={{ width: 104 }} />
+              <col /><col /><col style={{ width: 60 }} /><col style={{ width: 60 }} /><col style={{ width: 68 }} /><col style={{ width: 104 }} />
             </colgroup>
-            <thead><tr><Th>Customer</Th><Th>Consignee</Th><Th right>Master</Th><Th right>House</Th><Th right>Chg kg</Th><Th right>Revenue</Th></tr></thead>
+            <thead><tr><Th>Customer</Th><Th>Consignee</Th><Th right>Master</Th><Th right>House</Th><Th right>{metricCol}</Th><Th right>Revenue</Th></tr></thead>
             <tbody>
               {partySlice.map((r, i) => (
                 <tr key={`${r.customer_account_id}-${r.consignee_name}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
                   <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || '—'}</Td>
                   <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || '—'}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
-                  <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td>
+                  <Td right strong>{nf.format(Math.round(metricVal(r)))}</Td>
+                  <Td right strong>{cf.format(num(r.revenue))}</Td>
                 </tr>
               ))}
               {!loading && parties.length === 0 && (
