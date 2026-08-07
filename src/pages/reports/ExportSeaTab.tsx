@@ -4,13 +4,13 @@ import { supabase } from '@/supabase'
 import Pagination from '@/components/Pagination'
 import { usePorts } from '@/hooks/usePorts'
 import { resolvePortCountryCode } from '@/features/portal/dashboard/portalPortDisplay'
-import { NAVY, BLUE, C, FONT, glass, nf, cf, Card, Title, LegendDot, KpiRail, Th, Td, Seg, SearchSelect, type Opt } from './reportsUi'
+import { NAVY, ORANGE, BLUE, C, FONT, glass, nf, cf, Card, Title, LegendDot, KpiRail, Th, Td, Seg, SearchSelect, type Opt } from './reportsUi'
 
 const PAGE_SIZE = 20
 
-type TrendRow = { month: string; masters: number; houses: number; teu: number; cbm: number; revenue: number }
-type LaneRow = { origin: string; destination: string; masters: number; houses: number; teu: number; cbm: number; revenue: number }
-type PartyRow = { customer_account_id: string | null; customer_name: string | null; consignee_name: string | null; masters: number; houses: number; teu: number; cbm: number; revenue: number }
+type TrendRow = { month: string; masters: number; houses: number; teu: number; cbm: number; revenue: number; gross_profit: number }
+type LaneRow = { origin: string; destination: string; masters: number; houses: number; teu: number; cbm: number; revenue: number; gross_profit: number }
+type PartyRow = { customer_account_id: string | null; customer_name: string | null; consignee_name: string | null; masters: number; houses: number; teu: number; cbm: number; revenue: number; gross_profit: number }
 type DestRow = { destination: string; houses: number }
 type CustomerRow = { customer_account_id: string; customer_name: string | null; houses: number }
 type ConsigneeRow = { consignee_name: string; houses: number }
@@ -132,7 +132,9 @@ export default function ExportSeaTab() {
     const teu = trend.reduce((s, r) => s + num(r.teu), 0)
     const cbm = trend.reduce((s, r) => s + num(r.cbm), 0)
     const rev = trend.reduce((s, r) => s + num(r.revenue), 0)
-    return { masters, houses, teu, cbm, rev, avg: houses ? rev / houses : 0, avgTeu: teu ? rev / teu : 0, avgCbm: cbm ? rev / cbm : 0 }
+    const gp = trend.reduce((s, r) => s + num(r.gross_profit), 0)
+    return { masters, houses, teu, cbm, rev, avg: houses ? rev / houses : 0, avgTeu: teu ? rev / teu : 0, avgCbm: cbm ? rev / cbm : 0,
+             gp, gpTeu: teu ? gp / teu : 0, gpCbm: cbm ? gp / cbm : 0, margin: rev ? gp / rev * 100 : 0 }
   }, [trend])
 
   const chartData = useMemo(
@@ -210,7 +212,8 @@ export default function ExportSeaTab() {
           { label: 'House bills', value: nf.format(totals.houses), accent: NAVY },
           { label: metricCol, value: nf.format(Math.round(metric === 'teu' ? totals.teu : totals.cbm)), accent: NAVY },
           { label: 'Revenue', value: cf.format(totals.rev) },
-          { label: `Avg / ${metricCol}`, value: cf.format(metric === 'teu' ? totals.avgTeu : totals.avgCbm) },
+          { label: 'Gross profit', value: cf.format(totals.gp), delta: `${totals.margin.toFixed(1)}% margin`, accent: ORANGE },
+          { label: `Avg / ${metricCol}`, value: cf.format(metric === 'teu' ? totals.avgTeu : totals.avgCbm), sub: `GP ${cf.format(metric === 'teu' ? totals.gpTeu : totals.gpCbm)}` },
         ]}
       />
 
@@ -236,20 +239,20 @@ export default function ExportSeaTab() {
           <div style={{ padding: '16px 18px 0' }}><span style={{ fontSize: 14, fontWeight: 600 }}>Lanes</span></div>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: 98 }} /><col style={{ width: 98 }} /><col style={{ width: 60 }} /><col style={{ width: 60 }} /><col style={{ width: 68 }} /><col style={{ width: 104 }} />
+              <col style={{ width: 98 }} /><col style={{ width: 98 }} /><col style={{ width: 60 }} /><col style={{ width: 60 }} /><col style={{ width: 68 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
             </colgroup>
-            <thead><tr><Th>Origin</Th><Th>Dest</Th><Th right>Master</Th><Th right>House</Th><Th right>{metricCol}</Th><Th right>Revenue</Th></tr></thead>
+            <thead><tr><Th>Origin</Th><Th>Dest</Th><Th right>Master</Th><Th right>House</Th><Th right>{metricCol}</Th><Th right>Revenue</Th><Th right>GP</Th></tr></thead>
             <tbody>
               {laneSlice.map((r, i) => (
                 <tr key={`${r.origin}-${r.destination}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
                   <Td strong>{flag(r.origin)}{r.origin}</Td><Td>{flag(r.destination)}{r.destination}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
                   <Td right strong>{nf.format(Math.round(metricVal(r)))}</Td>
-                  <Td right strong>{cf.format(num(r.revenue))}</Td>
+                  <Td right strong>{cf.format(num(r.revenue))}</Td><Td right>{cf.format(num(r.gross_profit))}</Td>
                 </tr>
               ))}
               {!loading && lanes.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No lanes in range.</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No lanes in range.</td></tr>
               )}
             </tbody>
           </table>
@@ -262,9 +265,9 @@ export default function ExportSeaTab() {
           <div style={{ padding: '16px 18px 0' }}><span style={{ fontSize: 14, fontWeight: 600 }}>Customers / Consignees</span></div>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col /><col /><col style={{ width: 60 }} /><col style={{ width: 60 }} /><col style={{ width: 68 }} /><col style={{ width: 104 }} />
+              <col /><col /><col style={{ width: 60 }} /><col style={{ width: 60 }} /><col style={{ width: 68 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
             </colgroup>
-            <thead><tr><Th>Customer</Th><Th>Consignee</Th><Th right>Master</Th><Th right>House</Th><Th right>{metricCol}</Th><Th right>Revenue</Th></tr></thead>
+            <thead><tr><Th>Customer</Th><Th>Consignee</Th><Th right>Master</Th><Th right>House</Th><Th right>{metricCol}</Th><Th right>Revenue</Th><Th right>GP</Th></tr></thead>
             <tbody>
               {partySlice.map((r, i) => (
                 <tr key={`${r.customer_account_id}-${r.consignee_name}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
@@ -272,11 +275,11 @@ export default function ExportSeaTab() {
                   <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || '—'}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
                   <Td right strong>{nf.format(Math.round(metricVal(r)))}</Td>
-                  <Td right strong>{cf.format(num(r.revenue))}</Td>
+                  <Td right strong>{cf.format(num(r.revenue))}</Td><Td right>{cf.format(num(r.gross_profit))}</Td>
                 </tr>
               ))}
               {!loading && parties.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No parties in range.</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No parties in range.</td></tr>
               )}
             </tbody>
           </table>

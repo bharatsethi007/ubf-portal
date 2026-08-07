@@ -4,15 +4,15 @@ import { supabase } from '@/supabase'
 import Pagination from '@/components/Pagination'
 import { usePorts } from '@/hooks/usePorts'
 import { resolvePortCountryCode } from '@/features/portal/dashboard/portalPortDisplay'
-import { NAVY, BLUE, C, FONT, glass, nf, cf, Card, Title, LegendDot, KpiRail, Th, Td, Seg, SearchSelect, type Opt } from './reportsUi'
+import { NAVY, ORANGE, BLUE, C, FONT, glass, nf, cf, Card, Title, LegendDot, KpiRail, Th, Td, Seg, SearchSelect, type Opt } from './reportsUi'
 
 const cfKg = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', maximumFractionDigits: 2 })
 
 const PAGE_SIZE = 20
 
-type TrendRow = { month: string; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number }
-type LaneRow = { origin: string; destination: string; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number }
-type PartyRow = { customer_account_id: string | null; customer_name: string | null; consignee_name: string | null; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number }
+type TrendRow = { month: string; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number; gross_profit: number }
+type LaneRow = { origin: string; destination: string; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number; gross_profit: number }
+type PartyRow = { customer_account_id: string | null; customer_name: string | null; consignee_name: string | null; masters: number; houses: number; gross_kg: number; chargeable_kg: number; revenue: number; gross_profit: number }
 type DestRow = { destination: string; houses: number }
 type CustomerRow = { customer_account_id: string; customer_name: string | null; houses: number }
 type ConsigneeRow = { consignee_name: string; houses: number }
@@ -144,7 +144,9 @@ export default function ExportAirTab() {
     const houses = trend.reduce((s, r) => s + num(r.houses), 0)
     const kg = trend.reduce((s, r) => s + num(r.chargeable_kg), 0)
     const rev = trend.reduce((s, r) => s + num(r.revenue), 0)
-    return { masters, houses, kg, rev, avg: houses ? rev / houses : 0 }
+    const gp = trend.reduce((s, r) => s + num(r.gross_profit), 0)
+    return { masters, houses, kg, rev, avg: houses ? rev / houses : 0,
+             gp, gpHouse: houses ? gp / houses : 0, gpKg: kg ? gp / kg : 0, margin: rev ? gp / rev * 100 : 0 }
   }, [trend])
 
   const chartData = useMemo(
@@ -192,8 +194,9 @@ export default function ExportAirTab() {
           { label: 'House bills', value: nf.format(totals.houses), accent: NAVY },
           { label: 'Chargeable kg', value: nf.format(Math.round(totals.kg)) },
           { label: 'Revenue', value: cf.format(totals.rev) },
-          { label: 'Avg / house', value: cf.format(totals.avg) },
-          { label: 'Avg / kg', value: totals.kg ? cfKg.format(totals.rev / totals.kg) : '—' },
+          { label: 'Gross profit', value: cf.format(totals.gp), delta: `${totals.margin.toFixed(1)}% margin`, accent: ORANGE },
+          { label: 'Avg / house', value: cf.format(totals.avg), sub: `GP ${cf.format(totals.gpHouse)}` },
+          { label: 'Avg / kg', value: totals.kg ? cfKg.format(totals.rev / totals.kg) : '—', sub: totals.kg ? `GP ${cfKg.format(totals.gpKg)}` : undefined },
         ]}
       />
 
@@ -219,19 +222,19 @@ export default function ExportAirTab() {
           <div style={{ padding: '16px 18px 0' }}><span style={{ fontSize: 14, fontWeight: 600 }}>Lanes</span></div>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col style={{ width: 66 }} /><col /><col style={{ width: 62 }} /><col style={{ width: 62 }} /><col style={{ width: 84 }} /><col style={{ width: 104 }} />
+              <col style={{ width: 66 }} /><col /><col style={{ width: 62 }} /><col style={{ width: 62 }} /><col style={{ width: 84 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
             </colgroup>
-            <thead><tr><Th>Origin</Th><Th>Dest</Th><Th right>Master</Th><Th right>House</Th><Th right>Chg kg</Th><Th right>Revenue</Th></tr></thead>
+            <thead><tr><Th>Origin</Th><Th>Dest</Th><Th right>Master</Th><Th right>House</Th><Th right>Chg kg</Th><Th right>Revenue</Th><Th right>GP</Th></tr></thead>
             <tbody>
               {laneSlice.map((r, i) => (
                 <tr key={`${r.origin}-${r.destination}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
                   <Td strong>{flag(r.origin)}{r.origin}</Td><Td>{flag(r.destination)}{r.destination}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
-                  <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td>
+                  <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td><Td right>{cf.format(num(r.gross_profit))}</Td>
                 </tr>
               ))}
               {!loading && lanes.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No lanes in range.</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No lanes in range.</td></tr>
               )}
             </tbody>
           </table>
@@ -244,20 +247,20 @@ export default function ExportAirTab() {
           <div style={{ padding: '16px 18px 0' }}><span style={{ fontSize: 14, fontWeight: 600 }}>Customers / Consignees</span></div>
           <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
             <colgroup>
-              <col /><col /><col style={{ width: 62 }} /><col style={{ width: 62 }} /><col style={{ width: 84 }} /><col style={{ width: 104 }} />
+              <col /><col /><col style={{ width: 62 }} /><col style={{ width: 62 }} /><col style={{ width: 84 }} /><col style={{ width: 90 }} /><col style={{ width: 90 }} />
             </colgroup>
-            <thead><tr><Th>Customer</Th><Th>Consignee</Th><Th right>Master</Th><Th right>House</Th><Th right>Chg kg</Th><Th right>Revenue</Th></tr></thead>
+            <thead><tr><Th>Customer</Th><Th>Consignee</Th><Th right>Master</Th><Th right>House</Th><Th right>Chg kg</Th><Th right>Revenue</Th><Th right>GP</Th></tr></thead>
             <tbody>
               {partySlice.map((r, i) => (
                 <tr key={`${r.customer_account_id}-${r.consignee_name}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
                   <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || '—'}</Td>
                   <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || '—'}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
-                  <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td>
+                  <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td><Td right>{cf.format(num(r.gross_profit))}</Td>
                 </tr>
               ))}
               {!loading && parties.length === 0 && (
-                <tr><td colSpan={6} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No parties in range.</td></tr>
+                <tr><td colSpan={7} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No parties in range.</td></tr>
               )}
             </tbody>
           </table>

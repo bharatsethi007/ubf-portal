@@ -53,7 +53,7 @@ export function Seg<T extends string>({ options, value, onChange }: { options: {
   )
 }
 
-export type Kpi = { label: string; value: string; delta?: string; accent?: string }
+export type Kpi = { label: string; value: string; delta?: string; accent?: string; sub?: string }
 export const KpiRail = ({ items }: { items: Kpi[] }) => (
   <Card pad={0} style={{ display: 'grid', gridTemplateColumns: `repeat(${items.length}, minmax(0, 1fr))` }}>
     {items.map((k, i) => (
@@ -66,6 +66,7 @@ export const KpiRail = ({ items }: { items: Kpi[] }) => (
           <span style={{ fontSize: 20, fontWeight: 600, letterSpacing: '-.01em', fontVariantNumeric: 'tabular-nums', whiteSpace: 'nowrap' }}>{k.value}</span>
           {k.delta && <span style={{ fontSize: 11.5, color: C.mut, fontWeight: 500 }}>{k.delta}</span>}
         </div>
+        {k.sub && <div style={{ fontSize: 11, color: C.mut, marginTop: 4, whiteSpace: 'nowrap' }}>{k.sub}</div>}
       </div>
     ))}
   </Card>
