@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import ExportAirTab from './ExportAirTab'
 import ExportSeaTab from './ExportSeaTab'
+import ImportAirTab from './ImportAirTab'
 import { Seg } from './reportsUi'
 
 type Mode = 'expair' | 'expsea' | 'impair' | 'impsea'
@@ -23,7 +24,8 @@ export default function VolumesLanesTab() {
       </div>
       {mode === 'expair' && <ExportAirTab />}
       {mode === 'expsea' && <ExportSeaTab />}
-      {(mode === 'impair' || mode === 'impsea') && (
+      {mode === 'impair' && <ImportAirTab />}
+      {mode === 'impsea' && (
         <div className="pad-inline text-muted-foreground" style={{ padding: '28px 4px' }}>Coming next.</div>
       )}
     </div>
