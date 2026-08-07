@@ -12,6 +12,8 @@ export type ImportSeaFilterState = {
   delivered: TriFilter
   onHold: TriFilter
   containerConflicts: TriFilter
+  invApproved: TriFilter
+  invSent: TriFilter
   etaFrom: string
   etaTo: string
 }
@@ -25,6 +27,8 @@ export const EMPTY_IMPORT_SEA_FILTERS: ImportSeaFilterState = {
   delivered: '',
   onHold: '',
   containerConflicts: '',
+  invApproved: '',
+  invSent: '',
   etaFrom: '',
   etaTo: '',
 }
@@ -77,6 +81,8 @@ export function applyImportSeaFilters(
     if (filters.containerConflicts === 'no' && countUnresolvedContainerConflicts(row.containers) > 0) {
       return false
     }
+    if (!matchesTri(Boolean(row.inv_approved), filters.invApproved)) return false
+    if (!matchesTri(Boolean(row.inv_sent), filters.invSent)) return false
     if (!inEtaRange(row.eta, filters.etaFrom, filters.etaTo)) return false
     return true
   })

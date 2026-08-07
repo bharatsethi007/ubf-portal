@@ -1,4 +1,5 @@
 import { Archive } from 'lucide-react'
+import { Switch } from '@/components/ui/switch'
 import { SkeletonBusy } from '@/components/ui/skeleton'
 import { TooltipProvider } from '@/components/ui/tooltip'
 import BoardRowCheckbox, {
@@ -20,7 +21,7 @@ import ImportSeaOpsStatus from './ImportSeaOpsStatus'
 import type { ImportSeaBoardCellKey } from './importSeaRowDiff'
 import type { ImportSeaRow } from './types'
 
-const COL_SPAN = 14
+const COL_SPAN = 16
 
 type SortableThProps = {
   label: string
@@ -81,6 +82,7 @@ type Props = {
   isRowRefreshing: (id: string) => boolean
   rowRefreshCooldownSec: (id: string) => number
   isCellFlashing: (rowId: string, key: ImportSeaBoardCellKey) => boolean
+  onToggleInvoice: (id: string, key: 'inv_approved' | 'inv_sent', value: boolean) => void
 }
 
 function flashClass(active: boolean): string {
@@ -101,6 +103,7 @@ export default function ImportSeaBoardTable({
   isRowRefreshing,
   rowRefreshCooldownSec,
   isCellFlashing,
+  onToggleInvoice,
 }: Props) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
@@ -123,7 +126,7 @@ export default function ImportSeaBoardTable({
                     onChange={onToggleAllVisible}
                   />
                 </th>
-                <SortableTh label="Booking ref" columnKey="booking_ref" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
+                <SortableTh label="Booking ref" columnKey="booking_ref" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-bref" />
                 <SortableTh label="Job #" columnKey="job_no" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-job" />
                 <SortableTh label="Client" columnKey="customer_name" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-client" />
                 <SortableTh label="ETA" columnKey="eta" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
@@ -135,6 +138,8 @@ export default function ImportSeaBoardTable({
                 <SortableTh label="Return" columnKey="container_return_date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortableTh label="Hold" columnKey="hold_code" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <th>Status</th>
+                <th className="import-sea-col-inv">Inv appr</th>
+                <th className="import-sea-col-inv">Inv sent</th>
                 <th className="import-sea-col-refresh" aria-label="Refresh" />
               </tr>
             </thead>
@@ -165,7 +170,7 @@ export default function ImportSeaBoardTable({
                           onToggle={(shiftKey) => onToggleRow(row.id, index, shiftKey)}
                         />
                       </BoardCheckboxCell>
-                      <td className="mono">
+                      <td className="mono import-sea-col-bref">
                         <BookingRefCell
                           bookingId={row.id}
                           value={row.booking_ref}
@@ -252,6 +257,20 @@ export default function ImportSeaBoardTable({
                       </td>
                       <td><HoldCell label={row.hold_label} /></td>
                       <td><ImportSeaOpsStatus row={row} /></td>
+                      <td className="import-sea-col-inv" onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                          checked={Boolean(row.inv_approved)}
+                          onCheckedChange={(v) => onToggleInvoice(row.id, 'inv_approved', v)}
+                          aria-label="Invoice passed for approval"
+                        />
+                      </td>
+                      <td className="import-sea-col-inv" onClick={(e) => e.stopPropagation()}>
+                        <Switch
+                          checked={Boolean(row.inv_sent)}
+                          onCheckedChange={(v) => onToggleInvoice(row.id, 'inv_sent', v)}
+                          aria-label="Invoice sent to customer"
+                        />
+                      </td>
                       <td className="import-sea-col-refresh">
                         <ImportSeaRowRefreshCell
                           row={row}

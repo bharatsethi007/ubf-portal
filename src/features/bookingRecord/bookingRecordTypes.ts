@@ -27,6 +27,8 @@ export type BookingRecord = {
   bacc_sent: boolean | null
   cleared: boolean | null
   truck_booked: boolean | null
+  inv_approved: boolean | null
+  inv_sent: boolean | null
   last_free_day: string | null
   discharge_date: string | null
   delivery_date: string | null
@@ -119,6 +121,8 @@ export type BookingRecordPatch = {
   bacc_sent?: boolean
   cleared?: boolean
   truck_booked?: boolean
+  inv_approved?: boolean
+  inv_sent?: boolean
   last_free_day?: string | null
   discharge_date?: string | null
   delivery_date?: string | null

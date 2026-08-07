@@ -33,6 +33,8 @@ export type ImportSeaRow = {
   bacc_sent: boolean | null
   cleared: boolean | null
   truck_booked: boolean | null
+  inv_approved: boolean | null
+  inv_sent: boolean | null
   port_cleared: boolean | null
   line_released: boolean | null
   port_clearance_cancelled: boolean | null
@@ -73,6 +75,8 @@ export type ImportSeaBookingPatch = {
   bacc_sent?: boolean
   cleared?: boolean
   truck_booked?: boolean
+  inv_approved?: boolean
+  inv_sent?: boolean
   last_free_day?: string | null
   discharge_date?: string | null
   delivery_date?: string | null

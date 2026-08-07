@@ -13,6 +13,8 @@ function normalizeImportSeaRow(row: ImportSeaRow): ImportSeaRow {
   return {
     ...row,
     containers: row.containers ?? [],
+    inv_approved: row.inv_approved ?? false,
+    inv_sent: row.inv_sent ?? false,
     port_cleared: row.port_cleared ?? false,
     line_released: row.line_released ?? false,
     port_clearance_cancelled: row.port_clearance_cancelled ?? false,

@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { toast } from 'sonner'
 
 import { TooltipProvider } from '@/components/ui/tooltip'
 
@@ -21,6 +22,7 @@ import { useImportSeaBoardBulkActions } from './useImportSeaBoardBulkActions'
 
 import { useImportSeaRowRefresh } from './useImportSeaRowRefresh'
 
+import { updateImportSeaBooking } from './importSeaApi'
 import { useImportSeaBoard } from './useImportSeaBoard'
 
 import { useImportSeaFilters } from './useImportSeaFilters'
@@ -33,7 +35,7 @@ export default function ImportSeaBoardPage() {
   const [createOpen, setCreateOpen] = useState(false)
   const [showArchived, setShowArchived] = useState(false)
 
-  const { rows, loading, error, reload, replaceRow } = useImportSeaBoard(showArchived)
+  const { rows, loading, error, reload, replaceRow, patchRow } = useImportSeaBoard(showArchived)
 
   const { filters, setFilter, clearFilters, moreOpen, setMoreOpen } = useImportSeaFilters()
 
@@ -66,6 +68,20 @@ export default function ImportSeaBoardPage() {
 
 
   const { refreshRow, isRefreshing, isFlashing, refreshCooldownSec } = useImportSeaRowRefresh(replaceRow)
+
+  async function handleToggleInvoice(
+    id: string,
+    key: 'inv_approved' | 'inv_sent',
+    value: boolean,
+  ) {
+    patchRow(id, { [key]: value })
+    try {
+      await updateImportSeaBooking(id, { [key]: value })
+    } catch {
+      patchRow(id, { [key]: !value })
+      toast.error('Could not update invoice status')
+    }
+  }
 
 
 
@@ -162,6 +178,7 @@ export default function ImportSeaBoardPage() {
         rowRefreshCooldownSec={refreshCooldownSec}
 
         isCellFlashing={isFlashing}
+        onToggleInvoice={handleToggleInvoice}
 
       />
 

@@ -105,6 +105,28 @@ export default function ImportSeaFilters({
       </datalist>
 
       <div className="import-sea-toolbar-end">
+        <button
+          type="button"
+          className="pagination__btn"
+          onClick={() => setFilter('invApproved', filters.invApproved === 'yes' ? '' : 'yes')}
+          title="Show only bookings with invoice passed for approval"
+          aria-pressed={filters.invApproved === 'yes'}
+          disabled={loading}
+          style={filters.invApproved === 'yes' ? { background: '#0A2472', color: '#fff', borderColor: '#0A2472' } : undefined}
+        >
+          Inv approved
+        </button>
+        <button
+          type="button"
+          className="pagination__btn"
+          onClick={() => setFilter('invSent', filters.invSent === 'yes' ? '' : 'yes')}
+          title="Show only bookings with invoice sent to customer"
+          aria-pressed={filters.invSent === 'yes'}
+          disabled={loading}
+          style={filters.invSent === 'yes' ? { background: '#0A2472', color: '#fff', borderColor: '#0A2472' } : undefined}
+        >
+          Inv sent
+        </button>
         <div className="shipment-filters__more">
           <button
             type="button"

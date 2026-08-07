@@ -11,7 +11,7 @@ type PatchFn = (ui: Partial<BookingRecord>, db: BookingRecordPatch) => void
 type UbfMilestone = {
   key: keyof Pick<
     BookingRecord,
-    'swb_released' | 'tlx_release_on_hand' | 'bacc_sent' | 'cleared' | 'truck_booked'
+    'swb_released' | 'tlx_release_on_hand' | 'bacc_sent' | 'cleared' | 'truck_booked' | 'inv_approved' | 'inv_sent'
   >
   label: string
 }
@@ -22,6 +22,8 @@ const UBF_MILESTONES: UbfMilestone[] = [
   { key: 'bacc_sent', label: 'BACC sent' },
   { key: 'cleared', label: 'UBF cleared' },
   { key: 'truck_booked', label: 'Truck booked' },
+  { key: 'inv_approved', label: 'Invoice passed for approval' },
+  { key: 'inv_sent', label: 'Invoice sent to customer' },
 ]
 
 type Props = {

@@ -626,6 +626,9 @@ a:hover { text-decoration: underline; }
 .import-sea-client-wrap { display: block; max-width: 180px; min-width: 0; }
 .import-sea-col-client { width: 180px; max-width: 180px; }
 .import-sea-col-job { width: 90px; white-space: nowrap; }
+.import-sea-col-bref { width: 150px; max-width: 150px; white-space: nowrap; }
+.import-sea-bref-cell { display: inline-flex; align-items: center; gap: 6px; white-space: nowrap; line-height: 1; }
+.import-sea-col-inv { width: 66px; text-align: center; white-space: nowrap; }
 .import-sea-board__table .import-sea-date {
   font-size: 12px; font-variant-numeric: tabular-nums lining-nums;
 }

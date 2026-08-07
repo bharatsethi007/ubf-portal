@@ -14,7 +14,7 @@ const BOOKING_SELECT = `
   id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, mode, shipment_id,
   m_eta, m_atf, m_shipping_line, m_discharge_port,
   swb_released, tlx_release_on_hand, doc_handover_at,
-  bacc_sent, cleared, truck_booked,
+      bacc_sent, cleared, truck_booked, inv_approved, inv_sent,
   last_free_day, discharge_date, delivery_date, door_direction, pickup_peak, ubf_bay, ubf_time_slot, ubf_devanner, drop_off_depot, cartage_instructions_full, cartage_instructions_empty, empty_pickup_date, container_return_date,
   hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides, weight_flags_ack, archived_at,
   customers!bookings_account_id_fkey ( name, account_terms, customs_payment_type, credit_limit ),
