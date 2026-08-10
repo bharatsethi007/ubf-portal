@@ -1,28 +1,30 @@
 import { StyleSheet } from '@react-pdf/renderer'
-import { NAVY, ORANGE } from '../../reportsUi'
 
 export const EXHIBIT_SOURCE = 'Source: UBF Portal — mv_job_financials via customers.sales_manager'
 
 export const C = {
-  navy: NAVY,
-  accent: ORANGE,
+  navy: '#0A2472',
+  accent: '#F7941D',
   ink: '#1A1A2E',
   body: '#3F3F4B',
   muted: '#6B7280',
   hair: '#E5E7EB',
+  zebra: '#F7F8FA',
   track: '#F1F2F6',
   paper: '#FFFFFF',
+  pos: '#1F8A55',
+  neg: '#C0392B',
 }
 
-const PAGE_MARGIN = 48
+export const PAGE_MARGIN = 40
 
 export const pdfStyles = StyleSheet.create({
   page: {
     paddingTop: PAGE_MARGIN,
-    paddingBottom: 62,
+    paddingBottom: 58,
     paddingHorizontal: PAGE_MARGIN,
     fontFamily: 'General Sans',
-    fontSize: 9.5,
+    fontSize: 9,
     color: C.body,
     backgroundColor: C.paper,
   },
@@ -35,6 +37,37 @@ export const pdfStyles = StyleSheet.create({
     color: C.navy,
     backgroundColor: C.paper,
   },
+  h1: {
+    fontSize: 22,
+    fontWeight: 700,
+    color: C.navy,
+    lineHeight: 1.2,
+  },
+  sectionTitle: {
+    fontSize: 12,
+    fontWeight: 700,
+    color: C.navy,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  kicker: {
+    fontSize: 7.5,
+    fontWeight: 600,
+    color: C.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.8,
+  },
+  label: {
+    fontSize: 7.5,
+    fontWeight: 600,
+    color: C.muted,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  num: {
+    textAlign: 'right',
+  },
+  // Legacy aliases — existing exhibit pages (not yet rewired)
   exhibitLabel: {
     fontSize: 7.5,
     fontWeight: 600,
@@ -91,12 +124,9 @@ export const pdfStyles = StyleSheet.create({
     marginTop: 24,
     lineHeight: 1.5,
   },
-  num: {
-    textAlign: 'right',
-  },
   footerRule: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 36,
     left: PAGE_MARGIN,
     right: PAGE_MARGIN,
     borderTopWidth: 0.5,
@@ -105,16 +135,16 @@ export const pdfStyles = StyleSheet.create({
   },
   footer: {
     position: 'absolute',
-    bottom: 22,
+    bottom: 18,
     left: PAGE_MARGIN,
     right: PAGE_MARGIN,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
   },
-  footerLeft: { fontSize: 7.5, color: C.muted, width: 40 },
-  footerCenter: { fontSize: 7.5, color: C.muted, textAlign: 'center', flex: 1 },
-  footerRight: { fontSize: 7.5, color: C.muted, width: 120, textAlign: 'right' },
+  footerLeft: { fontSize: 7, color: C.muted, flex: 1 },
+  footerCenter: { fontSize: 7, color: C.muted, textAlign: 'center', width: 140 },
+  footerRight: { fontSize: 7, color: C.muted, width: 24, textAlign: 'right' },
 })
 
 export function fmtReportDate(d: Date): string {
