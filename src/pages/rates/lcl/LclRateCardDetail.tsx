@@ -73,6 +73,7 @@ export default function LclRateCardDetail() {
       await updateLclRateCardHeader(card.id, {
         co_loader_code: card.co_loader_code, title: card.title, currency_code: card.currency_code,
         valid_from: card.valid_from, valid_to: card.valid_to, status: card.status,
+        default_markup_pct: card.default_markup_pct,
       })
       toast.success('Card details saved')
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Save failed') } finally { setSavingHeader(false) }
@@ -155,6 +156,11 @@ export default function LclRateCardDetail() {
               </select>
             </div>
             <div style={fieldStyle}>
+              <label style={labelStyle}>Default markup %</label>
+              <input type="number" className="input" value={card.default_markup_pct ?? ''} placeholder="e.g. 18" onChange={(e) => setField('default_markup_pct', e.target.value === '' ? null : Number(e.target.value))} />
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Pre-fills sell (rate & min) as buy × (1 + markup). Editable per line.</span>
+            </div>
+            <div style={fieldStyle}>
               <label style={labelStyle}>Status</label>
               <select className="input" value={card.status} onChange={(e) => setField('status', e.target.value)}>
                 {STATUSES.map((s) => (<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>))}
@@ -182,7 +188,7 @@ export default function LclRateCardDetail() {
             <h2 style={{ fontSize: 16, margin: 0 }}>Lane rates</h2>
             <SaveIcon onClick={saveLines} busy={savingLines} label="Save lines" />
           </div>
-          <LclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} onChange={setLines} />
+          <LclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} defaultMarkupPct={card.default_markup_pct} onChange={setLines} />
         </section>
 
         <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border, rgba(0,0,0,.08))' }} />
