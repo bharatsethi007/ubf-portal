@@ -4,6 +4,7 @@ import type { SalesReportData } from '../salesExportApi'
 import CoverPage from './CoverPage'
 import ExecutiveSummary from './ExecutiveSummary'
 import LeaderboardExhibit from './LeaderboardExhibit'
+import NewVsExistingExhibit from './NewVsExistingExhibit'
 import Furniture from './Furniture'
 import { pdfStyles } from './pdfTheme'
 
@@ -22,6 +23,12 @@ export default function SalesReportPdf({ data }: Props) {
       {data.sections.leaderboard ? (
         <Page size="A4" style={pdfStyles.page} wrap>
           <LeaderboardExhibit data={data} />
+          <Furniture generatedAt={data.meta.generatedAt} />
+        </Page>
+      ) : null}
+      {data.sections.newVsExisting && data.newVsExisting ? (
+        <Page size="A4" style={pdfStyles.page} wrap>
+          <NewVsExistingExhibit data={data} />
           <Furniture generatedAt={data.meta.generatedAt} />
         </Page>
       ) : null}
