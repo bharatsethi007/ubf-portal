@@ -343,7 +343,6 @@ export default function SalesAnalyticsTab() {
   async function handleExport(opts: SalesExportOptions) {
     try {
       const data = await buildSalesReportData(opts)
-      console.log(data)
       const { pdf } = await import('@react-pdf/renderer')
       const { default: SalesReportPdf } = await import('./sales/pdf/SalesReportPdf')
       const blob = await pdf(<SalesReportPdf data={data} />).toBlob()

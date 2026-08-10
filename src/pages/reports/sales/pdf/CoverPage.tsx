@@ -1,31 +1,22 @@
-import { Page, View, Text, Image } from '@react-pdf/renderer'
+import { Page, View, Text } from '@react-pdf/renderer'
 import type { SalesReportData } from '../salesExportApi'
+import HeaderBand from './HeaderBand'
 import { C, pdfStyles, fmtReportDate } from './pdfTheme'
+import { dashboardInsight, reportTitle } from './pdfReportHelpers'
 
 type Props = { data: SalesReportData }
 
 export default function CoverPage({ data }: Props) {
   const dateStr = fmtReportDate(data.meta.generatedAt)
-  const prepared = data.meta.preparedFor.trim() || '—'
+  const subtitle = `${data.meta.periodLabel} · to ${dateStr}`
   return (
     <Page size="A4" style={pdfStyles.coverPage}>
-      <View style={{ minHeight: '100%', justifyContent: 'space-between' }}>
-        <View>
-          <Image src="/ub-logo-pdf.png" style={{ width: 96, height: 52, objectFit: 'contain', marginBottom: 64 }} />
-          <View style={{ width: 64, height: 1, backgroundColor: C.navy, marginBottom: 48 }} />
-          <Text style={{ fontSize: 26, fontWeight: 700, color: C.navy, letterSpacing: -0.2, marginBottom: 20 }}>
-            Sales Performance Review
-          </Text>
-          <Text style={{ fontSize: 12, fontWeight: 500, color: C.navy, marginBottom: 12 }}>
-            {data.meta.periodLabel} · to {dateStr}
-          </Text>
-          <Text style={{ fontSize: 10, color: C.muted }}>
-            Prepared for {prepared} · {dateStr}
-          </Text>
-        </View>
-        <Text style={{ fontSize: 8, color: C.muted, letterSpacing: 0.4 }}>
-          Confidential — for internal and authorised client use only.
+      <HeaderBand title={reportTitle(data)} subtitle={subtitle} />
+      <View style={{ paddingTop: 24 }}>
+        <Text style={{ fontSize: 10, color: C.body, lineHeight: 1.5, marginBottom: 12 }}>
+          {dashboardInsight(data)}
         </Text>
+        <Text style={{ fontSize: 9, color: C.muted }}>Generated {dateStr}</Text>
       </View>
     </Page>
   )
