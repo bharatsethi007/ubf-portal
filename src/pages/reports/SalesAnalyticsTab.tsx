@@ -7,6 +7,7 @@ import { RepDrillDown, type AccountRow, type DrillView, type MixRow } from './sa
 import { NewVsExistingView, type NewVsExistingRow, nveRepKey } from './salesAnalyticsNewVsExisting'
 import { NveDetailDrillDown, type NveDetailRow, type NveSide } from './salesAnalyticsNveDrillDown'
 import SalesExportModal, { type SalesExportOptions } from './sales/SalesExportModal'
+import { buildSalesReportData } from './sales/salesExportApi'
 
 type LeaderboardRow = {
   sales_manager: string | null
@@ -340,8 +341,9 @@ export default function SalesAnalyticsTab() {
   }
 
   async function handleExport(opts: SalesExportOptions) {
-    console.log(opts)
-    toast.success('Export options captured')
+    const data = await buildSalesReportData(opts)
+    console.log(data)
+    toast.success('Export data ready')
   }
 
   return (
