@@ -211,7 +211,7 @@ export default function FclRateCardDetail() {
 
         <section>
           <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Lane rates</h2>
-          <FclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} onChange={setLines} />
+          <FclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} defaultMarkupPct={card.default_markup_pct} onChange={setLines} />
           <div style={{ marginTop: 14 }}>
             <button type="button" className="btn btn--inline" onClick={saveLines} disabled={savingLines}>
               {savingLines ? 'Saving…' : 'Save lines'}
