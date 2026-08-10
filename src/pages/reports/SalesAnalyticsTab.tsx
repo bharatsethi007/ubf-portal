@@ -341,9 +341,23 @@ export default function SalesAnalyticsTab() {
   }
 
   async function handleExport(opts: SalesExportOptions) {
-    const data = await buildSalesReportData(opts)
-    console.log(data)
-    toast.success('Export data ready')
+    try {
+      const data = await buildSalesReportData(opts)
+      console.log(data)
+      const { pdf } = await import('@react-pdf/renderer')
+      const { default: SalesReportPdf } = await import('./sales/pdf/SalesReportPdf')
+      const blob = await pdf(<SalesReportPdf data={data} />).toBlob()
+      const url = URL.createObjectURL(blob)
+      const a = Object.assign(document.createElement('a'), {
+        href: url,
+        download: `UBF_Sales_Review_${data.meta.periodSlug}.pdf`,
+      })
+      a.click()
+      URL.revokeObjectURL(url)
+      toast.success('PDF downloaded')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'PDF export failed')
+    }
   }
 
   return (

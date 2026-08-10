@@ -29,6 +29,7 @@ export type SalesReportData = {
   kpis: { revenue: number; grossProfit: number; blendedMargin: number; activeReps: number }
   leaderboard: LeaderboardRow[]
   newVsExisting?: NewVsExistingRow[]
+  sections: { leaderboard: boolean; newVsExisting: boolean }
 }
 
 const PERIOD_LABELS: Record<Period, '3M' | '6M' | '12M'> = {
@@ -104,6 +105,7 @@ export async function buildSalesReportData(opts: SalesExportOptions): Promise<Sa
     },
     kpis: computeKpis(scoped ? leaderboard : rawLeaderboard),
     leaderboard,
+    sections: opts.sections,
     ...(newVsExisting ? { newVsExisting } : {}),
   }
 }
