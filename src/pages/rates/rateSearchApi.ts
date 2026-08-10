@@ -13,8 +13,8 @@ export type QuoteLane = {
   containers: { size: string; qty: number }[]
 }
 
-export type RateOptionChip = { container_type: string; base_rate: number }
-export type RateOptionSurcharge = { label: string; amount: number; basis: string; scope: string | null }
+export type RateOptionChip = { container_type: string; base_rate: number; sell_rate: number }
+export type RateOptionSurcharge = { label: string; amount: number; sell_amount: number; basis: string; scope: string | null }
 export type RateOption = {
   cardId: string
   carrierCode: string
@@ -67,13 +67,13 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
 
   const { data: lines, error } = await supabase
     .from('rate_card_fcl_lines')
-    .select('base_rate, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, shipping_line_code, status, valid_from, valid_to, currency_code, shipping_lines(name))')
+    .select('base_rate, sell_rate, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, shipping_line_code, status, valid_from, valid_to, currency_code, shipping_lines(name))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
     .in('container_type', wantedCodes)
   if (error) throw error
 
-  type Grp = { card: Record<string, any>; chips: Map<string, { rate: number; transit: number | null; via: string | null; vf: string | null; vt: string | null }> }
+  type Grp = { card: Record<string, any>; chips: Map<string, { rate: number; sell: number; transit: number | null; via: string | null; vf: string | null; vt: string | null }> }
   const groups = new Map<string, Grp>()
   for (const raw of ((lines as Record<string, any>[]) ?? [])) {
     const card = Array.isArray(raw.rate_cards) ? raw.rate_cards[0] : raw.rate_cards
@@ -87,6 +87,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     if (!groups.has(id)) groups.set(id, { card, chips: new Map() })
     groups.get(id)!.chips.set(String(raw.container_type), {
       rate: Number(raw.base_rate) || 0,
+      sell: Number(raw.sell_rate) || 0,
       transit: raw.transit_days != null ? Number(raw.transit_days) : null,
       via: raw.via ?? null, vf, vt,
     })
@@ -95,12 +96,12 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
 
   const cardIds = [...groups.keys()]
   const { data: surs } = await supabase
-    .from('rate_surcharges').select('rate_card_id, label, amount, basis, scope').in('rate_card_id', cardIds)
+    .from('rate_surcharges').select('rate_card_id, label, amount, sell_amount, basis, scope').in('rate_card_id', cardIds)
   const surByCard = new Map<string, RateOptionSurcharge[]>()
   for (const s of ((surs as Record<string, any>[]) ?? [])) {
     const id = String(s.rate_card_id)
     if (!surByCard.has(id)) surByCard.set(id, [])
-    surByCard.get(id)!.push({ label: String(s.label), amount: Number(s.amount) || 0, basis: String(s.basis), scope: s.scope ?? null })
+    surByCard.get(id)!.push({ label: String(s.label), amount: Number(s.amount) || 0, sell_amount: Number(s.sell_amount) || 0, basis: String(s.basis), scope: s.scope ?? null })
   }
 
   const options: RateOption[] = []
@@ -111,7 +112,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     const missingCodes: string[] = []
     for (const code of wantedCodes) {
       const hit = g.chips.get(code)
-      if (hit) { chips.push({ container_type: code, base_rate: hit.rate }); freightTotal += hit.rate * (qtyByCode.get(code) ?? 0) }
+      if (hit) { chips.push({ container_type: code, base_rate: hit.rate, sell_rate: hit.sell }); freightTotal += hit.rate * (qtyByCode.get(code) ?? 0) }
       else missingCodes.push(code)
     }
     const surcharges = surByCard.get(id) ?? []

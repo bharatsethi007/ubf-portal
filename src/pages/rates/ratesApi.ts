@@ -100,12 +100,13 @@ export type FclRateCardDetail = {
   valid_from: string | null
   valid_to: string | null
   status: string
+  default_markup_pct: number | null
 }
 
 export async function fetchFclRateCard(id: string): Promise<FclRateCardDetail | null> {
   const { data, error } = await supabase
     .from('rate_cards')
-    .select('id, shipping_line_code, title, currency_code, valid_from, valid_to, status')
+    .select('id, shipping_line_code, title, currency_code, valid_from, valid_to, status, default_markup_pct')
     .eq('id', id)
     .eq('rate_type', 'fcl')
     .maybeSingle()
@@ -120,6 +121,7 @@ export async function fetchFclRateCard(id: string): Promise<FclRateCardDetail | 
     valid_from: r.valid_from ? String(r.valid_from) : null,
     valid_to: r.valid_to ? String(r.valid_to) : null,
     status: String(r.status),
+    default_markup_pct: r.default_markup_pct == null ? null : Number(r.default_markup_pct),
   }
 }
 
@@ -132,6 +134,7 @@ export async function updateFclRateCardHeader(
     valid_from: string | null
     valid_to: string | null
     status: string
+    default_markup_pct: number | null
   },
 ): Promise<void> {
   const { error } = await supabase
@@ -148,6 +151,7 @@ export type FclLineDraft = {
   dest_port_code: string
   container_type: string
   base_rate: string
+  sell_rate?: string
   currency_code: string
   transit_days: string
   via: string
@@ -159,7 +163,7 @@ export type FclLineDraft = {
 export async function listFclLines(cardId: string): Promise<FclLineDraft[]> {
   const { data, error } = await supabase
     .from('rate_card_fcl_lines')
-    .select('id, origin_port_code, dest_port_code, container_type, base_rate, currency_code, transit_days, via')
+    .select('id, origin_port_code, dest_port_code, container_type, base_rate, sell_rate, currency_code, transit_days, via')
     .eq('rate_card_id', cardId)
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -170,6 +174,7 @@ export async function listFclLines(cardId: string): Promise<FclLineDraft[]> {
     dest_port_code: r.dest_port_code ? String(r.dest_port_code) : '',
     container_type: r.container_type ? String(r.container_type) : '',
     base_rate: r.base_rate == null ? '' : String(r.base_rate),
+    sell_rate: r.sell_rate == null ? '' : String(r.sell_rate),
     currency_code: r.currency_code ? String(r.currency_code) : '',
     transit_days: r.transit_days == null ? '' : String(r.transit_days),
     via: r.via ? String(r.via) : '',
@@ -191,6 +196,7 @@ export async function saveFclLines(cardId: string, lines: FclLineDraft[], origin
       dest_port_code: l.dest_port_code,
       container_type: l.container_type,
       base_rate: Number(l.base_rate),
+      sell_rate: (l.sell_rate ?? '') === '' ? null : Number(l.sell_rate),
       currency_code: l.currency_code || null,
       transit_days: l.transit_days ? Number(l.transit_days) : null,
       via: l.via.trim() || null,
@@ -211,6 +217,7 @@ export type FclSurchargeDraft = {
   charge_code: string
   label: string
   amount: string
+  sell_amount?: string
   currency_code: string
   basis: string
   scope: string
@@ -222,7 +229,7 @@ export type FclSurchargeDraft = {
 export async function listFclSurcharges(cardId: string): Promise<FclSurchargeDraft[]> {
   const { data, error } = await supabase
     .from('rate_surcharges')
-    .select('id, charge_code, label, amount, currency_code, basis, scope, container_type, condition, charge_group')
+    .select('id, charge_code, label, amount, sell_amount, currency_code, basis, scope, container_type, condition, charge_group')
     .eq('rate_card_id', cardId)
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -232,6 +239,7 @@ export async function listFclSurcharges(cardId: string): Promise<FclSurchargeDra
     charge_code: r.charge_code ? String(r.charge_code) : '',
     label: r.label ? String(r.label) : '',
     amount: r.amount == null ? '' : String(r.amount),
+    sell_amount: r.sell_amount == null ? '' : String(r.sell_amount),
     currency_code: r.currency_code ? String(r.currency_code) : '',
     basis: r.basis ? String(r.basis) : 'per_container',
     scope: r.scope ? String(r.scope) : '',
@@ -258,6 +266,7 @@ export async function saveFclSurcharges(
       charge_code: r.charge_code || null,
       label: r.label.trim(),
       amount: Number(r.amount),
+      sell_amount: (r.sell_amount ?? '') === '' ? null : Number(r.sell_amount),
       currency_code: r.currency_code || null,
       basis: r.basis || 'per_container',
       scope: r.scope || null,
@@ -330,6 +339,7 @@ export async function insertFclLines(cardId: string, lines: FclLineDraft[]): Pro
     dest_port_code: l.dest_port_code,
     container_type: l.container_type,
     base_rate: Number(l.base_rate),
+    sell_rate: (l.sell_rate ?? '') === '' ? null : Number(l.sell_rate),
     currency_code: l.currency_code || null,
     transit_days: l.transit_days ? Number(l.transit_days) : null,
     via: l.via.trim() || null,
@@ -448,12 +458,13 @@ export type LclRateCardDetail = {
   valid_from: string | null
   valid_to: string | null
   status: string
+  default_markup_pct: number | null
 }
 
 export async function fetchLclRateCard(id: string): Promise<LclRateCardDetail | null> {
   const { data, error } = await supabase
     .from('rate_cards')
-    .select('id, co_loader_code, title, currency_code, valid_from, valid_to, status')
+    .select('id, co_loader_code, title, currency_code, valid_from, valid_to, status, default_markup_pct')
     .eq('id', id).eq('rate_type', 'lcl').maybeSingle()
   if (error) throw error
   if (!data) return null
@@ -466,12 +477,13 @@ export async function fetchLclRateCard(id: string): Promise<LclRateCardDetail | 
     valid_from: r.valid_from ? String(r.valid_from) : null,
     valid_to: r.valid_to ? String(r.valid_to) : null,
     status: String(r.status),
+    default_markup_pct: r.default_markup_pct == null ? null : Number(r.default_markup_pct),
   }
 }
 
 export async function updateLclRateCardHeader(
   id: string,
-  patch: { co_loader_code: string; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string },
+  patch: { co_loader_code: string; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string; default_markup_pct: number | null },
 ): Promise<void> {
   const { error } = await supabase
     .from('rate_cards')
@@ -488,7 +500,9 @@ export type LclLineDraft = {
   origin_port_code: string
   dest_port_code: string
   rate_per_wm: string
+  sell_per_wm?: string
   min_charge: string
+  sell_min?: string
   currency_code: string
   transit_days: string
   via: string
@@ -502,7 +516,7 @@ export type LclLineDraft = {
 export async function listLclLines(cardId: string): Promise<LclLineDraft[]> {
   const { data, error } = await supabase
     .from('rate_card_lcl_lines')
-    .select('id, origin_port_code, dest_port_code, rate_per_wm, min_charge, currency_code, transit_days, via, frequency, lane_charges')
+    .select('id, origin_port_code, dest_port_code, rate_per_wm, sell_per_wm, min_charge, sell_min, currency_code, transit_days, via, frequency, lane_charges')
     .eq('rate_card_id', cardId).order('created_at', { ascending: true })
   if (error) throw error
   return ((data as Record<string, any>[]) ?? []).map((r) => ({
@@ -511,7 +525,9 @@ export async function listLclLines(cardId: string): Promise<LclLineDraft[]> {
     origin_port_code: r.origin_port_code ? String(r.origin_port_code) : '',
     dest_port_code: r.dest_port_code ? String(r.dest_port_code) : '',
     rate_per_wm: r.rate_per_wm == null ? '' : String(r.rate_per_wm),
+    sell_per_wm: r.sell_per_wm == null ? '' : String(r.sell_per_wm),
     min_charge: r.min_charge == null ? '' : String(r.min_charge),
+    sell_min: r.sell_min == null ? '' : String(r.sell_min),
     currency_code: r.currency_code ? String(r.currency_code) : '',
     transit_days: r.transit_days == null ? '' : String(r.transit_days),
     via: r.via ? String(r.via) : '',
@@ -529,7 +545,9 @@ function lclLinePayload(cardId: string, l: LclLineDraft) {
     origin_group_code: null as string | null,
     dest_port_code: l.dest_port_code,
     rate_per_wm: Number(l.rate_per_wm),
+    sell_per_wm: (l.sell_per_wm ?? '') === '' ? null : Number(l.sell_per_wm),
     min_charge: l.min_charge === '' ? null : Number(l.min_charge),
+    sell_min: (l.sell_min ?? '') === '' ? null : Number(l.sell_min),
     currency_code: l.currency_code || null,
     transit_days: l.transit_days ? Number(l.transit_days) : null,
     via: l.via.trim() || null,

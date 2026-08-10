@@ -13,6 +13,20 @@ const BASES = [
 
 const SCOPES = ['origin', 'freight', 'dest'] as const
 
+function marginPct(buy: string, sell: string): number | null {
+  const b = Number(buy)
+  const s = Number(sell)
+  if (!buy || !sell || isNaN(b) || isNaN(s) || s === 0) return null
+  return Math.round(((s - b) / s) * 1000) / 10
+}
+function marginColor(m: number | null): string {
+  if (m == null) return 'var(--muted-foreground)'
+  if (m < 0) return '#B23B3B'
+  if (m === 0) return 'var(--muted-foreground)'
+  if (m < 15) return '#B4791F'
+  return '#1F8A4C'
+}
+
 let tmpSeq = 0
 export function newSurcharge(defaultCurrency: string): FclSurchargeDraft {
   tmpSeq += 1
@@ -22,6 +36,7 @@ export function newSurcharge(defaultCurrency: string): FclSurchargeDraft {
     charge_code: '',
     label: '',
     amount: '',
+    sell_amount: '',
     currency_code: defaultCurrency,
     basis: 'per_container',
     scope: '',
@@ -51,6 +66,14 @@ export default function FclSurchargesGrid({ rows, defaultCurrency, onChange }: P
   function add() {
     onChange([...rows, newSurcharge(defaultCurrency)])
   }
+  function onAmount(r: FclSurchargeDraft, v: string) {
+    const patch: Partial<FclSurchargeDraft> = { amount: v }
+    if ((r.sell_amount ?? '') === '') patch.sell_amount = v
+    update(r.key, patch)
+  }
+  function matchSellToCost() {
+    onChange(rows.map((r) => ((r.sell_amount ?? '') === '' ? { ...r, sell_amount: r.amount } : r)))
+  }
   function onCode(key: string, code: string) {
     const cc = chargeCodes.find((c) => c.code === code)
     const row = rows.find((r) => r.key === key)
@@ -65,14 +88,16 @@ export default function FclSurchargesGrid({ rows, defaultCurrency, onChange }: P
         <table className="data-table">
           <thead>
             <tr>
-              <th>Charge</th><th>Label</th><th>Amount</th><th>Cur</th>
+              <th>Charge</th><th>Label</th><th>Amount</th><th>Sell</th><th>Cur</th><th>Margin</th>
               <th>Basis</th><th>Scope</th><th>Container</th><th>Condition</th><th></th>
             </tr>
           </thead>
           <tbody>
             {rows.length === 0 ? (
-              <tr><td colSpan={9} className="text-muted-foreground pad-inline">No surcharges yet. Add one.</td></tr>
-            ) : rows.map((r) => (
+              <tr><td colSpan={11} className="text-muted-foreground pad-inline">No surcharges yet. Add one.</td></tr>
+            ) : rows.map((r) => {
+              const m = marginPct(r.amount, r.sell_amount ?? '')
+              return (
               <tr key={r.key}>
                 <td>
                   <select className="input input--sm" value={r.charge_code} onChange={(e) => onCode(r.key, e.target.value)}>
@@ -84,13 +109,19 @@ export default function FclSurchargesGrid({ rows, defaultCurrency, onChange }: P
                   <input className="input input--sm" value={r.label} onChange={(e) => update(r.key, { label: e.target.value })} style={{ width: 160 }} placeholder="Description" />
                 </td>
                 <td>
-                  <input className="input input--sm" type="number" inputMode="decimal" value={r.amount} onChange={(e) => update(r.key, { amount: e.target.value })} style={{ width: 90 }} />
+                  <input className="input input--sm" type="number" inputMode="decimal" value={r.amount} onChange={(e) => onAmount(r, e.target.value)} style={{ width: 90 }} />
+                </td>
+                <td>
+                  <input className="input input--sm" type="number" inputMode="decimal" value={r.sell_amount ?? ''} onChange={(e) => update(r.key, { sell_amount: e.target.value })} style={{ width: 90 }} placeholder={r.amount || '—'} />
                 </td>
                 <td>
                   <select className="input input--sm" value={r.currency_code} onChange={(e) => update(r.key, { currency_code: e.target.value })}>
                     <option value="">—</option>
                     {currencies.map((c) => (<option key={c.code} value={c.code}>{c.code}</option>))}
                   </select>
+                </td>
+                <td style={{ color: marginColor(m), fontVariantNumeric: 'tabular-nums', fontWeight: 500, whiteSpace: 'nowrap' }}>
+                  {m == null ? '—' : `${m.toFixed(1)}%`}
                 </td>
                 <td>
                   <select className="input input--sm" value={r.basis} onChange={(e) => update(r.key, { basis: e.target.value })}>
@@ -119,13 +150,19 @@ export default function FclSurchargesGrid({ rows, defaultCurrency, onChange }: P
                   </button>
                 </td>
               </tr>
-            ))}
+              )
+            })}
           </tbody>
         </table>
       </div>
-      <button type="button" className="btn btn--inline" style={{ marginTop: 10 }} onClick={add}>
-        <Plus size={15} strokeWidth={2} /> Add surcharge
-      </button>
+      <div style={{ display: 'flex', gap: 8, marginTop: 10, flexWrap: 'wrap' }}>
+        <button type="button" className="btn btn--inline" onClick={add}>
+          <Plus size={15} strokeWidth={2} /> Add surcharge
+        </button>
+        <button type="button" className="btn btn--inline" onClick={matchSellToCost} disabled={rows.length === 0} title="Set empty Sell cells equal to cost (pass-through)">
+          Sell = cost for empties
+        </button>
+      </div>
     </div>
   )
 }
