@@ -73,6 +73,7 @@ export default function FclRateCardDetail() {
         valid_from: card.valid_from,
         valid_to: card.valid_to,
         status: card.status,
+        default_markup_pct: card.default_markup_pct,
       })
       toast.success('Card details saved')
     } catch (e) {
@@ -170,6 +171,17 @@ export default function FclRateCardDetail() {
                 <option value="">—</option>
                 {currencies.map((c) => (<option key={c.code} value={c.code}>{c.code} — {c.name}</option>))}
               </select>
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Default markup %</label>
+              <input
+                type="number"
+                className="input"
+                value={card.default_markup_pct ?? ''}
+                placeholder="e.g. 18"
+                onChange={(e) => setField('default_markup_pct', e.target.value === '' ? null : Number(e.target.value))}
+              />
+              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Pre-fills each line's sell as buy × (1 + markup). Editable per line.</span>
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>Status</label>
