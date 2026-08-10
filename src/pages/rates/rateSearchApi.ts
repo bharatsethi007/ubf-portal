@@ -31,6 +31,9 @@ export type RateOption = {
   freightTotal: number
   surchargeTotal: number
   total: number
+  freightSellTotal: number
+  surchargeSellTotal: number
+  sellTotal: number
 }
 
 export async function fetchQuoteLane(quoteId: string): Promise<QuoteLane> {
@@ -109,19 +112,27 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     const sl = Array.isArray(g.card.shipping_lines) ? g.card.shipping_lines[0] : g.card.shipping_lines
     const chips: RateOptionChip[] = []
     let freightTotal = 0
+    let freightSellTotal = 0
     const missingCodes: string[] = []
     for (const code of wantedCodes) {
       const hit = g.chips.get(code)
-      if (hit) { chips.push({ container_type: code, base_rate: hit.rate, sell_rate: hit.sell }); freightTotal += hit.rate * (qtyByCode.get(code) ?? 0) }
+      if (hit) {
+        chips.push({ container_type: code, base_rate: hit.rate, sell_rate: hit.sell })
+        const qty = qtyByCode.get(code) ?? 0
+        freightTotal += hit.rate * qty
+        freightSellTotal += (hit.sell > 0 ? hit.sell : hit.rate) * qty
+      }
       else missingCodes.push(code)
     }
     const surcharges = surByCard.get(id) ?? []
     let surchargeTotal = 0
+    let surchargeSellTotal = 0
     for (const s of surcharges) {
-      if (s.basis === 'per_container') surchargeTotal += s.amount * totalContainers
-      else if (s.basis === 'per_teu') surchargeTotal += s.amount * totalTeu
-      else if (s.basis === 'percent') surchargeTotal += (s.amount / 100) * freightTotal
-      else if (s.basis === 'per_bl' || s.basis === 'flat') surchargeTotal += s.amount
+      const sellAmt = s.sell_amount > 0 ? s.sell_amount : s.amount
+      if (s.basis === 'per_container') { surchargeTotal += s.amount * totalContainers; surchargeSellTotal += sellAmt * totalContainers }
+      else if (s.basis === 'per_teu') { surchargeTotal += s.amount * totalTeu; surchargeSellTotal += sellAmt * totalTeu }
+      else if (s.basis === 'percent') { surchargeTotal += (s.amount / 100) * freightTotal; surchargeSellTotal += (sellAmt / 100) * freightSellTotal }
+      else if (s.basis === 'per_bl' || s.basis === 'flat') { surchargeTotal += s.amount; surchargeSellTotal += sellAmt }
       // per_cbm not applicable to FCL — skipped
     }
     const transits = [...g.chips.values()].map((c) => c.transit).filter((t): t is number => t != null)
@@ -142,6 +153,9 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
       freightTotal: Math.round(freightTotal * 100) / 100,
       surchargeTotal: Math.round(surchargeTotal * 100) / 100,
       total: Math.round((freightTotal + surchargeTotal) * 100) / 100,
+      freightSellTotal: Math.round(freightSellTotal * 100) / 100,
+      surchargeSellTotal: Math.round(surchargeSellTotal * 100) / 100,
+      sellTotal: Math.round((freightSellTotal + surchargeSellTotal) * 100) / 100,
     })
   }
   options.sort((a, b) => a.total - b.total)
