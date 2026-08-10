@@ -10,7 +10,8 @@ import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft }
 import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponsesApi'
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
 import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
-import { buildBuyLinesFromOption, createQuoteWithBuyRates } from '../rates/quoteFromRate'
+import { buildBuyLinesFromOption, createQuoteWithBuyRates, createQuoteWithLclBuyRates } from '../rates/quoteFromRate'
+import type { LclRateOption, LclQuoteLane } from '../rates/lclRateSearchApi'
 import RateSearchModal from '../rates/RateSearchModal'
 import RateOptionCard from '../rates/RateOptionCard'
 import './newQuoteSearch.css'
@@ -127,6 +128,18 @@ export default function NewQuoteSearch() {
     navigate(`/quotes/${quoteId}`)
   }
 
+  async function useLclRateFromChat(o: LclRateOption, lane: LclQuoteLane) {
+    if (!customer) throw new Error('Pick a customer above first, then tap Use rate again.')
+    const { quoteId } = await createQuoteWithLclBuyRates({
+      customerAccountId: customer.account_id,
+      customerName: customer.name,
+      fromPortCode: lane.from_port_code!,
+      toPortCode: lane.to_port_code!,
+      option: o,
+    })
+    navigate(`/quotes/${quoteId}`)
+  }
+
   return (
     <div className="nqs-page">
       <div className="nqs-card">
@@ -151,7 +164,7 @@ export default function NewQuoteSearch() {
           </button>
         </div>
         {chatOpen && (
-          <RateSearchModal initialQuery={aiQuery} onUseRate={useRateFromChat} onClose={() => setChatOpen(false)} />
+          <RateSearchModal initialQuery={aiQuery} onUseRate={useRateFromChat} onUseLclRate={useLclRateFromChat} onClose={() => setChatOpen(false)} />
         )}
         <div className="nqs-customer">
           <CustomerPicker label="Customer" required value={customer} onChange={onCustomerChange} />

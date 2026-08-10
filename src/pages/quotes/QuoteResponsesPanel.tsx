@@ -13,8 +13,9 @@ import QuoteResponseModal from './QuoteResponseModal'
 import QuoteVendorRates from './QuoteVendorRates'
 import { saveQuoteResponseLines } from './quoteResponseLinesApi'
 import RateSearchModal from '../rates/RateSearchModal'
-import { buildBuyLinesFromOption } from '../rates/quoteFromRate'
+import { buildBuyLinesFromOption, buildLclBuyLinesFromOption } from '../rates/quoteFromRate'
 import type { RateOption, QuoteLane } from '../rates/rateSearchApi'
+import { fetchLclQuoteLane, type LclRateOption, type LclQuoteLane } from '../rates/lclRateSearchApi'
 import './quoteResponsesPanel.css'
 
 import { lazy, Suspense } from 'react'
@@ -39,6 +40,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
   const [openId, setOpenId] = useState<string | null>(null)
   const [tab, setTab] = useState<TabKey>('responses')
   const [searchOpen, setSearchOpen] = useState(false)
+  const [lclWm, setLclWm] = useState<number | undefined>(undefined)
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -55,6 +57,14 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
   useEffect(() => {
     reload()
   }, [reload])
+
+  useEffect(() => {
+    let live = true
+    fetchLclQuoteLane(quoteId)
+      .then((l) => { if (live) setLclWm(l.wm > 0 ? l.wm : undefined) })
+      .catch(() => {})
+    return () => { live = false }
+  }, [quoteId])
 
   async function handleAdd() {
     setCreating(true)
@@ -100,10 +110,20 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
     setOpenId(responseId)
   }
 
+  async function useLclRateFromChat(o: LclRateOption, _lane: LclQuoteLane) {
+    const { id: responseId } = await createQuoteResponse(quoteId)
+    await saveQuoteResponseLines(responseId, buildLclBuyLinesFromOption(o))
+    if (o.currency) await updateQuoteResponseHeader(responseId, { currency: o.currency })
+    await reload()
+    setSearchOpen(false)
+    setTab('responses')
+    setOpenId(responseId)
+  }
+
   return (
     <section className="qr-panel">
       {searchOpen && (
-        <RateSearchModal onUseRate={useRateFromChat} onClose={() => setSearchOpen(false)} />
+        <RateSearchModal onUseRate={useRateFromChat} onUseLclRate={useLclRateFromChat} initialWm={lclWm} onClose={() => setSearchOpen(false)} />
       )}
       <div className="qr-tabs">
         {TABS.map((t) => (
