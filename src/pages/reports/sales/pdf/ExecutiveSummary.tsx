@@ -1,7 +1,7 @@
 import { View, Text } from '@react-pdf/renderer'
 import type { LeaderboardRow, SalesReportData } from '../salesExportApi'
 import { cf, nf } from '../../reportsUi'
-import { C, pdfStyles } from './pdfTheme'
+import { C, EXHIBIT_SOURCE, pdfStyles } from './pdfTheme'
 
 type Props = { data: SalesReportData }
 
@@ -12,6 +12,11 @@ function vsPriorText(gp: number, prev: number | null): string | null {
   const pct = ((gp - prev) / prev) * 100
   const arrow = pct >= 0 ? '▲' : '▼'
   return `${arrow} ${Math.abs(pct).toFixed(1)}% vs prior`
+}
+
+function execActionTitle(data: SalesReportData): string {
+  const { kpis, meta } = data
+  return `${cf.format(kpis.revenue)} in revenue and ${cf.format(kpis.grossProfit)} gross profit at ${kpis.blendedMargin.toFixed(1)}% blended margin over ${meta.periodLabel}`
 }
 
 function buildBullets(rows: LeaderboardRow[]): string[] {
@@ -57,22 +62,24 @@ function buildBullets(rows: LeaderboardRow[]): string[] {
     bullets.push(`Top 3 reps account for ${top3Share.toFixed(0)}% of assigned revenue in this period.`)
   }
 
-  if (ranked.length >= 2 && bullets.length < 5) {
-    const active = ranked.filter((r) => num(r.jobs) > 0).length
-    bullets.push(`${active} of ${ranked.length} assigned reps recorded at least one job in the period.`)
-  }
-
   return bullets.slice(0, 5)
 }
 
-function KpiCell({ label, value, accent }: { label: string; value: string; accent?: string }) {
+function KpiCell({ label, value, accent, last }: { label: string; value: string; accent?: string; last?: boolean }) {
   return (
-    <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 10, borderRightWidth: 1, borderRightColor: C.hair, borderRightStyle: 'solid' }}>
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-        <View style={{ width: 2, height: 10, backgroundColor: accent ?? C.hair, borderRadius: 1 }} />
+    <View style={{
+      flex: 1,
+      paddingVertical: 14,
+      paddingHorizontal: 12,
+      borderRightWidth: last ? 0 : 0.5,
+      borderRightColor: C.hair,
+      borderRightStyle: 'solid',
+    }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 10 }}>
+        <View style={{ width: 2, height: 10, backgroundColor: accent ?? C.hair }} />
         <Text style={{ fontSize: 8, color: C.muted }}>{label}</Text>
       </View>
-      <Text style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>{value}</Text>
+      <Text style={{ fontSize: 16, fontWeight: 700, color: C.navy }}>{value}</Text>
     </View>
   )
 }
@@ -82,33 +89,30 @@ export default function ExecutiveSummary({ data }: Props) {
   const bullets = buildBullets(data.leaderboard)
   return (
     <View>
-      <Text style={pdfStyles.kicker}>Executive summary</Text>
-      <Text style={pdfStyles.actionTitle}>Period performance at a glance</Text>
+      <Text style={pdfStyles.exhibitLabel}>Executive Summary</Text>
+      <Text style={pdfStyles.actionTitle}>{execActionTitle(data)}</Text>
 
-      <View style={{ flexDirection: 'row', borderWidth: 1, borderColor: C.hair, borderStyle: 'solid', borderRadius: 4, marginBottom: 22, overflow: 'hidden' }}>
+      <View style={{ flexDirection: 'row', borderWidth: 0.5, borderColor: C.hair, borderStyle: 'solid', marginBottom: 32 }}>
         <KpiCell label="Total revenue" value={cf.format(kpis.revenue)} accent={C.navy} />
         <KpiCell label="Total gross profit" value={cf.format(kpis.grossProfit)} accent={C.accent} />
-        <KpiCell label="Blended margin" value={`${kpis.blendedMargin.toFixed(1)}%`} />
-        <View style={{ flex: 1, paddingVertical: 12, paddingHorizontal: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 8 }}>
-            <View style={{ width: 2, height: 10, backgroundColor: C.navy, borderRadius: 1 }} />
-            <Text style={{ fontSize: 8, color: C.muted }}>Active reps</Text>
-          </View>
-          <Text style={{ fontSize: 16, fontWeight: 700, color: C.ink }}>{nf.format(kpis.activeReps)}</Text>
-        </View>
+        <KpiCell label="Blended margin" value={`${kpis.blendedMargin.toFixed(1)}%`} accent={C.navy} />
+        <KpiCell label="Active reps" value={nf.format(kpis.activeReps)} accent={C.navy} last />
       </View>
 
-      <Text style={{ fontSize: 9, fontWeight: 600, color: C.navy, marginBottom: 8 }}>Key takeaways</Text>
+      <Text style={{ fontSize: 8, fontWeight: 600, letterSpacing: 1.2, textTransform: 'uppercase', color: C.muted, marginBottom: 12 }}>
+        Key takeaways
+      </Text>
       {bullets.map((b, i) => (
-        <View key={i} style={{ flexDirection: 'row', marginBottom: 6, paddingLeft: 2 }}>
-          <Text style={{ width: 12, fontSize: 9, color: C.accent }}>•</Text>
-          <Text style={{ flex: 1, fontSize: 9.5, lineHeight: 1.45, color: C.body }}>{b}</Text>
+        <View key={i} style={{ flexDirection: 'row', marginBottom: 8, paddingLeft: 2 }}>
+          <Text style={{ width: 12, fontSize: 9, color: C.navy }}>•</Text>
+          <Text style={{ flex: 1, fontSize: 9.5, lineHeight: 1.5, color: C.body }}>{b}</Text>
         </View>
       ))}
 
-      <Text style={{ ...pdfStyles.source, marginTop: 18 }}>
+      <Text style={pdfStyles.footnote}>
         Gross profit on recent jobs firms up as supplier costs post, so current-period margins may read high versus prior periods.
       </Text>
+      <Text style={pdfStyles.source}>{EXHIBIT_SOURCE}</Text>
     </View>
   )
 }
