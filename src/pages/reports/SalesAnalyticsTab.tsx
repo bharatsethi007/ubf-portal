@@ -1,10 +1,12 @@
 import { type ReactNode, useEffect, useMemo, useState } from 'react'
+import { toast } from 'sonner'
 import { supabase } from '@/supabase'
 import { usePorts } from '@/hooks/usePorts'
 import { NAVY, ORANGE, C, FONT, cf, nf, Card, KpiRail, Th, Td, Seg } from './reportsUi'
 import { RepDrillDown, type AccountRow, type DrillView, type MixRow } from './salesAnalyticsRepDrillDown'
 import { NewVsExistingView, type NewVsExistingRow, nveRepKey } from './salesAnalyticsNewVsExisting'
 import { NveDetailDrillDown, type NveDetailRow, type NveSide } from './salesAnalyticsNveDrillDown'
+import SalesExportModal, { type SalesExportOptions } from './sales/SalesExportModal'
 
 type LeaderboardRow = {
   sales_manager: string | null
@@ -153,6 +155,7 @@ export default function SalesAnalyticsTab() {
   const [nveFetchingDetail, setNveFetchingDetail] = useState<string | null>(null)
   const [nveDetailSide, setNveDetailSide] = useState<Record<string, NveSide>>({})
   const [nveShowAllCustomers, setNveShowAllCustomers] = useState<Record<string, boolean>>({})
+  const [exportOpen, setExportOpen] = useState(false)
 
   const { ports } = usePorts()
   const { from, to } = useMemo(() => rangeFor(period), [period])
@@ -222,6 +225,10 @@ export default function SalesAnalyticsTab() {
 
   const ranked = useMemo(() => rows.filter((r) => !r.is_unassigned), [rows])
   const unassigned = useMemo(() => rows.find((r) => r.is_unassigned), [rows])
+  const reps = useMemo(
+    () => [...new Set(ranked.map((r) => r.sales_manager?.trim()).filter((s): s is string => Boolean(s)))].sort(),
+    [ranked],
+  )
 
   const totals = useMemo(() => {
     const rev = ranked.reduce((s, r) => s + num(r.revenue), 0)
@@ -332,6 +339,11 @@ export default function SalesAnalyticsTab() {
     )
   }
 
+  async function handleExport(opts: SalesExportOptions) {
+    console.log(opts)
+    toast.success('Export options captured')
+  }
+
   return (
     <div style={{ fontFamily: FONT, color: C.ink, display: 'flex', flexDirection: 'column', gap: 16 }}>
       <style>{`
@@ -344,8 +356,20 @@ export default function SalesAnalyticsTab() {
 
       <Card style={{ position: 'relative', zIndex: 40 }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div className="inline-flex w-fit self-start">
-            <Seg options={TOP_VIEWS as any} value={topView} onChange={(k) => setTopView(k as TopView)} />
+          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
+            <div className="inline-flex w-fit self-start">
+              <Seg options={TOP_VIEWS as any} value={topView} onChange={(k) => setTopView(k as TopView)} />
+            </div>
+            <button
+              type="button"
+              onClick={() => setExportOpen(true)}
+              style={{
+                border: `1px solid ${C.border}`, borderRadius: 9, padding: '6px 14px', fontSize: 12,
+                fontWeight: 600, cursor: 'pointer', background: '#fff', color: NAVY,
+              }}
+            >
+              Export PDF
+            </button>
           </div>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <Seg options={PERIODS as any} value={period} onChange={(k) => setPeriod(k as Period)} />
@@ -439,6 +463,13 @@ export default function SalesAnalyticsTab() {
           drillDownFor={nveDrillDownFor}
         />
       )}
+      <SalesExportModal
+        open={exportOpen}
+        onClose={() => setExportOpen(false)}
+        currentPeriod={period}
+        reps={reps}
+        onGenerate={handleExport}
+      />
     </div>
   )
 }
