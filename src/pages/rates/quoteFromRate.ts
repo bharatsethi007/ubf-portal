@@ -18,6 +18,7 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     l.qty = String(qtyByCode.get(chip.container_type) ?? 1)
     l.buy_currency = cur; l.sell_currency = cur
     l.buy_rate = String(chip.base_rate)
+    l.sell_rate = String(chip.sell_rate > 0 ? chip.sell_rate : chip.base_rate)
     lines.push(l)
   }
   for (const s of o.surcharges) {
@@ -28,6 +29,7 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     l.vendor = o.carrierName
     l.buy_currency = cur; l.sell_currency = cur
     l.buy_rate = String(s.amount)
+    l.sell_rate = String(s.sell_amount > 0 ? s.sell_amount : s.amount)
     if (s.basis === 'per_container') { l.unit = 'Per container'; l.qty = String(totalContainers) }
     else if (s.basis === 'per_teu') { l.unit = 'Per TEU'; l.qty = String(totalTeu) }
     else { l.unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1' }
