@@ -4,13 +4,13 @@ import { Switch } from '@/components/ui/switch'
 import PortConnectEnablementRow from './PortConnectEnablementRow'
 import CarrierEventsList from './CarrierEventsList'
 import { relativeUpdatedAt } from './trackingFormat'
+import { deriveCarrierName } from './carrierNames'
 import type {
   BookingTrackingEvent,
   BookingTrackingPatch,
   BookingTrackingSettings,
   ContainerTrackingRow,
 } from './trackingTypes'
-import { CARRIER_SCAC_OPTIONS } from './trackingConstants'
 
 type Props = {
   settings: BookingTrackingSettings
@@ -43,8 +43,8 @@ function CarrierRow({
   onPatch: (patch: BookingTrackingPatch) => void
 }) {
   const enabled = settings.carrier_enabled
-  const hasScac = Boolean((settings.carrier_scac ?? '').trim())
   const carrierEventCount = events.filter((ev) => ev.source === 'carrier').length
+  const matchedCarrier = deriveCarrierName(events)
 
   return (
     <div className="booking-tracking-enable__row">
@@ -55,13 +55,18 @@ function CarrierRow({
             onCheckedChange={(v) => onPatch({ carrier_enabled: v })}
           />
           <span className="booking-tracking-enable__title">Shipping line tracking</span>
+          {matchedCarrier ? (
+            <span className="ml-2 rounded bg-[#0A2472]/10 px-1.5 py-0.5 text-[11px] font-medium text-[#0A2472]">
+              {matchedCarrier}
+            </span>
+          ) : null}
         </div>
         <div className="booking-tracking-enable__actions">
           <Button
             type="button"
             size="xs"
             variant="outline"
-            disabled={carrierBusy || !enabled || !hasScac}
+            disabled={carrierBusy || !enabled}
             onClick={() => void onCarrierRefresh()}
           >
             <RefreshCw size={13} className={carrierBusy ? 'import-sea-spin' : undefined} />
@@ -69,21 +74,6 @@ function CarrierRow({
           </Button>
         </div>
       </div>
-
-      <label className="booking-tracking-enable__scac">
-        <span className="filter-field__label">Carrier SCAC</span>
-        <select
-          className="input input--xs"
-          value={settings.carrier_scac ?? ''}
-          disabled={!enabled}
-          onChange={(e) => onPatch({ carrier_scac: e.target.value.trim() || null })}
-        >
-          <option value="">Select SCAC…</option>
-          {CARRIER_SCAC_OPTIONS.map((scac) => (
-            <option key={scac} value={scac}>{scac}</option>
-          ))}
-        </select>
-      </label>
 
       {enabled ? (
         <dl className="booking-pc-subscription-meta">
@@ -103,9 +93,9 @@ function CarrierRow({
       {settings.carrier_error ? (
         <p className="booking-tracking-enable__error">{settings.carrier_error}</p>
       ) : null}
-      {enabled && !hasScac ? (
+      {enabled && carrierEventCount === 0 ? (
         <p className="muted booking-tracking-enable__placeholder">
-          Select the carrier SCAC (e.g. MAEU for Maersk), then use Refresh to pull events.
+          Carrier auto-detected from the container. Click Refresh to pull Maersk events.
         </p>
       ) : null}
       {!enabled ? (

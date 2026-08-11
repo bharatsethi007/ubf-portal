@@ -5,6 +5,7 @@ export type CarrierRefreshSummary = {
   containers_found: number
   events_written: number
   containers_not_recognised: string[]
+  matched_carrier?: string | null
   last_refreshed_at: string
   error?: string
 }

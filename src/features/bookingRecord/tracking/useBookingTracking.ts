@@ -202,7 +202,9 @@ export function useBookingTracking(
       const summary = await refreshCarrierFn(bookingId)
       await reload()
       const parts = [
-        `${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'} matched`,
+        summary.matched_carrier
+          ? `${summary.matched_carrier}: ${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'}`
+          : `${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'} matched`,
         `${summary.events_written} new event${summary.events_written === 1 ? '' : 's'}`,
       ]
       if (summary.containers_not_recognised.length) {
