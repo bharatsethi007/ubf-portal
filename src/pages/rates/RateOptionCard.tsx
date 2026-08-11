@@ -21,6 +21,9 @@ export default function RateOptionCard({ option: o, fromCode, toCode, onUse, bus
       <div style={{ flex: 1, minWidth: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
           <span style={{ fontWeight: 600, fontSize: 15 }}>{o.carrierName}</span>
+          {o.carrierLineName && o.carrierLineName !== o.carrierName && (
+            <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>· {o.carrierLineName}</span>
+          )}
           <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, padding: '2px 8px', borderRadius: 999, background: 'rgba(10,36,114,0.08)', color: '#0A2472' }}>{o.status}</span>
           {o.chips.map((c) => {
             const sell = c.sell_rate > 0 ? c.sell_rate : c.base_rate
