@@ -11,9 +11,10 @@ import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponses
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
 import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
 import { buildBuyLinesFromOption, createQuoteWithBuyRates, createQuoteWithLclBuyRates } from '../rates/quoteFromRate'
-import type { LclRateOption, LclQuoteLane } from '../rates/lclRateSearchApi'
+import { searchLclRates, type LclRateOption, type LclQuoteLane } from '../rates/lclRateSearchApi'
 import RateSearchModal from '../rates/RateSearchModal'
 import RateOptionCard from '../rates/RateOptionCard'
+import LclRateOptionCard from '../rates/LclRateOptionCard'
 import './newQuoteSearch.css'
 
 const SIZE_LABEL: Record<string, string> = { '20': '20ft', '40': '40ft', '40HC': '40ft HC', '45HC': '45ft HC' }
@@ -42,13 +43,16 @@ export default function NewQuoteSearch() {
   const [searched, setSearched] = useState(false)
   const [searching, setSearching] = useState(false)
   const [options, setOptions] = useState<RateOption[]>([])
+  const [lclOptions, setLclOptions] = useState<LclRateOption[]>([])
+  const [lclWm, setLclWm] = useState('')
+  const [lclCbm, setLclCbm] = useState('')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [aiQuery, setAiQuery] = useState('')
   const creating = busyId !== null
 
   // Any change to the request invalidates a prior search.
-  function invalidate() { setSearched(false); setOptions([]) }
+  function invalidate() { setSearched(false); setOptions([]); setLclOptions([]) }
   function patch(p: Partial<QuoteDraft>) {
     setDraft((d) => ({ ...d, ...p }))
     invalidate()
@@ -62,26 +66,44 @@ export default function NewQuoteSearch() {
     invalidate()
   }
 
-  const canSearch = useMemo(
-    () => Boolean(customer && draft.from_port_code && draft.to_port_code),
-    [customer, draft.from_port_code, draft.to_port_code],
-  )
+  const isLcl = draft.shipment_type === 'LCL'
+  const wmNum = Math.max(0, Number(lclWm) || 0)
+  const cbmNum = (Number(lclCbm) || 0) > 0 ? Number(lclCbm) : wmNum
+
+  const canSearch = useMemo(() => {
+    if (!customer || !draft.from_port_code || !draft.to_port_code) return false
+    if (draft.shipment_type === 'LCL') return wmNum > 0
+    return true
+  }, [customer, draft.from_port_code, draft.to_port_code, draft.shipment_type, wmNum])
+
+  function setMode(t: 'FCL' | 'LCL') { if (draft.shipment_type === t) return; patch({ shipment_type: t }) }
 
   async function runSearch() {
     if (!canSearch) return
     setSearched(true)
     setSearching(true)
     try {
-      const lane: QuoteLane = {
-        from_port_code: draft.from_port_code ?? null,
-        to_port_code: draft.to_port_code ?? null,
-        currency: null,
-        containers: groups.map((g) => ({ size: g.container_size, qty: g.qty })),
+      if (draft.shipment_type === 'LCL') {
+        const lane: LclQuoteLane = {
+          from_port_code: draft.from_port_code ?? null,
+          to_port_code: draft.to_port_code ?? null,
+          currency: null,
+          wm: wmNum,
+          cbm: cbmNum,
+        }
+        setLclOptions(await searchLclRates(lane))
+      } else {
+        const lane: QuoteLane = {
+          from_port_code: draft.from_port_code ?? null,
+          to_port_code: draft.to_port_code ?? null,
+          currency: null,
+          containers: groups.map((g) => ({ size: g.container_size, qty: g.qty })),
+        }
+        setOptions(await searchFclRates(lane))
       }
-      setOptions(await searchFclRates(lane))
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Rate search failed')
-      setOptions([])
+      setOptions([]); setLclOptions([])
     } finally {
       setSearching(false)
     }
@@ -101,7 +123,7 @@ export default function NewQuoteSearch() {
         customer_name: customer.name,
       }
       const { id } = await createQuote(payload)
-      await replaceQuoteContainers(id, groups)
+      if (draft.shipment_type !== 'LCL') await replaceQuoteContainers(id, groups)
       if (chosen) {
         const { id: responseId } = await createQuoteResponse(id)
         await saveQuoteResponseLines(responseId, buildBuyLines(chosen))
@@ -140,6 +162,25 @@ export default function NewQuoteSearch() {
     navigate(`/quotes/${quoteId}`)
   }
 
+  async function handleCreateLcl(o: LclRateOption) {
+    if (!customer || !draft.from_port_code || !draft.to_port_code) return
+    setBusyId(o.cardId)
+    try {
+      const { quoteId } = await createQuoteWithLclBuyRates({
+        customerAccountId: customer.account_id,
+        customerName: customer.name,
+        fromPortCode: draft.from_port_code,
+        toPortCode: draft.to_port_code,
+        option: o,
+      })
+      toast.success('Quote created with LCL buy rates')
+      navigate(`/quotes/${quoteId}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to create quote')
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="nqs-page">
       <div className="nqs-card">
@@ -171,11 +212,11 @@ export default function NewQuoteSearch() {
         </div>
 
         <div className="nqs-modes">
-          <button type="button" className="nqs-mode nqs-mode--active">
+          <button type="button" className={`nqs-mode${!isLcl ? ' nqs-mode--active' : ''}`} onClick={() => setMode('FCL')}>
             <Box size={15} /> FCL
           </button>
-          <button type="button" className="nqs-mode nqs-mode--disabled" disabled>
-            <Package size={15} /> LCL <span className="nqs-soon">soon</span>
+          <button type="button" className={`nqs-mode${isLcl ? ' nqs-mode--active' : ''}`} onClick={() => setMode('LCL')}>
+            <Package size={15} /> LCL
           </button>
           <button type="button" className="nqs-mode nqs-mode--disabled" disabled>
             <Plane size={15} /> Air <span className="nqs-soon">soon</span>
@@ -186,27 +227,43 @@ export default function NewQuoteSearch() {
           <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} />
           <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} />
 
-          <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
-            <ContainerIcon size={16} color="#64748b" />
-            <span style={{ flex: 1 }}>
-              <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
-              <span className="nqs-loads-btn__val">{loadsSummary(groups)}</span>
-            </span>
-            <ChevronDown size={15} color="#94a3b8" />
-          </button>
+          {isLcl ? (
+            <div className="nqs-loads-btn" style={{ cursor: 'default', gap: 12 }}>
+              <ContainerIcon size={16} color="#64748b" />
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11, color: 'var(--muted-foreground)' }}>
+                Chargeable W/M
+                <input type="number" min={0} inputMode="decimal" value={lclWm} onChange={(e) => { setLclWm(e.target.value); invalidate() }}
+                  placeholder="e.g. 3.5" style={{ width: 84, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }} />
+              </label>
+              <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11, color: 'var(--muted-foreground)' }}>
+                CBM (opt.)
+                <input type="number" min={0} inputMode="decimal" value={lclCbm} onChange={(e) => { setLclCbm(e.target.value); invalidate() }}
+                  placeholder="= W/M" style={{ width: 72, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }} />
+              </label>
+            </div>
+          ) : (
+            <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
+              <ContainerIcon size={16} color="#64748b" />
+              <span style={{ flex: 1 }}>
+                <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
+                <span className="nqs-loads-btn__val">{loadsSummary(groups)}</span>
+              </span>
+              <ChevronDown size={15} color="#94a3b8" />
+            </button>
+          )}
 
           <button
             type="button"
             className="nqs-search-btn"
             disabled={!canSearch}
-            title={canSearch ? '' : 'Pick a customer and both ports'}
+            title={canSearch ? '' : (isLcl ? 'Pick a customer, both ports and W/M' : 'Pick a customer and both ports')}
             onClick={runSearch}
           >
             <Search size={16} /> Search
           </button>
         </div>
 
-        {loadsOpen && (
+        {loadsOpen && !isLcl && (
           <ContainerGroupsEditor
             groups={groups}
             onChange={onGroupsChange}
@@ -219,23 +276,27 @@ export default function NewQuoteSearch() {
           <div className="nqs-results">
             {searching ? (
               <div className="nqs-results__empty"><div className="nqs-results__title">Searching your rate cards…</div></div>
-            ) : options.length > 0 ? (
+            ) : (isLcl ? lclOptions.length : options.length) > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span className="text-muted-foreground" style={{ fontSize: 12 }}>{options.length} rate{options.length === 1 ? '' : 's'} for {draft.from_port_code} → {draft.to_port_code}</span>
+                  <span className="text-muted-foreground" style={{ fontSize: 12 }}>{(isLcl ? lclOptions.length : options.length)} rate{(isLcl ? lclOptions.length : options.length) === 1 ? '' : 's'} for {draft.from_port_code} → {draft.to_port_code}</span>
                   <button type="button" className="btn btn--inline" style={{ marginTop: 0, background: 'transparent', color: 'var(--color-ink)', border: '1px solid var(--color-line)' }} disabled={creating} onClick={() => handleCreate()}>
                     {busyId === '__plain__' ? 'Creating…' : 'Create without a rate'}
                   </button>
                 </div>
-                {options.map((o) => (
-                  <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreate(o)} busy={busyId === o.cardId} />
-                ))}
+                {isLcl
+                  ? lclOptions.map((o) => (
+                      <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} />
+                    ))
+                  : options.map((o) => (
+                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreate(o)} busy={busyId === o.cardId} />
+                    ))}
               </div>
             ) : (
               <div className="nqs-results__empty">
                 <div className="nqs-results__icon"><Zap size={20} /></div>
                 <div className="nqs-results__title">No live rates for this lane</div>
-                <div className="nqs-results__text">No active rate card matches {draft.from_port_code} → {draft.to_port_code} for these containers. Create the quote and add a priced response manually.</div>
+                <div className="nqs-results__text">No active rate card matches {draft.from_port_code} → {draft.to_port_code} for this {isLcl ? 'cargo' : 'equipment'}. Create the quote and add a priced response manually.</div>
                 <button type="button" className="nqs-results__create" disabled={creating} onClick={() => handleCreate()}>
                   {busyId === '__plain__' ? 'Creating…' : 'Create quote from this request'}
                 </button>
