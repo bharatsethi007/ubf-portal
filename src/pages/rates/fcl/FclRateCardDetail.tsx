@@ -86,8 +86,10 @@ export default function FclRateCardDetail() {
   async function saveLines() {
     if (savingLines) return
     for (const l of lines) {
-      if (!l.dest_port_code || !l.container_type || l.base_rate === '' || isNaN(Number(l.base_rate))) {
-        toast.error('Each line needs a destination, container, and numeric base rate')
+      const hasBuy = l.base_rate !== '' && !isNaN(Number(l.base_rate))
+      const hasSell = (l.sell_rate ?? '') !== '' && !isNaN(Number(l.sell_rate))
+      if (!l.dest_port_code || !l.container_type || (!hasBuy && !hasSell)) {
+        toast.error('Each line needs a destination, container, and a buy or sell rate')
         return
       }
     }

@@ -68,6 +68,8 @@ export async function listFclRateCards(
 
 export type NewFclRateCard = {
   shipping_line_code: string
+  vendor_account_id?: string
+  vendor_name?: string
   title: string
   currency_code: string
   valid_from: string
@@ -78,7 +80,9 @@ export async function createFclRateCard(input: NewFclRateCard): Promise<{ id: st
   const { data, error } = await supabase
     .from('rate_cards')
     .insert({
-      shipping_line_code: input.shipping_line_code,
+      shipping_line_code: input.shipping_line_code || null,
+      vendor_account_id: input.vendor_account_id || null,
+      vendor_name: input.vendor_name || null,
       rate_type: 'fcl',
       title: input.title || null,
       currency_code: input.currency_code || null,
@@ -195,7 +199,7 @@ export async function saveFclLines(cardId: string, lines: FclLineDraft[], origin
       origin_group_code: null as string | null,
       dest_port_code: l.dest_port_code,
       container_type: l.container_type,
-      base_rate: Number(l.base_rate),
+      base_rate: (l.base_rate ?? '') === '' ? null : Number(l.base_rate),
       sell_rate: (l.sell_rate ?? '') === '' ? null : Number(l.sell_rate),
       currency_code: l.currency_code || null,
       transit_days: l.transit_days ? Number(l.transit_days) : null,
@@ -338,7 +342,7 @@ export async function insertFclLines(cardId: string, lines: FclLineDraft[]): Pro
     origin_group_code: null as string | null,
     dest_port_code: l.dest_port_code,
     container_type: l.container_type,
-    base_rate: Number(l.base_rate),
+    base_rate: (l.base_rate ?? '') === '' ? null : Number(l.base_rate),
     sell_rate: (l.sell_rate ?? '') === '' ? null : Number(l.sell_rate),
     currency_code: l.currency_code || null,
     transit_days: l.transit_days ? Number(l.transit_days) : null,

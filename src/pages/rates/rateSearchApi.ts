@@ -19,6 +19,7 @@ export type RateOption = {
   cardId: string
   carrierCode: string
   carrierName: string
+  carrierLineName: string | null
   currency: string
   transitDays: number | null
   via: string | null
@@ -70,7 +71,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
 
   const { data: lines, error } = await supabase
     .from('rate_card_fcl_lines')
-    .select('base_rate, sell_rate, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, shipping_line_code, status, valid_from, valid_to, currency_code, shipping_lines(name))')
+    .select('base_rate, sell_rate, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, shipping_line_code, vendor_name, status, valid_from, valid_to, currency_code, shipping_lines(name))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
     .in('container_type', wantedCodes)
@@ -141,8 +142,9 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     const vts = [...g.chips.values()].map((c) => c.vt).filter(Boolean).sort()
     options.push({
       cardId: id,
-      carrierCode: String(g.card.shipping_line_code),
-      carrierName: sl?.name ? String(sl.name) : String(g.card.shipping_line_code),
+      carrierCode: g.card.shipping_line_code ? String(g.card.shipping_line_code) : '',
+      carrierName: String(g.card.vendor_name || (sl?.name ?? '') || g.card.shipping_line_code || '—'),
+      carrierLineName: sl?.name ? String(sl.name) : (g.card.shipping_line_code ? String(g.card.shipping_line_code) : null),
       currency: g.card.currency_code ? String(g.card.currency_code) : '',
       transitDays: transits.length ? Math.min(...transits) : null,
       via: vias.length ? String(vias[0]) : null,
