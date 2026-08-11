@@ -23,11 +23,13 @@ export default function BookingTrackingTab({
     loading,
     portConnectBusy,
     refreshBusy,
+    carrierBusy,
     lastRefreshedAt,
     patchSettings,
     subscribePortConnect,
     unsubscribePortConnect,
     refreshPortConnect,
+    refreshCarrier,
   } = tracking
 
   const isInitialLoad = loading && !settings
@@ -59,10 +61,12 @@ export default function BookingTrackingTab({
           containersTracked={containers.length}
           portConnectBusy={portConnectBusy}
           refreshBusy={refreshBusy}
+          carrierBusy={carrierBusy}
           lastRefreshedAt={lastRefreshedAt}
           onPortConnectSubscribe={subscribePortConnect}
           onPortConnectUnsubscribe={unsubscribePortConnect}
           onPortConnectRefresh={handleRefresh}
+          onCarrierRefresh={refreshCarrier}
           onPatch={patchSettings}
         />
       </div>

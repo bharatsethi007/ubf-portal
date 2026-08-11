@@ -18,6 +18,7 @@ import {
   subscribePortConnect,
   unsubscribePortConnect,
 } from './portconnectSubscriptionApi'
+import { refreshCarrier as refreshCarrierFn } from './carrierTrackingApi'
 import type {
   BookingTrackingEvent,
   BookingTrackingPatch,
@@ -68,8 +69,10 @@ export function useBookingTracking(
   const [loading, setLoading] = useState(true)
   const [portConnectBusy, setPortConnectBusy] = useState(false)
   const [refreshBusy, setRefreshBusy] = useState(false)
+  const [carrierBusy, setCarrierBusy] = useState(false)
   const [lastRefreshedAt, setLastRefreshedAt] = useState<string | null>(null)
   const lastRefreshAttempt = useRef(0)
+  const lastCarrierAttempt = useRef(0)
 
   const reload = useCallback(async (): Promise<ContainerTrackingRow[]> => {
     if (!bookingId) {
@@ -185,6 +188,35 @@ export function useBookingTracking(
     }
   }, [bookingId, reload, onAfterRefresh])
 
+  const refreshCarrierData = useCallback(async () => {
+    if (!bookingId) return
+    const now = Date.now()
+    if (now - lastCarrierAttempt.current < REFRESH_COOLDOWN_MS) {
+      const waitSec = Math.ceil((REFRESH_COOLDOWN_MS - (now - lastCarrierAttempt.current)) / 1000)
+      toast.error(`Wait ${waitSec}s before refreshing again`)
+      return
+    }
+    lastCarrierAttempt.current = now
+    setCarrierBusy(true)
+    try {
+      const summary = await refreshCarrierFn(bookingId)
+      await reload()
+      const parts = [
+        `${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'} matched`,
+        `${summary.events_written} new event${summary.events_written === 1 ? '' : 's'}`,
+      ]
+      if (summary.containers_not_recognised.length) {
+        parts.push(`no Maersk data: ${summary.containers_not_recognised.join(', ')}`)
+      }
+      toast.success(parts.join(' · '))
+      await onAfterRefresh?.()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Carrier refresh failed')
+    } finally {
+      setCarrierBusy(false)
+    }
+  }, [bookingId, reload, onAfterRefresh])
+
   return {
     settings,
     containers,
@@ -192,11 +224,13 @@ export function useBookingTracking(
     loading,
     portConnectBusy,
     refreshBusy,
+    carrierBusy,
     lastRefreshedAt,
     patchSettings,
     subscribePortConnect: subscribe,
     unsubscribePortConnect: unsubscribe,
     refreshPortConnect: refreshPortConnectData,
+    refreshCarrier: refreshCarrierData,
     reload,
   }
 }
