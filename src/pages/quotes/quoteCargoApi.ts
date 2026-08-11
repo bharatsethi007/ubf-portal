@@ -207,3 +207,20 @@ export async function saveQuoteCargo(quoteId: string, lines: QuoteCargoLine[]): 
   const { error: insErr } = await supabase.from('quote_cargo_lines').insert(rows)
   if (insErr) throw insErr
 }
+
+export async function fetchCargoDescriptionSuggestions(): Promise<string[]> {
+  const { data, error } = await supabase
+    .from('quote_cargo_lines')
+    .select('cargo_description')
+    .not('cargo_description', 'is', null)
+    .limit(500)
+  if (error) throw error
+  const seen = new Set<string>(); const out: string[] = []
+  for (const r of (data ?? []) as { cargo_description: string | null }[]) {
+    const v = (r.cargo_description ?? '').trim()
+    const k = v.toLowerCase()
+    if (v && !seen.has(k)) { seen.add(k); out.push(v) }
+    if (out.length >= 60) break
+  }
+  return out
+}

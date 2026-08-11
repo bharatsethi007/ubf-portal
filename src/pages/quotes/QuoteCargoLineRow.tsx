@@ -46,6 +46,7 @@ export default function QuoteCargoLineRow({ row, mode, onUpdate, onRemove, onDup
       <td>
         <input
           className="cargo-table__input cargo-table__desc"
+          list="cargo-desc-suggest"
           value={row.cargo_description}
           onChange={(e) => onUpdate({ cargo_description: e.target.value })}
         />
@@ -53,6 +54,7 @@ export default function QuoteCargoLineRow({ row, mode, onUpdate, onRemove, onDup
       <td>
         <input
           className="cargo-table__input cargo-table__pkg"
+          list="pkg-type-suggest"
           placeholder="PACKAGE(S)"
           value={row.package_type}
           onChange={(e) => onUpdate({ package_type: e.target.value })}

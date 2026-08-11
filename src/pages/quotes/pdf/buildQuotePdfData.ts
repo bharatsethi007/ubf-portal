@@ -37,7 +37,7 @@ export type QuotePdfData = {
   commodities: { desc: string; pkg: string; gross: string; vol: string; chg: string }[]
   commTotal: { units: string; gross: string; vol: string; chg: string }
   isFcl: boolean
-  cargoFlags: { insurance: string; dg: string }
+  cargoFlags: { insurance: string; dg: string; stackable: string }
   quoteDate: string
   options: PdfOption[]
   externalNote: string
@@ -192,6 +192,7 @@ export function buildQuotePdfData(
     cargoFlags: {
       insurance: quote.need_insurance ? 'Yes' : 'No',
       dg: quote.is_hazardous ? 'Yes' : 'No',
+      stackable: quote.stackable === 'true' ? 'Yes' : 'No',
     },
     quoteDate,
     options,

@@ -211,6 +211,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                   <Text style={[s.tHeadCell, { flex: 1.0 }]}>VOLUME (CBM)</Text>
                   <Text style={[s.tHeadCell, { flex: 0.9 }]}>INSURANCE</Text>
                   <Text style={[s.tHeadCell, { flex: 0.7 }]}>DG</Text>
+                  <Text style={[s.tHeadCell, { flex: 0.9 }]}>STACK</Text>
                 </View>
                 {data.commodities.map((c, i) => (
                   <View key={i} style={[s.tRow, s.tRowB]}>
@@ -220,6 +221,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                     <Text style={[s.tCell, { flex: 1.0 }]}>{c.vol}</Text>
                     <Text style={[s.tCell, { flex: 0.9 }]}>{data.cargoFlags.insurance}</Text>
                     <Text style={[s.tCell, { flex: 0.7 }]}>{data.cargoFlags.dg}</Text>
+                    <Text style={[s.tCell, { flex: 0.9 }]}>{data.cargoFlags.stackable}</Text>
                   </View>
                 ))}
                 <View style={[s.tRow, s.totalRow]}>
@@ -229,6 +231,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                   <Text style={[s.tCell, { flex: 1.0, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
                   <Text style={[s.tCell, { flex: 0.9, fontWeight: 700 }]}>{''}</Text>
                   <Text style={[s.tCell, { flex: 0.7, fontWeight: 700 }]}>{''}</Text>
+                  <Text style={[s.tCell, { flex: 0.9, fontWeight: 700 }]}>{''}</Text>
                 </View>
               </>
             ) : (

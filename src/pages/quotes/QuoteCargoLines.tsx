@@ -1,4 +1,5 @@
-import { computeCargoLine, newQuoteCargoLine, type QuoteCargoLine } from './quoteCargoApi'
+import { useEffect, useState } from 'react'
+import { computeCargoLine, fetchCargoDescriptionSuggestions, newQuoteCargoLine, type QuoteCargoLine } from './quoteCargoApi'
 import QuoteCargoLineRow from './QuoteCargoLineRow'
 import '../../components/bookings/cargoLinesTable.css'
 
@@ -26,6 +27,9 @@ function fmtTotal(n: number, decimals: number): string {
 }
 
 export default function QuoteCargoLines({ lines, mode, onChange }: Props) {
+  const [descOpts, setDescOpts] = useState<string[]>([])
+  useEffect(() => { fetchCargoDescriptionSuggestions().then(setDescOpts).catch(() => {}) }, [])
+
   let totalQty = 0
   let totalCbm = 0
   let totalWeight = 0
@@ -56,6 +60,8 @@ export default function QuoteCargoLines({ lines, mode, onChange }: Props) {
 
   return (
     <div className="cargo-table-wrap">
+      <datalist id="cargo-desc-suggest">{descOpts.map((d) => <option key={d} value={d} />)}</datalist>
+      <datalist id="pkg-type-suggest">{['Pallets','Cartons','Crates','Rolls','Packages','Drums','Coils'].map((p) => <option key={p} value={p} />)}</datalist>
       <table className="cargo-table cargo-table--quote-loads">
         <thead>
           <tr>

@@ -7,6 +7,8 @@ import IncotermSelect from '../../components/bookings/IncotermSelect'
 import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import SeaPortSelect from '../../components/bookings/SeaPortSelect'
 import QuoteLaneMap from './QuoteLaneMap'
+import QuoteCargoLines from './QuoteCargoLines'
+import { fetchQuoteCargo, saveQuoteCargo, newQuoteCargoLine, type QuoteCargoLine } from './quoteCargoApi'
 import { useStaffList } from '../../hooks/useStaffList'
 import { useCustomerQuoteStats } from '../../hooks/useCustomerQuoteStats'
 import { fetchQuote, updateQuote, setQuoteStatus, type QuoteRecord } from './quotesApi'
@@ -56,6 +58,7 @@ type Cargo = {
   is_hazardous: boolean
   dg_un_number: string | null
   dg_class: string | null
+  stackable: boolean
 }
 
 function pickFields(q: QuoteRecord): Fields {
@@ -74,6 +77,7 @@ function pickCargo(q: QuoteRecord): Cargo {
     need_insurance: q.need_insurance, need_refrigeration: q.need_refrigeration,
     reefer_temp_c: q.reefer_temp_c, is_hazardous: q.is_hazardous,
     dg_un_number: q.dg_un_number, dg_class: q.dg_class,
+    stackable: q.stackable === 'true',
   }
 }
 
@@ -100,6 +104,8 @@ export default function QuoteDetailPage() {
   const [initialCargo, setInitialCargo] = useState<Cargo | null>(null)
   const [groups, setGroups] = useState<QuoteContainerDraft[]>([])
   const [initialGroups, setInitialGroups] = useState<QuoteContainerDraft[]>([])
+  const [cargoLines, setCargoLines] = useState<QuoteCargoLine[]>([])
+  const [initialCargoLines, setInitialCargoLines] = useState<QuoteCargoLine[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingCargo, setSavingCargo] = useState(false)
@@ -132,6 +138,11 @@ export default function QuoteDetailPage() {
       setFields(f); setInitial(f)
       setCargo(pickCargo(q)); setInitialCargo(pickCargo(q))
       setGroups(g); setInitialGroups(g)
+      if ((q.shipment_type ?? '').toUpperCase() === 'LCL') {
+        const cl = await fetchQuoteCargo(id)
+        const seeded = cl.length ? cl : [newQuoteCargoLine(0)]
+        setCargoLines(seeded); setInitialCargoLines(seeded)
+      }
     } catch {
       toast.error('Failed to load quote'); setQuote(null)
     } finally {
@@ -144,12 +155,15 @@ export default function QuoteDetailPage() {
   const dirty = useMemo(
     () => Boolean(fields && initial && JSON.stringify(fields) !== JSON.stringify(initial)),
     [fields, initial])
-  const cargoDirty = useMemo(
+  const cargoFieldsDirty = useMemo(
     () => Boolean(cargo && initialCargo && JSON.stringify(cargo) !== JSON.stringify(initialCargo)),
     [cargo, initialCargo])
   const loadsDirty = useMemo(
     () => JSON.stringify(groups) !== JSON.stringify(initialGroups),
     [groups, initialGroups])
+
+  const isLcl = (quote?.shipment_type ?? '').toUpperCase() === 'LCL'
+  const cargoDirty = useMemo(() => JSON.stringify(cargoLines) !== JSON.stringify(initialCargoLines), [cargoLines, initialCargoLines])
 
   function patch(p: Partial<Fields>) { setFields((f) => (f ? { ...f, ...p } : f)) }
   function patchCargo(p: Partial<Cargo>) { setCargo((c) => (c ? { ...c, ...p } : c)) }
@@ -199,14 +213,20 @@ export default function QuoteDetailPage() {
   async function handleSaveCargo() {
     if (!id || !cargo) return
     setSavingCargo(true)
-    try { await updateQuote(id, cargo); setInitialCargo(cargo); toast.success('Cargo saved') }
+    try { await updateQuote(id, { ...cargo, stackable: cargo.stackable ? 'true' : 'false' }); setInitialCargo(cargo); toast.success('Cargo saved') }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save cargo') }
     finally { setSavingCargo(false) }
   }
   async function handleSaveLoads() {
     if (!id) return
     setSavingLoads(true)
-    try { await replaceQuoteContainers(id, groups); setInitialGroups(groups); toast.success('Loads saved') }
+    try {
+      if (isLcl) {
+        await saveQuoteCargo(id, cargoLines); setInitialCargoLines(cargoLines); toast.success('Loads saved')
+        return
+      }
+      await replaceQuoteContainers(id, groups); setInitialGroups(groups); toast.success('Loads saved')
+    }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save loads') }
     finally { setSavingLoads(false) }
   }
@@ -269,7 +289,7 @@ export default function QuoteDetailPage() {
       <div className="nqd-band nqd-band--pad">
         <div className="nqd-section-head">
           <div className="nqd-fclhead">
-            <span className="nqd-fclpill">FCL</span>
+            <span className="nqd-fclpill">{isLcl ? 'LCL' : 'FCL'}</span>
             {editingPorts ? (
               <div className="nqd-portedit">
                 <SeaPortSelect value={quote.from_port_code ?? ''} onChange={(v) => savePort('from', v)} placeholder="From port" />
@@ -279,52 +299,62 @@ export default function QuoteDetailPage() {
               </div>
             ) : (
               <>
-                <QuoteLaneMap fromCode={quote.from_port_code} toCode={quote.to_port_code} />
+                <QuoteLaneMap fromCode={quote.from_port_code} toCode={quote.to_port_code} mode={isLcl ? 'lcl' : 'fcl'} />
                 <button className="nqd-editicon" onClick={() => setEditingPorts(true)} aria-label="Change ports"><Pencil size={13} /></button>
               </>
             )}
           </div>
-          <button className="nqd-btn nqd-btn--accent" disabled={!loadsDirty || savingLoads} onClick={handleSaveLoads}>
+          <button className="nqd-btn nqd-btn--accent" disabled={(isLcl ? !cargoDirty : !loadsDirty) || savingLoads} onClick={handleSaveLoads}>
             {savingLoads ? 'Saving…' : 'Save loads'}
           </button>
         </div>
 
-        {groups.length === 0 && <p className="nqd-empty">No containers yet.</p>}
-        {groups.map((g, i) => (
-          <div className="nqd-cg" key={i}>
-            <div className="nqd-cg__head">
-              <span className="nqd-cg__title">Group {i + 1}</span>
-              <button className="nqd-cg__rm" onClick={() => removeGroup(i)} aria-label="Remove group"><X size={15} /></button>
-            </div>
-            <div className="nqd-cg__grid">
-              <div className="nqd-field">
-                <span className="nqd-field__label">Size</span>
-                <select className="nqd-input" value={g.container_size} onChange={(e) => patchGroup(i, { container_size: e.target.value as ContainerSize })}>
-                  {SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                </select>
+        {!isLcl && (
+          <>
+            {groups.length === 0 && <p className="nqd-empty">No containers yet.</p>}
+            {groups.map((g, i) => (
+              <div className="nqd-cg" key={i}>
+                <div className="nqd-cg__head">
+                  <span className="nqd-cg__title">Group {i + 1}</span>
+                  <button className="nqd-cg__rm" onClick={() => removeGroup(i)} aria-label="Remove group"><X size={15} /></button>
+                </div>
+                <div className="nqd-cg__grid">
+                  <div className="nqd-field">
+                    <span className="nqd-field__label">Size</span>
+                    <select className="nqd-input" value={g.container_size} onChange={(e) => patchGroup(i, { container_size: e.target.value as ContainerSize })}>
+                      {SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="nqd-field">
+                    <span className="nqd-field__label">Type</span>
+                    <select className="nqd-input" value={g.container_type} onChange={(e) => patchGroup(i, { container_type: e.target.value as ContainerType })}>
+                      {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
+                    </select>
+                  </div>
+                  <div className="nqd-field">
+                    <span className="nqd-field__label">Qty</span>
+                    <input className="nqd-input" type="number" min={1} value={g.qty} onChange={(e) => patchGroup(i, { qty: Math.max(1, Number(e.target.value) || 1) })} />
+                  </div>
+                  <div className="nqd-field">
+                    <span className="nqd-field__label">Weight / ctr (MT)</span>
+                    <input className="nqd-input" type="number" value={g.weight_per_container_mt ?? ''} onChange={(e) => patchGroup(i, { weight_per_container_mt: e.target.value === '' ? null : Number(e.target.value) })} />
+                  </div>
+                  <div className="nqd-field">
+                    <span className="nqd-field__label">Commodity</span>
+                    <input className="nqd-input" type="text" placeholder="General" value={g.commodity ?? ''} onChange={(e) => patchGroup(i, { commodity: e.target.value || null })} />
+                  </div>
+                </div>
               </div>
-              <div className="nqd-field">
-                <span className="nqd-field__label">Type</span>
-                <select className="nqd-input" value={g.container_type} onChange={(e) => patchGroup(i, { container_type: e.target.value as ContainerType })}>
-                  {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                </select>
-              </div>
-              <div className="nqd-field">
-                <span className="nqd-field__label">Qty</span>
-                <input className="nqd-input" type="number" min={1} value={g.qty} onChange={(e) => patchGroup(i, { qty: Math.max(1, Number(e.target.value) || 1) })} />
-              </div>
-              <div className="nqd-field">
-                <span className="nqd-field__label">Weight / ctr (MT)</span>
-                <input className="nqd-input" type="number" value={g.weight_per_container_mt ?? ''} onChange={(e) => patchGroup(i, { weight_per_container_mt: e.target.value === '' ? null : Number(e.target.value) })} />
-              </div>
-              <div className="nqd-field">
-                <span className="nqd-field__label">Commodity</span>
-                <input className="nqd-input" type="text" placeholder="General" value={g.commodity ?? ''} onChange={(e) => patchGroup(i, { commodity: e.target.value || null })} />
-              </div>
-            </div>
-          </div>
-        ))}
-        <button className="nqd-addgrp" onClick={addGroup}><Plus size={15} /> Add another group</button>
+            ))}
+            <button className="nqd-addgrp" onClick={addGroup}><Plus size={15} /> Add another group</button>
+          </>
+        )}
+        {isLcl && (
+          <>
+            <QuoteCargoLines lines={cargoLines} mode="sea" onChange={setCargoLines} />
+            <button className="nqd-addgrp" onClick={() => setCargoLines([...cargoLines, newQuoteCargoLine(cargoLines.length)])}><Plus size={15} /> Add cargo line</button>
+          </>
+        )}
       </div>
 
       <div className="nqd-band nqd-band--pad">
@@ -408,7 +438,7 @@ export default function QuoteDetailPage() {
       <div className="nqd-band nqd-band--pad">
         <div className="nqd-section-head">
           <span className="nqd-section-title">Cargo</span>
-          <button className="nqd-btn nqd-btn--accent" disabled={!cargoDirty || savingCargo} onClick={handleSaveCargo}>
+          <button className="nqd-btn nqd-btn--accent" disabled={!cargoFieldsDirty || savingCargo} onClick={handleSaveCargo}>
             {savingCargo ? 'Saving…' : 'Save'}
           </button>
         </div>
@@ -459,6 +489,9 @@ export default function QuoteDetailPage() {
                 </div>
               </div>
             )}
+            <label className="nqd-check">
+              <input type="checkbox" checked={cargo.stackable} onChange={(e) => patchCargo({ stackable: e.target.checked })} /> Stackable
+            </label>
           </div>
         </div>
       </div>

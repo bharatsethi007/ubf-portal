@@ -1,4 +1,4 @@
-import { Globe, Ship } from 'lucide-react'
+import { Globe, Ship, Boxes } from 'lucide-react'
 import { useMemo } from 'react'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
 import './quoteLaneMap.css'
@@ -28,9 +28,11 @@ function PortLabel({ side, p }: { side: 'o' | 'd'; p: Resolved | null }) {
 export default function QuoteLaneMap({
   fromCode,
   toCode,
+  mode = 'fcl',
 }: {
   fromCode: string | null
   toCode: string | null
+  mode?: 'fcl' | 'lcl'
 }) {
   const { ports } = useSeaPorts()
   const resolve = (code: string | null): Resolved | null => {
@@ -47,7 +49,7 @@ export default function QuoteLaneMap({
         <PortLabel side="o" p={from} />
         <span className="qlane__conn">
           <span className="qlane__dash" />
-          <span className="qlane__ship"><Ship size={14} /></span>
+          <span className="qlane__ship">{mode === 'lcl' ? <Boxes size={14} /> : <Ship size={14} />}</span>
           <span className="qlane__dash" />
         </span>
         <PortLabel side="d" p={to} />
