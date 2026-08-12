@@ -2103,3 +2103,16 @@ a:hover { text-decoration: underline; }
   .stat-cards { grid-template-columns: 1fr; }
   .content { padding: 16px; }
 }
+
+.quotes-tabs__btn { display: inline-flex; align-items: center; gap: 6px; }
+.qsel-col { width: 36px; text-align: center; }
+.qsel-col input { cursor: pointer; }
+.quotes-bulkbar { display: flex; align-items: center; gap: 10px; padding: 8px 12px; margin: 0 0 10px; background: #EEF2FF; border: 1px solid #C7D2FE; border-radius: 8px; }
+.quotes-bulkbar__count { font-size: 13px; font-weight: 600; color: #0A2472; margin-right: 4px; }
+.quotes-bulkbar__btn { display: inline-flex; align-items: center; gap: 6px; height: 32px; padding: 0 12px; border-radius: 7px; border: 1px solid #cbd5e1; background: #fff; color: #334155; font-size: 13px; cursor: pointer; }
+.quotes-bulkbar__btn:hover { background: #f8fafc; }
+.quotes-bulkbar__btn--danger { border-color: #fecaca; color: #b91c1c; }
+.quotes-bulkbar__btn--ghost { border-color: transparent; }
+.quotes-page__footer { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 12px; }
+.quotes-page__pagesize { display: inline-flex; align-items: center; gap: 8px; font-size: 13px; color: #64748b; }
+.quotes-page__pagesize select { width: auto; }

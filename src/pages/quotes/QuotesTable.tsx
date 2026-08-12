@@ -6,15 +6,24 @@ type Props = {
   columns: ColumnDef<QuoteRow>[]
   loading: boolean
   onRowClick: (id: string) => void
+  selectable?: boolean
+  selectedIds?: Set<string>
+  onToggle?: (id: string) => void
+  onToggleAll?: () => void
+  allSelected?: boolean
+  someSelected?: boolean
 }
 
-export default function QuotesTable({ rows, columns, loading, onRowClick }: Props) {
+export default function QuotesTable({
+  rows, columns, loading, onRowClick,
+  selectable = false, selectedIds, onToggle, onToggleAll, allSelected = false, someSelected = false,
+}: Props) {
   const table = useReactTable({
     data: rows,
     columns,
     getCoreRowModel: getCoreRowModel(),
   })
-  const colSpan = columns.length
+  const colSpan = columns.length + (selectable ? 1 : 0)
 
   return (
     <div className="table-wrap">
@@ -22,6 +31,17 @@ export default function QuotesTable({ rows, columns, loading, onRowClick }: Prop
         <thead>
           {table.getHeaderGroups().map((hg) => (
             <tr key={hg.id}>
+              {selectable && (
+                <th className="qsel-col">
+                  <input
+                    type="checkbox"
+                    checked={allSelected}
+                    ref={(el) => { if (el) el.indeterminate = someSelected && !allSelected }}
+                    onChange={onToggleAll}
+                    aria-label="Select all"
+                  />
+                </th>
+              )}
               {hg.headers.map((header) => (
                 <th key={header.id}>
                   {header.isPlaceholder
@@ -52,6 +72,16 @@ export default function QuotesTable({ rows, columns, loading, onRowClick }: Prop
                 className="row-clickable"
                 onClick={() => onRowClick(row.original.id)}
               >
+                {selectable && (
+                  <td className="qsel-col" onClick={(e) => e.stopPropagation()}>
+                    <input
+                      type="checkbox"
+                      checked={selectedIds?.has(row.original.id) ?? false}
+                      onChange={() => onToggle?.(row.original.id)}
+                      aria-label="Select quote"
+                    />
+                  </td>
+                )}
                 {row.getVisibleCells().map((cell) => (
                   <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
                 ))}

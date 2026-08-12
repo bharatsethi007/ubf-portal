@@ -8,7 +8,6 @@ import CustomerPicker, { type CustomerPickerValue } from '../../components/booki
 import SeaPortSelect from '../../components/bookings/SeaPortSelect'
 import QuoteLaneMap from './QuoteLaneMap'
 import QuoteCargoLines from './QuoteCargoLines'
-import { fetchQuoteCargo, saveQuoteCargo, newQuoteCargoLine, type QuoteCargoLine } from './quoteCargoApi'
 import { useStaffList } from '../../hooks/useStaffList'
 import { useCustomerQuoteStats } from '../../hooks/useCustomerQuoteStats'
 import { fetchQuote, updateQuote, setQuoteStatus, type QuoteRecord } from './quotesApi'
@@ -16,6 +15,9 @@ import {
   fetchQuoteContainers, replaceQuoteContainers, emptyContainerGroup,
   type QuoteContainerDraft, type ContainerSize, type ContainerType,
 } from './quoteContainersApi'
+import {
+  fetchQuoteCargo, saveQuoteCargo, newQuoteCargoLine, type QuoteCargoLine,
+} from './quoteCargoApi'
 import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
 import QuoteResponsesPanel from './QuoteResponsesPanel'
@@ -126,6 +128,11 @@ export default function QuoteDetailPage() {
         ord: c.ord, container_size: c.container_size, container_type: c.container_type,
         qty: c.qty, weight_per_container_mt: c.weight_per_container_mt, commodity: c.commodity,
       }))
+      let cl: QuoteCargoLine[] = []
+      if ((q.shipment_type ?? '').toUpperCase() === 'LCL') {
+        const fetched = await fetchQuoteCargo(id)
+        cl = fetched.length ? fetched : [newQuoteCargoLine(0)]
+      }
       const f = pickFields(q)
       if (q.customer_account_id && (!f.shipper_address || !f.consignee_address)) {
         const addr = await fetchCustomerAddress(q.customer_account_id)
@@ -138,11 +145,7 @@ export default function QuoteDetailPage() {
       setFields(f); setInitial(f)
       setCargo(pickCargo(q)); setInitialCargo(pickCargo(q))
       setGroups(g); setInitialGroups(g)
-      if ((q.shipment_type ?? '').toUpperCase() === 'LCL') {
-        const cl = await fetchQuoteCargo(id)
-        const seeded = cl.length ? cl : [newQuoteCargoLine(0)]
-        setCargoLines(seeded); setInitialCargoLines(seeded)
-      }
+      setCargoLines(cl); setInitialCargoLines(cl)
     } catch {
       toast.error('Failed to load quote'); setQuote(null)
     } finally {
@@ -152,18 +155,20 @@ export default function QuoteDetailPage() {
 
   useEffect(() => { load() }, [load])
 
+  const isLcl = (quote?.shipment_type ?? '').toUpperCase() === 'LCL'
+
   const dirty = useMemo(
     () => Boolean(fields && initial && JSON.stringify(fields) !== JSON.stringify(initial)),
     [fields, initial])
-  const cargoFieldsDirty = useMemo(
+  const cargoDirty = useMemo(
     () => Boolean(cargo && initialCargo && JSON.stringify(cargo) !== JSON.stringify(initialCargo)),
     [cargo, initialCargo])
   const loadsDirty = useMemo(
     () => JSON.stringify(groups) !== JSON.stringify(initialGroups),
     [groups, initialGroups])
-
-  const isLcl = (quote?.shipment_type ?? '').toUpperCase() === 'LCL'
-  const cargoDirty = useMemo(() => JSON.stringify(cargoLines) !== JSON.stringify(initialCargoLines), [cargoLines, initialCargoLines])
+  const cargoLinesDirty = useMemo(
+    () => JSON.stringify(cargoLines) !== JSON.stringify(initialCargoLines),
+    [cargoLines, initialCargoLines])
 
   function patch(p: Partial<Fields>) { setFields((f) => (f ? { ...f, ...p } : f)) }
   function patchCargo(p: Partial<Cargo>) { setCargo((c) => (c ? { ...c, ...p } : c)) }
@@ -203,6 +208,8 @@ export default function QuoteDetailPage() {
   function addGroup() { setGroups((gs) => [...gs, emptyContainerGroup(gs.length)]) }
   function removeGroup(idx: number) { setGroups((gs) => gs.filter((_, i) => i !== idx)) }
 
+  function addCargoLine() { setCargoLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
+
   async function handleSave() {
     if (!id || !fields) return
     setSaving(true)
@@ -213,7 +220,10 @@ export default function QuoteDetailPage() {
   async function handleSaveCargo() {
     if (!id || !cargo) return
     setSavingCargo(true)
-    try { await updateQuote(id, { ...cargo, stackable: cargo.stackable ? 'true' : 'false' }); setInitialCargo(cargo); toast.success('Cargo saved') }
+    try {
+      await updateQuote(id, { ...cargo, stackable: cargo.stackable ? 'true' : 'false' })
+      setInitialCargo(cargo); toast.success('Cargo saved')
+    }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save cargo') }
     finally { setSavingCargo(false) }
   }
@@ -221,11 +231,9 @@ export default function QuoteDetailPage() {
     if (!id) return
     setSavingLoads(true)
     try {
-      if (isLcl) {
-        await saveQuoteCargo(id, cargoLines); setInitialCargoLines(cargoLines); toast.success('Loads saved')
-        return
-      }
-      await replaceQuoteContainers(id, groups); setInitialGroups(groups); toast.success('Loads saved')
+      if (isLcl) { await saveQuoteCargo(id, cargoLines); setInitialCargoLines(cargoLines) }
+      else { await replaceQuoteContainers(id, groups); setInitialGroups(groups) }
+      toast.success('Loads saved')
     }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save loads') }
     finally { setSavingLoads(false) }
@@ -304,12 +312,21 @@ export default function QuoteDetailPage() {
               </>
             )}
           </div>
-          <button className="nqd-btn nqd-btn--accent" disabled={(isLcl ? !cargoDirty : !loadsDirty) || savingLoads} onClick={handleSaveLoads}>
+          <button
+            className="nqd-btn nqd-btn--accent"
+            disabled={(isLcl ? !cargoLinesDirty : !loadsDirty) || savingLoads}
+            onClick={handleSaveLoads}
+          >
             {savingLoads ? 'Saving…' : 'Save loads'}
           </button>
         </div>
 
-        {!isLcl && (
+        {isLcl ? (
+          <>
+            <QuoteCargoLines lines={cargoLines} mode="sea" onChange={setCargoLines} />
+            <button className="nqd-addgrp" onClick={addCargoLine}><Plus size={15} /> Add cargo line</button>
+          </>
+        ) : (
           <>
             {groups.length === 0 && <p className="nqd-empty">No containers yet.</p>}
             {groups.map((g, i) => (
@@ -347,12 +364,6 @@ export default function QuoteDetailPage() {
               </div>
             ))}
             <button className="nqd-addgrp" onClick={addGroup}><Plus size={15} /> Add another group</button>
-          </>
-        )}
-        {isLcl && (
-          <>
-            <QuoteCargoLines lines={cargoLines} mode="sea" onChange={setCargoLines} />
-            <button className="nqd-addgrp" onClick={() => setCargoLines([...cargoLines, newQuoteCargoLine(cargoLines.length)])}><Plus size={15} /> Add cargo line</button>
           </>
         )}
       </div>
@@ -438,7 +449,7 @@ export default function QuoteDetailPage() {
       <div className="nqd-band nqd-band--pad">
         <div className="nqd-section-head">
           <span className="nqd-section-title">Cargo</span>
-          <button className="nqd-btn nqd-btn--accent" disabled={!cargoFieldsDirty || savingCargo} onClick={handleSaveCargo}>
+          <button className="nqd-btn nqd-btn--accent" disabled={!cargoDirty || savingCargo} onClick={handleSaveCargo}>
             {savingCargo ? 'Saving…' : 'Save'}
           </button>
         </div>
@@ -489,6 +500,7 @@ export default function QuoteDetailPage() {
                 </div>
               </div>
             )}
+
             <label className="nqd-check">
               <input type="checkbox" checked={cargo.stackable} onChange={(e) => patchCargo({ stackable: e.target.checked })} /> Stackable
             </label>

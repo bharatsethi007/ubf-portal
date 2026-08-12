@@ -1,4 +1,5 @@
 import SeaPortSelect from '../../components/bookings/SeaPortSelect'
+import IataPortSelect from '../../components/bookings/IataPortSelect'
 import type { QuoteDraft } from './quotesApi'
 
 const TYPES = ['Port/Airport', 'Factory/Warehouse', 'Business address', 'Residential address'] as const
@@ -35,9 +36,10 @@ type Props = {
   side: Side
   draft: QuoteDraft
   onPatch: (p: Partial<QuoteDraft>) => void
+  mode?: 'sea' | 'air'
 }
 
-export default function QuoteOriginDestField({ side, draft, onPatch }: Props) {
+export default function QuoteOriginDestField({ side, draft, onPatch, mode = 'sea' }: Props) {
   const k = KEYS[side]
   const type = (draft[k.typeKey] as string | null) ?? 'Port/Airport'
   const isPort = type === 'Port/Airport'
@@ -60,14 +62,19 @@ export default function QuoteOriginDestField({ side, draft, onPatch }: Props) {
       </div>
 
       {isPort ? (
-        <SeaPortSelect
-          value={str(k.portKey)}
-          onChange={(v) => onPatch({ [k.portKey]: v || null })}
-          placeholder={side === 'origin' ? 'From port' : 'To port'}
-        />
+        mode === 'air' ? (
+          <IataPortSelect
+            value={str(k.portKey)}
+            onChange={(v) => onPatch({ [k.portKey]: v || null })}
+          />
+        ) : (
+          <SeaPortSelect
+            value={str(k.portKey)}
+            onChange={(v) => onPatch({ [k.portKey]: v || null })}
+            placeholder={side === 'origin' ? 'From port' : 'To port'}
+          />
+        )
       ) : (
-        // Address types — plain fields for now. Google Places autocomplete
-        // mounts here once VITE_GOOGLE_MAPS_API_KEY is configured.
         <div className="nqs-od__addr">
           <input
             type="text"

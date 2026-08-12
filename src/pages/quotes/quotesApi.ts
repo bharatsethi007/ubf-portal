@@ -130,3 +130,14 @@ export async function setQuoteStatus(id: string, status: string): Promise<void> 
   const { error } = await supabase.from('quotes').update({ status }).eq('id', id)
   if (error) throw error
 }
+
+export async function deleteQuotes(ids: string[]): Promise<void> {
+  if (!ids.length) return
+  const { error } = await supabase.from('quotes').delete().in('id', ids)
+  if (error) throw error
+}
+export async function setQuotesStatus(ids: string[], status: string): Promise<void> {
+  if (!ids.length) return
+  const { error } = await supabase.from('quotes').update({ status }).in('id', ids)
+  if (error) throw error
+}
