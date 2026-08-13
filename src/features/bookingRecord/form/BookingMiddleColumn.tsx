@@ -12,6 +12,7 @@ import type {
 } from '../bookingRecordTypes'
 import type { ContainerTrackingRow } from '../tracking/trackingTypes'
 import AtfAutocomplete from './AtfAutocomplete'
+import ShippingLineSelect from './ShippingLineSelect'
 import TriSourceField from './TriSourceField'
 import FormCard from './FormCard'
 
@@ -98,6 +99,10 @@ export default function BookingMiddleColumn({
           lastSync={lastSync}
           flash={isFlashing?.('m_shipping_line')}
           onManualBlur={patchManual}
+        />
+        <ShippingLineSelect
+          value={booking.shipping_line_code}
+          onChange={(code) => onPatch({ shipping_line_code: code }, { shipping_line_code: code })}
         />
         <TriSourceField
           label="Discharge port"
