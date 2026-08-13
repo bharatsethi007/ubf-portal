@@ -407,7 +407,7 @@ export default function QuoteDetailPage() {
           </div>
           <div className="nqd-field">
             <span className="nqd-field__label">Incoterms</span>
-            <IncotermSelect value={fields.incoterms ?? ''} onChange={(v) => patch({ incoterms: v || null })} />
+            <IncotermSelect value={fields.incoterms ?? ''} onChange={(v) => patch({ incoterms: v || null })} airOnly={isAir} />
           </div>
           <div className="nqd-field">
             <span className="nqd-field__label">Movement type</span>

@@ -11,3 +11,7 @@ export const INCOTERMS_2020 = [
   { code: 'CFR', name: 'Cost and Freight' },
   { code: 'CIF', name: 'Cost, Insurance and Freight' },
 ] as const
+
+// The four maritime terms (FAS/FOB/CFR/CIF) are valid only for sea / inland waterway.
+// Air (and any non-waterway mode) uses the seven "any mode of transport" terms.
+export const AIR_INCOTERM_CODES = ['EXW', 'FCA', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'] as const

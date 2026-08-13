@@ -111,6 +111,14 @@ function round2(n: number): number {
   return Math.round(n * 100) / 100
 }
 
+// Air chargeable weight is billed in 0.5 kg increments, always rounded UP (IATA rule).
+function ceilHalf(n: number): number {
+  return Math.ceil(n * 2) / 2
+}
+
+// Air volumetric divisor: 1 CBM = 167 kg (IATA 6000 cm3/kg expressed per m3).
+const AIR_VOLUMETRIC_PER_CBM = 167
+
 export function computeCargoLine(
   row: QuoteCargoLine,
   mode: 'air' | 'sea',
@@ -119,8 +127,11 @@ export function computeCargoLine(
   const w = Number(row.width)
   const h = Number(row.height)
 
+  // Per-unit CBM from dimensions, when all three are present.
   let cbm = 0
-  if (Number.isFinite(l) && l > 0 && Number.isFinite(w) && w > 0 && Number.isFinite(h) && h > 0) {
+  const hasDims =
+    Number.isFinite(l) && l > 0 && Number.isFinite(w) && w > 0 && Number.isFinite(h) && h > 0
+  if (hasDims) {
     const lm = dimToMetres(l, row.dim_unit || 'CM')
     const wm = dimToMetres(w, row.dim_unit || 'CM')
     const hm = dimToMetres(h, row.dim_unit || 'CM')
@@ -128,18 +139,28 @@ export function computeCargoLine(
   }
 
   const qty = Number(row.quantity) || Number(row.packages) || 0
-  const totalCbm = cbm * qty
+
+  // Total CBM: dimensions win when present; otherwise honour a user-typed total
+  // (this is the total-shipment entry path, where CBM is entered directly).
+  let totalCbm = cbm * qty
+  if (!hasDims) {
+    const typedTotal = Number(row.total_cbm)
+    if (Number.isFinite(typedTotal) && typedTotal > 0) totalCbm = typedTotal
+  }
+
   const perPkgWeight = Number(row.per_package_weight) || 0
   const totalWeight = Number(row.total_weight) || perPkgWeight * qty
   const grossTotal = Number(row.gross_wt) || totalWeight
-  const volumetric = totalCbm * 167
-  const chargeable = mode === 'air' ? Math.max(grossTotal, volumetric) : totalCbm
+
+  const volumetric = totalCbm * AIR_VOLUMETRIC_PER_CBM
+  const chargeable =
+    mode === 'air' ? ceilHalf(Math.max(grossTotal, volumetric)) : totalCbm
 
   return {
     cbm: round4(cbm),
     totalCbm: round4(totalCbm),
     grossTotal: round2(grossTotal),
-    chargeable: round2(chargeable),
+    chargeable: mode === 'air' ? chargeable : round2(chargeable),
   }
 }
 
@@ -151,7 +172,7 @@ export function applyComputedFields(
   return {
     ...line,
     volume_cbm: c.cbm ? String(c.cbm) : '',
-    total_cbm: c.totalCbm ? String(c.totalCbm) : '',
+    total_cbm: c.totalCbm ? String(c.totalCbm) : line.total_cbm,
     chargeable_wt: line.override_chargeable
       ? line.chargeable_wt
       : c.chargeable ? String(c.chargeable) : '',
