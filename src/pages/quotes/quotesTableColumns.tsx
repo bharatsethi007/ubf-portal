@@ -51,8 +51,9 @@ export function quoteStatusPill(status: string) {
 }
 
 function modeInfo(mode: string | null, type: string | null): { label: string; Icon: LucideIcon } {
-  if ((mode ?? '').toLowerCase() === 'air') return { label: 'Air Freight', Icon: Plane }
+  const m = (mode ?? '').toLowerCase()
   const t = (type ?? '').toUpperCase()
+  if (m.includes('air') || t === 'AIR') return { label: 'Air', Icon: Plane }
   if (t === 'LCL') return { label: 'LCL', Icon: Boxes }
   if (t === 'FCL') return { label: 'FCL', Icon: Container }
   return { label: mode ?? '—', Icon: Ship }

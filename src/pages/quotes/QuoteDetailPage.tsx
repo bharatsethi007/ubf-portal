@@ -6,6 +6,7 @@ import { supabase } from '../../supabase'
 import IncotermSelect from '../../components/bookings/IncotermSelect'
 import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import SeaPortSelect from '../../components/bookings/SeaPortSelect'
+import IataPortSelect from '../../components/bookings/IataPortSelect'
 import QuoteLaneMap from './QuoteLaneMap'
 import QuoteCargoLines from './QuoteCargoLines'
 import { useStaffList } from '../../hooks/useStaffList'
@@ -35,6 +36,13 @@ const TYPES: { value: ContainerType; label: string }[] = [
   { value: 'isotank', label: 'ISO tank' }, { value: 'openside', label: 'Open side' },
 ]
 const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP', 'CNY', 'FJD', 'SGD']
+
+function quoteIsAir(type: string | null, mode: string | null): boolean {
+  return (type ?? '').toUpperCase() === 'AIR' || /air/i.test(mode ?? '')
+}
+function quoteIsLcl(type: string | null): boolean {
+  return (type ?? '').toUpperCase() === 'LCL'
+}
 
 type Fields = {
   movement_type: string | null
@@ -129,7 +137,7 @@ export default function QuoteDetailPage() {
         qty: c.qty, weight_per_container_mt: c.weight_per_container_mt, commodity: c.commodity,
       }))
       let cl: QuoteCargoLine[] = []
-      if ((q.shipment_type ?? '').toUpperCase() === 'LCL') {
+      if (quoteIsLcl(q.shipment_type) || quoteIsAir(q.shipment_type, q.shipment_mode)) {
         const fetched = await fetchQuoteCargo(id)
         cl = fetched.length ? fetched : [newQuoteCargoLine(0)]
       }
@@ -155,7 +163,9 @@ export default function QuoteDetailPage() {
 
   useEffect(() => { load() }, [load])
 
-  const isLcl = (quote?.shipment_type ?? '').toUpperCase() === 'LCL'
+  const isAir = quoteIsAir(quote?.shipment_type ?? null, quote?.shipment_mode ?? null)
+  const isLcl = quoteIsLcl(quote?.shipment_type ?? null)
+  const usesCargoLines = isLcl || isAir
 
   const dirty = useMemo(
     () => Boolean(fields && initial && JSON.stringify(fields) !== JSON.stringify(initial)),
@@ -231,7 +241,7 @@ export default function QuoteDetailPage() {
     if (!id) return
     setSavingLoads(true)
     try {
-      if (isLcl) { await saveQuoteCargo(id, cargoLines); setInitialCargoLines(cargoLines) }
+      if (usesCargoLines) { await saveQuoteCargo(id, cargoLines); setInitialCargoLines(cargoLines) }
       else { await replaceQuoteContainers(id, groups); setInitialGroups(groups) }
       toast.success('Loads saved')
     }
@@ -259,6 +269,9 @@ export default function QuoteDetailPage() {
       </div>
     )
   }
+
+  const modeLabel = isAir ? 'Air' : isLcl ? 'LCL' : 'FCL'
+  const laneMode: 'fcl' | 'lcl' | 'air' = isAir ? 'air' : isLcl ? 'lcl' : 'fcl'
 
   return (
     <div className="nqd-page">
@@ -297,33 +310,43 @@ export default function QuoteDetailPage() {
       <div className="nqd-band nqd-band--pad">
         <div className="nqd-section-head">
           <div className="nqd-fclhead">
-            <span className="nqd-fclpill">{isLcl ? 'LCL' : 'FCL'}</span>
+            <span className="nqd-fclpill">{modeLabel}</span>
             {editingPorts ? (
               <div className="nqd-portedit">
-                <SeaPortSelect value={quote.from_port_code ?? ''} onChange={(v) => savePort('from', v)} placeholder="From port" />
-                <ArrowRight size={16} color="#94a3b8" />
-                <SeaPortSelect value={quote.to_port_code ?? ''} onChange={(v) => savePort('to', v)} placeholder="To port" />
+                {isAir ? (
+                  <>
+                    <IataPortSelect value={quote.from_port_code ?? ''} onChange={(v) => savePort('from', v)} />
+                    <ArrowRight size={16} color="#94a3b8" />
+                    <IataPortSelect value={quote.to_port_code ?? ''} onChange={(v) => savePort('to', v)} />
+                  </>
+                ) : (
+                  <>
+                    <SeaPortSelect value={quote.from_port_code ?? ''} onChange={(v) => savePort('from', v)} placeholder="From port" />
+                    <ArrowRight size={16} color="#94a3b8" />
+                    <SeaPortSelect value={quote.to_port_code ?? ''} onChange={(v) => savePort('to', v)} placeholder="To port" />
+                  </>
+                )}
                 <button className="nqd-editicon" onClick={() => setEditingPorts(false)} aria-label="Done"><Check size={16} /></button>
               </div>
             ) : (
               <>
-                <QuoteLaneMap fromCode={quote.from_port_code} toCode={quote.to_port_code} mode={isLcl ? 'lcl' : 'fcl'} />
+                <QuoteLaneMap fromCode={quote.from_port_code} toCode={quote.to_port_code} mode={laneMode} />
                 <button className="nqd-editicon" onClick={() => setEditingPorts(true)} aria-label="Change ports"><Pencil size={13} /></button>
               </>
             )}
           </div>
           <button
             className="nqd-btn nqd-btn--accent"
-            disabled={(isLcl ? !cargoLinesDirty : !loadsDirty) || savingLoads}
+            disabled={(usesCargoLines ? !cargoLinesDirty : !loadsDirty) || savingLoads}
             onClick={handleSaveLoads}
           >
             {savingLoads ? 'Saving…' : 'Save loads'}
           </button>
         </div>
 
-        {isLcl ? (
+        {usesCargoLines ? (
           <>
-            <QuoteCargoLines lines={cargoLines} mode="sea" onChange={setCargoLines} />
+            <QuoteCargoLines lines={cargoLines} mode={isAir ? 'air' : 'sea'} onChange={setCargoLines} />
             <button className="nqd-addgrp" onClick={addCargoLine}><Plus size={15} /> Add cargo line</button>
           </>
         ) : (

@@ -67,6 +67,7 @@ export default function NewQuoteSearch() {
   }
 
   const isLcl = draft.shipment_type === 'LCL'
+  const isAir = draft.shipment_type === 'Air'
   const wmNum = Math.max(0, Number(lclWm) || 0)
   const cbmNum = (Number(lclCbm) || 0) > 0 ? Number(lclCbm) : wmNum
 
@@ -76,14 +77,20 @@ export default function NewQuoteSearch() {
     return true
   }, [customer, draft.from_port_code, draft.to_port_code, draft.shipment_type, wmNum])
 
-  function setMode(t: 'FCL' | 'LCL') { if (draft.shipment_type === t) return; patch({ shipment_type: t }) }
+  function setMode(t: 'FCL' | 'LCL' | 'Air') {
+    if (draft.shipment_type === t) return
+    patch({ shipment_type: t, shipment_mode: t === 'Air' ? 'air' : 'sea' })
+  }
 
   async function runSearch() {
     if (!canSearch) return
     setSearched(true)
     setSearching(true)
     try {
-      if (draft.shipment_type === 'LCL') {
+      if (isAir) {
+        // No air rate cards yet — funnel to manual pricing via the empty state.
+        setOptions([]); setLclOptions([])
+      } else if (draft.shipment_type === 'LCL') {
         const lane: LclQuoteLane = {
           from_port_code: draft.from_port_code ?? null,
           to_port_code: draft.to_port_code ?? null,
@@ -123,7 +130,7 @@ export default function NewQuoteSearch() {
         customer_name: customer.name,
       }
       const { id } = await createQuote(payload)
-      if (draft.shipment_type !== 'LCL') await replaceQuoteContainers(id, groups)
+      if (draft.shipment_type === 'FCL') await replaceQuoteContainers(id, groups)
       if (chosen) {
         const { id: responseId } = await createQuoteResponse(id)
         await saveQuoteResponseLines(responseId, buildBuyLines(chosen))
@@ -212,20 +219,20 @@ export default function NewQuoteSearch() {
         </div>
 
         <div className="nqs-modes">
-          <button type="button" className={`nqs-mode${!isLcl ? ' nqs-mode--active' : ''}`} onClick={() => setMode('FCL')}>
+          <button type="button" className={`nqs-mode${!isLcl && !isAir ? ' nqs-mode--active' : ''}`} onClick={() => setMode('FCL')}>
             <Box size={15} /> FCL
           </button>
           <button type="button" className={`nqs-mode${isLcl ? ' nqs-mode--active' : ''}`} onClick={() => setMode('LCL')}>
             <Package size={15} /> LCL
           </button>
-          <button type="button" className="nqs-mode nqs-mode--disabled" disabled>
-            <Plane size={15} /> Air <span className="nqs-soon">soon</span>
+          <button type="button" className={`nqs-mode${isAir ? ' nqs-mode--active' : ''}`} onClick={() => setMode('Air')}>
+            <Plane size={15} /> Air
           </button>
         </div>
 
         <div className="nqs-bar">
-          <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} />
-          <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} />
+          <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
+          <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
 
           {isLcl ? (
             <div className="nqs-loads-btn" style={{ cursor: 'default', gap: 12 }}>
@@ -240,6 +247,15 @@ export default function NewQuoteSearch() {
                 <input type="number" min={0} inputMode="decimal" value={lclCbm} onChange={(e) => { setLclCbm(e.target.value); invalidate() }}
                   placeholder="= W/M" style={{ width: 72, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }} />
               </label>
+            </div>
+          ) : isAir ? (
+            <div className="nqs-loads-btn" style={{ cursor: 'default', gap: 10 }}>
+              <Plane size={16} color="#64748b" />
+              <span style={{ fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.3 }}>
+                Air freight
+                <br />
+                enter cargo on next step
+              </span>
             </div>
           ) : (
             <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
@@ -256,14 +272,14 @@ export default function NewQuoteSearch() {
             type="button"
             className="nqs-search-btn"
             disabled={!canSearch}
-            title={canSearch ? '' : (isLcl ? 'Pick a customer, both ports and W/M' : 'Pick a customer and both ports')}
+            title={canSearch ? '' : (isLcl ? 'Pick a customer, both ports and W/M' : isAir ? 'Pick a customer and both airports' : 'Pick a customer and both ports')}
             onClick={runSearch}
           >
             <Search size={16} /> Search
           </button>
         </div>
 
-        {loadsOpen && !isLcl && (
+        {loadsOpen && !isLcl && !isAir && (
           <ContainerGroupsEditor
             groups={groups}
             onChange={onGroupsChange}
@@ -295,8 +311,10 @@ export default function NewQuoteSearch() {
             ) : (
               <div className="nqs-results__empty">
                 <div className="nqs-results__icon"><Zap size={20} /></div>
-                <div className="nqs-results__title">No live rates for this lane</div>
-                <div className="nqs-results__text">No active rate card matches {draft.from_port_code} → {draft.to_port_code} for this {isLcl ? 'cargo' : 'equipment'}. Create the quote and add a priced response manually.</div>
+                <div className="nqs-results__title">{isAir ? 'Air quoting is priced manually' : 'No live rates for this lane'}</div>
+                <div className="nqs-results__text">{isAir
+                  ? `No air rate cards yet. Create the quote for ${draft.from_port_code} → ${draft.to_port_code}, then add a priced response manually.`
+                  : `No active rate card matches ${draft.from_port_code} → ${draft.to_port_code} for this ${isLcl ? 'cargo' : 'equipment'}. Create the quote and add a priced response manually.`}</div>
                 <button type="button" className="nqs-results__create" disabled={creating} onClick={() => handleCreate()}>
                   {busyId === '__plain__' ? 'Creating…' : 'Create quote from this request'}
                 </button>
