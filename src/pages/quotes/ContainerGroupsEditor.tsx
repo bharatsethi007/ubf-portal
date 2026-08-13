@@ -1,5 +1,7 @@
 import { Plus, X } from 'lucide-react'
 import IncotermSelect from '../../components/bookings/IncotermSelect'
+import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
+import { addressFieldsFor } from './AirCargoPanel'
 import {
   emptyContainerGroup,
   type ContainerSize,
@@ -25,7 +27,7 @@ const TYPES: { value: ContainerType; label: string }[] = [
 
 // Lane-level shipment terms (not per container group). Movement drives which
 // origin/destination local-charge sheets match; incoterm decides which legs the
-// customer is billed for (applied later, when defaulting the rate card lines).
+// customer is billed for AND which door addresses we need to collect.
 const MOVEMENTS: { value: string; label: string }[] = [
   { value: 'import', label: 'Import' },
   { value: 'export', label: 'Export' },
@@ -38,6 +40,10 @@ type Props = {
   onMovementChange: (v: string) => void
   incoterm: string
   onIncotermChange: (v: string) => void
+  originAddress: string
+  onOriginAddressChange: (v: string) => void
+  deliveryAddress: string
+  onDeliveryAddressChange: (v: string) => void
   onApply: () => void
   onCancel: () => void
 }
@@ -49,9 +55,15 @@ export default function ContainerGroupsEditor({
   onMovementChange,
   incoterm,
   onIncotermChange,
+  originAddress,
+  onOriginAddressChange,
+  deliveryAddress,
+  onDeliveryAddressChange,
   onApply,
   onCancel,
 }: Props) {
+  const addr = addressFieldsFor(incoterm)
+
   function patchGroup(idx: number, p: Partial<QuoteContainerDraft>) {
     onChange(groups.map((g, i) => (i === idx ? { ...g, ...p } : g)))
   }
@@ -87,6 +99,33 @@ export default function ContainerGroupsEditor({
             <IncotermSelect value={incoterm} onChange={onIncotermChange} />
           </div>
         </div>
+
+        {(addr.origin || addr.delivery) && (
+          <div style={{ display: 'flex', gap: 16, marginTop: 14, flexWrap: 'wrap' }}>
+            {addr.origin && (
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <div className="cg-label">Origin address</div>
+                <AddressAutocomplete
+                  label=""
+                  value={originAddress}
+                  onChange={(a) => onOriginAddressChange(a)}
+                  usePlaces={!originAddress.trim()}
+                />
+              </div>
+            )}
+            {addr.delivery && (
+              <div style={{ flex: 1, minWidth: 260 }}>
+                <div className="cg-label">Delivery address</div>
+                <AddressAutocomplete
+                  label=""
+                  value={deliveryAddress}
+                  onChange={(a) => onDeliveryAddressChange(a)}
+                  usePlaces={!deliveryAddress.trim()}
+                />
+              </div>
+            )}
+          </div>
+        )}
       </div>
 
       {groups.map((g, idx) => (

@@ -31,6 +31,13 @@ function loadsSummary(groups: QuoteContainerDraft[]): string {
   return `${groups.length} groups · ${total} containers`
 }
 
+function formatCustomerAddress(c: CustomerPickerValue): string {
+  return [c.address1, c.address2, c.address3, c.city, c.state, c.postcode, c.country]
+    .map((x) => (x ?? '').trim())
+    .filter(Boolean)
+    .join(', ')
+}
+
 export default function NewQuoteSearch() {
   const navigate = useNavigate()
   const [customer, setCustomer] = useState<CustomerPickerValue | null>(null)
@@ -64,7 +71,15 @@ export default function NewQuoteSearch() {
   }
   function onCustomerChange(c: CustomerPickerValue | null) {
     setCustomer(c)
-    invalidate()
+    // Prefill the customer-side address (export -> origin/pickup, import -> delivery).
+    // The user can still edit or clear it in the loads panel.
+    const addr = c ? formatCustomerAddress(c) : ''
+    if (addr) {
+      if (draft.movement_type === 'import') patch({ drop_address: addr })
+      else patch({ pickup_address: addr })
+    } else {
+      invalidate()
+    }
   }
   function onGroupsChange(g: QuoteContainerDraft[]) {
     setGroups(g)
@@ -316,12 +331,16 @@ export default function NewQuoteSearch() {
           <ContainerGroupsEditor
             groups={groups}
             onChange={onGroupsChange}
-            onApply={() => setLoadsOpen(false)}
-            onCancel={() => setLoadsOpen(false)}
             movement={draft.movement_type ?? ''}
             onMovementChange={(v) => patch({ movement_type: v || null })}
             incoterm={draft.incoterms ?? ''}
             onIncotermChange={(v) => patch({ incoterms: v || null })}
+            originAddress={draft.pickup_address ?? ''}
+            onOriginAddressChange={(v) => patch({ pickup_address: v || null })}
+            deliveryAddress={draft.drop_address ?? ''}
+            onDeliveryAddressChange={(v) => patch({ drop_address: v || null })}
+            onApply={() => setLoadsOpen(false)}
+            onCancel={() => setLoadsOpen(false)}
           />
         )}
 
