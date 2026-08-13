@@ -47,8 +47,8 @@ export default function FclLocalChargeSheetForm() {
     setSaving(true)
     setError('')
     try {
-      await createLocalChargeSheet({ direction, movement, title: title.trim(), valid_from: validFrom, valid_to: validTo })
-      navigate('/setup/rates/fcl-local')
+      const { id } = await createLocalChargeSheet({ direction, movement, title: title.trim(), valid_from: validFrom, valid_to: validTo })
+      navigate(`/setup/rates/fcl-local/${id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create sheet')
       setSaving(false)
