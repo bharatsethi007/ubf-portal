@@ -2,11 +2,16 @@ import { newQuoteResponseLine, saveQuoteResponseLines, type QuoteResponseLine } 
 import { createQuote, emptyQuoteDraft } from '../quotes/quotesApi'
 import { emptyContainerGroup, replaceQuoteContainers, type ContainerSize } from '../quotes/quoteContainersApi'
 import { createQuoteResponse, updateQuoteResponseHeader } from '../quotes/quoteResponsesApi'
-import { containerTotals, type RateOption } from './rateSearchApi'
+import { containerTotals, normSize, type RateOption } from './rateSearchApi'
 import type { LclRateOption } from './lclRateSearchApi'
 
 export function buildBuyLinesFromOption(o: RateOption, containers: { size: string; qty: number }[]): QuoteResponseLine[] {
-  const { qtyByCode, totalContainers, totalTeu } = containerTotals(containers)
+  const { qtyByCode } = containerTotals(containers)
+  // Only the container codes this card actually prices ('rated'). Per-container /
+  // per-TEU charges must not count equipment the card has no freight rate for.
+  const ratedCodes = new Set(o.chips.map((c) => c.container_type))
+  const ratedContainers = [...qtyByCode.entries()].reduce((n, [code, q]) => n + (ratedCodes.has(code) ? q : 0), 0)
+  const ratedTeu = [...qtyByCode.entries()].reduce((n, [code, q]) => n + (ratedCodes.has(code) ? (code.startsWith('40') ? 2 : 1) * q : 0), 0)
   const cur = o.currency || 'NZD'
   const lines: QuoteResponseLine[] = []
   let ord = 0
@@ -24,6 +29,9 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
   }
   for (const s of o.surcharges) {
     if (s.basis === 'per_cbm' || s.basis === 'percent') continue
+    const ct = s.container_type ? normSize(s.container_type) : null
+    const scopedQty = ct ? (qtyByCode.get(ct) ?? 0) : null
+    if (ct && scopedQty === 0) continue // scoped to a container not on this booking
     const l = newQuoteResponseLine(ord++, cur)
     l.description = s.label
     l.charge_group = s.scope === 'origin' ? 'origin' : s.scope === 'dest' ? 'dest' : 'freight'
@@ -31,8 +39,8 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     l.buy_currency = cur; l.sell_currency = cur
     l.buy_rate = String(s.amount)
     l.sell_rate = String(s.sell_amount > 0 ? s.sell_amount : s.amount)
-    if (s.basis === 'per_container') { l.unit = 'Per container'; l.qty = String(totalContainers) }
-    else if (s.basis === 'per_teu') { l.unit = 'Per TEU'; l.qty = String(totalTeu) }
+    if (s.basis === 'per_container') { l.unit = 'Per container'; l.qty = String(ct ? scopedQty : ratedContainers) }
+    else if (s.basis === 'per_teu') { l.unit = 'Per TEU'; l.qty = String(ct ? (ct.startsWith('40') ? 2 : 1) * (scopedQty ?? 0) : ratedTeu) }
     else { l.unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1' }
     lines.push(l)
   }

@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Sparkles } from 'lucide-react'
+import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Sparkles, Info } from 'lucide-react'
 import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
@@ -18,9 +18,14 @@ import { searchLclRates, type LclRateOption, type LclQuoteLane } from '../rates/
 import RateSearchModal from '../rates/RateSearchModal'
 import RateOptionCard from '../rates/RateOptionCard'
 import LclRateOptionCard from '../rates/LclRateOptionCard'
+import { useEffectiveRates } from '../../hooks/useEffectiveRates'
+import { chargeLegsFor } from '../rates/incotermLegs'
+import { overseasOfficeForPort } from '../rates/offices'
 import './newQuoteSearch.css'
 
 const SIZE_LABEL: Record<string, string> = { '20': '20ft', '40': '40ft', '40HC': '40ft HC', '45HC': '45ft HC' }
+
+const termChip: CSSProperties = { fontSize: 11, fontWeight: 500, color: '#3B5BFE', background: '#eef2ff', border: '1px solid #c7d2fe', borderRadius: 999, padding: '2px 10px', whiteSpace: 'nowrap' }
 
 function loadsSummary(groups: QuoteContainerDraft[]): string {
   if (groups.length === 1) {
@@ -40,6 +45,8 @@ function formatCustomerAddress(c: CustomerPickerValue): string {
 
 export default function NewQuoteSearch() {
   const navigate = useNavigate()
+  const { rates: fxRates } = useEffectiveRates('NZD')
+
   const [customer, setCustomer] = useState<CustomerPickerValue | null>(null)
   const [draft, setDraft] = useState<QuoteDraft>(() => ({
     ...emptyQuoteDraft(),
@@ -98,6 +105,28 @@ export default function NewQuoteSearch() {
     if (draft.shipment_type === 'LCL') return wmNum > 0
     return true
   }, [customer, draft.from_port_code, draft.to_port_code, draft.shipment_type, wmNum])
+
+
+  // Overseas-office legs whose local charges aren't in the system yet — surfaced as a
+  // tip so the quoter can request them from that UBF office. Shown regardless of who
+  // pays; the card decides who pays and what's included.
+  const officeTips = useMemo(() => {
+    if (draft.shipment_type !== 'FCL' || options.length === 0) return [] as { office: string; leg: 'origin' | 'dest'; port: string }[]
+    const tips: { office: string; leg: 'origin' | 'dest'; port: string }[] = []
+    const check = (leg: 'origin' | 'dest', port: string | null | undefined) => {
+      if (!port) return
+      const office = overseasOfficeForPort(port)
+      if (!office) return
+      if (!options.some((o) => o.localCharges.some((c) => c.group === leg))) tips.push({ office, leg, port })
+    }
+    check('origin', draft.from_port_code)
+    check('dest', draft.to_port_code)
+    return tips
+  }, [draft.shipment_type, draft.from_port_code, draft.to_port_code, options])
+
+  function requestOfficeRates(office: string, leg: 'origin' | 'dest') {
+    toast(`We'll request ${leg === 'dest' ? 'destination' : 'origin'} charges from ${office} — the Request Rates step is coming next.`)
+  }
 
   function setMode(t: 'FCL' | 'LCL' | 'Air') {
     if (draft.shipment_type === t) return
@@ -279,9 +308,13 @@ export default function NewQuoteSearch() {
           ) : (
             <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
               <ContainerIcon size={16} color="#64748b" />
-              <span style={{ flex: 1 }}>
+              <span>
                 <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
                 <span className="nqs-loads-btn__val">{loadsSummary(groups)}</span>
+              </span>
+              <span style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                {draft.movement_type && <span style={termChip}>{draft.movement_type === 'import' ? 'Import' : 'Export'}</span>}
+                {draft.incoterms && <span style={termChip}>{draft.incoterms}</span>}
               </span>
               <ChevronDown size={15} color="#94a3b8" />
             </button>
@@ -361,8 +394,26 @@ export default function NewQuoteSearch() {
                       <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} />
                     ))
                   : options.map((o) => (
-                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreate(o)} busy={busyId === o.cardId} />
+                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} />
                     ))}
+                {officeTips.length > 0 && (
+                  <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
+                    {officeTips.map((t) => (
+                      <div key={t.leg} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, flexWrap: 'wrap' }}>
+                        <span style={{ fontSize: 12, color: '#1e40af', display: 'inline-flex', alignItems: 'flex-start', gap: 8, flex: 1, minWidth: 220 }}>
+                          <Info size={15} style={{ marginTop: 1, flexShrink: 0 }} />
+                          <span>
+                            {t.leg === 'dest' ? 'Container delivery & customs clearance at destination' : 'Origin haulage & customs clearance'} ({t.port}) are handled by <strong>{t.office}</strong> and aren’t in the system yet. You can request them from the team on the next step.
+                          </span>
+                        </span>
+                        <button type="button" onClick={() => requestOfficeRates(t.office, t.leg)}
+                          style={{ fontSize: 12, fontWeight: 600, color: '#1d4ed8', background: '#fff', border: '1px solid #bfdbfe', borderRadius: 8, padding: '6px 12px', cursor: 'pointer', whiteSpace: 'nowrap' }}>
+                          Request from {t.office}
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                )}
               </div>
             ) : (
               <div className="nqs-results__empty">

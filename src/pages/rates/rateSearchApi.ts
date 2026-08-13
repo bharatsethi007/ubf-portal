@@ -16,7 +16,7 @@ export type QuoteLane = {
 }
 
 export type RateOptionChip = { container_type: string; base_rate: number; sell_rate: number }
-export type RateOptionSurcharge = { label: string; amount: number; sell_amount: number; basis: string; scope: string | null }
+export type RateOptionSurcharge = { label: string; amount: number; sell_amount: number; basis: string; scope: string | null; container_type: string | null; lineAmount: number; lineSell: number }
 export type RateOption = {
   cardId: string
   carrierCode: string
@@ -104,12 +104,13 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
 
   const cardIds = [...groups.keys()]
   const { data: surs } = await supabase
-    .from('rate_surcharges').select('rate_card_id, label, amount, sell_amount, basis, scope').in('rate_card_id', cardIds)
-  const surByCard = new Map<string, RateOptionSurcharge[]>()
+    .from('rate_surcharges').select('rate_card_id, label, amount, sell_amount, basis, scope, container_type').in('rate_card_id', cardIds)
+  type RawSur = { label: string; amount: number; sell_amount: number; basis: string; scope: string | null; container_type: string | null }
+  const surByCard = new Map<string, RawSur[]>()
   for (const s of ((surs as Record<string, any>[]) ?? [])) {
     const id = String(s.rate_card_id)
     if (!surByCard.has(id)) surByCard.set(id, [])
-    surByCard.get(id)!.push({ label: String(s.label), amount: Number(s.amount) || 0, sell_amount: Number(s.sell_amount) || 0, basis: String(s.basis), scope: s.scope ?? null })
+    surByCard.get(id)!.push({ label: String(s.label), amount: Number(s.amount) || 0, sell_amount: Number(s.sell_amount) || 0, basis: String(s.basis), scope: s.scope ?? null, container_type: s.container_type ? String(s.container_type) : null })
   }
 
   const options: RateOption[] = []
@@ -129,16 +130,30 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
       }
       else missingCodes.push(code)
     }
-    const surcharges = surByCard.get(id) ?? []
+    // Rated equipment only: charges must not count container codes this card can't price.
+    const ratedContainers = chips.reduce((n, c) => n + (qtyByCode.get(c.container_type) ?? 0), 0)
+    const ratedTeu = chips.reduce((n, c) => n + teuFor(c.container_type) * (qtyByCode.get(c.container_type) ?? 0), 0)
+    const surcharges: RateOptionSurcharge[] = []
     let surchargeTotal = 0
     let surchargeSellTotal = 0
-    for (const s of surcharges) {
-      const sellAmt = s.sell_amount > 0 ? s.sell_amount : s.amount
-      if (s.basis === 'per_container') { surchargeTotal += s.amount * totalContainers; surchargeSellTotal += sellAmt * totalContainers }
-      else if (s.basis === 'per_teu') { surchargeTotal += s.amount * totalTeu; surchargeSellTotal += sellAmt * totalTeu }
-      else if (s.basis === 'percent') { surchargeTotal += (s.amount / 100) * freightTotal; surchargeSellTotal += (sellAmt / 100) * freightSellTotal }
-      else if (s.basis === 'per_bl' || s.basis === 'flat') { surchargeTotal += s.amount; surchargeSellTotal += sellAmt }
-      // per_cbm not applicable to FCL — skipped
+    for (const s of (surByCard.get(id) ?? [])) {
+      const ct = s.container_type ? normSize(s.container_type) : null
+      const scopedQty = ct ? (qtyByCode.get(ct) ?? 0) : null
+      // A surcharge scoped to a specific container only applies when that box is on the booking.
+      if (ct && scopedQty === 0) continue
+      const nCont = ct ? scopedQty! : ratedContainers
+      const nTeu = ct ? teuFor(ct) * scopedQty! : ratedTeu
+      const sellUnit = s.sell_amount > 0 ? s.sell_amount : s.amount
+      let lineAmount: number
+      let lineSell: number
+      if (s.basis === 'per_container') { lineAmount = s.amount * nCont; lineSell = sellUnit * nCont }
+      else if (s.basis === 'per_teu') { lineAmount = s.amount * nTeu; lineSell = sellUnit * nTeu }
+      else if (s.basis === 'percent') { lineAmount = (s.amount / 100) * freightTotal; lineSell = (sellUnit / 100) * freightSellTotal }
+      else if (s.basis === 'per_bl' || s.basis === 'flat') { lineAmount = s.amount; lineSell = sellUnit }
+      else continue // per_cbm not applicable to FCL
+      surchargeTotal += lineAmount
+      surchargeSellTotal += lineSell
+      surcharges.push({ ...s, lineAmount: Math.round(lineAmount * 100) / 100, lineSell: Math.round(lineSell * 100) / 100 })
     }
     const transits = [...g.chips.values()].map((c) => c.transit).filter((t): t is number => t != null)
     const vias = [...g.chips.values()].map((c) => c.via).filter(Boolean)
