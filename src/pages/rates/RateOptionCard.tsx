@@ -15,6 +15,14 @@ type Props = { option: RateOption; fromCode: string; toCode: string; onUse?: () 
 export default function RateOptionCard({ option: o, fromCode, toCode, onUse, busy }: Props) {
   const hasSell = o.sellTotal > 0 && o.sellTotal !== o.total
   const margin = o.sellTotal > 0 ? Math.round(((o.sellTotal - o.total) / o.sellTotal) * 1000) / 10 : null
+  const originCharges = o.localCharges.filter((c) => c.group === 'origin')
+  const destCharges = o.localCharges.filter((c) => c.group === 'dest')
+
+  function chargeText(c: { label: string; buyAmount: number; buyCurrency: string; sellAmount: number; sellCurrency: string }) {
+    const buy = money(c.buyAmount, c.buyCurrency)
+    const sell = money(c.sellAmount, c.sellCurrency)
+    return sell !== buy ? `${c.label} ${buy} → ${sell}` : `${c.label} ${buy}`
+  }
 
   return (
     <div style={{ border: '1px solid var(--color-line)', borderRadius: 12, padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16, background: '#fff' }}>
@@ -54,6 +62,16 @@ export default function RateOptionCard({ option: o, fromCode, toCode, onUse, bus
           {o.missingCodes.length > 0 ? ` · no rate for ${o.missingCodes.join(', ')}` : ''}
           {o.validTo ? ` · valid to ${o.validTo}` : ''}
         </div>
+        {originCharges.length > 0 && (
+          <div className="text-muted-foreground" style={{ fontSize: 11, marginTop: 4 }}>
+            <strong style={{ fontWeight: 600 }}>Origin charges:</strong> {originCharges.map(chargeText).join(' · ')}
+          </div>
+        )}
+        {destCharges.length > 0 && (
+          <div className="text-muted-foreground" style={{ fontSize: 11, marginTop: 2 }}>
+            <strong style={{ fontWeight: 600 }}>Destination charges:</strong> {destCharges.map(chargeText).join(' · ')}
+          </div>
+        )}
       </div>
       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
         {hasSell ? (
@@ -79,6 +97,9 @@ export default function RateOptionCard({ option: o, fromCode, toCode, onUse, bus
             <div style={{ fontSize: 18, fontWeight: 700, whiteSpace: 'nowrap' }}>{money(o.total, o.currency)}</div>
             <div className="text-muted-foreground" style={{ fontSize: 11 }}>est. buy</div>
           </div>
+        )}
+        {(originCharges.length > 0 || destCharges.length > 0) && (
+          <span className="text-muted-foreground" style={{ fontSize: 10, whiteSpace: 'nowrap' }}>freight total excludes local charges</span>
         )}
         {onUse && (
           <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={onUse} disabled={busy}>

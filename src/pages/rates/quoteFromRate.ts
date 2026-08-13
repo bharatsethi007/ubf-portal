@@ -36,6 +36,19 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     else { l.unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1' }
     lines.push(l)
   }
+  for (const lc of o.localCharges) {
+    const l = newQuoteResponseLine(ord++, lc.buyCurrency || cur)
+    l.description = lc.label
+    l.charge_group = lc.group
+    l.vendor = lc.vendorName || o.carrierName
+    l.unit = 'Flat'
+    l.qty = '1'
+    l.buy_currency = lc.buyCurrency || cur
+    l.sell_currency = lc.sellCurrency || lc.buyCurrency || cur
+    l.buy_rate = String(lc.buyAmount)
+    l.sell_rate = String(lc.sellAmount)
+    lines.push(l)
+  }
   return lines
 }
 

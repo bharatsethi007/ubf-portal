@@ -111,6 +111,7 @@ export default function NewQuoteSearch() {
           from_port_code: draft.from_port_code ?? null,
           to_port_code: draft.to_port_code ?? null,
           currency: null,
+          movement: draft.movement_type ?? null,
           containers: groups.map((g) => ({ size: g.container_size, qty: g.qty })),
         }
         setOptions(await searchFclRates(lane))

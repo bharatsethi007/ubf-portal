@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { attachLocalCharges, type OptionLocalCharge } from './localChargeMatch'
 
 const SIZE_TO_CANONICAL: Record<string, string> = {
   '20': '20GP', '40': '40GP', '20HC': '20HC', '40HC': '40HQ', '40HQ': '40HQ', '20GP': '20GP', '40GP': '40GP',
@@ -10,6 +11,7 @@ export type QuoteLane = {
   from_port_code: string | null
   to_port_code: string | null
   currency: string | null
+  movement?: string | null
   containers: { size: string; qty: number }[]
 }
 
@@ -28,6 +30,7 @@ export type RateOption = {
   status: string
   chips: RateOptionChip[]
   surcharges: RateOptionSurcharge[]
+  localCharges: OptionLocalCharge[]
   missingCodes: string[]
   freightTotal: number
   surchargeTotal: number
@@ -39,7 +42,7 @@ export type RateOption = {
 
 export async function fetchQuoteLane(quoteId: string): Promise<QuoteLane> {
   const { data: q, error } = await supabase
-    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency').eq('id', quoteId).single()
+    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type').eq('id', quoteId).single()
   if (error) throw error
   const { data: cons } = await supabase.from('quote_containers').select('container_size, qty').eq('quote_id', quoteId)
   const r = q as Record<string, any>
@@ -47,6 +50,7 @@ export async function fetchQuoteLane(quoteId: string): Promise<QuoteLane> {
     from_port_code: r.from_port_code ?? null,
     to_port_code: r.to_port_code ?? null,
     currency: r.cargo_value_currency ?? null,
+    movement: r.movement_type ?? null,
     containers: ((cons as any[]) ?? []).map((c) => ({ size: String(c.container_size ?? ''), qty: Number(c.qty) || 1 })),
   }
 }
@@ -151,7 +155,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
       validFrom: vfs[0] ?? null,
       validTo: vts.length ? vts[vts.length - 1] : null,
       status: String(g.card.status),
-      chips, surcharges, missingCodes,
+      chips, surcharges, localCharges: [], missingCodes,
       freightTotal: Math.round(freightTotal * 100) / 100,
       surchargeTotal: Math.round(surchargeTotal * 100) / 100,
       total: Math.round((freightTotal + surchargeTotal) * 100) / 100,
@@ -161,6 +165,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     })
   }
   options.sort((a, b) => a.total - b.total)
+  await attachLocalCharges(lane, options)
   return options
 }
 
