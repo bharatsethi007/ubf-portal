@@ -318,6 +318,10 @@ export default function NewQuoteSearch() {
             onChange={onGroupsChange}
             onApply={() => setLoadsOpen(false)}
             onCancel={() => setLoadsOpen(false)}
+            movement={draft.movement_type ?? ''}
+            onMovementChange={(v) => patch({ movement_type: v || null })}
+            incoterm={draft.incoterms ?? ''}
+            onIncotermChange={(v) => patch({ incoterms: v || null })}
           />
         )}
 

@@ -1,4 +1,5 @@
 import { Plus, X } from 'lucide-react'
+import IncotermSelect from '../../components/bookings/IncotermSelect'
 import {
   emptyContainerGroup,
   type ContainerSize,
@@ -22,14 +23,35 @@ const TYPES: { value: ContainerType; label: string }[] = [
   { value: 'openside', label: 'Open side' },
 ]
 
+// Lane-level shipment terms (not per container group). Movement drives which
+// origin/destination local-charge sheets match; incoterm decides which legs the
+// customer is billed for (applied later, when defaulting the rate card lines).
+const MOVEMENTS: { value: string; label: string }[] = [
+  { value: 'import', label: 'Import' },
+  { value: 'export', label: 'Export' },
+]
+
 type Props = {
   groups: QuoteContainerDraft[]
   onChange: (groups: QuoteContainerDraft[]) => void
+  movement: string
+  onMovementChange: (v: string) => void
+  incoterm: string
+  onIncotermChange: (v: string) => void
   onApply: () => void
   onCancel: () => void
 }
 
-export default function ContainerGroupsEditor({ groups, onChange, onApply, onCancel }: Props) {
+export default function ContainerGroupsEditor({
+  groups,
+  onChange,
+  movement,
+  onMovementChange,
+  incoterm,
+  onIncotermChange,
+  onApply,
+  onCancel,
+}: Props) {
   function patchGroup(idx: number, p: Partial<QuoteContainerDraft>) {
     onChange(groups.map((g, i) => (i === idx ? { ...g, ...p } : g)))
   }
@@ -43,6 +65,30 @@ export default function ContainerGroupsEditor({ groups, onChange, onApply, onCan
 
   return (
     <div className="nqs-loads-panel">
+      <div className="cg-card">
+        <div style={{ display: 'flex', gap: 28, flexWrap: 'wrap' }}>
+          <div>
+            <div className="cg-label">Type</div>
+            <div className="cg-chips">
+              {MOVEMENTS.map((m) => (
+                <button
+                  type="button"
+                  key={m.value}
+                  className={`cg-chip${movement === m.value ? ' cg-chip--on' : ''}`}
+                  onClick={() => onMovementChange(m.value)}
+                >
+                  {m.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div style={{ minWidth: 240 }}>
+            <div className="cg-label">Incoterm</div>
+            <IncotermSelect value={incoterm} onChange={onIncotermChange} />
+          </div>
+        </div>
+      </div>
+
       {groups.map((g, idx) => (
         <div className="cg-card" key={idx}>
           <h4 className="cg-card__title">Container group {idx + 1}</h4>
