@@ -34,6 +34,8 @@ import RateRulesPage from './pages/rates/RateRulesPage'
 import FclRateCardsList from './pages/rates/fcl/FclRateCardsList'
 import FclRateCardForm from './pages/rates/fcl/FclRateCardForm'
 import FclRateCardDetail from './pages/rates/fcl/FclRateCardDetail'
+import FclLocalChargesList from './pages/rates/fcl-local/FclLocalChargesList'
+import FclLocalChargeSheetForm from './pages/rates/fcl-local/FclLocalChargeSheetForm'
 import LclRateCardsList from './pages/rates/lcl/LclRateCardsList'
 import LclRateCardForm from './pages/rates/lcl/LclRateCardForm'
 import LclRateCardDetail from './pages/rates/lcl/LclRateCardDetail'
@@ -186,7 +188,8 @@ export default function App() {
             <Route path="/setup/rates/lcl/new" element={<StaffRoute><LclRateCardForm /></StaffRoute>} />
             <Route path="/setup/rates/lcl/:id" element={<StaffRoute><LclRateCardDetail /></StaffRoute>} />
             <Route path="/setup/rates/air" element={<StaffRoute><RateModulePage title="Air Charges" /></StaffRoute>} />
-            <Route path="/setup/rates/fcl-local" element={<StaffRoute><RateModulePage title="Sea FCL Local/Port Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/fcl-local" element={<StaffRoute><FclLocalChargesList /></StaffRoute>} />
+            <Route path="/setup/rates/fcl-local/new" element={<StaffRoute><FclLocalChargeSheetForm /></StaffRoute>} />
             <Route path="/setup/rates/lcl-local" element={<StaffRoute><RateModulePage title="Sea LCL Local/Port Charges" /></StaffRoute>} />
             <Route path="/setup/rates/air-local" element={<StaffRoute><RateModulePage title="Air Local/Port Charges" /></StaffRoute>} />
             <Route path="/setup/rates/rules" element={<StaffRoute><RateRulesPage /></StaffRoute>} />
