@@ -38,6 +38,8 @@ import LclRateCardsList from './pages/rates/lcl/LclRateCardsList'
 import LclRateCardForm from './pages/rates/lcl/LclRateCardForm'
 import LclRateCardDetail from './pages/rates/lcl/LclRateCardDetail'
 import ChargeCodesPage from './pages/setup/ChargeCodesPage'
+import CarriersPage from './pages/setup/CarriersPage'
+import PortsPage from './pages/setup/PortsPage'
 import ChargeTemplatesPage from './pages/setup/ChargeTemplatesPage'
 import ExchangeRatesPage from './pages/setup/ExchangeRatesPage'
 import { Toaster } from './components/ui/sonner'
@@ -191,6 +193,8 @@ export default function App() {
             <Route path="/setup/rates/ports" element={<StaffRoute><RateModulePage title="Ports & Groups" /></StaffRoute>} />
             <Route path="/setup" element={<StaffRoute><SetupPage /></StaffRoute>} />
             <Route path="/setup/charge-codes" element={<StaffRoute><ChargeCodesPage /></StaffRoute>} />
+            <Route path="/setup/carriers" element={<StaffRoute><CarriersPage /></StaffRoute>} />
+            <Route path="/setup/ports" element={<StaffRoute><PortsPage /></StaffRoute>} />
             <Route path="/setup/charge-templates" element={<StaffRoute><ChargeTemplatesPage /></StaffRoute>} />
             <Route path="/setup/exchange-rates" element={<StaffRoute><ExchangeRatesPage /></StaffRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />

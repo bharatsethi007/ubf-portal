@@ -1,4 +1,4 @@
-.nqs-page { max-width: 980px; margin: 0 auto; }
+.nqs-page { max-width: 1120px; margin: 0 auto; }
 .nqs-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px 24px; }
 .nqs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 20px; }
 .nqs-title { font-size: 18px; font-weight: 600; color: #0f172a; margin: 0; }
@@ -14,7 +14,7 @@
 .nqs-soon { font-size: 10px; border: 1px solid #cbd5e1; border-radius: 4px; padding: 0 4px; }
 
 .nqs-bar { display: grid; grid-template-columns: 1fr 1fr 1fr auto; gap: 10px; align-items: stretch; }
-.nqs-search-btn { display: inline-flex; align-items: center; gap: 8px; justify-content: center; background: #3B5BFE; color: #fff; border: none; border-radius: 8px; padding: 0 22px; font-size: 14px; font-weight: 500; cursor: pointer; height: 3.5rem; align-self: end; }
+.nqs-search-btn { display: inline-flex; align-items: center; gap: 8px; justify-content: center; background: #3B5BFE; color: #fff; border: none; border-radius: 8px; padding: 0 22px; font-size: 14px; font-weight: 500; cursor: pointer; height: 2.75rem; align-self: center; }
 .nqs-search-btn:disabled { background: #c7d0f7; cursor: not-allowed; }
 
 .nqs-od { border: 1px solid #e2e8f0; border-radius: 8px; padding: 8px 12px; background: #fff; }
@@ -54,3 +54,14 @@
 .nqs-results__text { font-size: 13px; color: #64748b; max-width: 420px; margin: 0 auto 16px; line-height: 1.5; }
 .nqs-results__create { font-size: 14px; font-weight: 500; color: #fff; background: #3B5BFE; border: none; border-radius: 8px; padding: 10px 22px; cursor: pointer; }
 .nqs-results__create:disabled { background: #c7d0f7; cursor: not-allowed; }
+
+.nqs-od { padding: 6px 10px; }
+.nqs-od .iata-tile__btn { height: 2.5rem; }
+.nqs-od .iata-tile { min-height: 0; }
+.nqs-air-arrow { display: flex; align-items: center; justify-content: center; width: 100%; height: 100%; border: none; background: transparent; color: #94a3b8; cursor: pointer; }
+.nqs-air-arrow:hover { color: #64748b; }
+.nqs-od--inline { display: flex; align-items: center; gap: 10px; }
+.nqs-od--inline .nqs-od__label { margin-bottom: 0; white-space: nowrap; }
+.nqs-od--inline .iata-tile { flex: 1; min-width: 0; }
+.nqs-air-actions { display: flex; justify-content: flex-end; gap: 10px; margin-top: 16px; }
+.nqs-air-actions .nqs-air-plain { background: transparent; color: var(--color-ink); border: 1px solid var(--color-line); border-radius: 8px; padding: 0 18px; height: 2.75rem; font-size: 14px; cursor: pointer; }

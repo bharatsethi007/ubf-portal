@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Sparkles } from 'lucide-react'
 import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
-import { createQuote, emptyQuoteDraft, type QuoteDraft } from './quotesApi'
+import AirCargoPanel from './AirCargoPanel'
+import { type CargoEntryMode } from './QuoteCargoEntry'
+import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
+import { newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
 import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft } from './quoteContainersApi'
 import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponsesApi'
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
@@ -46,6 +49,8 @@ export default function NewQuoteSearch() {
   const [lclOptions, setLclOptions] = useState<LclRateOption[]>([])
   const [lclWm, setLclWm] = useState('')
   const [lclCbm, setLclCbm] = useState('')
+  const [airLines, setAirLines] = useState<QuoteCargoLine[]>([newQuoteCargoLine(0)])
+  const [airMode, setAirMode] = useState<CargoEntryMode>('total')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [chatOpen, setChatOpen] = useState(false)
   const [aiQuery, setAiQuery] = useState('')
@@ -65,9 +70,11 @@ export default function NewQuoteSearch() {
     setGroups(g)
     invalidate()
   }
+  function addAirLine() { setAirLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
 
   const isLcl = draft.shipment_type === 'LCL'
   const isAir = draft.shipment_type === 'Air'
+  useEffect(() => { if (isAir && draft.from_port_code && draft.to_port_code) setLoadsOpen(true) }, [isAir, draft.from_port_code, draft.to_port_code])
   const wmNum = Math.max(0, Number(lclWm) || 0)
   const cbmNum = (Number(lclCbm) || 0) > 0 ? Number(lclCbm) : wmNum
 
@@ -131,6 +138,7 @@ export default function NewQuoteSearch() {
       }
       const { id } = await createQuote(payload)
       if (draft.shipment_type === 'FCL') await replaceQuoteContainers(id, groups)
+      if (isAir) { await updateQuote(id, { cargo_entry_mode: airMode }); await saveQuoteCargo(id, airLines) }
       if (chosen) {
         const { id: responseId } = await createQuoteResponse(id)
         await saveQuoteResponseLines(responseId, buildBuyLines(chosen))
@@ -231,8 +239,8 @@ export default function NewQuoteSearch() {
         </div>
 
         <div className="nqs-bar">
-          <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
-          <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
+          <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} hideType={isAir} />
+          <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} hideType={isAir} />
 
           {isLcl ? (
             <div className="nqs-loads-btn" style={{ cursor: 'default', gap: 12 }}>
@@ -249,14 +257,9 @@ export default function NewQuoteSearch() {
               </label>
             </div>
           ) : isAir ? (
-            <div className="nqs-loads-btn" style={{ cursor: 'default', gap: 10 }}>
-              <Plane size={16} color="#64748b" />
-              <span style={{ fontSize: 12, color: 'var(--muted-foreground)', lineHeight: 1.3 }}>
-                Air freight
-                <br />
-                enter cargo on next step
-              </span>
-            </div>
+            <button type="button" className="nqs-air-arrow" onClick={() => setLoadsOpen((v) => !v)} aria-label="Toggle cargo & incoterm">
+              <ChevronDown size={18} style={{ transform: loadsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+            </button>
           ) : (
             <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
               <ContainerIcon size={16} color="#64748b" />
@@ -278,6 +281,35 @@ export default function NewQuoteSearch() {
             <Search size={16} /> Search
           </button>
         </div>
+
+        {loadsOpen && isAir && (
+          <AirCargoPanel
+            incoterm={draft.incoterms ?? ''}
+            onIncotermChange={(v) => patch({ incoterms: v || null })}
+            incotermPlace={draft.incoterm_place ?? ''}
+            onIncotermPlaceChange={(v) => patch({ incoterm_place: v || null })}
+            originAddress={draft.pickup_address ?? ''}
+            onOriginAddressChange={(v) => patch({ pickup_address: v || null })}
+            deliveryAddress={draft.drop_address ?? ''}
+            onDeliveryAddressChange={(v) => patch({ drop_address: v || null })}
+            lines={airLines}
+            entryMode={airMode}
+            onEntryModeChange={setAirMode}
+            onLinesChange={setAirLines}
+            onAddLine={addAirLine}
+          />
+        )}
+
+        {isAir && (
+          <div className="nqs-air-actions">
+            <button type="button" className="nqs-air-plain" disabled={creating} onClick={() => handleCreate()}>
+              {busyId === '__plain__' ? 'Creating…' : 'Create without a rate'}
+            </button>
+            <button type="button" className="nqs-search-btn" disabled={!canSearch} onClick={runSearch}>
+              <Search size={16} /> Get rates
+            </button>
+          </div>
+        )}
 
         {loadsOpen && !isLcl && !isAir && (
           <ContainerGroupsEditor

@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeftRight, Coins, Layers, ListOrdered, Percent, Ruler, Scale, Table2 } from 'lucide-react'
+import { ArrowLeftRight, Coins, Layers, ListOrdered, MapPin, Percent, Ruler, Scale, Ship, Table2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 type ActiveSection = {
@@ -20,6 +20,18 @@ const ACTIVE: ActiveSection[] = [
     title: 'Rates',
     description: 'Carrier rate cards, parsing rules, and port groups for FCL pricing',
     to: '/setup/rates',
+  },
+  {
+    icon: Ship,
+    title: 'Carriers',
+    description: 'Shipping lines and airlines used in rate cards, quotes, and bookings',
+    to: '/setup/carriers',
+  },
+  {
+    icon: MapPin,
+    title: 'Ports & airports',
+    description: 'Sea ports and airports available in quotes, rate cards, and bookings',
+    to: '/setup/ports',
   },
   {
     icon: ListOrdered,

@@ -9,6 +9,7 @@ import SeaPortSelect from '../../components/bookings/SeaPortSelect'
 import IataPortSelect from '../../components/bookings/IataPortSelect'
 import QuoteLaneMap from './QuoteLaneMap'
 import QuoteCargoLines from './QuoteCargoLines'
+import QuoteCargoEntry, { type CargoEntryMode } from './QuoteCargoEntry'
 import { useStaffList } from '../../hooks/useStaffList'
 import { useCustomerQuoteStats } from '../../hooks/useCustomerQuoteStats'
 import { fetchQuote, updateQuote, setQuoteStatus, type QuoteRecord } from './quotesApi'
@@ -116,6 +117,7 @@ export default function QuoteDetailPage() {
   const [initialGroups, setInitialGroups] = useState<QuoteContainerDraft[]>([])
   const [cargoLines, setCargoLines] = useState<QuoteCargoLine[]>([])
   const [initialCargoLines, setInitialCargoLines] = useState<QuoteCargoLine[]>([])
+  const [cargoMode, setCargoMode] = useState<CargoEntryMode>('individual')
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [savingCargo, setSavingCargo] = useState(false)
@@ -154,6 +156,7 @@ export default function QuoteDetailPage() {
       setCargo(pickCargo(q)); setInitialCargo(pickCargo(q))
       setGroups(g); setInitialGroups(g)
       setCargoLines(cl); setInitialCargoLines(cl)
+      setCargoMode(q.cargo_entry_mode === 'total' ? 'total' : 'individual')
     } catch {
       toast.error('Failed to load quote'); setQuote(null)
     } finally {
@@ -241,7 +244,11 @@ export default function QuoteDetailPage() {
     if (!id) return
     setSavingLoads(true)
     try {
-      if (usesCargoLines) { await saveQuoteCargo(id, cargoLines); setInitialCargoLines(cargoLines) }
+      if (usesCargoLines) {
+        await saveQuoteCargo(id, cargoLines)
+        await updateQuote(id, { cargo_entry_mode: cargoMode })
+        setInitialCargoLines(cargoLines)
+      }
       else { await replaceQuoteContainers(id, groups); setInitialGroups(groups) }
       toast.success('Loads saved')
     }
@@ -345,10 +352,7 @@ export default function QuoteDetailPage() {
         </div>
 
         {usesCargoLines ? (
-          <>
-            <QuoteCargoLines lines={cargoLines} mode={isAir ? 'air' : 'sea'} onChange={setCargoLines} />
-            <button className="nqd-addgrp" onClick={addCargoLine}><Plus size={15} /> Add cargo line</button>
-          </>
+          <QuoteCargoEntry mode={isAir ? 'air' : 'sea'} entryMode={cargoMode} onEntryModeChange={setCargoMode} lines={cargoLines} onChange={setCargoLines} onAddLine={addCargoLine} />
         ) : (
           <>
             {groups.length === 0 && <p className="nqd-empty">No containers yet.</p>}

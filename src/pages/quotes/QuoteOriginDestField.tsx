@@ -15,20 +15,12 @@ const KEYS: Record<Side, {
   addrKey: keyof QuoteDraft
 }> = {
   origin: {
-    label: 'Origin',
-    typeKey: 'origin_location_type',
-    portKey: 'from_port_code',
-    locKey: 'pickup_location',
-    postalKey: 'pickup_postal_code',
-    addrKey: 'pickup_address',
+    label: 'Origin', typeKey: 'origin_location_type', portKey: 'from_port_code',
+    locKey: 'pickup_location', postalKey: 'pickup_postal_code', addrKey: 'pickup_address',
   },
   destination: {
-    label: 'Destination',
-    typeKey: 'dest_location_type',
-    portKey: 'to_port_code',
-    locKey: 'drop_location',
-    postalKey: 'drop_postal_code',
-    addrKey: 'drop_address',
+    label: 'Destination', typeKey: 'dest_location_type', portKey: 'to_port_code',
+    locKey: 'drop_location', postalKey: 'drop_postal_code', addrKey: 'drop_address',
   },
 }
 
@@ -37,29 +29,35 @@ type Props = {
   draft: QuoteDraft
   onPatch: (p: Partial<QuoteDraft>) => void
   mode?: 'sea' | 'air'
+  /** When true, hide the location-type dropdown and show only the port/airport picker. */
+  hideType?: boolean
 }
 
-export default function QuoteOriginDestField({ side, draft, onPatch, mode = 'sea' }: Props) {
+export default function QuoteOriginDestField({ side, draft, onPatch, mode = 'sea', hideType = false }: Props) {
   const k = KEYS[side]
   const type = (draft[k.typeKey] as string | null) ?? 'Port/Airport'
-  const isPort = type === 'Port/Airport'
+  const isPort = hideType ? true : type === 'Port/Airport'
   const str = (key: keyof QuoteDraft) => (draft[key] as string | null) ?? ''
 
   return (
-    <div className="nqs-od">
-      <div className="nqs-od__label">
-        {k.label} —{' '}
-        <select
-          className="nqs-od__type"
-          style={{ display: 'inline', width: 'auto' }}
-          value={type}
-          onChange={(e) => onPatch({ [k.typeKey]: e.target.value })}
-        >
-          {TYPES.map((t) => (
-            <option key={t} value={t}>{t.toLowerCase()}</option>
-          ))}
-        </select>
-      </div>
+    <div className={hideType ? 'nqs-od nqs-od--inline' : 'nqs-od'}>
+      {hideType ? (
+        <div className="nqs-od__label">{k.label}</div>
+      ) : (
+        <div className="nqs-od__label">
+          {k.label} —{' '}
+          <select
+            className="nqs-od__type"
+            style={{ display: 'inline', width: 'auto' }}
+            value={type}
+            onChange={(e) => onPatch({ [k.typeKey]: e.target.value })}
+          >
+            {TYPES.map((t) => (
+              <option key={t} value={t}>{t.toLowerCase()}</option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {isPort ? (
         mode === 'air' ? (
@@ -76,24 +74,12 @@ export default function QuoteOriginDestField({ side, draft, onPatch, mode = 'sea
         )
       ) : (
         <div className="nqs-od__addr">
-          <input
-            type="text"
-            placeholder="City / location"
-            value={str(k.locKey)}
-            onChange={(e) => onPatch({ [k.locKey]: e.target.value || null })}
-          />
-          <input
-            type="text"
-            placeholder="Postal code"
-            value={str(k.postalKey)}
-            onChange={(e) => onPatch({ [k.postalKey]: e.target.value || null })}
-          />
-          <textarea
-            rows={2}
-            placeholder="Address"
-            value={str(k.addrKey)}
-            onChange={(e) => onPatch({ [k.addrKey]: e.target.value || null })}
-          />
+          <input type="text" placeholder="City / location" value={str(k.locKey)}
+            onChange={(e) => onPatch({ [k.locKey]: e.target.value || null })} />
+          <input type="text" placeholder="Postal code" value={str(k.postalKey)}
+            onChange={(e) => onPatch({ [k.postalKey]: e.target.value || null })} />
+          <textarea rows={2} placeholder="Address" value={str(k.addrKey)}
+            onChange={(e) => onPatch({ [k.addrKey]: e.target.value || null })} />
         </div>
       )}
     </div>

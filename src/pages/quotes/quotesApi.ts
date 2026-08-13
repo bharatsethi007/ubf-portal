@@ -3,6 +3,7 @@ import { supabase } from '../../supabase'
 export type QuoteDraft = {
   shipment_mode: string | null
   shipment_type: string | null
+  cargo_entry_mode: string | null
   from_port_code: string | null
   to_port_code: string | null
   incoterms: string | null
@@ -57,6 +58,7 @@ export function emptyQuoteDraft(): QuoteDraft {
   return {
     shipment_mode: null,
     shipment_type: null,
+    cargo_entry_mode: 'individual',
     from_port_code: null,
     to_port_code: null,
     incoterms: null,
