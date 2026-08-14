@@ -16,6 +16,7 @@ export type BookingRecord = {
   account_credit_limit: number | null
   customs_payment_type: string | null
   mode: string | null
+  incoterm: string | null
   shipment_id: number | null
   m_eta: string | null
   m_atf: string | null
@@ -54,9 +55,11 @@ export type BookingRecord = {
   field_overrides?: Record<string, boolean> | null
   consignee_account_id: string | null
   importer_account_id: string | null
+  os_agent_account_id: string | null
   customer_name: string | null
   consignee_name: string | null
   importer_name: string | null
+  os_agent_name: string | null
 }
 
 export type BookingShipment = {
@@ -81,6 +84,8 @@ export type BookingTask = {
   due_date: string | null
   completed_at: string | null
   completed_by: string | null
+  billable: boolean
+  invoice_no: string | null
   assignee?: StaffUser | null
 }
 
@@ -108,7 +113,9 @@ export type BookingRecordPatch = {
   account_id?: string | null
   consignee_account_id?: string | null
   importer_account_id?: string | null
+  os_agent_account_id?: string | null
   mode?: string | null
+  incoterm?: string | null
   job_no?: string | null
   hold_reason?: string | null
   hold_code?: string | null

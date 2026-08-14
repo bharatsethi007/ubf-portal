@@ -18,6 +18,7 @@ import type { ContainerListItem } from '../containers/useBookingContainers'
 import ShipmentLinkModal from '../link/ShipmentLinkModal'
 import { unlinkBookingShipment } from '../link/shipmentLinkApi'
 import CustomerField, { customerPickerValue } from './CustomerField'
+import IncotermSelect from '@/components/bookings/IncotermSelect'
 import FormCard from './FormCard'
 import StaffField from './StaffField'
 
@@ -33,7 +34,7 @@ type Props = {
 export default function BookingLeftColumn({ booking, staff, containerRows, onPatch }: Props) {
   const client = customerPickerValue(booking.account_id, booking.customer_name)
   const consignee = customerPickerValue(booking.consignee_account_id, booking.consignee_name)
-  const importer = customerPickerValue(booking.importer_account_id, booking.importer_name)
+  const osAgent = customerPickerValue(booking.os_agent_account_id, booking.os_agent_name)
 
   const [linkOpen, setLinkOpen] = useState(false)
   const [confirmUnsync, setConfirmUnsync] = useState(false)
@@ -90,12 +91,12 @@ export default function BookingLeftColumn({ booking, staff, containerRows, onPat
           }
         />
         <CustomerField
-          label="Importer"
-          value={importer}
+          label="OS Agent"
+          value={osAgent}
           onChange={(c) =>
             patchCustomer(
-              { importer_account_id: c?.account_id ?? null, importer_name: c?.name ?? null },
-              { importer_account_id: c?.account_id ?? null },
+              { os_agent_account_id: c?.account_id ?? null, os_agent_name: c?.name ?? null },
+              { os_agent_account_id: c?.account_id ?? null },
             )
           }
         />
@@ -138,6 +139,14 @@ export default function BookingLeftColumn({ booking, staff, containerRows, onPat
             <option value="FCL">FCL</option>
             <option value="LCL">LCL</option>
           </select>
+        </label>
+        <label className="filter-field booking-form-field">
+          <span className="filter-field__label">Incoterm</span>
+          <IncotermSelect
+            className="input input--xs"
+            value={booking.incoterm ?? ''}
+            onChange={(code) => onPatch({ incoterm: code || null }, { incoterm: code || null })}
+          />
         </label>
         <StaffField
           value={booking.handled_by}

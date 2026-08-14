@@ -21,7 +21,7 @@ import ImportSeaOpsStatus from './ImportSeaOpsStatus'
 import type { ImportSeaBoardCellKey } from './importSeaRowDiff'
 import type { ImportSeaRow } from './types'
 
-const COL_SPAN = 16
+const COL_SPAN = 17
 
 type SortableThProps = {
   label: string
@@ -129,6 +129,7 @@ export default function ImportSeaBoardTable({
                 <SortableTh label="Booking ref" columnKey="booking_ref" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-bref" />
                 <SortableTh label="Job #" columnKey="job_no" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-job" />
                 <SortableTh label="Client" columnKey="customer_name" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-client" />
+                <th className="import-sea-col-line">Shipping line</th>
                 <SortableTh label="ETA" columnKey="eta" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <th>Container</th>
                 <SortableTh label="ATF" columnKey="atf" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
@@ -190,6 +191,9 @@ export default function ImportSeaBoardTable({
                           customerId={row.customer_id}
                           name={row.customer_name}
                         />
+                      </td>
+                      <td className="import-sea-col-line">
+                        {row.shipping_line?.trim() ? row.shipping_line : <span className="muted">–</span>}
                       </td>
                       <td className={flashClass(isCellFlashing(row.id, 'eta'))}>
                         <BoardSourcedDateCell

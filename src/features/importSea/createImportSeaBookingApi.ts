@@ -6,6 +6,7 @@ export type CreateImportSeaBookingInput = {
   consignee_account_id: string | null
   importer_account_id: string | null
   job_no: string | null
+  mbl_no: string | null
   m_eta: string | null
   handled_by: string | null
   created_by: string | null
@@ -35,6 +36,7 @@ export async function createImportSeaBooking(
       consignee_account_id: input.consignee_account_id,
       importer_account_id: input.importer_account_id,
       job_no: input.job_no,
+      mbl_no: input.mbl_no,
       m_eta: input.m_eta,
       handled_by: input.handled_by,
       created_by: input.created_by,

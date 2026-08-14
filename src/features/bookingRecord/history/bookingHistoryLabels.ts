@@ -3,6 +3,7 @@ export const BOOKING_FIELD_LABELS: Record<string, string> = {
   account_id: 'Client',
   consignee_account_id: 'Consignee',
   importer_account_id: 'Importer',
+  os_agent_account_id: 'OS Agent',
   booking_ref: 'Booking ref',
   job_no: 'Job #',
   mode: 'Mode',

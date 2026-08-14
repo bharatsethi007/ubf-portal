@@ -47,10 +47,9 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
   const [staff, setStaff] = useState<StaffUser[]>([])
   const [client, setClient] = useState<CustomerPickerValue | null>(null)
   const [consignee, setConsignee] = useState<CustomerPickerValue | null>(null)
-  const [importer, setImporter] = useState<CustomerPickerValue | null>(null)
   const [consigneeTouched, setConsigneeTouched] = useState(false)
-  const [importerTouched, setImporterTouched] = useState(false)
   const [jobNo, setJobNo] = useState('')
+  const [mbl, setMbl] = useState('')
   const [eta, setEta] = useState('')
   const [handledBy, setHandledBy] = useState<string | null>(null)
   const [containers, setContainers] = useState<DraftContainerRow[]>([])
@@ -79,10 +78,9 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
   function resetForm() {
     setClient(null)
     setConsignee(null)
-    setImporter(null)
     setConsigneeTouched(false)
-    setImporterTouched(false)
     setJobNo('')
+    setMbl('')
     setEta('')
     setContainers([])
     setClientError('')
@@ -93,9 +91,6 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
     setClientError('')
     if (!consigneeTouched || sameCustomer(consignee, client)) {
       setConsignee(next)
-    }
-    if (!importerTouched || sameCustomer(importer, client)) {
-      setImporter(next)
     }
   }
 
@@ -122,8 +117,9 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
       const created = await createImportSeaBooking({
         account_id: client.account_id,
         consignee_account_id: consignee?.account_id ?? client.account_id,
-        importer_account_id: importer?.account_id ?? client.account_id,
+        importer_account_id: client.account_id,
         job_no: jobNo.trim() || null,
+        mbl_no: mbl.trim() || null,
         m_eta: eta.trim() || null,
         handled_by: handledBy,
         created_by: auth.user?.id ?? null,
@@ -149,7 +145,7 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
         onOpenChange(next)
       }}
     >
-      <DialogContent className="create-import-sea-dialog sm:max-w-lg">
+      <DialogContent className="create-import-sea-dialog sm:max-w-xl">
         <DialogHeader>
           <DialogTitle>New import sea booking</DialogTitle>
           <DialogDescription>
@@ -169,14 +165,6 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
               setConsignee(next)
             }}
           />
-          <CustomerField
-            label="Importer"
-            value={importer}
-            onChange={(next) => {
-              setImporterTouched(true)
-              setImporter(next)
-            }}
-          />
 
           <label className="filter-field booking-form-field">
             <span className="filter-field__label">Job #</span>
@@ -186,6 +174,17 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
               value={jobNo}
               placeholder="Optional"
               onChange={(e) => setJobNo(e.target.value)}
+            />
+          </label>
+
+          <label className="filter-field booking-form-field">
+            <span className="filter-field__label">Master B/L (tracking)</span>
+            <input
+              type="text"
+              className="input input--sm mono"
+              value={mbl}
+              placeholder="Optional"
+              onChange={(e) => setMbl(e.target.value)}
             />
           </label>
 
@@ -218,7 +217,12 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
           <Button type="button" variant="outline" disabled={saving} onClick={closeDialog}>
             Cancel
           </Button>
-          <Button type="button" disabled={saving} onClick={() => void handleSave()}>
+          <Button
+            type="button"
+            disabled={saving}
+            className="!bg-ub-navy !text-white hover:!bg-ub-navy/90 !border-ub-navy"
+            onClick={() => void handleSave()}
+          >
             {saving ? 'Creating…' : 'Create booking'}
           </Button>
         </DialogFooter>

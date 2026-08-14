@@ -13,7 +13,7 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
   const [text, setText] = useState('')
   const ref = useRef<HTMLDivElement>(null)
 
-  const { tasks, doneCount, toggleDone, addTask, removeTask, setDueDate } = useBookingTasks(bookingId)
+  const { tasks, doneCount, toggleDone, addTask, removeTask, staff, assignTask } = useBookingTasks(bookingId)
   const { notes, loading: notesLoading, addNote } = useBookingNotes(bookingId)
 
   const openCount = tasks.length - doneCount
@@ -40,9 +40,10 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
         <BookingTaskRow
           key={task.id}
           task={task}
+          staff={staff}
           onToggle={(done) => toggleDone(task, done)}
-          onDueDate={(iso) => setDueDate(task, iso)}
-          onDelete={task.is_default ? undefined : () => removeTask(task)}
+          onAssign={(uid) => assignTask(task, uid)}
+          onDelete={() => removeTask(task)}
         />
       ))}
     </div>

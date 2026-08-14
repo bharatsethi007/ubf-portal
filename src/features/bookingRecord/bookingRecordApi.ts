@@ -11,7 +11,7 @@ import type {
 } from './bookingRecordTypes'
 
 const BOOKING_SELECT = `
-  id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, mode, shipment_id,
+  id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, os_agent_account_id, mode, incoterm, shipment_id,
   m_eta, m_atf, m_shipping_line, shipping_line_code, mbl_no, m_discharge_port,
   swb_released, tlx_release_on_hand, doc_handover_at,
       bacc_sent, cleared, truck_booked, inv_approved, inv_sent,
@@ -19,13 +19,15 @@ const BOOKING_SELECT = `
   hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides, weight_flags_ack, archived_at,
   customers!bookings_account_id_fkey ( name, account_terms, customs_payment_type, credit_limit ),
   consignee:customers!bookings_consignee_account_id_fkey ( name ),
-  importer:customers!bookings_importer_account_id_fkey ( name )
+  importer:customers!bookings_importer_account_id_fkey ( name ),
+  os_agent:customers!bookings_os_agent_account_id_fkey ( name )
 `
 
-type BookingRow = Omit<BookingRecord, 'customer_name' | 'consignee_name' | 'importer_name'> & {
+type BookingRow = Omit<BookingRecord, 'customer_name' | 'consignee_name' | 'importer_name' | 'os_agent_name'> & {
   customers: { name: string | null; account_terms: string | null; customs_payment_type: string | null; credit_limit: number | null } | null
   consignee: { name: string | null } | null
   importer: { name: string | null } | null
+  os_agent: { name: string | null } | null
 }
 
 export async function fetchBookingRecord(id: string): Promise<BookingRecord | null> {
@@ -37,7 +39,7 @@ export async function fetchBookingRecord(id: string): Promise<BookingRecord | nu
   if (error) throw error
   if (!data) return null
   const row = data as BookingRow
-  const { customers, consignee, importer, ...rest } = row
+  const { customers, consignee, importer, os_agent, ...rest } = row
   return {
     ...rest,
     customer_name: customers?.name ?? null,
@@ -46,6 +48,7 @@ export async function fetchBookingRecord(id: string): Promise<BookingRecord | nu
     customs_payment_type: customers?.customs_payment_type ?? null,
     consignee_name: consignee?.name ?? null,
     importer_name: importer?.name ?? null,
+    os_agent_name: os_agent?.name ?? null,
     field_overrides: rest.field_overrides ?? {},
     weight_flags_ack: rest.weight_flags_ack ?? [],
   }
@@ -87,7 +90,7 @@ export async function fetchBookingTasks(bookingId: string): Promise<BookingTask[
     .from('booking_tasks')
     .select(`
       id, booking_id, title, is_default, sort_order, status,
-      assigned_to, due_date, completed_at, completed_by
+      assigned_to, due_date, completed_at, completed_by, billable, invoice_no
     `)
     .eq('booking_id', bookingId)
     .order('sort_order')
@@ -145,7 +148,7 @@ export async function createBookingTask(
     })
     .select(`
       id, booking_id, title, is_default, sort_order, status,
-      assigned_to, due_date, completed_at, completed_by
+      assigned_to, due_date, completed_at, completed_by, billable, invoice_no
     `)
     .single()
   if (error) throw error
@@ -155,7 +158,7 @@ export async function createBookingTask(
 
 export async function updateBookingTask(
   taskId: string,
-  patch: Partial<Pick<BookingTask, 'title' | 'status' | 'assigned_to' | 'due_date' | 'completed_at' | 'completed_by'>>,
+  patch: Partial<Pick<BookingTask, 'title' | 'status' | 'assigned_to' | 'due_date' | 'completed_at' | 'completed_by' | 'billable' | 'invoice_no'>>,
 ): Promise<void> {
   const { error } = await supabase.from('booking_tasks').update(patch).eq('id', taskId)
   if (error) throw error

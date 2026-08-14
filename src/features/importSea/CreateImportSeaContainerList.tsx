@@ -98,12 +98,6 @@ export default function CreateImportSeaContainerList({ rows, onChange }: Props) 
                     </option>
                   ))}
                 </select>
-                <Input
-                  className="input--xs"
-                  value={row.seal_no}
-                  placeholder="Seal"
-                  onChange={(e) => updateRow(row.id, { seal_no: e.target.value })}
-                />
                 <Button
                   type="button"
                   variant="ghost"

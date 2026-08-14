@@ -68,7 +68,6 @@ export function useBookingTasks(bookingId: string | undefined) {
   }, [bookingId])
 
   const removeTask = useCallback(async (task: BookingTask) => {
-    if (task.is_default) return
     setTasks((prev) => prev.filter((t) => t.id !== task.id))
     try {
       await deleteBookingTask(task.id)
@@ -78,19 +77,20 @@ export function useBookingTasks(bookingId: string | undefined) {
     }
   }, [])
 
-  const setDueDate = useCallback(async (task: BookingTask, dueDate: string | null) => {
+  const assignTask = useCallback(async (task: BookingTask, userId: string | null) => {
+    const assignee = userId ? staff.find((s) => s.user_id === userId) ?? null : null
     setTasks((prev) =>
-      prev.map((t) => (t.id === task.id ? { ...t, due_date: dueDate } : t)),
+      prev.map((t) => (t.id === task.id ? { ...t, assigned_to: userId, assignee } : t)),
     )
     try {
-      await updateBookingTask(task.id, { due_date: dueDate })
+      await updateBookingTask(task.id, { assigned_to: userId })
     } catch (err) {
       setTasks((prev) =>
         prev.map((t) => (t.id === task.id ? task : t)),
       )
-      toast.error(err instanceof Error ? err.message : 'Could not update due date')
+      toast.error(err instanceof Error ? err.message : 'Could not assign task')
     }
-  }, [])
+  }, [staff])
 
   const doneCount = tasks.filter((t) => t.status === 'done').length
 
@@ -102,7 +102,7 @@ export function useBookingTasks(bookingId: string | undefined) {
     toggleDone,
     addTask,
     removeTask,
-    setDueDate,
+    assignTask,
     reload,
   }
 }
