@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { Bell } from 'lucide-react'
+import { Bell, MessageSquare } from 'lucide-react'
 import { useBookingTasks } from '../useBookingTasks'
 import { useBookingNotes } from '../notes/useBookingNotes'
 import BookingTaskRow, { taskProgressLabel } from './BookingTaskRow'
@@ -19,6 +19,7 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
 
   const openCount = tasks.length - doneCount
   const mentions = tasks.filter((t) => t.assigned_to)
+  const pendingBillable = tasks.some((t) => t.billable && t.status !== 'done')
 
   useEffect(() => {
     const onDoc = (e: MouseEvent) => {
@@ -60,6 +61,12 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
         onClick={() => setOpen((v) => !v)}
       >
         <Bell size={16} />
+        {pendingBillable ? (
+          <span className="tasks-bell__billable-flag" title="Billable Tasks Pending">
+            <MessageSquare size={11} />
+            Billable
+          </span>
+        ) : null}
         {tasks.length > 0 ? (
           openCount > 0
             ? <span className="tasks-bell__badge">{openCount}/{tasks.length}</span>
