@@ -35,6 +35,21 @@ function eventStyle(code: string): EventStyle {
     case 'APPR':
     case 'RELS':
       return { Icon: FileText, dot: 'bg-[#0A2472]', ring: 'ring-blue-100' }
+    case 'AE':
+      return { Icon: ArrowUpToLine, dot: 'bg-[#F7941D]', ring: 'ring-orange-100' }
+    case 'UV':
+      return { Icon: ArrowDownToLine, dot: 'bg-[#F7941D]', ring: 'ring-orange-100' }
+    case 'VD':
+      return { Icon: Ship, dot: 'bg-blue-500', ring: 'ring-blue-100' }
+    case 'VA':
+      return { Icon: Anchor, dot: 'bg-emerald-500', ring: 'ring-emerald-100' }
+    case 'I':
+      return { Icon: LogIn, dot: 'bg-slate-500', ring: 'ring-slate-100' }
+    case 'O':
+      return { Icon: LogOut, dot: 'bg-slate-500', ring: 'ring-slate-100' }
+    case 'EE':
+    case 'ER':
+      return { Icon: Package, dot: 'bg-slate-400', ring: 'ring-slate-100' }
     default:
       return { Icon: Package, dot: 'bg-slate-400', ring: 'ring-slate-100' }
   }
@@ -115,8 +130,8 @@ function TrackingSummary({
   const origin = physical[0] ?? null
   const dest = physical.length > 1 ? physical[physical.length - 1] : null
 
-  const departs = events.find((e) => e.event_type_code.toUpperCase() === 'DEPA') ?? null
-  const arrivals = events.filter((e) => e.event_type_code.toUpperCase() === 'ARRI')
+  const departs = events.find((e) => ['DEPA', 'VD'].includes(e.event_type_code.toUpperCase())) ?? null
+  const arrivals = events.filter((e) => ['ARRI', 'VA'].includes(e.event_type_code.toUpperCase()))
   const arrives = arrivals.length ? arrivals[arrivals.length - 1] : null
 
   const containers = [...new Set(events.map((e) => e.container_no).filter(Boolean))] as string[]
@@ -165,7 +180,7 @@ function TrackingSummary({
 
 export default function CarrierEventsList({ events }: { events: BookingTrackingEvent[] }) {
   const carrierEvents = events
-    .filter((ev) => ev.source === 'carrier')
+    .filter((ev) => ev.source === 'carrier' || ev.source === 'seavantage')
     .slice()
     .sort((a, b) => new Date(a.event_datetime).getTime() - new Date(b.event_datetime).getTime())
 
@@ -225,7 +240,7 @@ export default function CarrierEventsList({ events }: { events: BookingTrackingE
                     <div className="min-w-0 flex-1">
                       <div className="flex items-baseline justify-between gap-2">
                         <span className="text-[13px] font-medium">
-                          {carrierEventLabel(ev.event_type_code)}
+                          {carrierEventLabel(ev.event_type_code, ev.event_value)}
                           {ev.is_estimated ? (
                             <span className="ml-1 rounded bg-amber-100 px-1 py-px align-middle text-[10px] font-medium text-amber-700">
                               EST

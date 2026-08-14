@@ -12,6 +12,7 @@ import type {
 } from '../bookingRecordTypes'
 import type { ContainerTrackingRow } from '../tracking/trackingTypes'
 import AtfAutocomplete from './AtfAutocomplete'
+import MblField from './MblField'
 import ShippingLineSelect from './ShippingLineSelect'
 import TriSourceField from './TriSourceField'
 import FormCard from './FormCard'
@@ -103,6 +104,10 @@ export default function BookingMiddleColumn({
         <ShippingLineSelect
           value={booking.shipping_line_code}
           onChange={(code) => onPatch({ shipping_line_code: code }, { shipping_line_code: code })}
+        />
+        <MblField
+          value={booking.mbl_no}
+          onCommit={(v) => onPatch({ mbl_no: v }, { mbl_no: v })}
         />
         <TriSourceField
           label="Discharge port"

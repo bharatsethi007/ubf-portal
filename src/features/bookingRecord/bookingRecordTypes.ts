@@ -21,6 +21,7 @@ export type BookingRecord = {
   m_atf: string | null
   m_shipping_line: string | null
   shipping_line_code: string | null
+  mbl_no: string | null
   m_discharge_port: string | null
   swb_released: boolean | null
   tlx_release_on_hand: boolean | null
@@ -116,6 +117,7 @@ export type BookingRecordPatch = {
   m_atf?: string | null
   m_shipping_line?: string | null
   shipping_line_code?: string | null
+  mbl_no?: string | null
   m_discharge_port?: string | null
   swb_released?: boolean
   tlx_release_on_hand?: boolean

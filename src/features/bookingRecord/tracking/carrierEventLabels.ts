@@ -1,9 +1,9 @@
-// DCSA Track & Trace v2.2 event type codes -> friendly labels (Maersk carrier feed).
+// DCSA (Maersk carrier feed) + SeaVantage event codes -> friendly labels.
 const LABELS: Record<string, string> = {
-  // Transport events
+  // DCSA transport
   ARRI: 'Vessel arrived',
   DEPA: 'Vessel departed',
-  // Equipment events
+  // DCSA equipment
   LOAD: 'Loaded',
   DISC: 'Discharged',
   GTIN: 'Gated in',
@@ -15,7 +15,7 @@ const LABELS: Record<string, string> = {
   RSEA: 'Resealed',
   RMVD: 'Removed',
   INSP: 'Inspected',
-  // Shipment events
+  // DCSA shipment
   RECE: 'Booking received',
   DRFT: 'Draft B/L',
   PENA: 'Pending approval',
@@ -31,8 +31,23 @@ const LABELS: Record<string, string> = {
   CMPL: 'Completed',
   HOLD: 'On hold',
   RELS: 'Released',
+  // SeaVantage container event codes
+  EE: 'Empty dispatched',
+  ER: 'Empty returned',
+  I: 'Gate in',
+  O: 'Gate out',
+  AE: 'Loaded on vessel',
+  UV: 'Discharged from vessel',
+  VD: 'Vessel departed',
+  VA: 'Vessel arrived',
+  VB: 'Vessel berthed',
+  RD: 'Rail departed',
+  RA: 'Rail arrived',
+  BD: 'Barge departed',
+  BA: 'Barge arrived',
 }
 
-export function carrierEventLabel(code: string): string {
-  return LABELS[code.trim().toUpperCase()] ?? code.trim()
+export function carrierEventLabel(code: string, fallback?: string | null): string {
+  const c = code.trim().toUpperCase()
+  return LABELS[c] ?? (fallback && fallback.trim() ? fallback.trim() : code.trim())
 }

@@ -11,6 +11,8 @@ import ImportSeaBoardSummary from './ImportSeaBoardSummary'
 
 import ImportSeaBoardTable from './ImportSeaBoardTable'
 
+import ImportSeaVesselMap from './ImportSeaVesselMap'
+
 import CreateImportSeaBookingDialog from './CreateImportSeaBookingDialog'
 
 import ImportSeaFilters from './ImportSeaFilters'
@@ -102,7 +104,7 @@ export default function ImportSeaBoardPage() {
 
       {error ? <div className="error card pad-inline">{error}</div> : null}
 
-
+      <ImportSeaVesselMap />
 
       <div className="shipments-table-header import-sea-board-toolbar [&_.shipment-filters]:items-center [&_.shipment-filters__input]:h-9 [&_.shipment-filters__input]:min-h-9 [&_.shipment-filters__more-toggle]:h-9 [&_.shipment-filters__more-toggle]:min-h-9 [&_.pagination__btn]:h-9 [&_.pagination__btn]:min-h-9 [&_.pagination__btn]:inline-flex [&_.pagination__btn]:items-center [&_.import-sea-new-booking]:!h-9 [&_.import-sea-new-booking]:!min-h-9 [&_.import-sea-new-booking]:!bg-ub-navy [&_.import-sea-new-booking]:!text-white [&_.import-sea-new-booking]:!border-ub-navy [&_.import-sea-new-booking:hover:not(:disabled)]:!bg-ub-navy/90">
 

@@ -1,4 +1,4 @@
-export type TrackingSource = 'portconnect' | 'carrier'
+export type TrackingSource = 'portconnect' | 'carrier' | 'seavantage'
 export type SourceFilter = 'all' | 'portconnect' | 'carrier'
 
 export type BookingTrackingSettings = {
@@ -10,10 +10,13 @@ export type BookingTrackingSettings = {
   last_carrier_sync: string | null
   portconnect_error: string | null
   carrier_error: string | null
+  seavantage_enabled: boolean
+  last_seavantage_sync: string | null
+  seavantage_error: string | null
 }
 
 export type BookingTrackingPatch = Partial<
-  Pick<BookingTrackingSettings, 'portconnect_enabled' | 'carrier_enabled' | 'carrier_scac'>
+  Pick<BookingTrackingSettings, 'portconnect_enabled' | 'carrier_enabled' | 'carrier_scac' | 'seavantage_enabled'>
 >
 
 export type ContainerTrackingRow = {

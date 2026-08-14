@@ -43,8 +43,17 @@ function CarrierRow({
   onPatch: (patch: BookingTrackingPatch) => void
 }) {
   const enabled = settings.carrier_enabled
-  const carrierEventCount = events.filter((ev) => ev.source === 'carrier').length
+  const carrierEventCount = events.filter(
+    (ev) => ev.source === 'carrier' || ev.source === 'seavantage',
+  ).length
   const matchedCarrier = deriveCarrierName(events)
+  const lastSync = [settings.last_seavantage_sync, settings.last_carrier_sync]
+    .filter((v): v is string => Boolean(v))
+    .sort()
+    .at(-1) ?? null
+  const svSync = settings.last_seavantage_sync ? new Date(settings.last_seavantage_sync).getTime() : 0
+  const carrierSync = settings.last_carrier_sync ? new Date(settings.last_carrier_sync).getTime() : 0
+  const lineError = svSync >= carrierSync ? settings.seavantage_error : settings.carrier_error
 
   return (
     <div className="booking-tracking-enable__row">
@@ -79,7 +88,7 @@ function CarrierRow({
         <dl className="booking-pc-subscription-meta">
           <div>
             <dt>Last refreshed</dt>
-            <dd>{settings.last_carrier_sync ? relativeUpdatedAt(settings.last_carrier_sync) : 'Never'}</dd>
+            <dd>{lastSync ? relativeUpdatedAt(lastSync) : 'Never'}</dd>
           </div>
           <div>
             <dt>Events</dt>
@@ -90,12 +99,12 @@ function CarrierRow({
 
       <CarrierEventsList events={events} />
 
-      {settings.carrier_error ? (
-        <p className="booking-tracking-enable__error">{settings.carrier_error}</p>
+      {lineError ? (
+        <p className="booking-tracking-enable__error">{lineError}</p>
       ) : null}
       {enabled && carrierEventCount === 0 ? (
         <p className="muted booking-tracking-enable__placeholder">
-          Carrier auto-detected from the container. Click Refresh to pull Maersk events.
+          Maersk auto-detects from the container; other lines use the carrier picked on the booking. Click Refresh to pull events.
         </p>
       ) : null}
       {!enabled ? (
