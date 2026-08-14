@@ -35,13 +35,13 @@ export function useBookingTasks(bookingId: string | undefined) {
     void fetchStaffUsers().then(setStaff)
   }, [])
 
-  const toggleDone = useCallback(async (task: BookingTask, done: boolean) => {
+  const toggleDone = useCallback(async (task: BookingTask, done: boolean, invoiceNo: string | null = null) => {
     const { data: auth } = await supabase.auth.getUser()
     const userId = auth.user?.id ?? null
     const now = new Date().toISOString()
     const patch = done
-      ? { status: 'done' as const, completed_at: now, completed_by: userId }
-      : { status: 'open' as const, completed_at: null, completed_by: null }
+      ? { status: 'done' as const, completed_at: now, completed_by: userId, ...(task.billable ? { invoice_no: invoiceNo } : {}) }
+      : { status: 'open' as const, completed_at: null, completed_by: null, ...(task.billable ? { invoice_no: null } : {}) }
 
     setTasks((prev) =>
       prev.map((t) => (t.id === task.id ? { ...t, ...patch } : t)),
@@ -56,11 +56,11 @@ export function useBookingTasks(bookingId: string | undefined) {
     }
   }, [])
 
-  const addTask = useCallback(async (title: string, assignedTo: string | null) => {
+  const addTask = useCallback(async (title: string, assignedTo: string | null, billable = false) => {
     if (!bookingId) return
     const { data: auth } = await supabase.auth.getUser()
     try {
-      const row = await createBookingTask(bookingId, title, assignedTo, auth.user?.id ?? null)
+      const row = await createBookingTask(bookingId, title, assignedTo, auth.user?.id ?? null, billable)
       setTasks((prev) => [...prev, row])
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Could not add task')

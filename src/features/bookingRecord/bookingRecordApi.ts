@@ -135,6 +135,7 @@ export async function createBookingTask(
   title: string,
   assignedTo: string | null,
   createdBy: string | null,
+  billable = false,
 ): Promise<BookingTask> {
   const { data, error } = await supabase
     .from('booking_tasks')
@@ -143,6 +144,7 @@ export async function createBookingTask(
       title,
       assigned_to: assignedTo,
       created_by: createdBy,
+      billable,
       is_default: false,
       sort_order: 999,
     })

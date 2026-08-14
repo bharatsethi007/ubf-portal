@@ -11,6 +11,7 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
   const [open, setOpen] = useState(false)
   const [tab, setTab] = useState<Tab>('tasks')
   const [text, setText] = useState('')
+  const [billable, setBillable] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
 
   const { tasks, doneCount, toggleDone, addTask, removeTask, staff, assignTask } = useBookingTasks(bookingId)
@@ -30,8 +31,9 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
   function submit() {
     const title = text.trim()
     if (!title) return
-    addTask(title, null)
+    addTask(title, null, billable)
     setText('')
+    setBillable(false)
   }
 
   const rows = (list: typeof tasks) => (
@@ -41,7 +43,7 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
           key={task.id}
           task={task}
           staff={staff}
-          onToggle={(done) => toggleDone(task, done)}
+          onToggle={(done, inv) => toggleDone(task, done, inv ?? null)}
           onAssign={(uid) => assignTask(task, uid)}
           onDelete={() => removeTask(task)}
         />
@@ -87,7 +89,14 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
                     onChange={(e) => setText(e.target.value)}
                     onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); submit() } }}
                   />
-                  <button type="button" className="btn" onClick={submit}>Add</button>
+                  <label className="booking-task-panel__billable" title="Billable — invoice required on completion">
+                    <span className="toggle">
+                      <input type="checkbox" checked={billable} onChange={(e) => setBillable(e.target.checked)} />
+                      <span className="toggle__track" />
+                    </span>
+                    Billable
+                  </label>
+                  <button type="button" className="btn booking-task-panel__add-btn" onClick={submit}>Add</button>
                 </div>
               </>
             ) : null}
