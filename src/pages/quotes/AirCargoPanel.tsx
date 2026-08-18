@@ -4,11 +4,16 @@ import QuoteCargoEntry, { type CargoEntryMode } from './QuoteCargoEntry'
 import { type QuoteCargoLine } from './quoteCargoApi'
 import './airCargoPanel.css'
 
+const MOVEMENTS: { value: string; label: string }[] = [
+  { value: 'import', label: 'Import' },
+  { value: 'export', label: 'Export' },
+]
+
 type Props = {
   incoterm: string
   onIncotermChange: (v: string) => void
-  incotermPlace: string
-  onIncotermPlaceChange: (v: string) => void
+  movement: string
+  onMovementChange: (v: string) => void
   originAddress: string
   onOriginAddressChange: (v: string) => void
   deliveryAddress: string
@@ -30,7 +35,7 @@ export function addressFieldsFor(incoterm: string): { origin: boolean; delivery:
 }
 
 export default function AirCargoPanel({
-  incoterm, onIncotermChange, incotermPlace, onIncotermPlaceChange,
+  incoterm, onIncotermChange, movement, onMovementChange,
   originAddress, onOriginAddressChange, deliveryAddress, onDeliveryAddressChange,
   lines, entryMode, onEntryModeChange, onLinesChange, onAddLine,
 }: Props) {
@@ -39,14 +44,21 @@ export default function AirCargoPanel({
   return (
     <div className="acp">
       <div className="acp__row">
+        <div className="acp__field">
+          <span className="acp__label">Type</span>
+          <div className="cg-chips">
+            {MOVEMENTS.map((m) => (
+              <button type="button" key={m.value}
+                className={`cg-chip${movement === m.value ? ' cg-chip--on' : ''}`}
+                onClick={() => onMovementChange(m.value)}>
+                {m.label}
+              </button>
+            ))}
+          </div>
+        </div>
         <label className="acp__field">
           <span className="acp__label">Incoterm</span>
           <IncotermSelect value={incoterm} onChange={onIncotermChange} airOnly />
-        </label>
-        <label className="acp__field">
-          <span className="acp__label">Named place (opt.)</span>
-          <input className="nqd-input" value={incotermPlace}
-            onChange={(e) => onIncotermPlaceChange(e.target.value)} placeholder="e.g. AKL" />
         </label>
       </div>
 

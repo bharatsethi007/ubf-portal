@@ -79,7 +79,7 @@ export function chargeableKgFromCargo(rows: { total_cbm: number | null; gross_wt
     grossKg += Number(r.gross_wt) || 0
   }
   const volKg = cbm * AIR_VOLUMETRIC_KG_PER_CBM
-  return { chargeableKg: round2(Math.max(grossKg, volKg)), grossKg: round2(grossKg), cbm: round2(cbm) }
+  return { chargeableKg: Math.ceil(Math.max(grossKg, volKg) * 2) / 2, grossKg: round2(grossKg), cbm: round2(cbm) }
 }
 
 export async function fetchAirQuoteLane(quoteId: string): Promise<AirQuoteLane> {

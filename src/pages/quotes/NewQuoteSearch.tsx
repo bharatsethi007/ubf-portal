@@ -1,23 +1,25 @@
 import { type CSSProperties, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Sparkles, Info } from 'lucide-react'
+import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Sparkles, Info, Boxes } from 'lucide-react'
 import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
-import { newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
+import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
 import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft } from './quoteContainersApi'
 import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponsesApi'
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
 import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
-import { buildBuyLinesFromOption, createQuoteWithBuyRates, createQuoteWithLclBuyRates } from '../rates/quoteFromRate'
+import { buildBuyLinesFromOption, createQuoteWithAirBuyRates, createQuoteWithBuyRates, createQuoteWithLclBuyRates } from '../rates/quoteFromRate'
 import { searchLclRates, type LclRateOption, type LclQuoteLane } from '../rates/lclRateSearchApi'
+import { searchAirRates, type AirRateOption } from '../rates/airRateSearchApi'
 import RateSearchModal from '../rates/RateSearchModal'
 import RateOptionCard from '../rates/RateOptionCard'
 import LclRateOptionCard from '../rates/LclRateOptionCard'
+import AirRateOptionCard from '../rates/AirRateOptionCard'
 import { useEffectiveRates } from '../../hooks/useEffectiveRates'
 import { chargeLegsFor } from '../rates/incotermLegs'
 import { overseasOfficeForPort } from '../rates/offices'
@@ -61,6 +63,7 @@ export default function NewQuoteSearch() {
   const [searching, setSearching] = useState(false)
   const [options, setOptions] = useState<RateOption[]>([])
   const [lclOptions, setLclOptions] = useState<LclRateOption[]>([])
+  const [airOptions, setAirOptions] = useState<AirRateOption[]>([])
   const [lclWm, setLclWm] = useState('')
   const [lclCbm, setLclCbm] = useState('')
   const [airLines, setAirLines] = useState<QuoteCargoLine[]>([newQuoteCargoLine(0)])
@@ -71,7 +74,7 @@ export default function NewQuoteSearch() {
   const creating = busyId !== null
 
   // Any change to the request invalidates a prior search.
-  function invalidate() { setSearched(false); setOptions([]); setLclOptions([]) }
+  function invalidate() { setSearched(false); setOptions([]); setLclOptions([]); setAirOptions([]) }
   function patch(p: Partial<QuoteDraft>) {
     setDraft((d) => ({ ...d, ...p }))
     invalidate()
@@ -106,6 +109,15 @@ export default function NewQuoteSearch() {
     return true
   }, [customer, draft.from_port_code, draft.to_port_code, draft.shipment_type, wmNum])
 
+  const airSummary = useMemo(() => {
+    let gross = 0, cbm = 0, pcs = 0
+    for (const l of airLines) { const c = computeCargoLine(l, 'air'); gross += c.grossTotal; cbm += c.totalCbm; pcs += Number(l.quantity) || 0 }
+    const chargeable = Math.ceil(Math.max(gross, cbm * 167) * 2) / 2
+    return { gross: Math.round(gross * 10) / 10, cbm: Math.round(cbm * 1000) / 1000, chargeable, pcs }
+  }, [airLines])
+  const airLoadsSummary = airSummary.chargeable > 0
+    ? `${airSummary.pcs || '—'} pc${airSummary.pcs === 1 ? '' : 's'} · ${airSummary.gross.toFixed(1)} kg · ${airSummary.chargeable.toFixed(1)} kg chargeable`
+    : 'Add cargo'
 
   // Overseas-office legs whose local charges aren't in the system yet — surfaced as a
   // tip so the quoter can request them from that UBF office. Shown regardless of who
@@ -139,8 +151,18 @@ export default function NewQuoteSearch() {
     setSearching(true)
     try {
       if (isAir) {
-        // No air rate cards yet — funnel to manual pricing via the empty state.
+        let gross = 0, cbm = 0
+        for (const l of airLines) { const c = computeCargoLine(l, 'air'); gross += c.grossTotal; cbm += c.totalCbm }
+        const chargeableKg = Math.ceil(Math.max(gross, cbm * 167) * 2) / 2
         setOptions([]); setLclOptions([])
+        setAirOptions(await searchAirRates({
+          from_port_code: draft.from_port_code ?? null,
+          to_port_code: draft.to_port_code ?? null,
+          currency: null,
+          chargeableKg,
+          grossKg: Math.round(gross * 100) / 100,
+          cbm: Math.round(cbm * 1000) / 1000,
+        }))
       } else if (draft.shipment_type === 'LCL') {
         const lane: LclQuoteLane = {
           from_port_code: draft.from_port_code ?? null,
@@ -162,7 +184,7 @@ export default function NewQuoteSearch() {
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Rate search failed')
-      setOptions([]); setLclOptions([])
+      setOptions([]); setLclOptions([]); setAirOptions([])
     } finally {
       setSearching(false)
     }
@@ -241,6 +263,29 @@ export default function NewQuoteSearch() {
     }
   }
 
+  async function handleCreateAir(o: AirRateOption, selectedKeys?: string[]) {
+    if (!customer || !draft.from_port_code || !draft.to_port_code) return
+    setBusyId(o.cardId)
+    try {
+      const { quoteId } = await createQuoteWithAirBuyRates({
+        customerAccountId: customer.account_id,
+        customerName: customer.name,
+        fromPortCode: draft.from_port_code,
+        toPortCode: draft.to_port_code,
+        incoterm: draft.incoterms ?? null,
+        cargoEntryMode: airMode,
+        cargoLines: airLines,
+        option: o,
+        selectedKeys,
+      })
+      toast.success('Quote created with air buy rates')
+      navigate(`/quotes/${quoteId}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to create quote')
+      setBusyId(null)
+    }
+  }
+
   return (
     <div className="nqs-page">
       <div className="nqs-card">
@@ -302,8 +347,17 @@ export default function NewQuoteSearch() {
               </label>
             </div>
           ) : isAir ? (
-            <button type="button" className="nqs-air-arrow" onClick={() => setLoadsOpen((v) => !v)} aria-label="Toggle cargo & incoterm">
-              <ChevronDown size={18} style={{ transform: loadsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+            <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
+              <Boxes size={16} color="#64748b" />
+              <span>
+                <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
+                <span className="nqs-loads-btn__val">{airLoadsSummary}</span>
+              </span>
+              <span style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                {draft.movement_type && <span style={termChip}>{draft.movement_type === 'import' ? 'Import' : 'Export'}</span>}
+                {draft.incoterms && <span style={termChip}>{draft.incoterms}</span>}
+              </span>
+              <ChevronDown size={15} color="#94a3b8" style={{ transform: loadsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
             </button>
           ) : (
             <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
@@ -335,8 +389,8 @@ export default function NewQuoteSearch() {
           <AirCargoPanel
             incoterm={draft.incoterms ?? ''}
             onIncotermChange={(v) => patch({ incoterms: v || null })}
-            incotermPlace={draft.incoterm_place ?? ''}
-            onIncotermPlaceChange={(v) => patch({ incoterm_place: v || null })}
+            movement={draft.movement_type ?? ''}
+            onMovementChange={(v) => patch({ movement_type: v || null })}
             originAddress={draft.pickup_address ?? ''}
             onOriginAddressChange={(v) => patch({ pickup_address: v || null })}
             deliveryAddress={draft.drop_address ?? ''}
@@ -381,15 +435,19 @@ export default function NewQuoteSearch() {
           <div className="nqs-results">
             {searching ? (
               <div className="nqs-results__empty"><div className="nqs-results__title">Searching your rate cards…</div></div>
-            ) : (isLcl ? lclOptions.length : options.length) > 0 ? (
+            ) : (isAir ? airOptions.length : isLcl ? lclOptions.length : options.length) > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
                 <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                  <span className="text-muted-foreground" style={{ fontSize: 12 }}>{(isLcl ? lclOptions.length : options.length)} rate{(isLcl ? lclOptions.length : options.length) === 1 ? '' : 's'} for {draft.from_port_code} → {draft.to_port_code}</span>
+                  <span className="text-muted-foreground" style={{ fontSize: 12 }}>{(isAir ? airOptions.length : isLcl ? lclOptions.length : options.length)} rate{(isAir ? airOptions.length : isLcl ? lclOptions.length : options.length) === 1 ? '' : 's'} for {draft.from_port_code} → {draft.to_port_code}</span>
                   <button type="button" className="btn btn--inline" style={{ marginTop: 0, background: 'transparent', color: 'var(--color-ink)', border: '1px solid var(--color-line)' }} disabled={creating} onClick={() => handleCreate()}>
                     {busyId === '__plain__' ? 'Creating…' : 'Create without a rate'}
                   </button>
                 </div>
-                {isLcl
+                {isAir
+                  ? airOptions.map((o) => (
+                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} />
+                    ))
+                  : isLcl
                   ? lclOptions.map((o) => (
                       <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} />
                     ))
@@ -418,9 +476,9 @@ export default function NewQuoteSearch() {
             ) : (
               <div className="nqs-results__empty">
                 <div className="nqs-results__icon"><Zap size={20} /></div>
-                <div className="nqs-results__title">{isAir ? 'Air quoting is priced manually' : 'No live rates for this lane'}</div>
+                <div className="nqs-results__title">No live rates for this lane</div>
                 <div className="nqs-results__text">{isAir
-                  ? `No air rate cards yet. Create the quote for ${draft.from_port_code} → ${draft.to_port_code}, then add a priced response manually.`
+                  ? `No active air rate card matches ${draft.from_port_code} → ${draft.to_port_code} for this cargo. Create the quote and add a priced response manually.`
                   : `No active rate card matches ${draft.from_port_code} → ${draft.to_port_code} for this ${isLcl ? 'cargo' : 'equipment'}. Create the quote and add a priced response manually.`}</div>
                 <button type="button" className="nqs-results__create" disabled={creating} onClick={() => handleCreate()}>
                   {busyId === '__plain__' ? 'Creating…' : 'Create quote from this request'}
