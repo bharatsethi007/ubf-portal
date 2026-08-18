@@ -1,12 +1,13 @@
-import { NavLink, Outlet, useLocation } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronDown, ClipboardList, FileText,
-  Menu, Package, Plane, Search, Settings, Ship, TowerControl, User, Users, X,
+  Menu, MessageCircle, Package, Plane, Search, Settings, Ship, TowerControl, User, Users, X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Logo from '../components/Logo'
 import SyncButton from '../components/SyncButton'
+import { needsActionTotal } from '../pages/whatsapp/whatsappInboxApi'
 import { supabase } from '../supabase'
 
 const ORANGE = '#F7941D'
@@ -45,9 +46,11 @@ const ActiveBar = ({ on }: { on: boolean }) => (on ? <span style={orangeBar} /> 
 type Props = { session: Session; staffName: string; search: string; onSearch: (q: string) => void }
 
 export default function AppShell({ session, staffName, search, onSearch }: Props) {
+  const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [bkOpen, setBkOpen] = useState(true)
+  const [waNeedsAction, setWaNeedsAction] = useState(0)
   const menuRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const bkActive = location.pathname.startsWith('/bookings')
@@ -62,6 +65,18 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
   }, [menuOpen])
 
   useEffect(() => { setNavOpen(false) }, [location.pathname])
+
+  useEffect(() => {
+    let cancelled = false
+    const load = () => {
+      void needsActionTotal()
+        .then((n) => { if (!cancelled) setWaNeedsAction(n) })
+        .catch(() => { if (!cancelled) setWaNeedsAction(0) })
+    }
+    load()
+    const id = window.setInterval(load, 60_000)
+    return () => { cancelled = true; window.clearInterval(id) }
+  }, [])
 
   return (
     <div className="shell">
@@ -125,6 +140,18 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
             <input className="input search-input" placeholder="Quick search" value={search} onChange={(e) => onSearch(e.target.value)} aria-label="Quick search" />
           </div>
           <div className="topbar__actions">
+            <button
+              type="button"
+              className="sync-btn wa-topbar-btn"
+              title="WhatsApp inbox"
+              aria-label="WhatsApp inbox"
+              onClick={() => navigate('/whatsapp')}
+            >
+              <MessageCircle size={16} strokeWidth={2} />
+              {waNeedsAction > 0 ? (
+                <span className="wa-topbar-btn__badge">{waNeedsAction > 99 ? '99+' : waNeedsAction}</span>
+              ) : null}
+            </button>
             <SyncButton userEmail={session.user.email ?? ''} />
             <div className="user-menu" ref={menuRef}>
               <button type="button" className="user-btn" aria-expanded={menuOpen} aria-haspopup="true" onClick={() => setMenuOpen((v) => !v)}>

@@ -40,11 +40,15 @@ import FclLocalChargeSheetDetail from './pages/rates/fcl-local/FclLocalChargeShe
 import LclRateCardsList from './pages/rates/lcl/LclRateCardsList'
 import LclRateCardForm from './pages/rates/lcl/LclRateCardForm'
 import LclRateCardDetail from './pages/rates/lcl/LclRateCardDetail'
+import AirRateCardsList from './pages/rates/air/AirRateCardsList'
+import AirRateCardForm from './pages/rates/air/AirRateCardForm'
+import AirRateCardDetail from './pages/rates/air/AirRateCardDetail'
 import ChargeCodesPage from './pages/setup/ChargeCodesPage'
 import CarriersPage from './pages/setup/CarriersPage'
 import PortsPage from './pages/setup/PortsPage'
 import ChargeTemplatesPage from './pages/setup/ChargeTemplatesPage'
 import ExchangeRatesPage from './pages/setup/ExchangeRatesPage'
+import WhatsAppInboxPage from './pages/whatsapp/WhatsAppInboxPage'
 import { Toaster } from './components/ui/sonner'
 
 function StaffDenied() {
@@ -147,6 +151,7 @@ export default function App() {
             <Route path="/new-booking" element={<NewBookingPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
             <Route path="/quotes" element={<StaffRoute><QuotesPage /></StaffRoute>} />
+            <Route path="/whatsapp" element={<StaffRoute><WhatsAppInboxPage /></StaffRoute>} />
             <Route path="/quotes/new" element={<StaffRoute><NewQuoteSearch /></StaffRoute>} />
             <Route path="/quotes/:id/responses/:responseId" element={<StaffRoute><QuoteResponsePage /></StaffRoute>} />
             <Route path="/quotes/:id" element={<StaffRoute><QuoteDetailPage /></StaffRoute>} />
@@ -188,7 +193,9 @@ export default function App() {
             <Route path="/setup/rates/lcl" element={<StaffRoute><LclRateCardsList /></StaffRoute>} />
             <Route path="/setup/rates/lcl/new" element={<StaffRoute><LclRateCardForm /></StaffRoute>} />
             <Route path="/setup/rates/lcl/:id" element={<StaffRoute><LclRateCardDetail /></StaffRoute>} />
-            <Route path="/setup/rates/air" element={<StaffRoute><RateModulePage title="Air Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/air" element={<StaffRoute><AirRateCardsList /></StaffRoute>} />
+            <Route path="/setup/rates/air/new" element={<StaffRoute><AirRateCardForm /></StaffRoute>} />
+            <Route path="/setup/rates/air/:id" element={<StaffRoute><AirRateCardDetail /></StaffRoute>} />
             <Route path="/setup/rates/fcl-local" element={<StaffRoute><FclLocalChargesList /></StaffRoute>} />
             <Route path="/setup/rates/fcl-local/new" element={<StaffRoute><FclLocalChargeSheetForm /></StaffRoute>} />
             <Route path="/setup/rates/fcl-local/:id" element={<StaffRoute><FclLocalChargeSheetDetail /></StaffRoute>} />
