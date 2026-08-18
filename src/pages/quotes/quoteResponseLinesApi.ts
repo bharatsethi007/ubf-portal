@@ -98,14 +98,17 @@ export function computeResponseLine(line: QuoteResponseLine): {
   const exBuy = Number(line.ex_rate_buy) || 1
   const exSell = Number(line.ex_rate_sell) || 1
 
-  const effectiveBuy = minBuy != null && buy < minBuy ? minBuy : buy
-  const effectiveSell = minSell != null && sell < minSell ? minSell : sell
+  // Min is a floor on the LINE TOTAL (in the line's own currency), never a per-unit minimum rate.
+  const lineBuy = qty * buy
+  const lineSell = qty * sell
+  const flooredBuy = minBuy != null && lineBuy < minBuy ? minBuy : lineBuy
+  const flooredSell = minSell != null && lineSell < minSell ? minSell : lineSell
 
   return {
-    effectiveBuy,
-    effectiveSell,
-    totalBuy: round2(qty * effectiveBuy * exBuy),
-    totalSell: round2(qty * effectiveSell * exSell),
+    effectiveBuy: qty > 0 ? flooredBuy / qty : buy,
+    effectiveSell: qty > 0 ? flooredSell / qty : sell,
+    totalBuy: round2(flooredBuy * exBuy),
+    totalSell: round2(flooredSell * exSell),
   }
 }
 

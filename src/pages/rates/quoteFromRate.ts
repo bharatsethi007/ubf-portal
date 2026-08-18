@@ -190,8 +190,9 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
     f.buy_rate = String(o.appliedRatePerKg)
     f.sell_rate = String(o.sellRatePerKg > 0 ? o.sellRatePerKg : o.appliedRatePerKg)
     if (o.minCharge > 0) {
-      f.min_buy = String(o.minCharge)
-      const sellMin = o.appliedRatePerKg > 0 ? Math.round(o.minCharge * o.sellRatePerKg / o.appliedRatePerKg * 100) / 100 : o.minCharge
+      f.min_buy = String(o.minCharge)   // flat MIN — now correctly a floor on the line total
+      const sr = o.sellRatePerKg > 0 ? o.sellRatePerKg : o.appliedRatePerKg
+      const sellMin = o.appliedRatePerKg > 0 ? Math.round(o.minCharge * sr / o.appliedRatePerKg * 100) / 100 : o.minCharge
       f.min_sell = String(sellMin)
     }
     lines.push(f)
