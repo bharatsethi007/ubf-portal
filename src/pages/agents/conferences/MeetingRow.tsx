@@ -77,13 +77,14 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
             <span className={`conf-meeting__badge conf-meeting__badge${badge.variant}`}>
               {badge.label}
             </span>
-            {cardCount > 0 && (
+            {(cardCount > 0 || !!meeting.agent_id) && (
               <Button
                 type="button"
                 variant="ghost"
                 size="icon-sm"
                 aria-label="View contacts"
-                title="Contacts from cards"
+                title="Contacts"
+                className={cardCount > 0 ? 'text-emerald-600 hover:text-emerald-700' : 'text-muted-foreground'}
                 onClick={() => cardsRef.current?.openContacts()}
               >
                 <BookUser className="size-[18px]" />

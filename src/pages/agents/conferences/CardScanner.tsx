@@ -1,6 +1,7 @@
 import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { ScanLine } from 'lucide-react'
 import { toast } from 'sonner'
+import { addAgentContactDedup } from './meetingsApi'
 import {
   addMeetingCard,
   createAgentFromCard,
@@ -17,6 +18,7 @@ type Props = {
   agentId: string | null
   onCardAdded: (card: MeetingCard) => void
   onAgentCreated?: (agentId: string) => void
+  onContactSaved?: () => void
   hideTrigger?: boolean
 }
 
@@ -76,7 +78,7 @@ function ScanReviewFields({ card, onChange }: ReviewProps) {
 }
 
 const CardScanner = forwardRef<CardScannerHandle, Props>(function CardScanner(
-  { meetingId, agentId, onCardAdded, onAgentCreated, hideTrigger }: Props,
+  { meetingId, agentId, onCardAdded, onAgentCreated, onContactSaved, hideTrigger }: Props,
   ref,
 ) {
   const inputRef = useRef<HTMLInputElement>(null)
@@ -140,9 +142,23 @@ const CardScanner = forwardRef<CardScannerHandle, Props>(function CardScanner(
     setBusy(true)
     try {
       const url = await uploadCardImage(meetingId, file)
-      const row = await addMeetingCard(meetingId, resolvedAgentId(), url, edited)
+      const aid = resolvedAgentId()
+      const row = await addMeetingCard(meetingId, aid, url, edited)
+      if (aid && edited.person_name) {
+        try {
+          await addAgentContactDedup(aid, {
+            name: edited.person_name,
+            role: edited.title,
+            email: edited.email,
+            phone: edited.mobile ?? edited.phone,
+          })
+        } catch {
+          /* contact write is non-fatal */
+        }
+      }
       toast.success('Business card saved')
       onCardAdded(row)
+      onContactSaved?.()
       reset()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to save card')

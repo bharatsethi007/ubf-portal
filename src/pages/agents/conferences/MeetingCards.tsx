@@ -1,9 +1,17 @@
-import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { Globe, Mail, Phone, X } from 'lucide-react'
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import { Globe, Mail, Phone, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
 import CardScanner, { type CardScannerHandle } from './CardScanner'
 import { deleteMeetingCard, listMeetingCards, type MeetingCard } from './meetingCardsApi'
+import {
+  addAgentContact,
+  addAgentContactDedup,
+  deleteAgentContact,
+  listAgentContacts,
+  type AgentContact,
+} from './meetingsApi'
 import './meetingCards.css'
 
 export type MeetingCardsHandle = { openScanner: () => void; openContacts: () => void }
@@ -15,6 +23,8 @@ type Props = {
   onCountChange?: (n: number) => void
 }
 
+const EMPTY_FORM = { name: '', role: '', email: '', phone: '' }
+
 const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards(
   { meetingId, agentId, viewMode, onCountChange }: Props,
   ref,
@@ -24,6 +34,10 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
   const isMobile = viewMode === 'mobile'
   const scannerRef = useRef<CardScannerHandle>(null)
   const [showContacts, setShowContacts] = useState(false)
+  const [contacts, setContacts] = useState<AgentContact[]>([])
+  const [adding, setAdding] = useState(false)
+  const [form, setForm] = useState(EMPTY_FORM)
+  const [savingContact, setSavingContact] = useState(false)
 
   useImperativeHandle(
     ref,
@@ -33,6 +47,18 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
     }),
     [],
   )
+
+  const loadContacts = useCallback(async () => {
+    if (!agentId) {
+      setContacts([])
+      return
+    }
+    try {
+      setContacts(await listAgentContacts(agentId))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to load contacts')
+    }
+  }, [agentId])
 
   useEffect(() => {
     let cancelled = false
@@ -53,6 +79,10 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
   }, [meetingId])
 
   useEffect(() => {
+    void loadContacts()
+  }, [loadContacts])
+
+  useEffect(() => {
     onCountChange?.(cards.length)
   }, [cards, onCountChange])
 
@@ -66,6 +96,68 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
       toast.error(e instanceof Error ? e.message : 'Failed to delete card')
     }
   }
+
+  async function handleAddContact() {
+    if (!agentId || !form.name.trim()) return
+    setSavingContact(true)
+    try {
+      await addAgentContact(agentId, {
+        name: form.name.trim(),
+        role: form.role.trim() || null,
+        email: form.email.trim() || null,
+        phone: form.phone.trim() || null,
+      })
+      toast.success('Contact added')
+      setForm(EMPTY_FORM)
+      setAdding(false)
+      await loadContacts()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to add contact')
+    } finally {
+      setSavingContact(false)
+    }
+  }
+
+  async function handleDeleteContact(id: string) {
+    if (!window.confirm('Remove this contact?')) return
+    try {
+      await deleteAgentContact(id)
+      setContacts((prev) => prev.filter((c) => c.id !== id))
+      toast.success('Contact removed')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to remove contact')
+    }
+  }
+
+  async function handleSaveCardContact(c: NonNullable<MeetingCard['extracted']>) {
+    if (!agentId || !c.person_name) return
+    try {
+      const res = await addAgentContactDedup(agentId, {
+        name: c.person_name,
+        role: c.title,
+        email: c.email,
+        phone: c.mobile ?? c.phone,
+      })
+      toast.success(res === 'added' ? 'Contact saved' : 'Already saved')
+      await loadContacts()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to save contact')
+    }
+  }
+
+  const cardContacts = cards
+    .map((c) => c.extracted)
+    .filter((c): c is NonNullable<typeof c> => !!c && !!c.person_name)
+
+  const agentEmails = new Set(
+    contacts.map((c) => c.email?.trim().toLowerCase()).filter(Boolean) as string[],
+  )
+  const agentNames = new Set(contacts.map((c) => c.name.trim().toLowerCase()))
+  const extraCardContacts = cardContacts.filter((c) => {
+    const em = c.email?.trim().toLowerCase()
+    if (em) return !agentEmails.has(em)
+    return !agentNames.has((c.person_name ?? '').trim().toLowerCase())
+  })
 
   return (
     <div className={`conf-cards${isMobile ? ' conf-cards--mobile' : ''}`}>
@@ -99,6 +191,7 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
         meetingId={meetingId}
         agentId={agentId}
         onCardAdded={(c) => setCards((prev) => [...prev, c])}
+        onContactSaved={() => void loadContacts()}
       />
 
       {showContacts && (
@@ -111,7 +204,7 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
             onClick={(e) => e.stopPropagation()}
           >
             <div className="mb-3 flex items-center justify-between">
-              <span className="text-sm font-medium text-foreground">Contacts from cards</span>
+              <span className="text-sm font-medium text-foreground">Contacts</span>
               <button
                 type="button"
                 aria-label="Close"
@@ -121,53 +214,183 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
                 <X size={18} />
               </button>
             </div>
-            {cards.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No cards yet.</p>
-            ) : (
-              <div className="flex flex-col gap-3">
-                {cards.map((card) => {
-                  const c = card.extracted
-                  const phone = c?.mobile ?? c?.phone ?? null
-                  return (
-                    <div key={card.id} className="flex gap-3 rounded-lg border border-border p-3">
-                      <img
-                        src={card.image_url}
-                        alt="Business card"
-                        className="h-16 w-24 shrink-0 cursor-pointer rounded object-cover"
-                        onClick={() =>
-                          window.open(card.image_url, '_blank', 'noopener,noreferrer')
-                        }
-                      />
-                      <div className="min-w-0 flex-1 text-sm">
-                        <div className="font-medium text-foreground">
-                          {c?.person_name ?? '—'}
-                          {c?.title ? `, ${c.title}` : ''}
-                        </div>
-                        {c?.company && <div className="text-muted-foreground">{c.company}</div>}
-                        {c?.email && (
-                          <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                            <Mail size={14} />
-                            <a href={`mailto:${c.email}`} className="truncate hover:text-primary">
-                              {c.email}
-                            </a>
-                          </div>
-                        )}
-                        {phone && (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Phone size={14} />
-                            <span>{phone}</span>
-                          </div>
-                        )}
-                        {c?.website && (
-                          <div className="flex items-center gap-1.5 text-muted-foreground">
-                            <Globe size={14} />
-                            <span className="truncate">{c.website}</span>
-                          </div>
-                        )}
+
+            {agentId ? (
+              <div className="flex flex-col gap-2">
+                {contacts.length === 0 && extraCardContacts.length === 0 && !adding && (
+                  <p className="text-sm text-muted-foreground">No contacts yet.</p>
+                )}
+
+                {contacts.map((ct) => (
+                  <div
+                    key={ct.id}
+                    className="flex items-start justify-between gap-2 rounded-lg border border-border p-3"
+                  >
+                    <div className="min-w-0 text-sm">
+                      <div className="font-medium text-foreground">
+                        {ct.name}
+                        {ct.role ? `, ${ct.role}` : ''}
                       </div>
+                      {ct.email && (
+                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                          <Mail size={14} />
+                          <a href={`mailto:${ct.email}`} className="truncate hover:text-primary">
+                            {ct.email}
+                          </a>
+                        </div>
+                      )}
+                      {ct.phone && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Phone size={14} />
+                          <span>{ct.phone}</span>
+                        </div>
+                      )}
                     </div>
-                  )
-                })}
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon-sm"
+                      aria-label="Remove contact"
+                      className="text-muted-foreground hover:text-destructive"
+                      onClick={() => void handleDeleteContact(ct.id)}
+                    >
+                      <Trash2 className="size-4" />
+                    </Button>
+                  </div>
+                ))}
+
+                {extraCardContacts.map((c, i) => (
+                  <div
+                    key={`card-${i}`}
+                    className="flex items-start justify-between gap-2 rounded-lg border border-dashed border-border p-3"
+                  >
+                    <div className="min-w-0 text-sm">
+                      <div className="font-medium text-foreground">
+                        {c.person_name}
+                        {c.title ? `, ${c.title}` : ''}
+                      </div>
+                      {c.company && <div className="text-muted-foreground">{c.company}</div>}
+                      {c.email && (
+                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                          <Mail size={14} />
+                          <span className="truncate">{c.email}</span>
+                        </div>
+                      )}
+                      {(c.mobile ?? c.phone) && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Phone size={14} />
+                          <span>{c.mobile ?? c.phone}</span>
+                        </div>
+                      )}
+                      <span className="mt-1 inline-block text-[11px] text-muted-foreground">
+                        From scanned card
+                      </span>
+                    </div>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      onClick={() => void handleSaveCardContact(c)}
+                    >
+                      Save
+                    </Button>
+                  </div>
+                ))}
+
+                {adding ? (
+                  <div className="flex flex-col gap-2 rounded-lg border border-border p-3">
+                    <input
+                      className="input"
+                      placeholder="Name"
+                      value={form.name}
+                      onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    />
+                    <input
+                      className="input"
+                      placeholder="Role / title"
+                      value={form.role}
+                      onChange={(e) => setForm({ ...form, role: e.target.value })}
+                    />
+                    <input
+                      className="input"
+                      placeholder="Email"
+                      value={form.email}
+                      onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    />
+                    <input
+                      className="input"
+                      placeholder="Phone"
+                      value={form.phone}
+                      onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                    />
+                    <div className="flex gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        disabled={savingContact || !form.name.trim()}
+                        onClick={() => void handleAddContact()}
+                      >
+                        {savingContact ? 'Saving…' : 'Save'}
+                      </Button>
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => {
+                          setAdding(false)
+                          setForm(EMPTY_FORM)
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </div>
+                ) : (
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    className="self-start"
+                    onClick={() => setAdding(true)}
+                  >
+                    <Plus className="size-4" />
+                    Add contact
+                  </Button>
+                )}
+              </div>
+            ) : (
+              <div className="flex flex-col gap-2">
+                {cardContacts.length > 0 &&
+                  cardContacts.map((c, i) => (
+                    <div key={i} className="rounded-lg border border-border p-3 text-sm">
+                      <div className="font-medium text-foreground">
+                        {c.person_name}
+                        {c.title ? `, ${c.title}` : ''}
+                      </div>
+                      {c.company && <div className="text-muted-foreground">{c.company}</div>}
+                      {c.email && (
+                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                          <Mail size={14} />
+                          <span className="truncate">{c.email}</span>
+                        </div>
+                      )}
+                      {(c.mobile ?? c.phone) && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Phone size={14} />
+                          <span>{c.mobile ?? c.phone}</span>
+                        </div>
+                      )}
+                      {c.website && (
+                        <div className="flex items-center gap-1.5 text-muted-foreground">
+                          <Globe size={14} />
+                          <span className="truncate">{c.website}</span>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                <p className="text-xs text-muted-foreground">
+                  Link an agent to this meeting to save and manage contacts.
+                </p>
               </div>
             )}
           </div>
@@ -175,7 +398,6 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
       )}
     </div>
   )
-}
-)
+})
 
 export default MeetingCards
