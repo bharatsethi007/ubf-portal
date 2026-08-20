@@ -274,3 +274,19 @@ export async function fetchAgentTradeLanes(osAgentCode: string): Promise<AgentTr
     .map(({ _last: _, ...lane }) => lane)
     .sort((a, b) => b.shipments - a.shipments)
 }
+
+export type AgentLite = {
+  id: string
+  name: string
+  erp_account_code: string | null
+  country: string | null
+}
+
+export async function searchAgentsLite(term: string, limit = 8): Promise<AgentLite[]> {
+  const t = term.trim()
+  let q = supabase.from('agents').select('id, name, erp_account_code, country').order('name').limit(limit)
+  if (t) q = q.or(`name.ilike.%${t}%,erp_account_code.ilike.%${t}%`)
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []) as AgentLite[]
+}

@@ -1,0 +1,283 @@
+.conf-picker {
+  position: relative;
+}
+
+.conf-picker__row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conf-picker__input {
+  flex: 1;
+}
+
+.conf-picker__menu {
+  position: absolute;
+  z-index: 20;
+  top: 100%;
+  left: 0;
+  right: 0;
+  margin-top: 4px;
+  background: #fff;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(10, 36, 114, 0.12);
+  max-height: 240px;
+  overflow-y: auto;
+}
+
+.conf-picker__item {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: transparent;
+  text-align: left;
+  cursor: pointer;
+  font-size: 13px;
+}
+
+.conf-picker__item:hover {
+  background: #f8fafc;
+}
+
+.conf-picker__item--manual {
+  border-top: 1px solid #e5e7eb;
+  color: #0a2472;
+  font-weight: 500;
+}
+
+.conf-picker__item-sub {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.conf-picker__badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 4px 8px;
+  border-radius: 999px;
+  background: #eef1fb;
+  color: #0a2472;
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.conf-picker__unlink {
+  border: none;
+  background: transparent;
+  padding: 0;
+  display: inline-flex;
+  cursor: pointer;
+  color: inherit;
+}
+
+.conf-sheet {
+  position: fixed;
+  inset: 0;
+  background: #fff;
+  z-index: 50;
+  overflow: auto;
+  padding: 16px;
+}
+
+.conf-sheet__head {
+  margin-bottom: 16px;
+}
+
+.conf-sheet__head h3 {
+  margin: 0;
+  font-size: 1.1rem;
+}
+
+.conf-editor__body {
+  padding: 0 16px 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.conf-editor-fields {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.conf-editor-fields--time {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.conf-add-contact {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 10px;
+  border: 1px dashed #cbd5e1;
+  border-radius: 8px;
+}
+
+.conf-add-contact__actions {
+  display: flex;
+  gap: 8px;
+  justify-content: flex-end;
+}
+
+.conf-add-contact-btn {
+  align-self: flex-start;
+}
+
+.conf-schedule__head {
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.conf-schedule__head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.conf-schedule__ai-btn {
+  font-size: 13px;
+}
+
+.conf-meeting-list {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding-bottom: 16px;
+}
+
+.conf-meeting {
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 14px;
+  background: #fff;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.conf-meeting--slim {
+  flex-direction: row;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  cursor: pointer;
+  border: none;
+  background: #f8fafc;
+  width: 100%;
+  text-align: left;
+  min-height: 44px;
+}
+
+.conf-meeting--done {
+  opacity: 0.85;
+}
+
+.conf-meeting__main {
+  display: flex;
+  gap: 12px;
+  align-items: flex-start;
+}
+
+.conf-meeting__badge {
+  font-size: 11px;
+  font-weight: 700;
+  padding: 3px 8px;
+  border-radius: 999px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.conf-meeting__badge--live {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.conf-meeting__badge--upcoming {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.conf-meeting__badge--done {
+  background: #f1f5f9;
+  color: #64748b;
+}
+
+.conf-meeting__badge--cancel {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.conf-meeting__badge--noshow {
+  background: #fef3c7;
+  color: #b45309;
+}
+
+.conf-meeting__time {
+  font-weight: 600;
+  font-size: 14px;
+  color: #0a2472;
+  font-variant-numeric: tabular-nums;
+}
+
+.conf-meeting__name {
+  font-size: 14px;
+}
+
+.conf-meeting__contact {
+  font-size: 12px;
+  color: #64748b;
+}
+
+.conf-meeting__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.conf-meeting__action {
+  border: 1px solid #e5e7eb;
+  background: #fff;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  min-height: 32px;
+}
+
+.conf-meeting__action--icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 6px 8px;
+}
+
+@media (max-width: 767px) {
+  .conf-meeting__action {
+    min-height: 44px;
+    padding: 8px 12px;
+  }
+
+  .conf-meeting__action--icon {
+    min-width: 44px;
+  }
+}
+
+.conf-meeting__reason {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
