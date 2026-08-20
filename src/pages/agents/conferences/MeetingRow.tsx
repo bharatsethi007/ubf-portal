@@ -2,7 +2,9 @@ import { useNavigate } from 'react-router-dom'
 import { Pencil, Trash2 } from 'lucide-react'
 import type { ViewMode } from './conferencesApi'
 import { hhmm, isMeetingDone, meetingBadge } from './meetingTime'
+import MeetingCards from './MeetingCards'
 import type { ConferenceMeeting } from './meetingsApi'
+import './meetingCards.css'
 
 type ReasonAction = { id: string; kind: 'cancel' | 'no_show' }
 
@@ -129,6 +131,21 @@ export default function MeetingRow({
           <button type="button" className="conf-meeting__action conf-meeting__action--icon" aria-label="Delete" onClick={onDelete}>
             <Trash2 size={isMobile ? 18 : 16} />
           </button>
+        </div>
+      )}
+
+      {expanded && (
+        <div className="conf-meeting__expanded">
+          {meeting.notes && (
+            <div className="conf-meeting__notes">
+              <span className="conf-meeting__notes-label">Notes</span>
+              <p>{meeting.notes}</p>
+            </div>
+          )}
+          <div className="conf-meeting__cards">
+            <span className="conf-meeting__cards-label">Cards</span>
+            <MeetingCards meetingId={meeting.id} agentId={meeting.agent_id} viewMode={viewMode} />
+          </div>
         </div>
       )}
     </div>
