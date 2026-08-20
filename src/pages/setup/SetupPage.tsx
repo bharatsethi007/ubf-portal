@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeftRight, Coins, Layers, ListOrdered, MapPin, Percent, Ruler, Scale, Ship, Table2 } from 'lucide-react'
+import { ArrowLeftRight, Coins, Layers, ListOrdered, MapPin, Percent, Ruler, Scale, Ship, Smile, Table2 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 type ActiveSection = {
@@ -50,6 +50,12 @@ const ACTIVE: ActiveSection[] = [
     title: 'Charge templates',
     description: 'Reusable sets of quote charge lines (rates refreshed on use)',
     to: '/setup/charge-templates',
+  },
+  {
+    icon: Smile,
+    title: 'Email signature CSAT',
+    description: 'Copy-paste emoji rating links for staff email signatures',
+    to: '/setup/email-signature-csat',
   },
   {
     icon: Coins,

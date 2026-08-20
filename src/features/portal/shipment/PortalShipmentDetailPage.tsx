@@ -11,6 +11,7 @@ import InvoicesTab from './tabs/InvoicesTab'
 import SummaryTab from './tabs/SummaryTab'
 import TaskTab from './tabs/TaskTab'
 import TrackTraceTab from './tabs/TrackTraceTab'
+import ShipmentCsatWidget from '../../../pages/portal/ShipmentCsatWidget'
 
 export default function PortalShipmentDetailPage() {
   const { jobNo } = useParams()
@@ -34,9 +35,13 @@ export default function PortalShipmentDetailPage() {
     )
   }
 
+  const showCsat = Boolean(data.booking?.delivery_date && data.booking?.id)
+
   return (
     <div className="portal-detail-page">
       <ShipmentDetailHeader shipment={data.shipment} />
+
+      {showCsat && <ShipmentCsatWidget bookingId={data.booking!.id} />}
 
       <div className="portal-detail-tabs" role="tablist" aria-label="Shipment sections">
         {DETAIL_TABS.map((t) => (

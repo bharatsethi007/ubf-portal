@@ -92,16 +92,21 @@ export async function fetchCustomerInsights(accountId: string): Promise<Insights
   return data as Insights;
 }
 
+export type ShipmentScopeColumn = 'customer_account_id' | 'os_agent_code'
+
 export async function fetchCustomerShipments(
   accountId: string,
   page: number,
   pageSize: number,
   filters: ShipmentFilters = {},
+  scopeColumn: ShipmentScopeColumn = 'customer_account_id',
 ): Promise<{ rows: ShipmentRow[]; total: number }> {
+  if (!accountId.trim()) return { rows: [], total: 0 }
+
   let q = supabase
     .from('shipments')
     .select(SHIPMENT_COLS, { count: 'exact' })
-    .eq('customer_account_id', accountId);
+    .eq(scopeColumn, accountId);
 
   if (filters.module) q = q.eq('module', filters.module);
   if (filters.mode) q = q.eq('mode', filters.mode);

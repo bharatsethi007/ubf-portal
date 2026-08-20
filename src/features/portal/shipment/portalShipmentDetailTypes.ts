@@ -23,8 +23,14 @@ export type ShipmentTask = {
   sev: 'high' | 'med'
 }
 
+export type PortalBookingLink = {
+  id: string
+  delivery_date: string | null
+}
+
 export type PortalShipmentBundle = {
   shipment: PortalShipmentDetail
+  booking: PortalBookingLink | null
   containers: Container[]
   invoices: Invoice[]
   timeline: TimelineMilestone[]

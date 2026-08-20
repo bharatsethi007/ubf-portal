@@ -13,6 +13,9 @@ import {
 } from './pages/stubs/StubPages'
 import ReportsPage from './pages/reports/ReportsPage'
 import CustomersPage from './pages/CustomersPage'
+import AgentsPage from './pages/agents/AgentsPage'
+import AgentRecordPage from './pages/agents/AgentRecordPage'
+import ReviewQueuePage from './pages/agents/review/ReviewQueuePage'
 import QuotesPage from './pages/quotes/QuotesPage'
 import NewQuoteSearch from './pages/quotes/NewQuoteSearch'
 import QuoteDetailPage from './pages/quotes/QuoteDetailPage'
@@ -26,6 +29,7 @@ import { BookingRecordRoute } from './pages/BookingsRoute'
 import BookingFormPage from './pages/bookings/BookingFormPage'
 import StaffRoute from './components/StaffRoute'
 import SliPage from './features/sli/SliPage'
+import RatePage from './pages/public/RatePage'
 import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
 import SetupPage from './pages/setup/SetupPage'
 import RatesPage from './pages/rates/RatesPage'
@@ -48,6 +52,7 @@ import CarriersPage from './pages/setup/CarriersPage'
 import PortsPage from './pages/setup/PortsPage'
 import ChargeTemplatesPage from './pages/setup/ChargeTemplatesPage'
 import ExchangeRatesPage from './pages/setup/ExchangeRatesPage'
+import EmailSignatureCsat from './pages/setup/EmailSignatureCsat'
 import WhatsAppInboxPage from './pages/whatsapp/WhatsAppInboxPage'
 import { Toaster } from './components/ui/sonner'
 
@@ -136,6 +141,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/sli/:token" element={<SliPage />} />
+        <Route path="/rate" element={<RatePage />} />
 
         {portalRoutes({ session, authReady: ready, isStaff, staffReady })}
 
@@ -183,6 +189,9 @@ export default function App() {
               path="/customers"
               element={<StaffRoute><CustomersPage /></StaffRoute>}
             />
+            <Route path="/agents" element={<StaffRoute><AgentsPage /></StaffRoute>} />
+            <Route path="/agents/review" element={<StaffRoute><ReviewQueuePage /></StaffRoute>} />
+            <Route path="/agents/:id" element={<StaffRoute><AgentRecordPage /></StaffRoute>} />
             <Route path="/schedules" element={<SchedulesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UsersPage />} />
@@ -209,6 +218,7 @@ export default function App() {
             <Route path="/setup/ports" element={<StaffRoute><PortsPage /></StaffRoute>} />
             <Route path="/setup/charge-templates" element={<StaffRoute><ChargeTemplatesPage /></StaffRoute>} />
             <Route path="/setup/exchange-rates" element={<StaffRoute><ExchangeRatesPage /></StaffRoute>} />
+            <Route path="/setup/email-signature-csat" element={<StaffRoute><EmailSignatureCsat /></StaffRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>

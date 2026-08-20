@@ -1,7 +1,7 @@
 import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
-  BarChart3, Building2, Calendar, ChevronDown, ClipboardList, FileText,
+  BarChart3, Building2, Calendar, ChevronDown, ClipboardList, FileText, Handshake,
   Menu, MessageCircle, Package, Plane, Search, Settings, Ship, TowerControl, User, Users, X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
@@ -19,6 +19,7 @@ const NAV = [
 ]
 const NAV2 = [
   { to: '/customers', label: 'Customers', icon: Building2 },
+  { to: '/agents', label: 'Agents', icon: Handshake },
   { to: '/schedules', label: 'Schedules', icon: Calendar },
   { to: '/reports', label: 'Reports', icon: BarChart3 },
   { to: '/users', label: 'Users', icon: Users },

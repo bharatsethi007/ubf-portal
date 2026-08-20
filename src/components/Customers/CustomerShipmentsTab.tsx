@@ -1,13 +1,19 @@
 // CustomerShipmentsTab.tsx
 import React, { useEffect, useState } from 'react';
-import { fetchCustomerShipments, type ShipmentRow, type ShipmentFilters } from './customerProfileApi';
+import { fetchCustomerShipments, type ShipmentFilters, type ShipmentRow, type ShipmentScopeColumn } from './customerProfileApi';
 import { StatusPill, ModeIcon, Lane, fmt } from './profileUi';
 
 const PAGE_SIZE = 25;
 const MODULES = ['FEA', 'FES', 'FIA', 'FIS'];
 const STATUSES = ['Arrived', 'Arrived (est.)', 'In transit', 'Booked', 'Scheduled'];
 
-export function CustomerShipmentsTab({ accountId }: { accountId: string }) {
+export function CustomerShipmentsTab({
+  accountId,
+  scopeColumn = 'customer_account_id',
+}: {
+  accountId: string
+  scopeColumn?: ShipmentScopeColumn
+}) {
   const [filters, setFilters] = useState<ShipmentFilters>({});
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
@@ -26,12 +32,12 @@ export function CustomerShipmentsTab({ accountId }: { accountId: string }) {
   useEffect(() => {
     let alive = true;
     setLoading(true);
-    fetchCustomerShipments(accountId, page, PAGE_SIZE, filters)
+    fetchCustomerShipments(accountId, page, PAGE_SIZE, filters, scopeColumn)
       .then((res) => { if (alive) { setRows(res.rows); setTotal(res.total); } })
       .catch(() => { if (alive) { setRows([]); setTotal(0); } })
       .finally(() => { if (alive) setLoading(false); });
     return () => { alive = false; };
-  }, [accountId, page, filters]);
+  }, [accountId, page, filters, scopeColumn]);
 
   const pages = Math.max(1, Math.ceil(total / PAGE_SIZE));
   const set = (k: keyof ShipmentFilters, v: string) => {

@@ -1,10 +1,12 @@
 import { useState } from 'react'
-import { Ship, TrendingUp, Users } from 'lucide-react'
+import { Handshake, Headset, Ship, TrendingUp, Users } from 'lucide-react'
 import VolumesLanesTab from './VolumesLanesTab'
 import CustomerInsightsTab from './CustomerInsightsTab'
 import SalesAnalyticsTab from './SalesAnalyticsTab'
+import CustomerServiceTab from './cs/CustomerServiceTab'
+import AgentReciprocityTab from './AgentReciprocityTab'
 
-type Tab = 'volumes' | 'customers' | 'sales'
+type Tab = 'volumes' | 'customers' | 'sales' | 'cs' | 'agents'
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>('volumes')
@@ -32,10 +34,24 @@ export default function ReportsPage() {
             Sales analytics
           </span>
         </button>
+        <button className={`quotes-tabs__btn${tab === 'cs' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('cs')}>
+          <span className="inline-flex items-center gap-1.5">
+            <Headset size={16} aria-hidden />
+            Customer Service
+          </span>
+        </button>
+        <button className={`quotes-tabs__btn${tab === 'agents' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('agents')}>
+          <span className="inline-flex items-center gap-1.5">
+            <Handshake size={16} aria-hidden />
+            Agents
+          </span>
+        </button>
       </div>
       {tab === 'volumes' ? <VolumesLanesTab /> : null}
       {tab === 'customers' ? <CustomerInsightsTab /> : null}
       {tab === 'sales' ? <SalesAnalyticsTab /> : null}
+      {tab === 'cs' ? <CustomerServiceTab /> : null}
+      {tab === 'agents' ? <AgentReciprocityTab /> : null}
     </div>
   )
 }

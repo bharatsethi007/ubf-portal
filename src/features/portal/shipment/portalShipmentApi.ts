@@ -3,7 +3,11 @@ import type { Container } from '../../../types/container'
 import type { Invoice } from '../../../types/invoice'
 import { buildShipmentTimeline } from './portalShipmentTimeline'
 import { buildShipmentTasks } from './portalShipmentTasks'
-import type { PortalShipmentBundle, PortalShipmentDetail } from './portalShipmentDetailTypes'
+import type {
+  PortalBookingLink,
+  PortalShipmentBundle,
+  PortalShipmentDetail,
+} from './portalShipmentDetailTypes'
 
 const DETAIL_SELECT = `
   job_unique, module, mode, direction, house_bill, job_no, shipment_no,
@@ -82,6 +86,18 @@ async function fetchContainers(consolKey: string | null, mode: string | null): P
   return rows
 }
 
+async function fetchPortalBooking(jobUnique: number): Promise<PortalBookingLink | null> {
+  const { data, error } = await supabase
+    .from('bookings')
+    .select('id, delivery_date')
+    .eq('shipment_id', jobUnique)
+    .order('updated_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+  if (error || !data) return null
+  return data as PortalBookingLink
+}
+
 async function fetchInvoices(jobUnique: number): Promise<Invoice[]> {
   const { data, error } = await supabase
     .from('invoices')
@@ -96,13 +112,14 @@ export async function loadPortalShipmentBundle(jobNoParam: string): Promise<Port
   const shipment = await fetchPortalShipment(jobNoParam)
   if (!shipment) return null
 
-  const [containers, invoices] = await Promise.all([
+  const [containers, invoices, booking] = await Promise.all([
     fetchContainers(shipment.consol_key, shipment.mode),
     fetchInvoices(shipment.job_unique),
+    fetchPortalBooking(shipment.job_unique),
   ])
 
   const timeline = buildShipmentTimeline(shipment)
   const tasks = buildShipmentTasks(shipment)
 
-  return { shipment, containers, invoices, timeline, tasks }
+  return { shipment, booking, containers, invoices, timeline, tasks }
 }

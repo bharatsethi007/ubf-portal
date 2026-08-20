@@ -1,0 +1,45 @@
+.portal-csat-stars {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+
+.portal-csat-star {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  border: 1px solid var(--portal-line2);
+  border-radius: 11px;
+  background: #fff;
+  color: var(--portal-faint);
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s, color 0.15s;
+}
+
+.portal-csat-star:hover {
+  border-color: var(--portal-blue);
+  color: var(--portal-amber);
+}
+
+.portal-csat-star--on {
+  border-color: var(--portal-blue);
+  background: var(--portal-blue-soft);
+  color: var(--portal-amber);
+}
+
+.portal-csat-edit {
+  border: none;
+  background: none;
+  padding: 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--portal-blue);
+  cursor: pointer;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.portal-csat-edit:hover {
+  color: var(--portal-ink);
+}
