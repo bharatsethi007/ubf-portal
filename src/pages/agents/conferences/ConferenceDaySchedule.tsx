@@ -7,9 +7,10 @@ import type { ViewMode } from './conferencesApi'
 import { dayTabLabel } from './conferenceDays'
 import MeetingEditor from './MeetingEditor'
 import MeetingRow from './MeetingRow'
+import MeetingDetail from './MeetingDetail'
 import AgentBriefPanel from './AgentBriefPanel'
 import ScheduleImportModal from './ScheduleImportModal'
-import { isMeetingDone, sortMeetings } from './meetingTime'
+import { sortMeetings } from './meetingTime'
 import {
   deleteMeeting,
   listDayMeetings,
@@ -41,9 +42,7 @@ export default function ConferenceDaySchedule({
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<EditState>(null)
   const [now, setNow] = useState(() => new Date())
-  const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
-  const [reasonAction, setReasonAction] = useState<{ id: string; kind: 'cancel' | 'no_show' } | null>(null)
-  const [reasonText, setReasonText] = useState('')
+  const [detail, setDetail] = useState<ConferenceMeeting | null>(null)
   const [brief, setBrief] = useState<{ agentId: string; agentName: string } | null>(null)
   const [showImport, setShowImport] = useState(false)
   const [scheduleView, setScheduleView] = useState<'list' | 'calendar'>('list')
@@ -76,47 +75,33 @@ export default function ConferenceDaySchedule({
   const sorted = useMemo(() => sortMeetings(meetings, now), [meetings, now])
   const isMobile = viewMode === 'mobile'
 
-  function toggleExpanded(id: string) {
-    setExpanded((prev) => {
-      const next = new Set(prev)
-      if (next.has(id)) next.delete(id)
-      else next.add(id)
-      return next
-    })
-  }
-
   async function handleDelete(meeting: ConferenceMeeting) {
     if (!window.confirm('Delete this meeting?')) return
     try {
       await deleteMeeting(meeting.id)
       toast.success('Meeting deleted')
+      setDetail(null)
       await load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to delete')
     }
   }
 
-  async function handleComplete(meeting: ConferenceMeeting) {
+  async function statusChange(
+    meeting: ConferenceMeeting,
+    status: 'completed' | 'cancelled' | 'no_show',
+    reason?: string | null,
+  ) {
     try {
-      await setMeetingStatus(meeting.id, 'completed')
-      toast.success('Marked completed')
-      await load()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Failed to update status')
-    }
-  }
-
-  async function confirmReason() {
-    if (!reasonAction) return
-    try {
-      await setMeetingStatus(
-        reasonAction.id,
-        reasonAction.kind === 'cancel' ? 'cancelled' : 'no_show',
-        reasonText.trim() || null,
+      await setMeetingStatus(meeting.id, status, reason ?? null)
+      toast.success(
+        status === 'completed'
+          ? 'Marked completed'
+          : status === 'cancelled'
+            ? 'Meeting cancelled'
+            : 'Marked no-show',
       )
-      toast.success(reasonAction.kind === 'cancel' ? 'Meeting cancelled' : 'Marked no-show')
-      setReasonAction(null)
-      setReasonText('')
+      setDetail(null)
       await load()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to update status')
@@ -238,23 +223,7 @@ export default function ConferenceDaySchedule({
                 meeting={meeting}
                 viewMode={viewMode}
                 now={now}
-                expanded={!isMeetingDone(meeting) || expanded.has(meeting.id)}
-                reasonAction={reasonAction}
-                reasonText={reasonText}
-                onToggle={() => toggleExpanded(meeting.id)}
-                onEdit={() => setEditing(meeting)}
-                onDelete={() => void handleDelete(meeting)}
-                onComplete={() => void handleComplete(meeting)}
-                onStartReason={(kind) => {
-                  setReasonAction({ id: meeting.id, kind })
-                  setReasonText('')
-                }}
-                onReasonText={setReasonText}
-                onConfirmReason={() => void confirmReason()}
-                onCancelReason={() => {
-                  setReasonAction(null)
-                  setReasonText('')
-                }}
+                onOpenDetail={() => setDetail(meeting)}
                 onOpenBrief={(agentId, agentName) => setBrief({ agentId, agentName })}
               />
             ))
@@ -263,6 +232,23 @@ export default function ConferenceDaySchedule({
       )}
 
     </div>
+
+      {detail && (
+        <MeetingDetail
+          meeting={detail}
+          viewMode={viewMode}
+          now={now}
+          onClose={() => setDetail(null)}
+          onEdit={() => {
+            setEditing(detail)
+            setDetail(null)
+          }}
+          onComplete={() => void statusChange(detail, 'completed')}
+          onCancel={(reason) => void statusChange(detail, 'cancelled', reason)}
+          onNoShow={(reason) => void statusChange(detail, 'no_show', reason)}
+          onDelete={() => void handleDelete(detail)}
+        />
+      )}
 
       {brief && (
         <AgentBriefPanel

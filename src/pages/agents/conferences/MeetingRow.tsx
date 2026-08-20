@@ -1,85 +1,60 @@
 import { useNavigate } from 'react-router-dom'
-import { Pencil, Trash2 } from 'lucide-react'
+import { MoreHorizontal } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
-import { hhmm, isMeetingDone, meetingBadge } from './meetingTime'
+import { hhmm, meetingBadge } from './meetingTime'
 import MeetingCards from './MeetingCards'
 import MeetingNotes from './MeetingNotes'
 import type { ConferenceMeeting } from './meetingsApi'
 import './meetingCards.css'
 
-type ReasonAction = { id: string; kind: 'cancel' | 'no_show' }
-
 type Props = {
   meeting: ConferenceMeeting
   viewMode: ViewMode
   now: Date
-  expanded: boolean
-  reasonAction: ReasonAction | null
-  reasonText: string
-  onToggle: () => void
-  onEdit: () => void
-  onDelete: () => void
-  onComplete: () => void
-  onStartReason: (kind: 'cancel' | 'no_show') => void
-  onReasonText: (text: string) => void
-  onConfirmReason: () => void
-  onCancelReason: () => void
+  onOpenDetail: () => void
   onOpenBrief?: (agentId: string, agentName: string) => void
 }
 
-export default function MeetingRow({
-  meeting,
-  viewMode,
-  now,
-  expanded,
-  reasonAction,
-  reasonText,
-  onToggle,
-  onEdit,
-  onDelete,
-  onComplete,
-  onStartReason,
-  onReasonText,
-  onConfirmReason,
-  onCancelReason,
-  onOpenBrief,
-}: Props) {
+const DOT: Record<string, string> = {
+  '--live': 'bg-emerald-500',
+  '--upcoming': 'bg-blue-500',
+  '--done': 'bg-slate-400',
+  '--cancel': 'bg-red-400',
+  '--noshow': 'bg-amber-500',
+}
+
+export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpenBrief }: Props) {
   const navigate = useNavigate()
   const badge = meetingBadge(meeting, now)
-  const done = isMeetingDone(meeting)
-  const slim = done && !expanded
-  const agentLabel =
-    meeting.agent_name ??
-    meeting.manual_agent_name ??
-    '—'
-  const iconSize = viewMode === 'mobile' ? 18 : 16
-
-  if (slim) {
-    return (
-      <button type="button" className="conf-meeting conf-meeting--slim" onClick={onToggle}>
-        <span className={`conf-meeting__badge conf-meeting__badge${badge.variant}`}>{badge.label}</span>
-        <span className="conf-meeting__time">
-          {hhmm(meeting.start_time)}–{hhmm(meeting.end_time)}
-        </span>
-        <span className="conf-meeting__name">{agentLabel}</span>
-      </button>
-    )
-  }
+  const agentLabel = meeting.agent_name ?? meeting.manual_agent_name ?? '—'
+  const dotClass = DOT[badge.variant] ?? 'bg-slate-400'
+  const dimmed = meeting.status === 'cancelled' || meeting.status === 'no_show'
 
   return (
-    <div className={`conf-meeting${done ? ' conf-meeting--done' : ''}`}>
-      <div className="conf-meeting__main">
-        <span className={`conf-meeting__badge conf-meeting__badge${badge.variant}`}>{badge.label}</span>
-        <div className="conf-meeting__details">
-          <div className="conf-meeting__time">
-            {hhmm(meeting.start_time)}–{hhmm(meeting.end_time)}
-          </div>
-          <div className="conf-meeting__name">
+    <div className="flex gap-3">
+      <div className="relative flex w-12 shrink-0 flex-col items-center">
+        <span className="absolute top-1 bottom-0 w-px bg-border" aria-hidden />
+        <span
+          className={`relative z-10 mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-background ${dotClass}`}
+          aria-hidden
+        />
+        <span className="relative z-10 mt-2 text-[11px] font-medium text-muted-foreground">
+          {hhmm(meeting.start_time)}
+        </span>
+      </div>
+
+      <div
+        className={`mb-3 flex-1 rounded-xl border border-border bg-background p-4 shadow-sm ${
+          dimmed ? 'opacity-70' : ''
+        }`}
+      >
+        <div className="flex items-start justify-between gap-2">
+          <div className="min-w-0">
             {meeting.agent_id ? (
               <button
                 type="button"
-                className="text-link"
+                className="max-w-full truncate text-left text-[15px] font-medium text-foreground hover:text-primary"
                 onClick={() => {
                   if (onOpenBrief) onOpenBrief(meeting.agent_id!, agentLabel)
                   else navigate(`/agents/${meeting.agent_id}`)
@@ -88,76 +63,38 @@ export default function MeetingRow({
                 {agentLabel}
               </button>
             ) : (
-              agentLabel
+              <div className="truncate text-[15px] font-medium text-foreground">{agentLabel}</div>
             )}
+            <div className="mt-0.5 text-xs text-muted-foreground">
+              {hhmm(meeting.start_time)}–{hhmm(meeting.end_time)}
+              {meeting.contact_name ? ` · ${meeting.contact_name}` : ''}
+            </div>
           </div>
-          {meeting.contact_name && (
-            <div className="conf-meeting__contact">{meeting.contact_name}</div>
-          )}
+          <div className="flex shrink-0 items-center gap-2">
+            <span className={`conf-meeting__badge conf-meeting__badge${badge.variant}`}>
+              {badge.label}
+            </span>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
+              aria-label="Meeting details"
+              title="Meeting details"
+              onClick={onOpenDetail}
+            >
+              <MoreHorizontal className="size-[18px]" />
+            </Button>
+          </div>
+        </div>
+
+        <div className="mt-3">
+          <MeetingNotes meetingId={meeting.id} initialNotes={meeting.notes} viewMode={viewMode} />
+        </div>
+
+        <div className="mt-3">
+          <MeetingCards meetingId={meeting.id} agentId={meeting.agent_id} viewMode={viewMode} />
         </div>
       </div>
-
-      {reasonAction?.id === meeting.id ? (
-        <div className="conf-meeting__reason">
-          <input
-            className="input input--sm"
-            placeholder="Reason (optional)"
-            value={reasonText}
-            onChange={(e) => onReasonText(e.target.value)}
-          />
-          <Button type="button" size="sm" onClick={onConfirmReason}>
-            Confirm
-          </Button>
-          <Button type="button" size="sm" variant="ghost" onClick={onCancelReason}>
-            Back
-          </Button>
-        </div>
-      ) : (
-        <div className="conf-meeting__actions">
-          {meeting.status === 'upcoming' && (
-            <>
-              <Button type="button" size="sm" onClick={onComplete}>
-                Mark completed
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => onStartReason('cancel')}>
-                Cancel
-              </Button>
-              <Button type="button" size="sm" variant="outline" onClick={() => onStartReason('no_show')}>
-                No-show
-              </Button>
-            </>
-          )}
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="outline"
-            aria-label="Edit"
-            onClick={onEdit}
-          >
-            <Pencil size={iconSize} />
-          </Button>
-          <Button
-            type="button"
-            size="icon-sm"
-            variant="outline"
-            aria-label="Delete"
-            className="text-muted-foreground hover:text-destructive hover:border-destructive/40"
-            onClick={onDelete}
-          >
-            <Trash2 size={iconSize} />
-          </Button>
-        </div>
-      )}
-
-      {expanded && (
-        <div className="conf-meeting__expanded">
-          <MeetingNotes meetingId={meeting.id} initialNotes={meeting.notes} viewMode={viewMode} />
-          <div className="conf-meeting__cards">
-            <span className="conf-meeting__cards-label">Cards</span>
-            <MeetingCards meetingId={meeting.id} agentId={meeting.agent_id} viewMode={viewMode} />
-          </div>
-        </div>
-      )}
     </div>
   )
 }
