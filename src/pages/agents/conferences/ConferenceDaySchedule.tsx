@@ -6,6 +6,7 @@ import { dayTabLabel } from './conferenceDays'
 import MeetingEditor from './MeetingEditor'
 import MeetingRow from './MeetingRow'
 import AgentBriefPanel from './AgentBriefPanel'
+import ScheduleImportModal from './ScheduleImportModal'
 import { isMeetingDone, sortMeetings } from './meetingTime'
 import {
   deleteMeeting,
@@ -21,6 +22,7 @@ type Props = {
   dayIndex: number
   viewMode: ViewMode
   defaultMinutes: number
+  allDays?: string[]
 }
 
 type EditState = ConferenceMeeting | null | 'new'
@@ -31,6 +33,7 @@ export default function ConferenceDaySchedule({
   dayIndex,
   viewMode,
   defaultMinutes,
+  allDays,
 }: Props) {
   const [meetings, setMeetings] = useState<ConferenceMeeting[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,6 +43,9 @@ export default function ConferenceDaySchedule({
   const [reasonAction, setReasonAction] = useState<{ id: string; kind: 'cancel' | 'no_show' } | null>(null)
   const [reasonText, setReasonText] = useState('')
   const [brief, setBrief] = useState<{ agentId: string; agentName: string } | null>(null)
+  const [showImport, setShowImport] = useState(false)
+
+  const conferenceDays = allDays ?? [day]
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -155,7 +161,7 @@ export default function ConferenceDaySchedule({
             <button
               type="button"
               className="btn btn--inline conf-schedule__ai-btn"
-              onClick={() => toast.info('AI schedule import — Step 6')}
+              onClick={() => setShowImport(true)}
             >
               <Sparkles size={14} />
               AI import
@@ -213,6 +219,19 @@ export default function ConferenceDaySchedule({
           agentName={brief.agentName}
           viewMode={viewMode}
           onClose={() => setBrief(null)}
+        />
+      )}
+
+      {showImport && (
+        <ScheduleImportModal
+          conferenceId={conferenceId}
+          days={conferenceDays}
+          defaultMinutes={defaultMinutes}
+          onClose={() => setShowImport(false)}
+          onImported={() => {
+            setShowImport(false)
+            void load()
+          }}
         />
       )}
     </div>

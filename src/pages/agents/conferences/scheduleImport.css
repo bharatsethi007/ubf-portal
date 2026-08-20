@@ -1,0 +1,97 @@
+.conf-conf-dot {
+  display: inline-block;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+}
+
+.conf-conf-dot--green {
+  background: #16a34a;
+}
+
+.conf-conf-dot--amber {
+  background: #d97706;
+}
+
+.conf-conf-dot--red {
+  background: #dc2626;
+}
+
+.sched-review-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.sched-review-table th,
+.sched-review-table td {
+  padding: 6px 8px;
+  border-bottom: 1px solid #eef1f6;
+  text-align: left;
+  vertical-align: middle;
+}
+
+.sched-review-wrap {
+  max-height: 420px;
+  overflow: auto;
+  margin-bottom: 12px;
+}
+
+.sched-linked-chip {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #dcfce7;
+  color: #166534;
+}
+
+.sched-unmatched-chip {
+  font-size: 11px;
+  padding: 1px 6px;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.sched-import-upload__options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.sched-import-upload__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  width: auto;
+  cursor: pointer;
+}
+
+.sched-import-upload__busy {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 16px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.sched-import-spin {
+  animation: sched-import-spin 1s linear infinite;
+}
+
+@keyframes sched-import-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.sched-import-review__actions {
+  justify-content: flex-end;
+  align-items: center;
+}
+
+.sched-import-modal .agent-modal__actions {
+  margin-top: 12px;
+}

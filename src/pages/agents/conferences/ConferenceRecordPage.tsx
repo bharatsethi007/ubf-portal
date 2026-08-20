@@ -239,6 +239,7 @@ export default function ConferenceRecordPage() {
           dayIndex={activeDayIndex >= 0 ? activeDayIndex : 0}
           viewMode={viewMode}
           defaultMinutes={conference.default_meeting_minutes}
+          allDays={days}
         />
 
         <ConferencePhotos
