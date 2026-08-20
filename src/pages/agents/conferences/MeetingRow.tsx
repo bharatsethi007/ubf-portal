@@ -1,5 +1,6 @@
 import { useNavigate } from 'react-router-dom'
 import { Pencil, Trash2 } from 'lucide-react'
+import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
 import { hhmm, isMeetingDone, meetingBadge } from './meetingTime'
 import MeetingCards from './MeetingCards'
@@ -52,7 +53,7 @@ export default function MeetingRow({
     meeting.agent_name ??
     meeting.manual_agent_name ??
     '—'
-  const isMobile = viewMode === 'mobile'
+  const iconSize = viewMode === 'mobile' ? 18 : 16
 
   if (slim) {
     return (
@@ -104,34 +105,47 @@ export default function MeetingRow({
             value={reasonText}
             onChange={(e) => onReasonText(e.target.value)}
           />
-          <button type="button" className="conf-meeting__action" onClick={onConfirmReason}>
+          <Button type="button" size="sm" onClick={onConfirmReason}>
             Confirm
-          </button>
-          <button type="button" className="conf-meeting__action" onClick={onCancelReason}>
+          </Button>
+          <Button type="button" size="sm" variant="ghost" onClick={onCancelReason}>
             Back
-          </button>
+          </Button>
         </div>
       ) : (
         <div className="conf-meeting__actions">
           {meeting.status === 'upcoming' && (
             <>
-              <button type="button" className="conf-meeting__action" onClick={onComplete}>
+              <Button type="button" size="sm" onClick={onComplete}>
                 Mark completed
-              </button>
-              <button type="button" className="conf-meeting__action" onClick={() => onStartReason('cancel')}>
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => onStartReason('cancel')}>
                 Cancel
-              </button>
-              <button type="button" className="conf-meeting__action" onClick={() => onStartReason('no_show')}>
+              </Button>
+              <Button type="button" size="sm" variant="outline" onClick={() => onStartReason('no_show')}>
                 No-show
-              </button>
+              </Button>
             </>
           )}
-          <button type="button" className="conf-meeting__action conf-meeting__action--icon" aria-label="Edit" onClick={onEdit}>
-            <Pencil size={isMobile ? 18 : 16} />
-          </button>
-          <button type="button" className="conf-meeting__action conf-meeting__action--icon" aria-label="Delete" onClick={onDelete}>
-            <Trash2 size={isMobile ? 18 : 16} />
-          </button>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="outline"
+            aria-label="Edit"
+            onClick={onEdit}
+          >
+            <Pencil size={iconSize} />
+          </Button>
+          <Button
+            type="button"
+            size="icon-sm"
+            variant="outline"
+            aria-label="Delete"
+            className="text-muted-foreground hover:text-destructive hover:border-destructive/40"
+            onClick={onDelete}
+          >
+            <Trash2 size={iconSize} />
+          </Button>
         </div>
       )}
 

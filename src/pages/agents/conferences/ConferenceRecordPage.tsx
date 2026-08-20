@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 import { MapPin, Monitor, Settings, Smartphone } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import { formatConferenceDateRange } from './conferenceDates'
 import { conferenceDays, dayTabLabel, defaultActiveDay } from './conferenceDays'
 import ConferenceDaySchedule from './ConferenceDaySchedule'
@@ -27,23 +29,43 @@ function ViewModeToggle({
   viewMode: ViewMode
   onChange: (mode: ViewMode) => void
 }) {
+  const seg =
+    'inline-flex h-8 w-9 items-center justify-center rounded-md transition-colors'
   return (
-    <div className="conf-viewseg" role="group" aria-label="View mode">
+    <div
+      className="inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted p-0.5"
+      role="group"
+      aria-label="View mode"
+    >
       <button
         type="button"
-        className={`conf-viewseg__btn${viewMode === 'desktop' ? ' conf-viewseg__btn--on' : ''}`}
+        className={cn(
+          seg,
+          viewMode === 'desktop'
+            ? 'bg-background text-primary shadow-sm'
+            : 'text-muted-foreground hover:text-foreground',
+        )}
         onClick={() => onChange('desktop')}
+        aria-pressed={viewMode === 'desktop'}
+        aria-label="Desktop view"
+        title="Desktop view"
       >
-        <Monitor size={14} />
-        Desktop
+        <Monitor size={18} />
       </button>
       <button
         type="button"
-        className={`conf-viewseg__btn${viewMode === 'mobile' ? ' conf-viewseg__btn--on' : ''}`}
+        className={cn(
+          seg,
+          viewMode === 'mobile'
+            ? 'bg-background text-primary shadow-sm'
+            : 'text-muted-foreground hover:text-foreground',
+        )}
         onClick={() => onChange('mobile')}
+        aria-pressed={viewMode === 'mobile'}
+        aria-label="Mobile view"
+        title="Mobile view"
       >
-        <Smartphone size={14} />
-        Mobile
+        <Smartphone size={18} />
       </button>
     </div>
   )
@@ -156,7 +178,7 @@ export default function ConferenceRecordPage() {
   const isMobile = viewMode === 'mobile'
 
   return (
-    <div className="detail-page">
+    <div className="detail-page" style={{ maxWidth: 'none', width: '100%' }}>
       <header className="cp-header">
         <button type="button" className="detail-back" onClick={goBack}>
           ← Conferences
@@ -194,14 +216,18 @@ export default function ConferenceRecordPage() {
           </div>
           <div className="conf-record-head-actions">
             {!isMobile && (
-              <button
+              <Button
                 type="button"
-                className="btn btn--inline"
+                variant="outline"
+                size="icon"
+                aria-pressed={showSettings}
+                aria-label="Conference settings"
+                title="Conference settings"
+                className={cn(showSettings && 'bg-accent text-accent-foreground')}
                 onClick={() => setShowSettings((v) => !v)}
               >
-                <Settings size={16} />
-                Settings
-              </button>
+                <Settings className="size-[18px]" />
+              </Button>
             )}
             <ViewModeToggle viewMode={viewMode} onChange={setMode} />
           </div>

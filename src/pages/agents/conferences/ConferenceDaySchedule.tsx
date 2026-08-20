@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { Plus, Sparkles } from 'lucide-react'
+import { CalendarDays, List, Plus, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import type { ViewMode } from './conferencesApi'
 import { dayTabLabel } from './conferenceDays'
 import MeetingEditor from './MeetingEditor'
@@ -44,6 +46,7 @@ export default function ConferenceDaySchedule({
   const [reasonText, setReasonText] = useState('')
   const [brief, setBrief] = useState<{ agentId: string; agentName: string } | null>(null)
   const [showImport, setShowImport] = useState(false)
+  const [scheduleView, setScheduleView] = useState<'list' | 'calendar'>('list')
 
   const conferenceDays = allDays ?? [day]
 
@@ -152,20 +155,60 @@ export default function ConferenceDaySchedule({
     )
   }
 
+  const swBtn =
+    'inline-flex items-center gap-1.5 rounded-md px-3 h-8 text-[13px] font-medium transition-colors'
+
   return (
+    <>
+    <div
+      className="mb-3 ml-0.5 inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted p-0.5"
+      role="group"
+      aria-label="Schedule view"
+    >
+      <button
+        type="button"
+        className={cn(
+          swBtn,
+          scheduleView === 'list'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground',
+        )}
+        onClick={() => setScheduleView('list')}
+        aria-pressed={scheduleView === 'list'}
+      >
+        <List size={16} />
+        List
+      </button>
+      <button
+        type="button"
+        className={cn(
+          swBtn,
+          scheduleView === 'calendar'
+            ? 'bg-background text-foreground shadow-sm'
+            : 'text-muted-foreground hover:text-foreground',
+        )}
+        onClick={() => setScheduleView('calendar')}
+        aria-pressed={scheduleView === 'calendar'}
+      >
+        <CalendarDays size={16} />
+        Calendar
+      </button>
+    </div>
     <div className="cp-card conf-schedule">
       <div className="cp-card-head conf-schedule__head">
         <h3 className="cp-card-title">Schedule — {dayTabLabel(day, dayIndex)}</h3>
         <div className="conf-schedule__head-actions">
           {!isMobile && (
-            <button
+            <Button
               type="button"
-              className="btn btn--inline conf-schedule__ai-btn"
+              variant="outline"
+              size="icon"
               onClick={() => setShowImport(true)}
+              aria-label="AI import schedule"
+              title="AI import schedule"
             >
-              <Sparkles size={14} />
-              AI import
-            </button>
+              <Sparkles className="size-[18px]" />
+            </Button>
           )}
           <button type="button" className="btn btn--inline quotes-page__new-btn" onClick={() => setEditing('new')}>
             <Plus size={16} />
@@ -176,7 +219,13 @@ export default function ConferenceDaySchedule({
 
       {editing !== null && editor}
 
-      {(!isMobile || editing === null) && (
+      {(!isMobile || editing === null) && scheduleView === 'calendar' && (
+        <div className="grid min-h-[220px] place-items-center rounded-xl border border-dashed border-border bg-muted/30 text-sm text-muted-foreground mx-0.5 my-1">
+          Calendar view — coming next
+        </div>
+      )}
+
+      {(!isMobile || editing === null) && scheduleView === 'list' && (
         <div className="conf-meeting-list pad-inline">
           {loading ? (
             <p className="text-muted-foreground">Loading meetings…</p>
@@ -213,6 +262,8 @@ export default function ConferenceDaySchedule({
         </div>
       )}
 
+    </div>
+
       {brief && (
         <AgentBriefPanel
           agentId={brief.agentId}
@@ -234,6 +285,6 @@ export default function ConferenceDaySchedule({
           }}
         />
       )}
-    </div>
+    </>
   )
 }

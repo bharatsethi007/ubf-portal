@@ -1,0 +1,54 @@
+---
+description: UBF portal design system. Buttons, tokens, layout, and Freshworks-pastel aesthetic. Applies to all UI work.
+globs: src/**/*.{tsx,css}
+alwaysApply: true
+---
+
+# UBF Portal — Design System
+
+Aesthetic: **Freshworks-inspired**. White surfaces, soft pastel accents, generous
+spacing, calm hierarchy, smooth micro-interactions. Clean and quiet — never boxy or dense.
+
+## Buttons — non-negotiable
+- NEVER hand-roll an action/CTA with a raw `<button className="…">` + local CSS.
+  Always: `import { Button } from "@/components/ui/button"`.
+- A raw `<button>` is acceptable ONLY for a full clickable row/card toggle, never for an action button.
+- Variant = emphasis, not colour-picking:
+  - Primary action on the surface → `<Button>` (default). One primary per group, max.
+  - Secondary action → `variant="outline"`.
+  - Low-emphasis / repeated action → `variant="ghost"`.
+  - Destructive confirm → `variant="destructive"`.
+  - Inline text action → `variant="link"`.
+- Icon-only → `size="icon-sm"` (or `icon`) + `variant="ghost"` + an `aria-label`. Icons `lucide-react`, 16px.
+- Sizes: dense rows/toolbars → `size="sm"`; default forms → default; page CTA → default or `lg`.
+  Don't mix sizes inside one button group.
+- Buttons are pill-shaped by design — do not override `rounded-*`.
+
+## Tokens — use variables, never raw hex
+- Surfaces: page `--color-canvas` (#F4F5F7), cards/panels `--color-surface` (#fff).
+- Text: `--color-ink` (primary), `--color-muted` (secondary), `--color-faint` (hints).
+- Borders: `--color-line`. Radius: `--radius`. Shadow: `--shadow`.
+- Brand: `--primary` (#3B5BFE) for primary actions; `--color-accent` / `--color-accent-soft` for accent surfaces.
+- Status (badges/dots): booked `--booked`, scheduled `--scheduled`, transit `--transit`, arrived `--arrived`.
+- Never inline a new hex in a component. If a token is missing, add it to `:root` in `src/index.css`.
+
+## Badges & status
+- Soft pastel: tinted background (~10% of the status colour) + full-strength text.
+- Use `@/components/ui/badge`; don't build pill spans by hand.
+
+## Layout & spacing
+- Cards: white surface, 1px `--color-line` border, subtle `--shadow`, `--radius`, ~16–20px padding.
+- Group related controls; 8–12px gaps within a row, generous whitespace between sections.
+- One clear hierarchy per screen: the primary action stands out, everything else recedes.
+
+## Icons & type
+- Icons: `lucide-react` (what the codebase actually uses in .tsx). Consistent stroke, 16px in buttons/rows.
+- Type: General Sans (already global). Headings 500 weight, tight tracking. Don't set font-family in components.
+
+## Motion
+- Prefer the transitions already on the components. Add motion via Tailwind / `tw-animate-css`,
+  150–200ms, ease-out. No abrupt state flips.
+
+## Editing a screen that has hand-rolled buttons
+Migrate them to `<Button>` as you touch the file. Keep existing layout wrapper classes;
+only swap the button element and drop the bespoke button CSS rule it depended on.
