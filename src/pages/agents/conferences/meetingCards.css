@@ -21,13 +21,28 @@
   color: #334155;
 }
 
-.conf-meeting__notes p {
-  margin: 0;
-  white-space: pre-wrap;
-}
-
 .conf-meeting__cards {
   margin-top: 12px;
+}
+
+.conf-notes__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+
+.conf-notes__status {
+  font-size: 11px;
+  color: #9ca3af;
+}
+
+.conf-notes__area {
+  width: 100%;
+  resize: vertical;
+  font-family: inherit;
+  font-size: 13px;
+  line-height: 1.5;
 }
 
 .conf-cards {

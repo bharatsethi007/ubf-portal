@@ -3,6 +3,7 @@ import { Pencil, Trash2 } from 'lucide-react'
 import type { ViewMode } from './conferencesApi'
 import { hhmm, isMeetingDone, meetingBadge } from './meetingTime'
 import MeetingCards from './MeetingCards'
+import MeetingNotes from './MeetingNotes'
 import type { ConferenceMeeting } from './meetingsApi'
 import './meetingCards.css'
 
@@ -136,12 +137,7 @@ export default function MeetingRow({
 
       {expanded && (
         <div className="conf-meeting__expanded">
-          {meeting.notes && (
-            <div className="conf-meeting__notes">
-              <span className="conf-meeting__notes-label">Notes</span>
-              <p>{meeting.notes}</p>
-            </div>
-          )}
+          <MeetingNotes meetingId={meeting.id} initialNotes={meeting.notes} viewMode={viewMode} />
           <div className="conf-meeting__cards">
             <span className="conf-meeting__cards-label">Cards</span>
             <MeetingCards meetingId={meeting.id} agentId={meeting.agent_id} viewMode={viewMode} />
