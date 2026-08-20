@@ -14,6 +14,7 @@ import {
 import ReportsPage from './pages/reports/ReportsPage'
 import CustomersPage from './pages/CustomersPage'
 import AgentsArea from './pages/agents/AgentsArea'
+import ConferenceRecordPage from './pages/agents/conferences/ConferenceRecordPage'
 import AgentRecordPage from './pages/agents/AgentRecordPage'
 import ReviewQueuePage from './pages/agents/review/ReviewQueuePage'
 import QuotesPage from './pages/quotes/QuotesPage'
@@ -193,11 +194,7 @@ export default function App() {
             <Route path="/agents/review" element={<StaffRoute><ReviewQueuePage /></StaffRoute>} />
             <Route
               path="/agents/conferences/:id"
-              element={
-                <StaffRoute>
-                  <div style={{ padding: 24 }}>Conference record — coming in Step 3</div>
-                </StaffRoute>
-              }
+              element={<StaffRoute><ConferenceRecordPage /></StaffRoute>}
             />
             <Route path="/agents/:id" element={<StaffRoute><AgentRecordPage /></StaffRoute>} />
             <Route path="/schedules" element={<SchedulesPage />} />

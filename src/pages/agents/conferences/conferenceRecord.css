@@ -1,0 +1,195 @@
+.conf-viewseg {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+
+.conf-viewseg__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 12px;
+  border: none;
+  background: #fff;
+  color: #374151;
+  font-size: 13px;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.conf-viewseg__btn--on {
+  background: #0a2472;
+  color: #fff;
+}
+
+.conf-stats {
+  display: flex;
+  gap: 12px;
+  margin: 16px 0;
+}
+
+.conf-stat {
+  flex: 1;
+  border: 1px solid #e5e7eb;
+  border-radius: 10px;
+  padding: 12px 16px;
+  background: #fff;
+}
+
+.conf-stat__num {
+  font-size: 22px;
+  font-weight: 700;
+  color: #0a2472;
+}
+
+.conf-stat__label {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.conf-stats--compact {
+  font-size: 13px;
+  color: #374151;
+  background: #f8fafc;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin: 12px 0;
+}
+
+.conf-daytabs-scroll {
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.conf-header-band {
+  position: relative;
+  border-radius: 12px;
+  overflow: hidden;
+  display: flex;
+  align-items: flex-end;
+  color: #fff;
+  padding: 16px;
+  height: 140px;
+  margin-top: 12px;
+  background: #0a2472;
+}
+
+.conf-header-band--mobile {
+  height: 96px;
+}
+
+.conf-header-band__img {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.conf-header-band__overlay {
+  position: relative;
+  z-index: 1;
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.conf-record-title-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.conf-record-meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 6px;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.conf-record-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.conf-photos-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+  padding-bottom: 16px;
+}
+
+.conf-photos-grid--mobile {
+  grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+}
+
+.conf-photo-item {
+  position: relative;
+  aspect-ratio: 1;
+  border-radius: 8px;
+  overflow: hidden;
+  background: #f1f5f9;
+}
+
+.conf-photo-item img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.conf-photo-item__delete {
+  position: absolute;
+  top: 4px;
+  right: 4px;
+  border: none;
+  border-radius: 999px;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(15, 23, 42, 0.72);
+  color: #fff;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.conf-photo-item:hover .conf-photo-item__delete {
+  opacity: 1;
+}
+
+.conf-settings-panel__body {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 0 16px 16px;
+}
+
+.conf-settings-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+}
+
+.conf-settings-field > span {
+  font-weight: 600;
+  color: #334155;
+}
+
+.conf-record-head-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+}
