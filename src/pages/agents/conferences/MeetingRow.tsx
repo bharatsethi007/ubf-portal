@@ -1,6 +1,6 @@
-import { useRef } from 'react'
+import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal, ScanLine } from 'lucide-react'
+import { BookUser, MoreHorizontal, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
 import { hhmm, meetingBadge } from './meetingTime'
@@ -28,6 +28,7 @@ const DOT: Record<string, string> = {
 export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpenBrief }: Props) {
   const navigate = useNavigate()
   const cardsRef = useRef<MeetingCardsHandle>(null)
+  const [cardCount, setCardCount] = useState(0)
   const badge = meetingBadge(meeting, now)
   const agentLabel = meeting.agent_name ?? meeting.manual_agent_name ?? '—'
   const dotClass = DOT[badge.variant] ?? 'bg-slate-400'
@@ -76,6 +77,18 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
             <span className={`conf-meeting__badge conf-meeting__badge${badge.variant}`}>
               {badge.label}
             </span>
+            {cardCount > 0 && (
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="View contacts"
+                title="Contacts from cards"
+                onClick={() => cardsRef.current?.openContacts()}
+              >
+                <BookUser className="size-[18px]" />
+              </Button>
+            )}
             <Button
               type="button"
               variant="ghost"
@@ -114,6 +127,7 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
             meetingId={meeting.id}
             agentId={meeting.agent_id}
             viewMode={viewMode}
+            onCountChange={setCardCount}
           />
         </div>
       </div>

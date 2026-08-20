@@ -123,7 +123,7 @@ export default function MeetingNotes({ meetingId, initialNotes, viewMode, onSave
           onClick={() => void closeEditor()}
         >
           <div
-            className="flex h-[70vh] w-[70vw] max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl"
+            className="flex h-[80vh] w-[80vw] max-w-[1000px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
