@@ -1,3 +1,14 @@
+/* ---- Agents area tabs ---- */
+.agents-area__tabbar-wrap {
+  padding: 16px 24px 0;
+  max-width: 100%;
+}
+
+.agents-page > .agents-area__tabbar-wrap {
+  padding-left: 0;
+  padding-right: 0;
+}
+
 /* ---- Agents list ---- */
 .agent-networks-cell {
   display: inline-flex;

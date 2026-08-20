@@ -1,0 +1,82 @@
+.conference-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 16px;
+  margin-top: 16px;
+}
+
+.conference-card {
+  border: 1px solid var(--border, #e5e7eb);
+  border-radius: 12px;
+  overflow: hidden;
+  cursor: pointer;
+  background: #fff;
+  transition: box-shadow 0.15s ease, transform 0.15s ease;
+  display: flex;
+  flex-direction: column;
+}
+
+.conference-card:hover {
+  box-shadow: 0 6px 20px rgba(10, 36, 114, 0.1);
+  transform: translateY(-2px);
+}
+
+.conference-card__banner {
+  height: 96px;
+  background: #0a2472;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+.conference-card__banner img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.conference-card__body {
+  padding: 12px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.conference-card__name {
+  font-weight: 600;
+  color: #0a2472;
+}
+
+.conference-card__chip {
+  align-self: flex-start;
+  font-size: 12px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #eef1fb;
+  color: #0a2472;
+}
+
+.conference-card__meta {
+  font-size: 12px;
+  color: #6b7280;
+}
+
+.conferences-hub__head {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 12px;
+}
+
+.conferences-hub__tabs {
+  margin-bottom: 4px;
+}
+
+.conferences-hub__tab-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
