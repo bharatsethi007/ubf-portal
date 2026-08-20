@@ -1,11 +1,10 @@
 import { useState, type ChangeEvent } from 'react'
 import * as XLSX from 'xlsx'
-import { FileSpreadsheet, ImageIcon, Loader2, X } from 'lucide-react'
+import { FileSpreadsheet, Loader2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import ScheduleImportReviewTable from './ScheduleImportReviewTable'
 import {
   commitParsedMeetings,
-  parseScheduleImage,
   parseScheduleSheet,
   toReviewRows,
   type ReviewMeetingRow,
@@ -27,19 +26,6 @@ async function readExcelSheet(file: File): Promise<string[][]> {
   const wb = XLSX.read(buf, { type: 'array' })
   const ws = wb.Sheets[wb.SheetNames[0]]
   return XLSX.utils.sheet_to_json<string[]>(ws, { header: 1, raw: false, defval: '' })
-}
-
-async function readImageBase64(file: File): Promise<{ media_type: string; data_base64: string }> {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const result = reader.result as string
-      const base64 = result.split(',')[1] ?? ''
-      resolve({ media_type: file.type || 'image/jpeg', data_base64: base64 })
-    }
-    reader.onerror = () => reject(new Error('Could not read image'))
-    reader.readAsDataURL(file)
-  })
 }
 
 export default function ScheduleImportModal({
@@ -67,27 +53,6 @@ export default function ScheduleImportModal({
       const parsed = await parseScheduleSheet(conferenceId, days, defaultMinutes, sheet)
       if (!parsed.length) {
         toast.error('No meetings found in the sheet')
-        return
-      }
-      setRows(toReviewRows(parsed))
-      setStep('review')
-    } catch (err) {
-      toast.error(err instanceof Error ? err.message : 'Failed to parse schedule')
-    } finally {
-      setParsing(false)
-    }
-  }
-
-  async function handleImage(e: ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0]
-    e.target.value = ''
-    if (!file) return
-    setParsing(true)
-    try {
-      const image = await readImageBase64(file)
-      const parsed = await parseScheduleImage(conferenceId, days, defaultMinutes, image)
-      if (!parsed.length) {
-        toast.error('No meetings found in the image')
         return
       }
       setRows(toReviewRows(parsed))
@@ -142,11 +107,6 @@ export default function ScheduleImportModal({
                 <FileSpreadsheet size={16} />
                 Excel / CSV
                 <input type="file" accept=".xlsx,.xls,.csv" hidden disabled={busy} onChange={(e) => void handleExcel(e)} />
-              </label>
-              <label className="btn btn--inline sched-import-upload__btn">
-                <ImageIcon size={16} />
-                Photo
-                <input type="file" accept="image/*" hidden disabled={busy} onChange={(e) => void handleImage(e)} />
               </label>
             </div>
             {parsing && (

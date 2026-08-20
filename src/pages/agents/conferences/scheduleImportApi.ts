@@ -32,20 +32,6 @@ export async function parseScheduleSheet(
   return (data?.meetings ?? []) as ParsedMeeting[]
 }
 
-export async function parseScheduleImage(
-  conferenceId: string,
-  days: string[],
-  defaultMinutes: number,
-  image: { media_type: string; data_base64: string },
-): Promise<ParsedMeeting[]> {
-  const { data, error } = await supabase.functions.invoke('conference-schedule-parse', {
-    body: { conference_id: conferenceId, days, default_minutes: defaultMinutes, image },
-  })
-  if (error) throw error
-  if (data?.error) throw new Error(data.error)
-  return (data?.meetings ?? []) as ParsedMeeting[]
-}
-
 export function toReviewRows(meetings: ParsedMeeting[]): ReviewMeetingRow[] {
   return meetings.map((m, i) => ({
     ...m,
