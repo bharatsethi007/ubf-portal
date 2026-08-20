@@ -5,6 +5,7 @@ import type { ViewMode } from './conferencesApi'
 import { dayTabLabel } from './conferenceDays'
 import MeetingEditor from './MeetingEditor'
 import MeetingRow from './MeetingRow'
+import AgentBriefPanel from './AgentBriefPanel'
 import { isMeetingDone, sortMeetings } from './meetingTime'
 import {
   deleteMeeting,
@@ -38,6 +39,7 @@ export default function ConferenceDaySchedule({
   const [expanded, setExpanded] = useState<Set<string>>(() => new Set())
   const [reasonAction, setReasonAction] = useState<{ id: string; kind: 'cancel' | 'no_show' } | null>(null)
   const [reasonText, setReasonText] = useState('')
+  const [brief, setBrief] = useState<{ agentId: string; agentName: string } | null>(null)
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -129,7 +131,19 @@ export default function ConferenceDaySchedule({
   )
 
   if (isMobile && editing !== null) {
-    return editor
+    return (
+      <>
+        {editor}
+        {brief && (
+          <AgentBriefPanel
+            agentId={brief.agentId}
+            agentName={brief.agentName}
+            viewMode={viewMode}
+            onClose={() => setBrief(null)}
+          />
+        )}
+      </>
+    )
   }
 
   return (
@@ -186,10 +200,20 @@ export default function ConferenceDaySchedule({
                   setReasonAction(null)
                   setReasonText('')
                 }}
+                onOpenBrief={(agentId, agentName) => setBrief({ agentId, agentName })}
               />
             ))
           )}
         </div>
+      )}
+
+      {brief && (
+        <AgentBriefPanel
+          agentId={brief.agentId}
+          agentName={brief.agentName}
+          viewMode={viewMode}
+          onClose={() => setBrief(null)}
+        />
       )}
     </div>
   )

@@ -21,6 +21,7 @@ type Props = {
   onReasonText: (text: string) => void
   onConfirmReason: () => void
   onCancelReason: () => void
+  onOpenBrief?: (agentId: string, agentName: string) => void
 }
 
 export default function MeetingRow({
@@ -38,6 +39,7 @@ export default function MeetingRow({
   onReasonText,
   onConfirmReason,
   onCancelReason,
+  onOpenBrief,
 }: Props) {
   const navigate = useNavigate()
   const badge = meetingBadge(meeting, now)
@@ -71,7 +73,14 @@ export default function MeetingRow({
           </div>
           <div className="conf-meeting__name">
             {meeting.agent_id ? (
-              <button type="button" className="text-link" onClick={() => navigate(`/agents/${meeting.agent_id}`)}>
+              <button
+                type="button"
+                className="text-link"
+                onClick={() => {
+                  if (onOpenBrief) onOpenBrief(meeting.agent_id!, agentLabel)
+                  else navigate(`/agents/${meeting.agent_id}`)
+                }}
+              >
                 {agentLabel}
               </button>
             ) : (
