@@ -100,7 +100,12 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
         </div>
 
         <div className="mt-3">
-          <MeetingNotes meetingId={meeting.id} initialNotes={meeting.notes} viewMode={viewMode} />
+          <MeetingNotes
+            meetingId={meeting.id}
+            initialNotes={meeting.notes}
+            viewMode={viewMode}
+            title={agentLabel}
+          />
         </div>
 
         <div className="mt-3">
