@@ -60,7 +60,7 @@ export default function MeetingNotes({ meetingId, initialNotes, viewMode, onSave
       </div>
       <textarea
         className="input conf-notes__area"
-        rows={viewMode === 'mobile' ? 5 : 4}
+        rows={viewMode === 'mobile' ? 7 : 8}
         placeholder="Type discussion notes… (auto-saves)"
         value={notes}
         onChange={(e) => onChange(e.target.value)}

@@ -1,9 +1,11 @@
-import { useEffect, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { toast } from 'sonner'
 import type { ViewMode } from './conferencesApi'
-import CardScanner from './CardScanner'
+import CardScanner, { type CardScannerHandle } from './CardScanner'
 import { deleteMeetingCard, listMeetingCards, type MeetingCard } from './meetingCardsApi'
 import './meetingCards.css'
+
+export type MeetingCardsHandle = { openScanner: () => void }
 
 type Props = {
   meetingId: string
@@ -11,10 +13,16 @@ type Props = {
   viewMode: ViewMode
 }
 
-export default function MeetingCards({ meetingId, agentId, viewMode }: Props) {
+const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards(
+  { meetingId, agentId, viewMode }: Props,
+  ref,
+) {
   const [cards, setCards] = useState<MeetingCard[]>([])
   const [loading, setLoading] = useState(true)
   const isMobile = viewMode === 'mobile'
+  const scannerRef = useRef<CardScannerHandle>(null)
+
+  useImperativeHandle(ref, () => ({ openScanner: () => scannerRef.current?.open() }), [])
 
   useEffect(() => {
     let cancelled = false
@@ -72,6 +80,8 @@ export default function MeetingCards({ meetingId, agentId, viewMode }: Props) {
       ) : null}
 
       <CardScanner
+        ref={scannerRef}
+        hideTrigger
         meetingId={meetingId}
         agentId={agentId}
         onCardAdded={(c) => setCards((prev) => [...prev, c])}
@@ -79,3 +89,6 @@ export default function MeetingCards({ meetingId, agentId, viewMode }: Props) {
     </div>
   )
 }
+)
+
+export default MeetingCards

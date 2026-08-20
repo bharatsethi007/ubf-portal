@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { forwardRef, useImperativeHandle, useRef, useState } from 'react'
 import { ScanLine } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -10,11 +10,14 @@ import {
   type MeetingCard,
 } from './meetingCardsApi'
 
+export type CardScannerHandle = { open: () => void }
+
 type Props = {
   meetingId: string
   agentId: string | null
   onCardAdded: (card: MeetingCard) => void
   onAgentCreated?: (agentId: string) => void
+  hideTrigger?: boolean
 }
 
 const EMPTY: ExtractedCard = {
@@ -72,13 +75,18 @@ function ScanReviewFields({ card, onChange }: ReviewProps) {
   )
 }
 
-export default function CardScanner({ meetingId, agentId, onCardAdded, onAgentCreated }: Props) {
+const CardScanner = forwardRef<CardScannerHandle, Props>(function CardScanner(
+  { meetingId, agentId, onCardAdded, onAgentCreated, hideTrigger }: Props,
+  ref,
+) {
   const inputRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
   const [file, setFile] = useState<File | null>(null)
   const [edited, setEdited] = useState<ExtractedCard | null>(null)
   const [match, setMatch] = useState<{ id: string; name: string } | null>(null)
   const [createdAgentId, setCreatedAgentId] = useState<string | null>(null)
+
+  useImperativeHandle(ref, () => ({ open: () => inputRef.current?.click() }), [])
 
   function reset() {
     setFile(null)
@@ -159,15 +167,20 @@ export default function CardScanner({ meetingId, agentId, onCardAdded, onAgentCr
           if (f) void handleFile(f)
         }}
       />
-      <button
-        type="button"
-        className="conf-scan-btn"
-        disabled={busy}
-        onClick={() => inputRef.current?.click()}
-      >
-        <ScanLine size={18} />
-        {busy && !edited ? 'Scanning…' : 'Scan business card'}
-      </button>
+      {!hideTrigger && (
+        <button
+          type="button"
+          className="conf-scan-btn"
+          disabled={busy}
+          onClick={() => inputRef.current?.click()}
+        >
+          <ScanLine size={18} />
+          {busy && !edited ? 'Scanning…' : 'Scan business card'}
+        </button>
+      )}
+      {hideTrigger && busy && !edited && (
+        <p className="text-xs text-muted-foreground">Scanning business card…</p>
+      )}
 
       {edited && (
         <>
@@ -203,3 +216,6 @@ export default function CardScanner({ meetingId, agentId, onCardAdded, onAgentCr
     </div>
   )
 }
+)
+
+export default CardScanner

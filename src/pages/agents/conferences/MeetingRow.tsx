@@ -1,9 +1,10 @@
+import { useRef } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { MoreHorizontal } from 'lucide-react'
+import { MoreHorizontal, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
 import { hhmm, meetingBadge } from './meetingTime'
-import MeetingCards from './MeetingCards'
+import MeetingCards, { type MeetingCardsHandle } from './MeetingCards'
 import MeetingNotes from './MeetingNotes'
 import type { ConferenceMeeting } from './meetingsApi'
 import './meetingCards.css'
@@ -26,6 +27,7 @@ const DOT: Record<string, string> = {
 
 export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpenBrief }: Props) {
   const navigate = useNavigate()
+  const cardsRef = useRef<MeetingCardsHandle>(null)
   const badge = meetingBadge(meeting, now)
   const agentLabel = meeting.agent_name ?? meeting.manual_agent_name ?? '—'
   const dotClass = DOT[badge.variant] ?? 'bg-slate-400'
@@ -78,6 +80,16 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
               type="button"
               variant="ghost"
               size="icon-sm"
+              aria-label="Scan business card"
+              title="Scan business card"
+              onClick={() => cardsRef.current?.openScanner()}
+            >
+              <ScanLine className="size-[18px]" />
+            </Button>
+            <Button
+              type="button"
+              variant="ghost"
+              size="icon-sm"
               aria-label="Meeting details"
               title="Meeting details"
               onClick={onOpenDetail}
@@ -92,7 +104,12 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
         </div>
 
         <div className="mt-3">
-          <MeetingCards meetingId={meeting.id} agentId={meeting.agent_id} viewMode={viewMode} />
+          <MeetingCards
+            ref={cardsRef}
+            meetingId={meeting.id}
+            agentId={meeting.agent_id}
+            viewMode={viewMode}
+          />
         </div>
       </div>
     </div>
