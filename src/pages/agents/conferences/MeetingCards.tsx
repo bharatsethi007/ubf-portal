@@ -1,5 +1,5 @@
 import { forwardRef, useCallback, useEffect, useImperativeHandle, useRef, useState } from 'react'
-import { Globe, Mail, Phone, Plus, Trash2, X } from 'lucide-react'
+import { Check, Globe, Mail, Phone, Plus, Trash2, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
@@ -149,15 +149,15 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
     .map((c) => c.extracted)
     .filter((c): c is NonNullable<typeof c> => !!c && !!c.person_name)
 
-  const agentEmails = new Set(
-    contacts.map((c) => c.email?.trim().toLowerCase()).filter(Boolean) as string[],
-  )
-  const agentNames = new Set(contacts.map((c) => c.name.trim().toLowerCase()))
-  const extraCardContacts = cardContacts.filter((c) => {
-    const em = c.email?.trim().toLowerCase()
-    if (em) return !agentEmails.has(em)
-    return !agentNames.has((c.person_name ?? '').trim().toLowerCase())
-  })
+  const matchesCard = (a: AgentContact, c: NonNullable<MeetingCard['extracted']>) => {
+    const ae = a.email?.trim().toLowerCase()
+    const ce = c.email?.trim().toLowerCase()
+    if (ae && ce) return ae === ce
+    return a.name.trim().toLowerCase() === (c.person_name ?? '').trim().toLowerCase()
+  }
+  const isCardSaved = (c: NonNullable<MeetingCard['extracted']>) =>
+    contacts.some((a) => matchesCard(a, c))
+  const manualContacts = contacts.filter((a) => !cardContacts.some((c) => matchesCard(a, c)))
 
   return (
     <div className={`conf-cards${isMobile ? ' conf-cards--mobile' : ''}`}>
@@ -217,11 +217,11 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
 
             {agentId ? (
               <div className="flex flex-col gap-2">
-                {contacts.length === 0 && extraCardContacts.length === 0 && !adding && (
+                {manualContacts.length === 0 && cardContacts.length === 0 && !adding && (
                   <p className="text-sm text-muted-foreground">No contacts yet.</p>
                 )}
 
-                {contacts.map((ct) => (
+                {manualContacts.map((ct) => (
                   <div
                     key={ct.id}
                     className="flex items-start justify-between gap-2 rounded-lg border border-border p-3"
@@ -259,43 +259,53 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
                   </div>
                 ))}
 
-                {extraCardContacts.map((c, i) => (
-                  <div
-                    key={`card-${i}`}
-                    className="flex items-start justify-between gap-2 rounded-lg border border-dashed border-border p-3"
-                  >
-                    <div className="min-w-0 text-sm">
-                      <div className="font-medium text-foreground">
-                        {c.person_name}
-                        {c.title ? `, ${c.title}` : ''}
-                      </div>
-                      {c.company && <div className="text-muted-foreground">{c.company}</div>}
-                      {c.email && (
-                        <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
-                          <Mail size={14} />
-                          <span className="truncate">{c.email}</span>
-                        </div>
-                      )}
-                      {(c.mobile ?? c.phone) && (
-                        <div className="flex items-center gap-1.5 text-muted-foreground">
-                          <Phone size={14} />
-                          <span>{c.mobile ?? c.phone}</span>
-                        </div>
-                      )}
-                      <span className="mt-1 inline-block text-[11px] text-muted-foreground">
-                        From scanned card
-                      </span>
-                    </div>
-                    <Button
-                      type="button"
-                      size="sm"
-                      variant="outline"
-                      onClick={() => void handleSaveCardContact(c)}
+                {cardContacts.map((c, i) => {
+                  const saved = isCardSaved(c)
+                  return (
+                    <div
+                      key={`card-${i}`}
+                      className="flex items-start justify-between gap-2 rounded-lg border border-dashed border-border p-3"
                     >
-                      Save
-                    </Button>
-                  </div>
-                ))}
+                      <div className="min-w-0 text-sm">
+                        <div className="font-medium text-foreground">
+                          {c.person_name}
+                          {c.title ? `, ${c.title}` : ''}
+                        </div>
+                        {c.company && <div className="text-muted-foreground">{c.company}</div>}
+                        {c.email && (
+                          <div className="mt-1 flex items-center gap-1.5 text-muted-foreground">
+                            <Mail size={14} />
+                            <span className="truncate">{c.email}</span>
+                          </div>
+                        )}
+                        {(c.mobile ?? c.phone) && (
+                          <div className="flex items-center gap-1.5 text-muted-foreground">
+                            <Phone size={14} />
+                            <span>{c.mobile ?? c.phone}</span>
+                          </div>
+                        )}
+                        <span className="mt-1 inline-block text-[11px] text-muted-foreground">
+                          From scanned card
+                        </span>
+                      </div>
+                      {saved ? (
+                        <span className="inline-flex shrink-0 items-center gap-1 text-xs font-medium text-emerald-600">
+                          <Check size={14} />
+                          Saved
+                        </span>
+                      ) : (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          onClick={() => void handleSaveCardContact(c)}
+                        >
+                          Save
+                        </Button>
+                      )}
+                    </div>
+                  )
+                })}
 
                 {adding ? (
                   <div className="flex flex-col gap-2 rounded-lg border border-border p-3">

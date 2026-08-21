@@ -238,3 +238,14 @@ export async function addAgentContactDedup(
   await addAgentContact(agentId, c)
   return 'added'
 }
+
+export async function listConferenceMeetings(conferenceId: string): Promise<ConferenceMeeting[]> {
+  const { data, error } = await supabase
+    .from('conference_meetings')
+    .select('*, agents(name)')
+    .eq('conference_id', conferenceId)
+    .order('meeting_date', { ascending: true })
+    .order('start_time', { ascending: true })
+  if (error) throw error
+  return ((data as MeetingRow[]) ?? []).map(mapMeeting)
+}

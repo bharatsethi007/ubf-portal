@@ -7,12 +7,14 @@ import type { ViewMode } from './conferencesApi'
 import { dayTabLabel } from './conferenceDays'
 import MeetingEditor from './MeetingEditor'
 import MeetingRow from './MeetingRow'
+import ConferenceCalendar from './ConferenceCalendar'
 import MeetingDetail from './MeetingDetail'
 import AgentBriefPanel from './AgentBriefPanel'
 import ScheduleImportModal from './ScheduleImportModal'
 import { sortMeetings } from './meetingTime'
 import {
   deleteMeeting,
+  listConferenceMeetings,
   listDayMeetings,
   setMeetingStatus,
   type ConferenceMeeting,
@@ -39,6 +41,7 @@ export default function ConferenceDaySchedule({
   allDays,
 }: Props) {
   const [meetings, setMeetings] = useState<ConferenceMeeting[]>([])
+  const [allMeetings, setAllMeetings] = useState<ConferenceMeeting[]>([])
   const [loading, setLoading] = useState(true)
   const [editing, setEditing] = useState<EditState>(null)
   const [now, setNow] = useState(() => new Date())
@@ -52,8 +55,12 @@ export default function ConferenceDaySchedule({
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const rows = await listDayMeetings(conferenceId, day)
+      const [rows, all] = await Promise.all([
+        listDayMeetings(conferenceId, day),
+        listConferenceMeetings(conferenceId),
+      ])
       setMeetings(rows)
+      setAllMeetings(all)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to load meetings')
       setMeetings([])
@@ -205,8 +212,13 @@ export default function ConferenceDaySchedule({
       {editing !== null && editor}
 
       {(!isMobile || editing === null) && scheduleView === 'calendar' && (
-        <div className="grid min-h-[220px] place-items-center rounded-xl border border-dashed border-border bg-muted/30 text-sm text-muted-foreground mx-0.5 my-1">
-          Calendar view — coming next
+        <div className="pad-inline pb-4">
+          <ConferenceCalendar
+            days={conferenceDays}
+            meetings={allMeetings}
+            now={now}
+            onOpenDetail={(m) => setDetail(m)}
+          />
         </div>
       )}
 

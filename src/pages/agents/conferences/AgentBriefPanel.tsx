@@ -1,7 +1,7 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
-import { X } from 'lucide-react'
+import { RefreshCw, X } from 'lucide-react'
 import { Lane } from '../../../components/Customers/profileUi'
 import type { ViewMode } from './conferencesApi'
 import { fetchAgentBrief, type AgentBrief } from './agentBriefApi'
@@ -20,39 +20,53 @@ function fmtDate(d: string | null | undefined): string {
   return format(new Date(d), 'd MMM yyyy')
 }
 
-export default function AgentBriefPanel({ agentId, agentName, viewMode, onClose }: Props) {
+export default function AgentBriefPanel({ agentId, agentName, onClose }: Props) {
   const navigate = useNavigate()
   const [brief, setBrief] = useState<AgentBrief | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
+  const load = useCallback(
+    async (force: boolean) => {
+      setLoading(true)
+      setError('')
+      try {
+        const data = await fetchAgentBrief(agentId, force)
+        setBrief(data)
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Failed to load brief')
+      } finally {
+        setLoading(false)
+      }
+    },
+    [agentId],
+  )
+
   useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    setError('')
-    fetchAgentBrief(agentId)
-      .then((data) => {
-        if (!cancelled) setBrief(data)
-      })
-      .catch((e) => {
-        if (!cancelled) setError(e instanceof Error ? e.message : 'Failed to load brief')
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [agentId])
+    void load(false)
+  }, [load])
 
   const talkingPoints = brief?.linked ? buildTalkingPoints(brief) : []
 
   return (
     <div
-      className={`conf-brief__backdrop${viewMode === 'mobile' ? ' conf-brief--mobile' : ''}`}
+      className="conf-brief__backdrop"
+      style={{ justifyContent: 'center', alignItems: 'center' }}
       onClick={onClose}
     >
-      <div className="conf-brief__panel" onClick={(e) => e.stopPropagation()}>
+      <div
+        className="conf-brief__panel"
+        style={{
+          width: '70vw',
+          maxWidth: 1100,
+          height: '70vh',
+          maxHeight: '85vh',
+          borderRadius: 12,
+          boxShadow: '0 20px 60px rgba(0, 0, 0, 0.2)',
+          animation: 'none',
+        }}
+        onClick={(e) => e.stopPropagation()}
+      >
         <header className="conf-brief__head">
           <div>
             <h2 className="conf-brief__title">{agentName}</h2>
@@ -64,9 +78,20 @@ export default function AgentBriefPanel({ agentId, agentName, viewMode, onClose 
               Open full profile →
             </button>
           </div>
-          <button type="button" className="agent-modal__close" aria-label="Close" onClick={onClose}>
-            <X size={18} />
-          </button>
+          <div className="flex items-center gap-1">
+            <button
+              type="button"
+              className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+              aria-label="Refresh brief"
+              title="Refresh"
+              onClick={() => void load(true)}
+            >
+              <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+            </button>
+            <button type="button" className="agent-modal__close" aria-label="Close" onClick={onClose}>
+              <X size={18} />
+            </button>
+          </div>
         </header>
 
         {loading && <p className="text-muted-foreground">Loading brief…</p>}

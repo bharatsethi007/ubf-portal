@@ -29,8 +29,16 @@ export type AgentBrief = {
   unpaid_invoices: AgentBriefInvoice[]
 }
 
-export async function fetchAgentBrief(agentId: string): Promise<AgentBrief> {
+const briefCache = new Map<string, AgentBrief>()
+
+export async function fetchAgentBrief(agentId: string, force = false): Promise<AgentBrief> {
+  if (!force) {
+    const cached = briefCache.get(agentId)
+    if (cached) return cached
+  }
   const { data, error } = await supabase.rpc('get_agent_brief', { p_agent_id: agentId })
-  if (error) throw error
-  return data as AgentBrief
+  if (error) throw new Error(error.message || 'Failed to load brief')
+  const brief = data as AgentBrief
+  briefCache.set(agentId, brief)
+  return brief
 }
