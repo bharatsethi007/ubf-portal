@@ -59,6 +59,9 @@ export interface ShipmentRow {
   pack_qty: number | null;
   pack_type: string | null;
   consol_key: string | null;
+  load_type: string | null;
+  customer_account_id: string | null;
+  billing_party?: string | null;
 }
 
 export interface ShipmentFilters {
@@ -72,7 +75,7 @@ export interface ShipmentFilters {
 const SHIPMENT_COLS =
   'job_unique,module,mode,direction,status,origin,destination,final_dest,' +
   'vessel_flight,master_bill,house_bill,etd,eta,relevant_date,goods_desc,' +
-  'shipper_name,weight_kg,volume_m3,pack_qty,pack_type,consol_key';
+  'shipper_name,weight_kg,volume_m3,pack_qty,pack_type,consol_key,load_type,customer_account_id';
 
 export async function fetchCustomerStats(accountId: string): Promise<CustomerStats> {
   const { data, error } = await supabase
@@ -100,6 +103,7 @@ export async function fetchCustomerShipments(
   pageSize: number,
   filters: ShipmentFilters = {},
   scopeColumn: ShipmentScopeColumn = 'customer_account_id',
+  withBillingParty = false,
 ): Promise<{ rows: ShipmentRow[]; total: number }> {
   if (!accountId.trim()) return { rows: [], total: 0 }
 
@@ -127,5 +131,43 @@ export async function fetchCustomerShipments(
 
   const { data, error, count } = await q;
   if (error) throw error;
-  return { rows: (data ?? []) as unknown as ShipmentRow[], total: count ?? 0 }
+  const rows = (data ?? []) as unknown as ShipmentRow[];
+  if (withBillingParty) await attachBillingParty(rows);
+  return { rows, total: count ?? 0 }
+}
+
+async function attachBillingParty(rows: ShipmentRow[]): Promise<void> {
+  const codes = Array.from(
+    new Set(rows.map((r) => r.customer_account_id).filter((c): c is string => !!c)),
+  );
+  if (codes.length === 0) return;
+  const { data } = await supabase.from('customers').select('account_id, name').in('account_id', codes);
+  const map = new Map<string, string>(
+    (data ?? []).map((c: { account_id: string; name: string | null }) => [c.account_id, c.name ?? c.account_id]),
+  );
+  for (const r of rows) {
+    r.billing_party = r.customer_account_id ? map.get(r.customer_account_id) ?? r.customer_account_id : null;
+  }
+}
+
+export async function fetchAllCustomerShipments(
+  accountId: string,
+  filters: ShipmentFilters = {},
+  scopeColumn: ShipmentScopeColumn = 'customer_account_id',
+  withBillingParty = false,
+): Promise<ShipmentRow[]> {
+  if (!accountId.trim()) return []
+  const pageSize = 1000
+  const all: ShipmentRow[] = []
+  const first = await fetchCustomerShipments(accountId, 0, pageSize, filters, scopeColumn, withBillingParty)
+  all.push(...first.rows)
+  const total = first.total
+  let page = 0
+  while (all.length < total && page < 500) {
+    page += 1
+    const next = await fetchCustomerShipments(accountId, page, pageSize, filters, scopeColumn, withBillingParty)
+    if (next.rows.length === 0) break
+    all.push(...next.rows)
+  }
+  return all
 }

@@ -127,7 +127,7 @@ export default function AgentRecordPage() {
   const netOptions = networks.map((n) => ({ value: n.code, label: `${n.code} — ${n.name}` }))
 
   return (
-    <div className="detail-page">
+    <div className="detail-page" style={{ maxWidth: 'none', width: '100%' }}>
       <header className="cp-header">
         <button type="button" className="detail-back" onClick={() => navigate('/agents')}>
           ← Agents
@@ -237,7 +237,7 @@ export default function AgentRecordPage() {
 
         {tab === 'shipments' &&
           (accountId ? (
-            <CustomerShipmentsTab accountId={accountId} scopeColumn="os_agent_code" />
+            <CustomerShipmentsTab accountId={accountId} scopeColumn="os_agent_code" showExport />
           ) : (
             <NoErpNote what="shipments" />
           ))}

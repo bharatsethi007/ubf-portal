@@ -113,11 +113,7 @@ export default function AgentBriefPanel({ agentId, agentName, onClose }: Props) 
               </div>
               <div className="conf-brief__chip">
                 <div className="conf-brief__chip-num">{money(brief.revenue_total)}</div>
-                <div className="conf-brief__chip-label">Revenue</div>
-              </div>
-              <div className="conf-brief__chip">
-                <div className="conf-brief__chip-num">{money(brief.gp_total)}</div>
-                <div className="conf-brief__chip-label">GP</div>
+                <div className="conf-brief__chip-label">Invoicing</div>
               </div>
               <div
                 className={`conf-brief__chip${brief.unpaid_count > 0 ? ' conf-brief__chip--danger' : ' conf-brief__chip--ok'}`}
