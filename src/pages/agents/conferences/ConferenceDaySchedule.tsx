@@ -239,6 +239,9 @@ export default function ConferenceDaySchedule({
                 now={now}
                 onOpenDetail={() => setDetail(meeting)}
                 onOpenBrief={(agentId, agentName) => setBrief({ agentId, agentName })}
+                onComplete={() => void statusChange(meeting, 'completed')}
+                onCancel={() => void statusChange(meeting, 'cancelled', null)}
+                onNoShow={() => void statusChange(meeting, 'no_show', null)}
               />
             ))
           )}
