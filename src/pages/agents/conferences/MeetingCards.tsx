@@ -21,12 +21,13 @@ type Props = {
   agentId: string | null
   viewMode: ViewMode
   onCountChange?: (n: number) => void
+  hideStrip?: boolean
 }
 
 const EMPTY_FORM = { name: '', role: '', email: '', phone: '' }
 
 const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards(
-  { meetingId, agentId, viewMode, onCountChange }: Props,
+  { meetingId, agentId, viewMode, onCountChange, hideStrip }: Props,
   ref,
 ) {
   const [cards, setCards] = useState<MeetingCard[]>([])
@@ -161,10 +162,11 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
 
   return (
     <div className={`conf-cards${isMobile ? ' conf-cards--mobile' : ''}`}>
-      {loading ? (
-        <p className="text-muted-foreground conf-cards__loading">Loading cards…</p>
-      ) : cards.length > 0 ? (
-        <div className="conf-cards-strip">
+      {!hideStrip &&
+        (loading ? (
+          <p className="text-muted-foreground conf-cards__loading">Loading cards…</p>
+        ) : cards.length > 0 ? (
+          <div className="conf-cards-strip">
           {cards.map((card) => (
             <div key={card.id} className="conf-card-thumb">
               <img
@@ -181,9 +183,9 @@ const MeetingCards = forwardRef<MeetingCardsHandle, Props>(function MeetingCards
                 ×
               </button>
             </div>
-          ))}
-        </div>
-      ) : null}
+            ))}
+          </div>
+        ) : null)}
 
       <CardScanner
         ref={scannerRef}

@@ -1,11 +1,11 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookUser, Coffee, MoreHorizontal, ScanLine } from 'lucide-react'
+import { BookUser, Coffee, FileText, MoreHorizontal, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
 import { hhmm, meetingBadge } from './meetingTime'
 import MeetingCards, { type MeetingCardsHandle } from './MeetingCards'
-import MeetingNotes from './MeetingNotes'
+import MeetingNotes, { type MeetingNotesHandle } from './MeetingNotes'
 import type { ConferenceMeeting } from './meetingsApi'
 import './meetingCards.css'
 
@@ -28,6 +28,7 @@ const DOT: Record<string, string> = {
 export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpenBrief }: Props) {
   const navigate = useNavigate()
   const cardsRef = useRef<MeetingCardsHandle>(null)
+  const notesRef = useRef<MeetingNotesHandle>(null)
   const [cardCount, setCardCount] = useState(0)
   const badge = meetingBadge(meeting, now)
   const agentLabel = meeting.agent_name ?? meeting.manual_agent_name ?? '—'
@@ -57,6 +58,103 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
             {hhmm(meeting.start_time)}–{hhmm(meeting.end_time)}
           </span>
         </button>
+      </div>
+    )
+  }
+
+  if (viewMode === 'mobile') {
+    return (
+      <div className="flex gap-3">
+        <div className="relative flex w-10 shrink-0 flex-col items-center">
+          <span className="absolute top-1 bottom-0 w-px bg-border" aria-hidden />
+          <span
+            className={`relative z-10 mt-1 h-2.5 w-2.5 rounded-full ring-4 ring-background ${dotClass}`}
+            aria-hidden
+          />
+          <span className="relative z-10 mt-2 text-[10px] font-medium text-muted-foreground">
+            {hhmm(meeting.start_time)}
+          </span>
+        </div>
+
+        <div
+          className={`mb-3 flex-1 rounded-lg border border-border bg-background px-3 py-2 ${
+            dimmed ? 'opacity-70' : ''
+          }`}
+        >
+          <div className="flex items-center justify-between gap-2">
+            <button
+              type="button"
+              className="min-w-0 text-left"
+              onClick={() => {
+                if (meeting.agent_id && onOpenBrief) onOpenBrief(meeting.agent_id, agentLabel)
+                else onOpenDetail()
+              }}
+            >
+              <div className="truncate text-sm font-medium text-foreground">{agentLabel}</div>
+              <div className="truncate text-[11px] text-muted-foreground">
+                {hhmm(meeting.start_time)}–{hhmm(meeting.end_time)}
+              </div>
+            </button>
+            <div className="flex shrink-0 items-center">
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Notes"
+                onClick={() => notesRef.current?.openEditor()}
+              >
+                <FileText className="size-[17px]" />
+              </Button>
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Scan business card"
+                onClick={() => cardsRef.current?.openScanner()}
+              >
+                <ScanLine className="size-[17px]" />
+              </Button>
+              {(cardCount > 0 || !!meeting.agent_id) && (
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon-sm"
+                  aria-label="Contacts"
+                  className={cardCount > 0 ? 'text-emerald-600' : 'text-muted-foreground'}
+                  onClick={() => cardsRef.current?.openContacts()}
+                >
+                  <BookUser className="size-[17px]" />
+                </Button>
+              )}
+              <Button
+                type="button"
+                variant="ghost"
+                size="icon-sm"
+                aria-label="Meeting details"
+                onClick={onOpenDetail}
+              >
+                <MoreHorizontal className="size-[17px]" />
+              </Button>
+            </div>
+          </div>
+
+          <MeetingNotes
+            ref={notesRef}
+            hidePreview
+            meetingId={meeting.id}
+            initialNotes={meeting.notes}
+            viewMode={viewMode}
+            title={agentLabel}
+          />
+          <MeetingCards
+            ref={cardsRef}
+            hideStrip
+            meetingId={meeting.id}
+            agentId={meeting.agent_id}
+            viewMode={viewMode}
+            onCountChange={setCardCount}
+          />
+        </div>
       </div>
     )
   }

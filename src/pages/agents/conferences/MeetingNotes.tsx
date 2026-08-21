@@ -1,8 +1,10 @@
-import { useEffect, useRef, useState } from 'react'
+import { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
 import { ArrowLeft, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ViewMode } from './conferencesApi'
 import { updateMeeting } from './meetingsApi'
+
+export type MeetingNotesHandle = { openEditor: () => void }
 
 type Props = {
   meetingId: string
@@ -10,15 +12,21 @@ type Props = {
   viewMode: ViewMode
   onSaved?: (notes: string) => void
   title?: string
+  hidePreview?: boolean
 }
 
-export default function MeetingNotes({ meetingId, initialNotes, viewMode, onSaved, title }: Props) {
+const MeetingNotes = forwardRef<MeetingNotesHandle, Props>(function MeetingNotes(
+  { meetingId, initialNotes, viewMode, onSaved, title, hidePreview }: Props,
+  ref,
+) {
   const [notes, setNotes] = useState(initialNotes ?? '')
   const [savedNotes, setSavedNotes] = useState(initialNotes ?? '')
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMobile = viewMode === 'mobile'
+
+  useImperativeHandle(ref, () => ({ openEditor: () => setEditing(true) }), [])
 
   useEffect(() => {
     setNotes(initialNotes ?? '')
@@ -97,7 +105,7 @@ export default function MeetingNotes({ meetingId, initialNotes, viewMode, onSave
 
   return (
     <>
-      {preview}
+      {!hidePreview && preview}
 
       {editing && isMobile && (
         <div className="fixed inset-0 z-[60] flex flex-col bg-background">
@@ -123,7 +131,7 @@ export default function MeetingNotes({ meetingId, initialNotes, viewMode, onSave
           onClick={() => void closeEditor()}
         >
           <div
-            className="flex h-[80vh] w-[80vw] max-w-[1000px] flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl"
+            className="flex h-[70vh] w-[70vw] max-w-3xl flex-col overflow-hidden rounded-xl border border-border bg-background shadow-xl"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
@@ -145,3 +153,6 @@ export default function MeetingNotes({ meetingId, initialNotes, viewMode, onSave
     </>
   )
 }
+)
+
+export default MeetingNotes
