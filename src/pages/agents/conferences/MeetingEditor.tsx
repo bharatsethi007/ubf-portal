@@ -1,5 +1,8 @@
 import { useRef, useState } from 'react'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
+import { Button } from '@/components/ui/button'
+import { cn } from '@/lib/utils'
 import type { ViewMode } from './conferencesApi'
 import MeetingAgentPicker from './MeetingAgentPicker'
 import MeetingContactField from './MeetingContactField'
@@ -47,6 +50,9 @@ export default function MeetingEditor({
   const [contactEmail, setContactEmail] = useState(meeting?.contact_email ?? '')
   const [contactPhone, setContactPhone] = useState(meeting?.contact_phone ?? '')
   const [saving, setSaving] = useState(false)
+  const [isBreak, setIsBreak] = useState(meeting?.is_break ?? false)
+  const breakLabel = manualName ?? ''
+  const title = isNew ? (isBreak ? 'Add break' : 'Add meeting') : isBreak ? 'Edit break' : 'Edit meeting'
 
   function onStartChange(v: string) {
     setStartTime(v)
@@ -54,7 +60,12 @@ export default function MeetingEditor({
   }
 
   async function save() {
-    if (!agentId && !manualName?.trim()) {
+    if (isBreak) {
+      if (!manualName?.trim()) {
+        toast.error('Enter a label for the break')
+        return
+      }
+    } else if (!agentId && !manualName?.trim()) {
       toast.error('Link an agent or enter a manual name')
       return
     }
@@ -72,11 +83,12 @@ export default function MeetingEditor({
       const payload = {
         start_time: `${startTime}:00`,
         end_time: `${endTime}:00`,
-        agent_id: agentId,
+        agent_id: isBreak ? null : agentId,
         manual_agent_name: manualName?.trim() || null,
-        contact_name: contactName.trim() || null,
-        contact_email: contactEmail.trim() || null,
-        contact_phone: contactPhone.trim() || null,
+        contact_name: isBreak ? null : contactName.trim() || null,
+        contact_email: isBreak ? null : contactEmail.trim() || null,
+        contact_phone: isBreak ? null : contactPhone.trim() || null,
+        is_break: isBreak,
       }
       if (isNew) {
         await createMeeting({
@@ -97,16 +109,59 @@ export default function MeetingEditor({
     }
   }
 
+  const segBtn =
+    'inline-flex items-center gap-1.5 rounded-md px-3 h-8 text-[13px] font-medium transition-colors'
+
   const body = (
     <>
-      <MeetingAgentPicker
-        value={{ agentId, manualName }}
-        displayLabel={meeting?.agent_name ?? meeting?.manual_agent_name ?? undefined}
-        onChange={({ agentId: nextId, manualName: nextManual }) => {
-          setAgentId(nextId)
-          setManualName(nextManual)
-        }}
-      />
+      <div className="mb-3 inline-flex items-center gap-0.5 rounded-lg border border-border bg-muted p-0.5">
+        <button
+          type="button"
+          className={cn(
+            segBtn,
+            !isBreak ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+          )}
+          onClick={() => setIsBreak(false)}
+          aria-pressed={!isBreak}
+        >
+          Meeting
+        </button>
+        <button
+          type="button"
+          className={cn(
+            segBtn,
+            isBreak ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground',
+          )}
+          onClick={() => {
+            setIsBreak(true)
+            setAgentId(null)
+          }}
+          aria-pressed={isBreak}
+        >
+          Break
+        </button>
+      </div>
+
+      {isBreak ? (
+        <label className="conf-settings-field">
+          <span>Break label</span>
+          <input
+            className="input"
+            placeholder="e.g. Lunch, Coffee break"
+            value={breakLabel}
+            onChange={(e) => setManualName(e.target.value || null)}
+          />
+        </label>
+      ) : (
+        <MeetingAgentPicker
+          value={{ agentId, manualName }}
+          displayLabel={meeting?.agent_name ?? meeting?.manual_agent_name ?? undefined}
+          onChange={({ agentId: nextId, manualName: nextManual }) => {
+            setAgentId(nextId)
+            setManualName(nextManual)
+          }}
+        />
+      )}
       <div className="conf-editor-fields conf-editor-fields--time">
         <label className="conf-settings-field">
           <span>Start</span>
@@ -125,23 +180,33 @@ export default function MeetingEditor({
           />
         </label>
       </div>
-      <MeetingContactField
-        agentId={agentId}
-        contactName={contactName}
-        contactEmail={contactEmail}
-        contactPhone={contactPhone}
-        onChange={({ contactName: n, contactEmail: e, contactPhone: p }) => {
-          setContactName(n)
-          setContactEmail(e)
-          setContactPhone(p)
-        }}
-      />
+      {!isBreak && (
+        <MeetingContactField
+          agentId={agentId}
+          contactName={contactName}
+          contactEmail={contactEmail}
+          contactPhone={contactPhone}
+          onChange={({ contactName: n, contactEmail: e, contactPhone: p }) => {
+            setContactName(n)
+            setContactEmail(e)
+            setContactPhone(p)
+          }}
+        />
+      )}
       <div className="agent-modal__actions">
-        <button type="button" className="btn btn--inline" onClick={onCancel} disabled={saving}>
-          Cancel
-        </button>
+        <Button
+          type="button"
+          variant="outline"
+          size="icon"
+          aria-label="Cancel"
+          title="Cancel"
+          onClick={onCancel}
+          disabled={saving}
+        >
+          <X className="size-[18px]" />
+        </Button>
         <button type="button" className="btn quotes-page__new-btn" onClick={() => void save()} disabled={saving}>
-          {saving ? 'Saving…' : isNew ? 'Add meeting' : 'Save changes'}
+          {saving ? 'Saving…' : isNew ? (isBreak ? 'Add break' : 'Add meeting') : 'Save changes'}
         </button>
       </div>
     </>
@@ -151,7 +216,7 @@ export default function MeetingEditor({
     return (
       <div className="conf-sheet">
         <div className="conf-sheet__head">
-          <h3>{isNew ? 'Add meeting' : 'Edit meeting'}</h3>
+          <h3>{title}</h3>
         </div>
         {body}
       </div>
@@ -159,11 +224,19 @@ export default function MeetingEditor({
   }
 
   return (
-    <div className="cp-card conf-editor">
-      <div className="cp-card-head">
-        <h3 className="cp-card-title">{isNew ? 'Add meeting' : 'Edit meeting'}</h3>
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onCancel}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-xl flex-col overflow-auto rounded-xl border border-border bg-background p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3">
+          <h3 className="text-base font-medium text-foreground">{title}</h3>
+        </div>
+        <div className="conf-editor__body">{body}</div>
       </div>
-      <div className="conf-editor__body">{body}</div>
     </div>
   )
 }

@@ -11,7 +11,6 @@ import ConferenceCalendar from './ConferenceCalendar'
 import MeetingDetail from './MeetingDetail'
 import AgentBriefPanel from './AgentBriefPanel'
 import ScheduleImportModal from './ScheduleImportModal'
-import { sortMeetings } from './meetingTime'
 import {
   deleteMeeting,
   listConferenceMeetings,
@@ -79,7 +78,10 @@ export default function ConferenceDaySchedule({
     return () => window.clearInterval(id)
   }, [])
 
-  const sorted = useMemo(() => sortMeetings(meetings, now), [meetings, now])
+  const sorted = useMemo(
+    () => [...meetings].sort((a, b) => b.start_time.localeCompare(a.start_time)),
+    [meetings],
+  )
   const isMobile = viewMode === 'mobile'
 
   async function handleDelete(meeting: ConferenceMeeting) {

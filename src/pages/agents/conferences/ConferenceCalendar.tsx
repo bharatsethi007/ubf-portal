@@ -14,6 +14,8 @@ const HEADER_PX = 40
 const COL_MIN = 150
 const GUTTER = 56
 
+const BREAK_STYLE = { bg: '#f1f5f9', fg: '#64748b', bd: '#cbd5e1' }
+
 const VARIANT_STYLE: Record<string, { bg: string; fg: string; bd: string }> = {
   '--live': { bg: '#dcfce7', fg: '#166534', bd: '#86efac' },
   '--upcoming': { bg: '#dbeafe', fg: '#1d4ed8', bd: '#bfdbfe' },
@@ -145,7 +147,9 @@ export default function ConferenceCalendar({ days, meetings, now, onOpenDetail }
               ))}
 
               {placed.map(({ item, col, cols }) => {
-                const style = VARIANT_STYLE[meetingBadge(item.m, now).variant] ?? VARIANT_STYLE['--upcoming']
+                const style = item.m.is_break
+                  ? BREAK_STYLE
+                  : VARIANT_STYLE[meetingBadge(item.m, now).variant] ?? VARIANT_STYLE['--upcoming']
                 const top = (item.s - gridStartMin) * pxPerMin
                 const height = Math.max((item.e - item.s) * pxPerMin - 2, 22)
                 const widthPct = 100 / cols

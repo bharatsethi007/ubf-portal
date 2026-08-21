@@ -14,6 +14,7 @@ export type ConferenceMeeting = {
   contact_email: string | null
   contact_phone: string | null
   status: MeetingStatus
+  is_break: boolean
   cancel_reason: string | null
   notes: string | null
   ai_summary: string | null
@@ -47,6 +48,7 @@ export type CreateMeetingInput = {
   contact_name: string | null
   contact_email: string | null
   contact_phone: string | null
+  is_break: boolean
 }
 
 function mapMeeting(row: MeetingRow): ConferenceMeeting {
@@ -91,6 +93,7 @@ export async function updateMeeting(
       | 'contact_email'
       | 'contact_phone'
       | 'status'
+      | 'is_break'
       | 'cancel_reason'
       | 'notes'
     >

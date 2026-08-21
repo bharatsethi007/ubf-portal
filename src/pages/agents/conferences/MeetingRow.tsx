@@ -1,6 +1,6 @@
 import { useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { BookUser, MoreHorizontal, ScanLine } from 'lucide-react'
+import { BookUser, Coffee, MoreHorizontal, ScanLine } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { ViewMode } from './conferencesApi'
 import { hhmm, meetingBadge } from './meetingTime'
@@ -33,6 +33,33 @@ export default function MeetingRow({ meeting, viewMode, now, onOpenDetail, onOpe
   const agentLabel = meeting.agent_name ?? meeting.manual_agent_name ?? '—'
   const dotClass = DOT[badge.variant] ?? 'bg-slate-400'
   const dimmed = meeting.status === 'cancelled' || meeting.status === 'no_show'
+
+  if (meeting.is_break) {
+    return (
+      <div className="flex gap-3">
+        <div className="relative flex w-12 shrink-0 flex-col items-center">
+          <span className="absolute top-1 bottom-0 w-px bg-border" aria-hidden />
+          <span className="relative z-10 mt-1 h-2.5 w-2.5 rounded-full bg-slate-300 ring-4 ring-background" aria-hidden />
+          <span className="relative z-10 mt-2 text-[11px] font-medium text-muted-foreground">
+            {hhmm(meeting.start_time)}
+          </span>
+        </div>
+        <button
+          type="button"
+          onClick={onOpenDetail}
+          className="mb-3 flex flex-1 items-center justify-between gap-2 rounded-lg border border-dashed border-border bg-muted/40 px-4 py-2.5 text-left transition-colors hover:bg-muted/60"
+        >
+          <span className="flex items-center gap-2 text-sm font-medium text-muted-foreground">
+            <Coffee className="size-4" />
+            {meeting.manual_agent_name || 'Break'}
+          </span>
+          <span className="text-xs text-muted-foreground">
+            {hhmm(meeting.start_time)}–{hhmm(meeting.end_time)}
+          </span>
+        </button>
+      </div>
+    )
+  }
 
   return (
     <div className="flex gap-3">

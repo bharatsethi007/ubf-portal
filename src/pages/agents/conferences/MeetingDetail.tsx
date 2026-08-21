@@ -33,6 +33,7 @@ export default function MeetingDetail({
   const isMobile = viewMode === 'mobile'
   const badge = meetingBadge(meeting, now)
   const agentLabel = meeting.agent_name ?? meeting.manual_agent_name ?? '—'
+  const isBreak = meeting.is_break
 
   function submitReason() {
     const r = reasonText.trim() || null
@@ -49,7 +50,9 @@ export default function MeetingDetail({
             {hhmm(meeting.start_time)}–{hhmm(meeting.end_time)}
           </div>
         </div>
-        <span className={`conf-meeting__badge conf-meeting__badge${badge.variant}`}>{badge.label}</span>
+        {!isBreak && (
+          <span className={`conf-meeting__badge conf-meeting__badge${badge.variant}`}>{badge.label}</span>
+        )}
       </div>
 
       {meeting.contact_name && (
@@ -58,7 +61,18 @@ export default function MeetingDetail({
         </div>
       )}
 
-      {reasonMode ? (
+      {isBreak ? (
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" onClick={onEdit}>
+            <Pencil className="size-4" />
+            Edit
+          </Button>
+          <Button type="button" size="sm" variant="destructive" onClick={onDelete}>
+            <Trash2 className="size-4" />
+            Delete
+          </Button>
+        </div>
+      ) : reasonMode ? (
         <div className="flex flex-col gap-2">
           <label className="text-sm font-medium text-foreground">
             {reasonMode === 'cancel' ? 'Cancellation reason' : 'No-show reason'}{' '}

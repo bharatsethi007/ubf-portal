@@ -1,4 +1,5 @@
 import { useRef } from 'react'
+import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   updateConferenceSettings,
@@ -11,9 +12,10 @@ const MEETING_LENGTHS = [15, 30, 45, 60]
 type Props = {
   conference: ConferenceDetail
   onUpdated: (patch: Partial<ConferenceDetail>) => void
+  onClose: () => void
 }
 
-export default function ConferenceSettingsPanel({ conference, onUpdated }: Props) {
+export default function ConferenceSettingsPanel({ conference, onUpdated, onClose }: Props) {
   const coverRef = useRef<HTMLInputElement>(null)
   const headerRef = useRef<HTMLInputElement>(null)
 
@@ -31,9 +33,7 @@ export default function ConferenceSettingsPanel({ conference, onUpdated }: Props
     try {
       const url = await uploadConferenceImage(conference.id, file, kind)
       const patch =
-        kind === 'cover'
-          ? { cover_image_url: url }
-          : { header_image_url: url }
+        kind === 'cover' ? { cover_image_url: url } : { header_image_url: url }
       await updateConferenceSettings(conference.id, patch)
       onUpdated(patch)
       toast.success(kind === 'cover' ? 'Cover image updated' : 'Header image updated')
@@ -43,60 +43,77 @@ export default function ConferenceSettingsPanel({ conference, onUpdated }: Props
   }
 
   return (
-    <div className="cp-card conf-settings-panel">
-      <div className="cp-card-head">
-        <h3 className="cp-card-title">Settings</h3>
-      </div>
-      <div className="conf-settings-panel__body">
-        <label className="conf-settings-field">
-          <span>Default meeting length</span>
-          <select
-            className="input input--sm"
-            value={conference.default_meeting_minutes}
-            onChange={(e) => void saveMinutes(Number(e.target.value))}
+    <div
+      className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4"
+      onClick={onClose}
+    >
+      <div
+        className="flex max-h-[85vh] w-full max-w-lg flex-col overflow-auto rounded-xl border border-border bg-background p-5 shadow-xl"
+        onClick={(e) => e.stopPropagation()}
+      >
+        <div className="mb-3 flex items-center justify-between">
+          <h3 className="text-base font-medium text-foreground">Settings</h3>
+          <button
+            type="button"
+            aria-label="Close"
+            onClick={onClose}
+            className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
           >
-            {MEETING_LENGTHS.map((m) => (
-              <option key={m} value={m}>
-                {m} minutes
-              </option>
-            ))}
-          </select>
-        </label>
-
-        <div className="conf-settings-field">
-          <span>Cover image</span>
-          <input
-            ref={coverRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) void saveImage('cover', file)
-              e.target.value = ''
-            }}
-          />
-          <button type="button" className="btn btn--inline" onClick={() => coverRef.current?.click()}>
-            Set cover
+            <X size={18} />
           </button>
         </div>
 
-        <div className="conf-settings-field">
-          <span>Header image</span>
-          <input
-            ref={headerRef}
-            type="file"
-            accept="image/*"
-            hidden
-            onChange={(e) => {
-              const file = e.target.files?.[0]
-              if (file) void saveImage('header', file)
-              e.target.value = ''
-            }}
-          />
-          <button type="button" className="btn btn--inline" onClick={() => headerRef.current?.click()}>
-            Set header image
-          </button>
+        <div className="conf-settings-panel__body">
+          <label className="conf-settings-field">
+            <span>Default meeting length</span>
+            <select
+              className="input input--sm"
+              value={conference.default_meeting_minutes}
+              onChange={(e) => void saveMinutes(Number(e.target.value))}
+            >
+              {MEETING_LENGTHS.map((m) => (
+                <option key={m} value={m}>
+                  {m} minutes
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <div className="conf-settings-field">
+            <span>Cover image</span>
+            <input
+              ref={coverRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void saveImage('cover', file)
+                e.target.value = ''
+              }}
+            />
+            <button type="button" className="btn btn--inline" onClick={() => coverRef.current?.click()}>
+              Set cover
+            </button>
+          </div>
+
+          <div className="conf-settings-field">
+            <span>Header image</span>
+            <input
+              ref={headerRef}
+              type="file"
+              accept="image/*"
+              hidden
+              onChange={(e) => {
+                const file = e.target.files?.[0]
+                if (file) void saveImage('header', file)
+                e.target.value = ''
+              }}
+            />
+            <button type="button" className="btn btn--inline" onClick={() => headerRef.current?.click()}>
+              Set header image
+            </button>
+          </div>
         </div>
       </div>
     </div>

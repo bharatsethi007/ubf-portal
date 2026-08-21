@@ -200,7 +200,6 @@ export default function ConferenceRecordPage() {
 
         <div className="conf-record-title-row">
           <div>
-            <h1 className="cp-title">{conference.name}</h1>
             <div className="conf-record-meta">
               {conference.network_code && (
                 <span className="cp-badge cp-badge--indigo">{conference.network_code}</span>
@@ -256,6 +255,7 @@ export default function ConferenceRecordPage() {
           <ConferenceSettingsPanel
             conference={conference}
             onUpdated={(patch) => setConference((c) => (c ? { ...c, ...patch } : c))}
+            onClose={() => setShowSettings(false)}
           />
         )}
 

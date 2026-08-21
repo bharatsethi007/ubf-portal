@@ -168,11 +168,11 @@ export async function deleteConferencePhoto(photoId: string): Promise<void> {
 export async function fetchConferenceStats(conferenceId: string): Promise<ConferenceStats> {
   const { data: meetings, error } = await supabase
     .from('conference_meetings')
-    .select('agent_id, status')
+    .select('agent_id, status, is_break')
     .eq('conference_id', conferenceId)
   if (error) throw error
 
-  const rows = meetings ?? []
+  const rows = (meetings ?? []).filter((r) => !r.is_break)
   const completedAgentIds = new Set<string>()
   for (const row of rows) {
     if (row.status === 'completed' && row.agent_id) {
