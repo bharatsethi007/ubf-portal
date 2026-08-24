@@ -182,6 +182,7 @@ function BookingRecordPageContent({
           </TabsContent>
           <TabsContent value="tracking">
             <BookingTrackingTab
+              bookingId={booking.id}
               containerNumbers={containerNumbers}
               tracking={tracking}
               onPortConnectRefresh={handlePortConnectRefresh}
