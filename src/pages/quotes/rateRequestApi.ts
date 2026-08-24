@@ -174,3 +174,65 @@ export async function searchCustomers(query: string, country?: string | null): P
     email: r.email ?? null, contactName: r.contact ?? null,
   }))
 }
+
+// ── Step 3: persist + send ───────────────────────────────────────────────────
+
+export type RateRequestSummary = {
+  id: string
+  status: string
+  createdAt: string
+  sentAt: string | null
+  subject: string | null
+  recipientCount: number
+}
+
+export async function saveRateRequestDraft(
+  ctx: RateRequestContext, subject: string, body: string, recipients: Recipient[],
+): Promise<{ requestId: string }> {
+  const { data, error } = await supabase.from('rate_requests').insert({
+    quote_id: ctx.quoteId,
+    pol_code: ctx.polCode, pod_code: ctx.podCode, shipment_mode: ctx.mode,
+    incoterm: ctx.incoterm, movement: ctx.movement,
+    agent_end: ctx.agentEnd, agent_end_country: ctx.agentCountry,
+    requested_local: ctx.requestLocal, requested_freight: ctx.requestFreight,
+    subject, body, status: 'draft',
+  }).select('id').single()
+  if (error) throw error
+  const requestId = String((data as Record<string, any>).id)
+  if (recipients.length) {
+    const rows = recipients.map((r) => ({
+      request_id: requestId, source: r.source, agent_id: r.agentId, account_id: r.accountId,
+      name: r.name, email: r.email,
+    }))
+    const { error: rErr } = await supabase.from('rate_request_recipients').insert(rows)
+    if (rErr) throw rErr
+  }
+  return { requestId }
+}
+
+export type SendResult = { ok: boolean; sent: number; failed: { email: string; error: string }[] }
+
+export async function sendRateRequest(requestId: string): Promise<SendResult> {
+  const { data, error } = await supabase.functions.invoke('rate-request-send', { body: { requestId } })
+  if (error) {
+    let msg = error.message
+    try {
+      const ctx = (error as Record<string, any>).context
+      if (ctx && typeof ctx.json === 'function') { const j = await ctx.json(); if (j?.error) msg = j.error }
+    } catch { /* ignore */ }
+    throw new Error(msg)
+  }
+  return data as SendResult
+}
+
+export async function fetchRateRequests(quoteId: string): Promise<RateRequestSummary[]> {
+  const { data, error } = await supabase.from('rate_requests')
+    .select('id, status, created_at, sent_at, subject, rate_request_recipients(count)')
+    .eq('quote_id', quoteId).order('created_at', { ascending: false })
+  if (error) throw error
+  return ((data as Record<string, any>[]) ?? []).map((r) => ({
+    id: String(r.id), status: String(r.status), createdAt: r.created_at, sentAt: r.sent_at ?? null,
+    subject: r.subject ?? null,
+    recipientCount: Array.isArray(r.rate_request_recipients) ? (r.rate_request_recipients[0]?.count ?? 0) : 0,
+  }))
+}

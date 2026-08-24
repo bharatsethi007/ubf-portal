@@ -1,12 +1,23 @@
-import { useEffect, useState } from 'react'
-import { Plus, X } from 'lucide-react'
-import { fetchRateRequestContext, buildRateRequestEmail, type RateRequestContext, type Recipient } from './rateRequestApi'
+import { useCallback, useEffect, useState } from 'react'
+import { Plus, X, Send, Save } from 'lucide-react'
+import { toast } from 'sonner'
+import {
+  fetchRateRequestContext, buildRateRequestEmail,
+  saveRateRequestDraft, sendRateRequest, fetchRateRequests,
+  type RateRequestContext, type Recipient, type RateRequestSummary,
+} from './rateRequestApi'
 import AgentRecipientPicker from './AgentRecipientPicker'
 
 const SRC_STYLE: Record<Recipient['source'], { bg: string; color: string; label: string }> = {
   agent: { bg: '#EEF1FB', color: '#0A2472', label: 'Agent' },
   customer: { bg: '#F0F1F5', color: '#555', label: 'Customer' },
   manual: { bg: '#FCEFD6', color: '#B4791F', label: 'Manual' },
+}
+
+function fmtWhen(iso: string | null): string {
+  if (!iso) return ''
+  const d = new Date(iso)
+  return isNaN(d.getTime()) ? '' : d.toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: '2-digit' })
 }
 
 export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
@@ -17,6 +28,13 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
   const [body, setBody] = useState('')
   const [recipients, setRecipients] = useState<Recipient[]>([])
   const [pickerOpen, setPickerOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [sending, setSending] = useState(false)
+  const [history, setHistory] = useState<RateRequestSummary[]>([])
+
+  const loadHistory = useCallback(async () => {
+    try { setHistory(await fetchRateRequests(quoteId)) } catch { /* ignore */ }
+  }, [quoteId])
 
   useEffect(() => {
     let cancelled = false
@@ -28,6 +46,41 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
     return () => { cancelled = true }
   }, [quoteId])
 
+  useEffect(() => { loadHistory() }, [loadHistory])
+
+  async function handleSaveDraft() {
+    if (!ctx) return
+    setSaving(true)
+    try {
+      await saveRateRequestDraft(ctx, subject, body, recipients)
+      toast.success('Draft saved')
+      await loadHistory()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Save failed') }
+    finally { setSaving(false) }
+  }
+
+  async function handleSend() {
+    if (!ctx) return
+    if (recipients.length === 0) { toast.error('Add at least one recipient'); return }
+    if (!subject.trim()) { toast.error('Subject is empty'); return }
+    setSending(true)
+    try {
+      const { requestId } = await saveRateRequestDraft(ctx, subject, body, recipients)
+      const res = await sendRateRequest(requestId)
+      if (res.ok) {
+        toast.success(`Sent to ${res.sent} recipient${res.sent === 1 ? '' : 's'}${res.failed.length ? `, ${res.failed.length} failed` : ''}`)
+        res.failed.forEach((f) => toast.error(`${f.email}: ${f.error}`))
+        setRecipients([])
+      } else {
+        toast.error(res.failed[0] ? `Send failed: ${res.failed[0].error}` : 'Send failed')
+      }
+      await loadHistory()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Send failed')
+      await loadHistory()
+    } finally { setSending(false) }
+  }
+
   if (loading) return <p className="qr-placeholder">Preparing rate request…</p>
   if (err) return <p className="qr-placeholder" style={{ color: '#B23B3B' }}>{err}</p>
   if (!ctx) return null
@@ -37,6 +90,7 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
   const askChips: string[] = []
   if (ctx.requestFreight) askChips.push('Freight')
   if (ctx.requestLocal) askChips.push(ctx.agentEnd === 'origin' ? 'Origin local' : 'Destination local')
+  const busy = saving || sending
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
@@ -91,7 +145,28 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
         <textarea className="input" style={{ minHeight: 260, fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5 }} value={body} onChange={(e) => setBody(e.target.value)} />
       </label>
 
-      <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>Next step: save &amp; send — records the request and recipients.</p>
+      <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
+        <button className="btn" onClick={handleSaveDraft} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 13 }}>
+          <Save size={14} /> {saving ? 'Saving…' : 'Save draft'}
+        </button>
+        <button className="btn" onClick={handleSend} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', fontSize: 13, background: '#0A2472', color: '#fff', opacity: busy ? 0.6 : 1 }}>
+          <Send size={14} /> {sending ? 'Sending…' : 'Send request'}
+        </button>
+      </div>
+
+      {history.length > 0 && (
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Request history</span>
+          {history.map((h) => (
+            <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, border: '1px solid #EEF0F4', borderRadius: 8, padding: '6px 10px' }}>
+              <span style={{ background: h.status === 'sent' ? '#E6F4EC' : '#F0F1F5', color: h.status === 'sent' ? '#1F8A4C' : '#555', borderRadius: 999, padding: '1px 8px', fontSize: 10, fontWeight: 600, textTransform: 'capitalize' }}>{h.status}</span>
+              <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.subject ?? '(no subject)'}</span>
+              <span style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>{h.recipientCount} recipient{h.recipientCount === 1 ? '' : 's'}</span>
+              <span style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>{fmtWhen(h.sentAt ?? h.createdAt)}</span>
+            </div>
+          ))}
+        </div>
+      )}
 
       {pickerOpen && (
         <AgentRecipientPicker
