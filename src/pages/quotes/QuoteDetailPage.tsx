@@ -12,6 +12,7 @@ import QuoteCargoLines from './QuoteCargoLines'
 import QuoteCargoEntry, { type CargoEntryMode } from './QuoteCargoEntry'
 import { useStaffList } from '../../hooks/useStaffList'
 import { useCustomerQuoteStats } from '../../hooks/useCustomerQuoteStats'
+import { useDebouncedAutosave } from '../../hooks/useDebouncedAutosave'
 import { fetchQuote, updateQuote, setQuoteStatus, type QuoteRecord } from './quotesApi'
 import {
   fetchQuoteContainers, replaceQuoteContainers, emptyContainerGroup,
@@ -118,10 +119,8 @@ export default function QuoteDetailPage() {
   const [cargoLines, setCargoLines] = useState<QuoteCargoLine[]>([])
   const [initialCargoLines, setInitialCargoLines] = useState<QuoteCargoLine[]>([])
   const [cargoMode, setCargoMode] = useState<CargoEntryMode>('individual')
+  const [initialCargoMode, setInitialCargoMode] = useState<CargoEntryMode>('individual')
   const [loading, setLoading] = useState(true)
-  const [saving, setSaving] = useState(false)
-  const [savingCargo, setSavingCargo] = useState(false)
-  const [savingLoads, setSavingLoads] = useState(false)
   const [statusBusy, setStatusBusy] = useState(false)
   const [editingCustomer, setEditingCustomer] = useState(false)
   const [editingPorts, setEditingPorts] = useState(false)
@@ -151,12 +150,13 @@ export default function QuoteDetailPage() {
           if (!f.consignee_address) f.consignee_address = addr
         }
       }
+      const mode: CargoEntryMode = q.cargo_entry_mode === 'total' ? 'total' : 'individual'
       setQuote(q); setStatus(q.status)
       setFields(f); setInitial(f)
       setCargo(pickCargo(q)); setInitialCargo(pickCargo(q))
       setGroups(g); setInitialGroups(g)
       setCargoLines(cl); setInitialCargoLines(cl)
-      setCargoMode(q.cargo_entry_mode === 'total' ? 'total' : 'individual')
+      setCargoMode(mode); setInitialCargoMode(mode)
     } catch {
       toast.error('Failed to load quote'); setQuote(null)
     } finally {
@@ -176,12 +176,18 @@ export default function QuoteDetailPage() {
   const cargoDirty = useMemo(
     () => Boolean(cargo && initialCargo && JSON.stringify(cargo) !== JSON.stringify(initialCargo)),
     [cargo, initialCargo])
-  const loadsDirty = useMemo(
+  const groupsDirty = useMemo(
     () => JSON.stringify(groups) !== JSON.stringify(initialGroups),
     [groups, initialGroups])
   const cargoLinesDirty = useMemo(
     () => JSON.stringify(cargoLines) !== JSON.stringify(initialCargoLines),
     [cargoLines, initialCargoLines])
+
+  // Loads (the top grid) covers either container groups (FCL) or cargo lines +
+  // entry mode (LCL/Air) — treat them as one saveable unit.
+  const loadsDirty = usesCargoLines
+    ? (cargoLinesDirty || cargoMode !== initialCargoMode)
+    : groupsDirty
 
   function patch(p: Partial<Fields>) { setFields((f) => (f ? { ...f, ...p } : f)) }
   function patchCargo(p: Partial<Cargo>) { setCargo((c) => (c ? { ...c, ...p } : c)) }
@@ -223,38 +229,45 @@ export default function QuoteDetailPage() {
 
   function addCargoLine() { setCargoLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
 
-  async function handleSave() {
+  // --- Silent autosave persisters (each snapshots its own initial on success) ---
+  async function saveFields() {
     if (!id || !fields) return
-    setSaving(true)
-    try { await updateQuote(id, fields); setInitial(fields); toast.success('Details saved') }
-    catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save') }
-    finally { setSaving(false) }
+    await updateQuote(id, fields)
+    setInitial(fields)
   }
-  async function handleSaveCargo() {
+  async function saveCargoValue() {
     if (!id || !cargo) return
-    setSavingCargo(true)
-    try {
-      await updateQuote(id, { ...cargo, stackable: cargo.stackable ? 'true' : 'false' })
-      setInitialCargo(cargo); toast.success('Cargo saved')
-    }
-    catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save cargo') }
-    finally { setSavingCargo(false) }
+    await updateQuote(id, { ...cargo, stackable: cargo.stackable ? 'true' : 'false' })
+    setInitialCargo(cargo)
   }
-  async function handleSaveLoads() {
+  async function saveLoads() {
     if (!id) return
-    setSavingLoads(true)
-    try {
-      if (usesCargoLines) {
-        await saveQuoteCargo(id, cargoLines)
-        await updateQuote(id, { cargo_entry_mode: cargoMode })
-        setInitialCargoLines(cargoLines)
-      }
-      else { await replaceQuoteContainers(id, groups); setInitialGroups(groups) }
-      toast.success('Loads saved')
+    if (usesCargoLines) {
+      await saveQuoteCargo(id, cargoLines, isAir ? 'air' : 'sea')
+      await updateQuote(id, { cargo_entry_mode: cargoMode })
+      setInitialCargoLines(cargoLines); setInitialCargoMode(cargoMode)
+    } else {
+      await replaceQuoteContainers(id, groups); setInitialGroups(groups)
     }
-    catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to save loads') }
-    finally { setSavingLoads(false) }
   }
+
+  const saveState = useDebouncedAutosave([
+    { key: 'fields', dirty: !loading && dirty, signature: JSON.stringify(fields), save: saveFields },
+    { key: 'cargo', dirty: !loading && cargoDirty, signature: JSON.stringify(cargo), save: saveCargoValue },
+    {
+      key: 'loads',
+      dirty: !loading && loadsDirty,
+      signature: JSON.stringify(usesCargoLines ? { cargoLines, cargoMode } : { groups }),
+      save: saveLoads,
+    },
+  ])
+
+  const anyDirty = dirty || cargoDirty || loadsDirty
+  const saveLabel = saveState === 'error'
+    ? 'Save failed — edit to retry'
+    : (saveState === 'saving' || anyDirty) ? 'Saving…' : 'All changes saved'
+  const saveLabelColor = saveState === 'error' ? '#dc2626' : '#64748b'
+
   async function mark(next: string) {
     if (!id) return
     setStatusBusy(true)
@@ -307,6 +320,7 @@ export default function QuoteDetailPage() {
             <span className="nqd-qno">{quote.quote_no ?? '—'}</span>
           </div>
           <div className="nqd-actions">
+            <span style={{ fontSize: 12, alignSelf: 'center', marginRight: 8, color: saveLabelColor, whiteSpace: 'nowrap' }}>{saveLabel}</span>
             <button className="nqd-btn nqd-btn--won" disabled={statusBusy} onClick={() => mark('won')}>Mark won</button>
             <button className="nqd-btn nqd-btn--lost" disabled={statusBusy} onClick={() => mark('lost')}>Mark lost</button>
             <button className="nqd-btn nqd-btn--cross" disabled={statusBusy} onClick={() => mark('crosswin')}>Mark cross win</button>
@@ -342,13 +356,6 @@ export default function QuoteDetailPage() {
               </>
             )}
           </div>
-          <button
-            className="nqd-btn nqd-btn--accent"
-            disabled={(usesCargoLines ? !cargoLinesDirty : !loadsDirty) || savingLoads}
-            onClick={handleSaveLoads}
-          >
-            {savingLoads ? 'Saving…' : 'Save loads'}
-          </button>
         </div>
 
         {usesCargoLines ? (
@@ -398,9 +405,6 @@ export default function QuoteDetailPage() {
       <div className="nqd-band nqd-band--pad">
         <div className="nqd-section-head">
           <span className="nqd-section-title">Details</span>
-          <button className="nqd-btn nqd-btn--accent" disabled={!dirty || saving} onClick={handleSave}>
-            {saving ? 'Saving…' : 'Save'}
-          </button>
         </div>
         <div className="nqd-grid">
           <div className="nqd-field">
@@ -476,9 +480,6 @@ export default function QuoteDetailPage() {
       <div className="nqd-band nqd-band--pad">
         <div className="nqd-section-head">
           <span className="nqd-section-title">Cargo</span>
-          <button className="nqd-btn nqd-btn--accent" disabled={!cargoDirty || savingCargo} onClick={handleSaveCargo}>
-            {savingCargo ? 'Saving…' : 'Save'}
-          </button>
         </div>
         <div className="nqd-cargo">
           <div className="nqd-cargo__value">
@@ -542,9 +543,6 @@ export default function QuoteDetailPage() {
       <div className="nqd-band nqd-band--pad">
         <div className="nqd-section-head">
           <span className="nqd-section-title">Notes</span>
-          <button className="nqd-btn nqd-btn--accent" disabled={!dirty || saving} onClick={handleSave}>
-            {saving ? 'Saving…' : 'Save'}
-          </button>
         </div>
         <div className="nqd-notes">
           <div className="nqd-field">

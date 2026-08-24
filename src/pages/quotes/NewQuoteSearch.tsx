@@ -205,7 +205,7 @@ export default function NewQuoteSearch() {
       }
       const { id } = await createQuote(payload)
       if (draft.shipment_type === 'FCL') await replaceQuoteContainers(id, groups)
-      if (isAir) { await updateQuote(id, { cargo_entry_mode: airMode }); await saveQuoteCargo(id, airLines) }
+      if (isAir) { await updateQuote(id, { cargo_entry_mode: airMode }); await saveQuoteCargo(id, airLines, 'air') }
       if (chosen) {
         const { id: responseId } = await createQuoteResponse(id)
         await saveQuoteResponseLines(responseId, buildBuyLines(chosen))

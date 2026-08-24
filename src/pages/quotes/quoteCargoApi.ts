@@ -149,8 +149,11 @@ export function computeCargoLine(
   }
 
   const perPkgWeight = Number(row.per_package_weight) || 0
-  const totalWeight = Number(row.total_weight) || perPkgWeight * qty
-  const grossTotal = Number(row.gross_wt) || totalWeight
+  // Per-pkg × qty is authoritative whenever a per-package weight is given; only
+  // fall back to a directly-typed total weight when there is no per-package
+  // weight. Never read gross_wt here — it is a derived OUTPUT, and reading it
+  // back would freeze the row against qty / weight edits once it has been saved.
+  const grossTotal = perPkgWeight > 0 ? perPkgWeight * qty : (Number(row.total_weight) || 0)
 
   const volumetric = totalCbm * AIR_VOLUMETRIC_PER_CBM
   const chargeable =
@@ -190,7 +193,11 @@ export async function fetchQuoteCargo(quoteId: string): Promise<QuoteCargoLine[]
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>))
 }
 
-export async function saveQuoteCargo(quoteId: string, lines: QuoteCargoLine[]): Promise<void> {
+export async function saveQuoteCargo(
+  quoteId: string,
+  lines: QuoteCargoLine[],
+  mode: 'air' | 'sea' = 'sea',
+): Promise<void> {
   const { error: delErr } = await supabase
     .from('quote_cargo_lines')
     .delete()
@@ -198,30 +205,42 @@ export async function saveQuoteCargo(quoteId: string, lines: QuoteCargoLine[]): 
 
   if (delErr) throw delErr
 
+  // Persist the derived weights/volumes (not just the display) so downstream
+  // consumers — air rate search (gross_wt + total_cbm), PDF, reports — read real
+  // numbers. A value the user typed always wins over the computed one.
   const rows = lines
     .filter((line) => !isEmptyLine(line))
-    .map((line, index) => ({
-      id: line.id,
-      quote_id: quoteId,
-      ord: index,
-      cargo_description: line.cargo_description.trim() || null,
-      package_type: line.package_type.trim() || null,
-      quantity: parseNumField(line.quantity),
-      packages: parseNumField(line.packages),
-      weight_unit: line.weight_unit.trim() || 'KG',
-      per_package_weight: parseNumField(line.per_package_weight),
-      total_weight: parseNumField(line.total_weight),
-      length: parseNumField(line.length),
-      width: parseNumField(line.width),
-      height: parseNumField(line.height),
-      dim_unit: line.dim_unit.trim() || 'CM',
-      volume_cbm: parseNumField(line.volume_cbm),
-      total_cbm: parseNumField(line.total_cbm),
-      volume_wt: parseNumField(line.volume_wt),
-      gross_wt: parseNumField(line.gross_wt),
-      chargeable_wt: parseNumField(line.chargeable_wt),
-      override_chargeable: line.override_chargeable,
-    }))
+    .map((line, index) => {
+      const c = computeCargoLine(line, mode)
+      const hasPerPkg = (Number(line.per_package_weight) || 0) > 0
+      return {
+        id: line.id,
+        quote_id: quoteId,
+        ord: index,
+        cargo_description: line.cargo_description.trim() || null,
+        package_type: line.package_type.trim() || null,
+        quantity: parseNumField(line.quantity),
+        packages: parseNumField(line.packages),
+        weight_unit: line.weight_unit.trim() || 'KG',
+        per_package_weight: parseNumField(line.per_package_weight),
+        // Derived from per-pkg × qty when a per-package weight exists; otherwise
+        // honour a directly-typed total. c.* is the single source of truth so a
+        // stale stored value can never override a fresh qty / weight edit.
+        total_weight: hasPerPkg ? (c.grossTotal || null) : parseNumField(line.total_weight),
+        length: parseNumField(line.length),
+        width: parseNumField(line.width),
+        height: parseNumField(line.height),
+        dim_unit: line.dim_unit.trim() || 'CM',
+        volume_cbm: c.cbm || null,
+        total_cbm: c.totalCbm || null,
+        volume_wt: mode === 'air' && c.totalCbm ? round2(c.totalCbm * 167) : null,
+        gross_wt: c.grossTotal || null,
+        chargeable_wt: line.override_chargeable
+          ? parseNumField(line.chargeable_wt)
+          : (c.chargeable || null),
+        override_chargeable: line.override_chargeable,
+      }
+    })
 
   if (!rows.length) return
 

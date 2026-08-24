@@ -19,6 +19,7 @@ import './quoteResponseLinesGrid.css'
 type Props = {
   lines: QuoteResponseLine[]
   currency: string
+  perKgQty?: number
   onChange: (lines: QuoteResponseLine[]) => void
 }
 
@@ -26,7 +27,7 @@ function fmt(n: number): string {
   return n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Props) {
+export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, onChange }: Props) {
   const { items: units } = useChargeUnits()
   const { items: taxes } = useTaxRates()
   const { items: currencies } = useCurrencies()
@@ -76,6 +77,31 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
   function update(id: string, patch: Partial<QuoteResponseLine>) {
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }
+
+  // Auto-apply live FX: once rates load, fill the ex-rate for any line whose
+  // currency differs from the response currency and hasn't been set yet (still
+  // at the default 1). Manually-entered ex-rates (anything other than 1) are
+  // left untouched. Removes the need to click "Apply live FX" for the common case.
+  useEffect(() => {
+    if (fxLoading || fxRates.size === 0) return
+    let changed = false
+    const next = lines.map((l) => {
+      const p: Partial<QuoteResponseLine> = {}
+      if (l.buy_currency && l.buy_currency !== currency && (l.ex_rate_buy === '' || l.ex_rate_buy === '1')) {
+        const e = exFor(l.buy_currency, 'buy')
+        if (e != null && e !== '1') p.ex_rate_buy = e
+      }
+      if (l.sell_currency && l.sell_currency !== currency && (l.ex_rate_sell === '' || l.ex_rate_sell === '1')) {
+        const e = exFor(l.sell_currency, 'sell')
+        if (e != null && e !== '1') p.ex_rate_sell = e
+      }
+      if (Object.keys(p).length) { changed = true; return { ...l, ...p } }
+      return l
+    })
+    if (changed) onChange(next)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [fxRates, fxLoading, lines, currency])
+
   function addLine() {
     onChange([...lines, newQuoteResponseLine(lines.length, currency)])
   }
@@ -239,7 +265,13 @@ export default function QuoteResponseLinesGrid({ lines, currency, onChange }: Pr
                     )}
                   </td>
                   <td className="qrl-c-group"><RefSelect className="qrl-in" value={l.charge_group} options={groupOptions} allowEmpty={false} onChange={(v) => update(l.id, { charge_group: v ?? 'freight' })} /></td>
-                  <td className="qrl-c-unit"><RefSelect className="qrl-in" value={l.unit} options={unitOptions} placeholder="Unit" onChange={(v) => update(l.id, { unit: v ?? '' })} /></td>
+                  <td className="qrl-c-unit"><RefSelect className="qrl-in" value={l.unit} options={unitOptions} placeholder="Unit"
+                    onChange={(v) => {
+                      const u = v ?? ''
+                      const p: Partial<QuoteResponseLine> = { unit: u }
+                      if (u === 'per_kg' && perKgQty && perKgQty > 0) p.qty = String(perKgQty)
+                      update(l.id, p)
+                    }} /></td>
                   <td className="qrl-c-num">{numInput(l.qty, (v) => update(l.id, { qty: v }))}</td>
                   <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.buy_currency} options={curOptions} allowEmpty={false}
                     onChange={(v) => {

@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { X } from 'lucide-react'
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
+import AirlineSelect from '../../components/bookings/AirlineSelect'
+import IataPortSelect from '../../components/bookings/IataPortSelect'
 import { useShippingLines, useCurrencies, useTaxRates } from '../../hooks/useQuoteRefData'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
 import {
@@ -11,6 +13,7 @@ import {
   type QuoteResponseRecord,
 } from './quoteResponsesApi'
 import { fetchQuote, type QuoteRecord } from './quotesApi'
+import { fetchQuoteCargo, computeCargoLine } from './quoteCargoApi'
 import QuoteResponseLinesGrid from './QuoteResponseLinesGrid'
 import {
   fetchQuoteResponseLines,
@@ -33,6 +36,10 @@ function headerFromRecord(r: QuoteResponseRecord): QuoteResponseHeader {
   return header
 }
 
+function quoteIsAir(type: string | null, mode: string | null): boolean {
+  return (type ?? '').toUpperCase() === 'AIR' || /air/i.test(mode ?? '')
+}
+
 function fmtMoney(n: number): string {
   return n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
@@ -51,12 +58,17 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
   const [response, setResponse] = useState<QuoteResponseRecord | null>(null)
   const [header, setHeader] = useState<QuoteResponseHeader | null>(null)
   const [lines, setLines] = useState<QuoteResponseLine[]>([])
+  // Quote chargeable weight (air) / gross weight (other) — used to auto-fill the
+  // Qty of any Per-KG charge line.
+  const [perKgQty, setPerKgQty] = useState(0)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
   const { items: shippingLines } = useShippingLines()
   const { items: currencies } = useCurrencies()
   const { ports } = useSeaPorts()
+
+  const isAir = quoteIsAir(quote?.shipment_type ?? null, quote?.shipment_mode ?? null)
 
   const shippingLineOptions = useMemo(
     () => shippingLines.map((s) => ({ value: s.name, label: s.name })),
@@ -82,15 +94,26 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [q, r, ls] = await Promise.all([
+      const [q, r, ls, cargo] = await Promise.all([
         fetchQuote(quoteId),
         fetchQuoteResponse(responseId),
         fetchQuoteResponseLines(responseId),
+        fetchQuoteCargo(quoteId),
       ])
       setQuote(q)
       setResponse(r)
       setHeader(r ? headerFromRecord(r) : null)
       setLines(ls)
+
+      const airQ = quoteIsAir(q?.shipment_type ?? null, q?.shipment_mode ?? null)
+      let ck = 0
+      for (const cl of cargo) {
+        const cc = computeCargoLine(cl, 'air')
+        ck += airQ
+          ? (cl.override_chargeable ? (Number(cl.chargeable_wt) || 0) : cc.chargeable)
+          : cc.grossTotal
+      }
+      setPerKgQty(Math.round(ck * 100) / 100)
     } catch {
       toast.error('Failed to load response')
     } finally {
@@ -182,12 +205,24 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                 <Field label="ETA">
                   <input type="date" className="nqd-input" value={header.eta ?? ''} onChange={(e) => patch({ eta: e.target.value || null })} />
                 </Field>
-                <Field label="Shipping Line">
-                  <RefSelect className="nqd-input" value={header.carrier} options={shippingLineOptions} placeholder="Select line…" onChange={(v) => patch({ carrier: v })} />
-                </Field>
-                <Field label="Via Port">
-                  <RefSelect className="nqd-input" value={header.via_port} options={portOptions} placeholder="Select port…" onChange={(v) => patch({ via_port: v })} />
-                </Field>
+                {isAir ? (
+                  <Field label="Airline">
+                    <AirlineSelect value={header.carrier ?? ''} onChange={(code, name) => patch({ carrier: name || code || null })} />
+                  </Field>
+                ) : (
+                  <Field label="Shipping Line">
+                    <RefSelect className="nqd-input" value={header.carrier} options={shippingLineOptions} placeholder="Select line…" onChange={(v) => patch({ carrier: v })} />
+                  </Field>
+                )}
+                {isAir ? (
+                  <Field label="Via Airport">
+                    <IataPortSelect value={header.via_port ?? ''} onChange={(v) => patch({ via_port: v || null })} />
+                  </Field>
+                ) : (
+                  <Field label="Via Port">
+                    <RefSelect className="nqd-input" value={header.via_port} options={portOptions} placeholder="Select port…" onChange={(v) => patch({ via_port: v })} />
+                  </Field>
+                )}
 
                 <Field label="Transit Time (Days)">
                   <input type="number" className="nqd-input" value={header.transit_time_days ?? ''} onChange={(e) => patch({ transit_time_days: e.target.value })} />
@@ -200,7 +235,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                 </Field>
               </div>
 
-              <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} onChange={setLines} />
+              <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} onChange={setLines} />
 
               <div className="qrm-totals">
                 <div className="qrm-totrow"><span>Sub Total</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.subTotal)}</span></div>

@@ -86,7 +86,12 @@ export async function createQuoteWithBuyRates(args: {
   await replaceQuoteContainers(quoteId, groups)
   const { id: responseId } = await createQuoteResponse(quoteId)
   await saveQuoteResponseLines(responseId, buildBuyLinesFromOption(args.option, args.containers))
-  if (args.option.currency) await updateQuoteResponseHeader(responseId, { currency: args.option.currency })
+  await updateQuoteResponseHeader(responseId, {
+    ...(args.option.currency ? { currency: args.option.currency } : {}),
+    carrier: args.option.carrierLineName || args.option.carrierName || null,
+    transit_time_days: args.option.transitDays != null ? String(args.option.transitDays) : null,
+    via_port: args.option.via || null,
+  })
   return { quoteId }
 }
 
@@ -165,7 +170,12 @@ export async function createQuoteWithLclBuyRates(args: {
   // LCL: no container groups
   const { id: responseId } = await createQuoteResponse(quoteId)
   await saveQuoteResponseLines(responseId, buildLclBuyLinesFromOption(args.option))
-  if (args.option.currency) await updateQuoteResponseHeader(responseId, { currency: args.option.currency })
+  await updateQuoteResponseHeader(responseId, {
+    ...(args.option.currency ? { currency: args.option.currency } : {}),
+    carrier: args.option.coLoaderName || null,
+    transit_time_days: args.option.transitDays != null ? String(args.option.transitDays) : null,
+    via_port: args.option.via || null,
+  })
   return { quoteId }
 }
 
@@ -237,9 +247,14 @@ export async function createQuoteWithAirBuyRates(args: {
   }
   const { id: quoteId } = await createQuote(draft)
   await updateQuote(quoteId, { cargo_entry_mode: args.cargoEntryMode })
-  await saveQuoteCargo(quoteId, args.cargoLines)
+  await saveQuoteCargo(quoteId, args.cargoLines, 'air')
   const { id: responseId } = await createQuoteResponse(quoteId)
   await saveQuoteResponseLines(responseId, buildAirBuyLinesFromOption(args.option, args.selectedKeys))
-  if (args.option.currency) await updateQuoteResponseHeader(responseId, { currency: args.option.currency })
+  await updateQuoteResponseHeader(responseId, {
+    ...(args.option.currency ? { currency: args.option.currency } : {}),
+    carrier: args.option.airlineName || null,
+    transit_time_days: args.option.transitDays != null ? String(args.option.transitDays) : null,
+    via_port: args.option.via || null,
+  })
   return { quoteId }
 }
