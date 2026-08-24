@@ -4,11 +4,16 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { ChevronDown, Ship } from 'lucide-react'
 import { fetchImportSeaVesselPositions, type VesselPosition } from './vesselMapApi'
+import { fetchBookingVesselRoute } from '../bookingRecord/tracking/vesselRouteApi'
 
 const NAVY = '#0A2472'
+const ROUTE = '#B0264A'
+const ARROW = '#2563EB'
+const PORT = '#F97316'
 const TOKEN = import.meta.env.VITE_MAPBOX_TOKEN as string
 
 type FeatureProps = {
+  booking_id: string
   booking_ref: string
   customer: string
   vessel: string
@@ -25,6 +30,7 @@ function toGeoJSON(
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [Number(r.longitude), Number(r.latitude)] },
       properties: {
+        booking_id: r.booking_id ?? '',
         booking_ref: r.booking_ref ?? '',
         customer: r.customer_name ?? '—',
         vessel: r.vessel ?? '',
@@ -58,6 +64,38 @@ function makeArrow(): ImageData {
   return ctx.getImageData(0, 0, size, size)
 }
 
+/** Upward blue chevron; rotated along the route line by Mapbox. */
+function makeRouteArrow(): ImageData {
+  const s = 18
+  const c = document.createElement('canvas')
+  c.width = s; c.height = s
+  const ctx = c.getContext('2d')!
+  ctx.clearRect(0, 0, s, s)
+  ctx.strokeStyle = ARROW
+  ctx.lineWidth = 2.5
+  ctx.lineCap = 'round'
+  ctx.lineJoin = 'round'
+  ctx.beginPath()
+  ctx.moveTo(4, 12); ctx.lineTo(9, 5); ctx.lineTo(14, 12)
+  ctx.stroke()
+  return ctx.getImageData(0, 0, s, s)
+}
+
+function portPillEl(name: string): HTMLDivElement {
+  const el = document.createElement('div')
+  el.style.cssText = 'display:flex;flex-direction:column;align-items:center;line-height:1'
+  el.innerHTML =
+    `<div style="background:${PORT};color:#fff;font:600 11px system-ui,sans-serif;` +
+    `padding:2px 8px;border-radius:9999px;white-space:nowrap;box-shadow:0 1px 3px rgba(0,0,0,.25)">${name}</div>` +
+    `<div style="width:9px;height:9px;background:${PORT};border:2px solid #fff;border-radius:9999px;` +
+    `margin-top:2px;box-shadow:0 1px 2px rgba(0,0,0,.3)"></div>`
+  return el
+}
+
+const EMPTY_LINE: GeoJSON.Feature<GeoJSON.LineString> = {
+  type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: [] },
+}
+
 function fitToData(map: mapboxgl.Map, rows: VesselPosition[]) {
   if (rows.length === 0) return
   const b = new mapboxgl.LngLatBounds()
@@ -73,6 +111,7 @@ export default function ImportSeaVesselMap() {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const dataRef = useRef<VesselPosition[]>([])
+  const routeMarkersRef = useRef<mapboxgl.Marker[]>([])
   dataRef.current = rows
 
   // Load positions on open, then poll every 60s while the panel stays open.
@@ -110,6 +149,45 @@ export default function ImportSeaVesselMap() {
       setError('Mapbox token missing — set VITE_MAPBOX_TOKEN in .env and Netlify.')
       return
     }
+
+    const clearRoute = (map: mapboxgl.Map) => {
+      const src = map.getSource('board-route') as mapboxgl.GeoJSONSource | undefined
+      if (src) src.setData(EMPTY_LINE)
+      routeMarkersRef.current.forEach((m) => m.remove())
+      routeMarkersRef.current = []
+    }
+
+    const drawRoute = async (map: mapboxgl.Map, bookingId: string) => {
+      if (!bookingId) return
+      try {
+        const d = await fetchBookingVesselRoute(bookingId)
+        if (!mapRef.current) return
+        const src = map.getSource('board-route') as mapboxgl.GeoJSONSource | undefined
+        if (src) {
+          src.setData({
+            type: 'Feature', properties: {},
+            geometry: { type: 'LineString', coordinates: d.route ?? [] },
+          })
+        }
+        routeMarkersRef.current.forEach((m) => m.remove())
+        routeMarkersRef.current = []
+        for (const cp of d.checkpoints ?? []) {
+          const m = new mapboxgl.Marker({ element: portPillEl(cp.name), anchor: 'bottom' })
+            .setLngLat([Number(cp.lng), Number(cp.lat)])
+            .addTo(map)
+          routeMarkersRef.current.push(m)
+        }
+        const b = new mapboxgl.LngLatBounds()
+        let any = false
+        for (const c of d.route ?? []) { b.extend(c as [number, number]); any = true }
+        for (const cp of d.checkpoints ?? []) { b.extend([Number(cp.lng), Number(cp.lat)]); any = true }
+        if (d.current) { b.extend([Number(d.current.longitude), Number(d.current.latitude)]); any = true }
+        if (any) map.fitBounds(b, { padding: 60, maxZoom: 6, duration: 400 })
+      } catch {
+        /* ignore route load failures — the pin stays put */
+      }
+    }
+
     mapboxgl.accessToken = TOKEN
     const map = new mapboxgl.Map({
       container: containerRef.current,
@@ -187,12 +265,33 @@ export default function ImportSeaVesselMap() {
         },
       })
 
+      // Clicked-vessel route, drawn beneath the vessel pins.
+      if (!map.hasImage('board-route-arrow')) map.addImage('board-route-arrow', makeRouteArrow())
+      map.addSource('board-route', { type: 'geojson', data: EMPTY_LINE })
+      map.addLayer({
+        id: 'board-route-line',
+        type: 'line',
+        source: 'board-route',
+        layout: { 'line-cap': 'round', 'line-join': 'round' },
+        paint: { 'line-color': ROUTE, 'line-width': 3, 'line-opacity': 0.9 },
+      }, 'vessel-clusters')
+      map.addLayer({
+        id: 'board-route-arrows',
+        type: 'symbol',
+        source: 'board-route',
+        layout: {
+          'symbol-placement': 'line', 'symbol-spacing': 80,
+          'icon-image': 'board-route-arrow', 'icon-size': 0.9,
+          'icon-rotation-alignment': 'map', 'icon-allow-overlap': true, 'icon-ignore-placement': true,
+        },
+      }, 'vessel-clusters')
+
       map.on('click', 'vessel-clusters', (e) => {
         const f = map.queryRenderedFeatures(e.point, { layers: ['vessel-clusters'] })[0]
         const clusterId = f?.properties?.cluster_id
         const src = map.getSource('vessels') as mapboxgl.GeoJSONSource
         src.getClusterExpansionZoom(clusterId, (err, zoom) => {
-          if (err) return
+          if (err || zoom == null) return
           map.easeTo({
             center: (f.geometry as GeoJSON.Point).coordinates as [number, number],
             zoom,
@@ -214,6 +313,13 @@ export default function ImportSeaVesselMap() {
             }<br/><span style="color:#64748b">${p.booking_ref} · ${seen}</span></div>`,
           )
           .addTo(map)
+        void drawRoute(map, p.booking_id)
+      })
+
+      // Click on open water clears the drawn route.
+      map.on('click', (e) => {
+        const hits = map.queryRenderedFeatures(e.point, { layers: ['vessel-points', 'vessel-clusters'] })
+        if (hits.length === 0) clearRoute(map)
       })
 
       for (const layer of ['vessel-clusters', 'vessel-points']) {
@@ -229,6 +335,8 @@ export default function ImportSeaVesselMap() {
     })
 
     return () => {
+      routeMarkersRef.current.forEach((m) => m.remove())
+      routeMarkersRef.current = []
       map.remove()
       mapRef.current = null
     }
@@ -287,6 +395,11 @@ export default function ImportSeaVesselMap() {
             <div style={overlayStyle}>
               No live vessel positions for active jobs yet. A pin appears once a booking has a vessel
               name that matches a SeaVantage/AIS feed.
+            </div>
+          )}
+          {!loading && !error && count > 0 && (
+            <div style={{ ...overlayStyle, bottom: 'auto', top: 12 }}>
+              Click a vessel to trace its route · click open water to clear
             </div>
           )}
           {error && <div style={{ ...overlayStyle, color: '#b91c1c' }}>{error}</div>}
