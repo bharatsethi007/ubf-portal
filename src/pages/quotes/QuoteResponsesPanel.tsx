@@ -12,6 +12,7 @@ import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi
 import QuoteResponseModal from './QuoteResponseModal'
 import QuoteVendorRates from './QuoteVendorRates'
 import QuoteRequestRates from './QuoteRequestRates'
+import QuoteAudit from './QuoteAudit'
 import { saveQuoteResponseLines } from './quoteResponseLinesApi'
 import RateSearchModal from '../rates/RateSearchModal'
 import { buildBuyLinesFromOption, buildLclBuyLinesFromOption } from '../rates/quoteFromRate'
@@ -231,7 +232,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
         <QuoteRequestRates quoteId={quoteId} />
       )}
       {tab === 'audit' && (
-        <p className="qr-placeholder">Response history will appear here.</p>
+        <QuoteAudit quoteId={quoteId} />
       )}
 
       {openId && (

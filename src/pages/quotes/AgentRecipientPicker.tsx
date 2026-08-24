@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useState, type CSSProperties } from 'react'
 import { toast } from 'sonner'
+import { BadgeCheck } from 'lucide-react'
 import {
   searchAgentDirectory, searchCustomers,
   type Recipient, type DirectoryAgent, type DirectoryCustomer,
@@ -14,6 +15,10 @@ type Props = {
 }
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+const ghost: CSSProperties = { marginTop: 0, width: 'auto', height: 28, padding: '0 12px', fontSize: 12 }
+const label: CSSProperties = { fontSize: 12, color: 'var(--muted-foreground)' }
+const metaPill: CSSProperties = { background: '#EEF4FF', color: '#0A2472', border: '1px solid rgba(10,36,114,.08)', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 500 }
+const mutedPill: CSSProperties = { background: '#F2F4F7', color: '#667085', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 500 }
 
 export default function AgentRecipientPicker({ agentCountry, agentEnd, existing, onAdd, onClose }: Props) {
   const [mode, setMode] = useState<'agents' | 'extended'>('agents')
@@ -65,31 +70,30 @@ export default function AgentRecipientPicker({ agentCountry, agentEnd, existing,
     setMName(''); setMEmail(''); toast.success(`Added ${email}`)
   }
 
-  const chip = (t: string, bg: string, color: string) => (
-    <span style={{ background: bg, color, borderRadius: 999, padding: '1px 8px', fontSize: 11, fontWeight: 600 }}>{t}</span>
-  )
-  const tabBtn = (m: 'agents' | 'extended', label: string) => (
-    <button className="btn" onClick={() => setMode(m)}
-      style={{ padding: '5px 12px', fontSize: 13, background: mode === m ? '#0A2472' : 'transparent', color: mode === m ? '#fff' : 'var(--muted-foreground)' }}>{label}</button>
+  const tabBtn = (m: 'agents' | 'extended', text: string) => (
+    <button onClick={() => setMode(m)} style={{
+      border: 'none', background: mode === m ? '#EEF4FF' : 'transparent', color: mode === m ? '#0A2472' : 'var(--muted-foreground)',
+      padding: '5px 12px', fontSize: 13, fontWeight: 500, borderRadius: 6, cursor: 'pointer',
+    }}>{text}</button>
   )
 
   return (
-    <div style={{ position: 'fixed', inset: 0, background: 'rgba(10,17,40,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 12, maxWidth: 560, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 10px 40px rgba(0,0,0,0.2)' }}>
-        <div style={{ padding: '16px 18px 8px' }}>
-          <h3 style={{ margin: '0 0 2px', fontSize: 16, fontWeight: 600, color: '#0A2472' }}>Add recipients</h3>
-          <p style={{ margin: '0 0 12px', fontSize: 12, color: 'var(--muted-foreground)' }}>
-            Agent at {agentEnd === 'origin' ? 'origin' : 'destination'}{agentCountry ? ` · ${agentCountry}` : ''}
-          </p>
-          <div style={{ display: 'flex', gap: 6, marginBottom: 10 }}>{tabBtn('agents', 'Our agents')}{tabBtn('extended', 'Extended (all customers)')}</div>
-          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10, fontSize: 12 }}>
+    <div style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, maxWidth: 560, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 12px 40px rgba(16,24,40,0.16)' }}>
+        <div style={{ padding: '16px 18px 10px' }}>
+          <div style={{ fontSize: 14, color: '#0A2472', fontWeight: 500, marginBottom: 2 }}>Add recipients</div>
+          <p style={{ ...label, margin: '0 0 12px' }}>Agent at {agentEnd === 'origin' ? 'origin' : 'destination'}{agentCountry ? ` · ${agentCountry}` : ''}</p>
+          <div style={{ display: 'inline-flex', gap: 2, marginBottom: 10, border: '1px solid #E4E7EC', borderRadius: 8, padding: 2 }}>
+            {tabBtn('agents', 'Our agents')}{tabBtn('extended', 'Extended (all customers)')}
+          </div>
+          <div style={{ display: 'flex', gap: 14, flexWrap: 'wrap', marginBottom: 10 }}>
             {agentCountry && (
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
                 <input type="checkbox" checked={onlyCountry} onChange={(e) => setOnlyCountry(e.target.checked)} /> Only {agentCountry}
               </label>
             )}
             {mode === 'agents' && (
-              <label style={{ display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
+              <label style={{ ...label, display: 'flex', gap: 6, alignItems: 'center', cursor: 'pointer' }}>
                 <input type="checkbox" checked={trustedOnly} onChange={(e) => setTrustedOnly(e.target.checked)} /> Trusted only
               </label>
             )}
@@ -98,62 +102,64 @@ export default function AgentRecipientPicker({ agentCountry, agentEnd, existing,
         </div>
 
         <div style={{ overflowY: 'auto', padding: '0 18px', flex: 1 }}>
-          {loading && <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Searching…</p>}
+          {loading && <p style={label}>Searching…</p>}
 
           {!loading && mode === 'agents' && agents.length === 0 && (
-            <p style={{ fontSize: 12, color: '#B4791F' }}>
-              No agents{onlyCountry && agentCountry ? ` in ${agentCountry}` : ''}. Try Extended (all customers) or add a recipient manually below.
-            </p>
+            <p style={{ ...label, color: '#B4791F' }}>No agents{onlyCountry && agentCountry ? ` in ${agentCountry}` : ''}. Try Extended (all customers) or add a recipient manually below.</p>
           )}
           {!loading && mode === 'agents' && agents.map((a) => {
             const disabled = !a.email
             return (
-              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid #F0F1F5' }}>
+              <div key={a.id} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid #F2F4F7' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{a.name}</span>
-                    {a.trusted && chip('Trusted', '#FCEFD6', '#B4791F')}
-                    {a.country && chip(a.country, '#EEF1FB', '#0A2472')}
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{a.name}</span>
+                    {a.trusted && (
+                      <span title="Trusted" style={{ display: 'inline-flex' }}>
+                        <BadgeCheck size={15} color="#0A2472" />
+                      </span>
+                    )}
+                    {a.country && <span style={metaPill}>{a.country}</span>}
                   </div>
-                  <div style={{ fontSize: 11, color: disabled ? '#B23B3B' : 'var(--muted-foreground)' }}>{a.email ?? 'No email on file — add manually below'}</div>
+                  <div style={{ fontSize: 11, color: disabled ? '#B42318' : 'var(--muted-foreground)' }}>{a.email ?? 'No email on file — add manually below'}</div>
                 </div>
-                <button className="btn" disabled={disabled} onClick={() => add({ key: crypto.randomUUID(), source: 'agent', agentId: a.id, accountId: null, name: a.contactName || a.name, email: a.email! })}
-                  style={{ padding: '4px 12px', fontSize: 12, opacity: disabled ? 0.4 : 1 }}>Add</button>
+                <button className="btn btn--ghost btn--inline" disabled={disabled} style={ghost}
+                  onClick={() => add({ key: crypto.randomUUID(), source: 'agent', agentId: a.id, accountId: null, name: a.contactName || a.name, email: a.email! })}>Add</button>
               </div>
             )
           })}
 
           {!loading && mode === 'extended' && customers.length === 0 && (
-            <p style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>No customers match. Add a recipient manually below.</p>
+            <p style={label}>No customers match. Add a recipient manually below.</p>
           )}
           {!loading && mode === 'extended' && customers.map((c) => {
             const disabled = !c.email
             return (
-              <div key={c.accountId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid #F0F1F5' }}>
+              <div key={c.accountId} style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 0', borderBottom: '1px solid #F2F4F7' }}>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{ display: 'flex', gap: 6, alignItems: 'center', flexWrap: 'wrap' }}>
-                    <span style={{ fontSize: 13, fontWeight: 600 }}>{c.name}</span>
-                    {c.country && chip(c.country, '#EEF1FB', '#0A2472')}
-                    {chip(c.accountId, '#F0F1F5', '#555')}
+                    <span style={{ fontSize: 13, fontWeight: 500 }}>{c.name}</span>
+                    {c.country && <span style={metaPill}>{c.country}</span>}
+                    <span style={mutedPill}>{c.accountId}</span>
                   </div>
-                  <div style={{ fontSize: 11, color: disabled ? '#B23B3B' : 'var(--muted-foreground)' }}>{c.email ?? 'No email on file — add manually below'}</div>
+                  <div style={{ fontSize: 11, color: disabled ? '#B42318' : 'var(--muted-foreground)' }}>{c.email ?? 'No email on file — add manually below'}</div>
                 </div>
-                <button className="btn" disabled={disabled} onClick={() => add({ key: crypto.randomUUID(), source: 'customer', agentId: null, accountId: c.accountId, name: c.contactName || c.name, email: c.email! })}
-                  style={{ padding: '4px 12px', fontSize: 12, opacity: disabled ? 0.4 : 1 }}>Add</button>
+                <button className="btn btn--ghost btn--inline" disabled={disabled} style={ghost}
+                  onClick={() => add({ key: crypto.randomUUID(), source: 'customer', agentId: null, accountId: c.accountId, name: c.contactName || c.name, email: c.email! })}>Add</button>
               </div>
             )
           })}
         </div>
 
-        <div style={{ padding: '10px 18px 16px', borderTop: '1px solid #F0F1F5' }}>
-          <div style={{ fontSize: 11, color: 'var(--muted-foreground)', marginBottom: 6 }}>Add manually</div>
+        <div style={{ padding: '12px 18px 16px', borderTop: '1px solid #F2F4F7' }}>
+          <div style={{ ...label, marginBottom: 6 }}>Add manually</div>
           <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
             <input className="input" placeholder="Name (optional)" value={mName} onChange={(e) => setMName(e.target.value)} style={{ flex: '1 1 140px' }} />
             <input className="input" placeholder="email@example.com" value={mEmail} onChange={(e) => setMEmail(e.target.value)} style={{ flex: '1 1 180px' }} />
-            <button className="btn" onClick={addManual} style={{ background: '#0A2472', color: '#fff', padding: '6px 14px' }}>Add</button>
+            <button className="btn btn--ghost btn--inline" onClick={addManual} style={ghost}>Add</button>
           </div>
           <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 12 }}>
-            <button className="btn" onClick={onClose} style={{ padding: '6px 16px' }}>Done</button>
+            <button className="btn btn--ghost btn--inline" onClick={onClose} style={ghost}>Done</button>
           </div>
         </div>
       </div>

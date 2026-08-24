@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useState, type CSSProperties } from 'react'
 import { Plus, X, Send, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -8,11 +8,10 @@ import {
 } from './rateRequestApi'
 import AgentRecipientPicker from './AgentRecipientPicker'
 
-const SRC_STYLE: Record<Recipient['source'], { bg: string; color: string; label: string }> = {
-  agent: { bg: '#EEF1FB', color: '#0A2472', label: 'Agent' },
-  customer: { bg: '#F0F1F5', color: '#555', label: 'Customer' },
-  manual: { bg: '#FCEFD6', color: '#B4791F', label: 'Manual' },
-}
+const ghost: CSSProperties = { marginTop: 0, width: 'auto', height: 30, padding: '0 12px', fontSize: 13, display: 'inline-flex', alignItems: 'center', gap: 6 }
+const primary: CSSProperties = { ...ghost, padding: '0 14px', background: '#0A2472', color: '#fff', border: '1px solid #0A2472' }
+const label: CSSProperties = { fontSize: 12, color: 'var(--muted-foreground)' }
+const srcPill: CSSProperties = { background: '#F2F4F7', color: '#667085', borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 500 }
 
 function fmtWhen(iso: string | null): string {
   if (!iso) return ''
@@ -93,76 +92,70 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
   const busy = saving || sending
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <span style={{ fontSize: 13, fontWeight: 600, color: '#0A2472' }}>{ctx.polCode} → {ctx.podCode}</span>
-        <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>{ctx.modeLabel} · {ctx.incoterm} · {ctx.movement === 'export' ? 'Export' : 'Import'}</span>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 14, maxWidth: 760 }}>
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'baseline' }}>
+        <span style={{ fontSize: 13, color: '#0A2472', fontWeight: 500 }}>{ctx.polCode} → {ctx.podCode}</span>
+        <span style={label}>{ctx.modeLabel} · {ctx.incoterm} · {ctx.movement === 'export' ? 'Export' : 'Import'}</span>
       </div>
 
-      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, fontSize: 12, alignItems: 'center' }}>
-        <span style={{ color: 'var(--muted-foreground)' }}>
-          Requesting from agent at {ctx.agentEnd === 'origin' ? 'origin' : 'destination'} ({ctx.agentCountry ?? '—'}):
-        </span>
-        {askChips.length ? askChips.map((c) => (
-          <span key={c} style={{ background: '#EEF1FB', color: '#0A2472', borderRadius: 999, padding: '2px 10px', fontWeight: 600 }}>{c}</span>
-        )) : <span style={{ color: '#B4791F' }}>No agent charges needed for this incoterm — UBF prices this lane locally.</span>}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
+        <span style={label}>Requesting from agent at {ctx.agentEnd === 'origin' ? 'origin' : 'destination'} ({ctx.agentCountry ?? '—'}):</span>
+        {askChips.length ? askChips.map((c) => (<span key={c} className="hdr-pill">{c}</span>))
+          : <span style={{ ...label, color: '#B4791F' }}>No agent charges needed for this incoterm — UBF prices this lane locally.</span>}
       </div>
       {ctx.ruleNote && <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>{ctx.ruleNote}</p>}
 
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-          <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Recipients ({recipients.length})</span>
-          <button className="btn" onClick={() => setPickerOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: 12 }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <span style={label}>Recipients ({recipients.length})</span>
+          <button className="btn btn--ghost btn--inline" onClick={() => setPickerOpen(true)} style={ghost}>
             <Plus size={14} /> Add recipients
           </button>
         </div>
         {recipients.length === 0 ? (
-          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>No recipients yet — pick agents, search the customer database, or add an email manually.</p>
+          <p style={{ ...label, margin: 0 }}>No recipients yet — pick agents, search the customer database, or add an email manually.</p>
         ) : (
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
-            {recipients.map((r) => {
-              const s = SRC_STYLE[r.source]
-              return (
-                <span key={r.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #E3E5EC', borderRadius: 8, padding: '4px 8px', fontSize: 12 }}>
-                  <span style={{ background: s.bg, color: s.color, borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 600 }}>{s.label}</span>
-                  <span>{r.name ? `${r.name} · ` : ''}{r.email}</span>
-                  <button onClick={() => setRecipients((xs) => xs.filter((x) => x.key !== r.key))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', display: 'inline-flex', padding: 0 }} aria-label="Remove">
-                    <X size={13} />
-                  </button>
-                </span>
-              )
-            })}
+            {recipients.map((r) => (
+              <span key={r.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #E4E7EC', borderRadius: 6, padding: '3px 8px', fontSize: 12 }}>
+                <span style={srcPill}>{r.source}</span>
+                <span>{r.name ? `${r.name} · ` : ''}{r.email}</span>
+                <button onClick={() => setRecipients((xs) => xs.filter((x) => x.key !== r.key))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#98A2B3', display: 'inline-flex', padding: 0 }} aria-label="Remove">
+                  <X size={13} />
+                </button>
+              </span>
+            ))}
           </div>
         )}
       </div>
 
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-        <span style={{ color: 'var(--muted-foreground)' }}>Subject</span>
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={label}>Subject</span>
         <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} />
       </label>
-      <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-        <span style={{ color: 'var(--muted-foreground)' }}>Email body</span>
-        <textarea className="input" style={{ minHeight: 260, fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5 }} value={body} onChange={(e) => setBody(e.target.value)} />
+      <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+        <span style={label}>Email body</span>
+        <textarea className="input" style={{ minHeight: 240, fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5 }} value={body} onChange={(e) => setBody(e.target.value)} />
       </label>
 
       <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
-        <button className="btn" onClick={handleSaveDraft} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 14px', fontSize: 13 }}>
+        <button className="btn btn--ghost btn--inline" onClick={handleSaveDraft} disabled={busy} style={ghost}>
           <Save size={14} /> {saving ? 'Saving…' : 'Save draft'}
         </button>
-        <button className="btn" onClick={handleSend} disabled={busy} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, padding: '7px 16px', fontSize: 13, background: '#0A2472', color: '#fff', opacity: busy ? 0.6 : 1 }}>
+        <button className="btn btn--inline" onClick={handleSend} disabled={busy} style={primary}>
           <Send size={14} /> {sending ? 'Sending…' : 'Send request'}
         </button>
       </div>
 
       {history.length > 0 && (
         <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 4 }}>
-          <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Request history</span>
+          <span style={label}>Request history</span>
           {history.map((h) => (
-            <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, border: '1px solid #EEF0F4', borderRadius: 8, padding: '6px 10px' }}>
-              <span style={{ background: h.status === 'sent' ? '#E6F4EC' : '#F0F1F5', color: h.status === 'sent' ? '#1F8A4C' : '#555', borderRadius: 999, padding: '1px 8px', fontSize: 10, fontWeight: 600, textTransform: 'capitalize' }}>{h.status}</span>
+            <div key={h.id} style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 12, border: '1px solid #EEF0F4', borderRadius: 6, padding: '6px 10px' }}>
+              <span style={{ ...srcPill, ...(h.status === 'sent' ? { background: '#ECFDF3', color: '#027A48' } : {}), textTransform: 'capitalize' }}>{h.status}</span>
               <span style={{ flex: 1, minWidth: 0, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{h.subject ?? '(no subject)'}</span>
-              <span style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>{h.recipientCount} recipient{h.recipientCount === 1 ? '' : 's'}</span>
-              <span style={{ color: 'var(--muted-foreground)', whiteSpace: 'nowrap' }}>{fmtWhen(h.sentAt ?? h.createdAt)}</span>
+              <span style={{ ...label, whiteSpace: 'nowrap' }}>{h.recipientCount} recipient{h.recipientCount === 1 ? '' : 's'}</span>
+              <span style={{ ...label, whiteSpace: 'nowrap' }}>{fmtWhen(h.sentAt ?? h.createdAt)}</span>
             </div>
           ))}
         </div>
