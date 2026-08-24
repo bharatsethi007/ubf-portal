@@ -3,7 +3,8 @@ import { PDFViewer, PDFDownloadLink } from '@react-pdf/renderer'
 import { toast } from 'sonner'
 import { supabase } from '../../supabase'
 import { useChargeUnits, useTaxRates, useChargeGroups } from '../../hooks/useQuoteRefData'
-import { useSeaPorts } from '../../hooks/useSeaPorts'
+import { usePorts } from '../../hooks/usePorts'
+import { resolvePortLabel, resolvePortCountryCode } from '../../features/portal/dashboard/portalPortDisplay'
 import { fetchQuote, type QuoteRecord } from './quotesApi'
 import { fetchQuoteResponse } from './quoteResponsesApi'
 import { fetchQuoteResponseLines } from './quoteResponseLinesApi'
@@ -40,7 +41,7 @@ export default function QuotePreviewTab({ quoteId, responses }: Props) {
   const { items: units } = useChargeUnits()
   const { items: taxes } = useTaxRates()
   const { items: chargeGroups } = useChargeGroups()
-  const { ports } = useSeaPorts()
+  const { ports } = usePorts()
 
   useEffect(() => {
     if (!responses.length) { setQuote(null); setResponseInputs([]); return }
@@ -81,15 +82,14 @@ export default function QuotePreviewTab({ quoteId, responses }: Props) {
     const taxMap = new Map(taxes.map((t) => [t.code, t.label]))
     const taxRateByCode: Record<string, number> = {}
     for (const t of taxes) taxRateByCode[t.code] = t.rate_pct
-    const portMap = new Map(ports.map((p) => [p.code, p]))
     return {
       unitLabel: (c) => unitMap.get(c) ?? c,
       taxLabel: (c) => taxMap.get(c) ?? c,
       taxRateByCode,
       port: (code) => {
         if (!code) return null
-        const p = portMap.get(code)
-        return p ? { code: p.code, name: p.name, cc: p.country_code } : { code, name: code, cc: null }
+        const cc = resolvePortCountryCode(code, null, ports)
+        return { code: code.toUpperCase(), name: resolvePortLabel(code, null, ports), cc: cc && cc !== 'un' ? cc : null }
       },
       chargeGroups,
     }

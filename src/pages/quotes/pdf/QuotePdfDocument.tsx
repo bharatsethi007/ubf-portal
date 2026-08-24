@@ -1,4 +1,4 @@
-import { Document, Page, View, Text, Image, Svg, Path, Line, StyleSheet } from '@react-pdf/renderer'
+import { Document, Page, View, Text, Image, Svg, Path, Line, G, StyleSheet } from '@react-pdf/renderer'
 import { QUOTE_TERMS } from './quoteTerms'
 import type { QuotePdfData, PdfOption } from './buildQuotePdfData'
 
@@ -36,6 +36,11 @@ const s = StyleSheet.create({
   totalRow: { borderTop: '0.75 solid ' + NAVY, backgroundColor: SOFT },
   grpRow: { backgroundColor: SOFT },
   grpCell: { color: NAVY, fontWeight: 700, fontSize: 7, letterSpacing: 0.3, paddingVertical: 3.5, paddingHorizontal: 4 },
+  tagsWrap: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 8 },
+  tagsLabel: { color: ORANGE, fontWeight: 700, fontSize: 6.6, letterSpacing: 0.4, marginRight: 10, marginBottom: 4 },
+  chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eef2f7', borderRadius: 10, paddingVertical: 2.5, paddingHorizontal: 8, marginRight: 6, marginBottom: 4 },
+  chipDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: ORANGE, marginRight: 5 },
+  chipTxt: { fontSize: 7.2, color: NAVY, fontWeight: 600 },
   totLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
   totK: { color: MUTE, fontSize: 8, fontWeight: 500 },
   totV: { color: BLACK, fontWeight: 600, fontSize: 8 },
@@ -93,7 +98,11 @@ function MidIcon({ mode }: { mode: 'air' | 'sea' }) {
   return (
     <View style={s.routeMid}>
       {mode === 'air' ? (
-        <Svg width={20} height={20} viewBox="0 0 24 24"><Path d="M2.5 19l19-7L2.5 5l0 5.2 12 1.8-12 1.8z" fill={NAVY} /></Svg>
+        <Svg width={20} height={20} viewBox="0 0 24 24">
+          <G transform="rotate(90, 12, 12)">
+            <Path d="M21 16v-2l-8-5V3.5c0-.83-.67-1.5-1.5-1.5S10 2.67 10 3.5V9l-8 5v2l8-2.5V19l-2 1.5V22l3.5-1 3.5 1v-1.5L13 19v-5.5l8 2.5z" fill={NAVY} />
+          </G>
+        </Svg>
       ) : (
         <Svg width={22} height={22} viewBox="0 0 24 24">
           <Path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 2.6 0 2.4 2 5 2 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1" fill="none" stroke={NAVY} strokeWidth={1.4} strokeLinecap="round" strokeLinejoin="round" />
@@ -102,6 +111,21 @@ function MidIcon({ mode }: { mode: 'air' | 'sea' }) {
         </Svg>
       )}
       <Svg width="100%" height={4} style={{ marginTop: 2 }}><Line x1={0} y1={2} x2={400} y2={2} stroke={LINE} strokeWidth={1} /></Svg>
+    </View>
+  )
+}
+
+function CargoTags({ tags }: { tags: string[] }) {
+  if (!tags.length) return null
+  return (
+    <View style={s.tagsWrap}>
+      <Text style={s.tagsLabel}>CARGO OPTIONS</Text>
+      {tags.map((t, i) => (
+        <View key={i} style={s.chip}>
+          <View style={s.chipDot} />
+          <Text style={s.chipTxt}>{t}</Text>
+        </View>
+      ))}
     </View>
   )
 }
@@ -205,33 +229,24 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
             {data.isFcl ? (
               <>
                 <View style={[s.tRow, s.tHead]}>
-                  <Text style={[s.tHeadCell, { flex: 2.4 }]}>DESCRIPTION</Text>
-                  <Text style={[s.tHeadCell, { flex: 2.0 }]}>PACKAGE TYPE</Text>
-                  <Text style={[s.tHeadCell, { flex: 1.1 }]}>GROSS WEIGHT</Text>
-                  <Text style={[s.tHeadCell, { flex: 1.0 }]}>VOLUME (CBM)</Text>
-                  <Text style={[s.tHeadCell, { flex: 0.9 }]}>INSURANCE</Text>
-                  <Text style={[s.tHeadCell, { flex: 0.7 }]}>DG</Text>
-                  <Text style={[s.tHeadCell, { flex: 0.9 }]}>STACK</Text>
+                  <Text style={[s.tHeadCell, { flex: 2.8 }]}>DESCRIPTION</Text>
+                  <Text style={[s.tHeadCell, { flex: 2.4 }]}>PACKAGE TYPE</Text>
+                  <Text style={[s.tHeadCell, { flex: 1.2 }]}>GROSS WEIGHT</Text>
+                  <Text style={[s.tHeadCell, { flex: 1.1 }]}>VOLUME (CBM)</Text>
                 </View>
                 {data.commodities.map((c, i) => (
                   <View key={i} style={[s.tRow, s.tRowB]}>
-                    <Text style={[s.tCell, { flex: 2.4 }]}>{c.desc || ' '}</Text>
-                    <Text style={[s.tCell, { flex: 2.0 }]}>{c.pkg}</Text>
-                    <Text style={[s.tCell, { flex: 1.1 }]}>{c.gross}</Text>
-                    <Text style={[s.tCell, { flex: 1.0 }]}>{c.vol}</Text>
-                    <Text style={[s.tCell, { flex: 0.9 }]}>{data.cargoFlags.insurance}</Text>
-                    <Text style={[s.tCell, { flex: 0.7 }]}>{data.cargoFlags.dg}</Text>
-                    <Text style={[s.tCell, { flex: 0.9 }]}>{data.cargoFlags.stackable}</Text>
+                    <Text style={[s.tCell, { flex: 2.8 }]}>{c.desc || ' '}</Text>
+                    <Text style={[s.tCell, { flex: 2.4 }]}>{c.pkg}</Text>
+                    <Text style={[s.tCell, { flex: 1.2 }]}>{c.gross}</Text>
+                    <Text style={[s.tCell, { flex: 1.1 }]}>{c.vol}</Text>
                   </View>
                 ))}
                 <View style={[s.tRow, s.totalRow]}>
-                  <Text style={[s.tCell, { flex: 2.4, fontWeight: 700 }]}>TOTAL</Text>
-                  <Text style={[s.tCell, { flex: 2.0, fontWeight: 700 }]}>{data.commTotal.units}</Text>
-                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.gross}</Text>
-                  <Text style={[s.tCell, { flex: 1.0, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
-                  <Text style={[s.tCell, { flex: 0.9, fontWeight: 700 }]}>{''}</Text>
-                  <Text style={[s.tCell, { flex: 0.7, fontWeight: 700 }]}>{''}</Text>
-                  <Text style={[s.tCell, { flex: 0.9, fontWeight: 700 }]}>{''}</Text>
+                  <Text style={[s.tCell, { flex: 2.8, fontWeight: 700 }]}>TOTAL</Text>
+                  <Text style={[s.tCell, { flex: 2.4, fontWeight: 700 }]}>{data.commTotal.units}</Text>
+                  <Text style={[s.tCell, { flex: 1.2, fontWeight: 700 }]}>{data.commTotal.gross}</Text>
+                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
                 </View>
               </>
             ) : (
@@ -261,6 +276,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                 </View>
               </>
             )}
+            <CargoTags tags={data.cargoTags} />
           </>
         )}
 

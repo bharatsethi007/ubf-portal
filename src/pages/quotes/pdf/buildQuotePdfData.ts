@@ -37,7 +37,7 @@ export type QuotePdfData = {
   commodities: { desc: string; pkg: string; gross: string; vol: string; chg: string }[]
   commTotal: { units: string; gross: string; vol: string; chg: string }
   isFcl: boolean
-  cargoFlags: { insurance: string; dg: string; stackable: string }
+  cargoTags: string[]
   quoteDate: string
   options: PdfOption[]
   externalNote: string
@@ -108,6 +108,18 @@ function buildOption(input: PdfResponseInput, index: number, refs: PdfRefs): Pdf
     total: money(currency, totals.subTotal + totals.totalTax),
     notes,
   }
+}
+
+function buildCargoTags(quote: QuoteRecord): string[] {
+  const tags: string[] = []
+  if (quote.need_insurance) tags.push('Insurance included')
+  if (quote.need_refrigeration) tags.push(quote.reefer_temp_c != null ? `Reefer ${quote.reefer_temp_c}\u00B0C` : 'Temperature controlled')
+  if (quote.is_hazardous) {
+    const dg = [quote.dg_class ? `Class ${quote.dg_class}` : '', quote.dg_un_number ? `UN${quote.dg_un_number}` : ''].filter(Boolean).join(' / ')
+    tags.push(dg ? `Dangerous goods \u2014 ${dg}` : 'Dangerous goods')
+  }
+  if (quote.stackable === 'true') tags.push('Stackable')
+  return tags
 }
 
 export function buildQuotePdfData(
@@ -189,11 +201,7 @@ export function buildQuotePdfData(
     commodities,
     commTotal,
     isFcl,
-    cargoFlags: {
-      insurance: quote.need_insurance ? 'Yes' : 'No',
-      dg: quote.is_hazardous ? 'Yes' : 'No',
-      stackable: quote.stackable === 'true' ? 'Yes' : 'No',
-    },
+    cargoTags: buildCargoTags(quote),
     quoteDate,
     options,
     externalNote: (quote.external_notes || '').trim(),
