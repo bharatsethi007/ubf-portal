@@ -8,6 +8,22 @@ import AirLinesGrid from './AirLinesGrid'
 import { insertAirLines, type AirLineDraft } from '../airRatesApi'
 
 type SheetData = { name: string; rows: string[][] }
+
+// Trim an XLSX sheet (parsed with defval:'') to its real bounding box: drop
+// fully-empty rows and trailing empty columns. Excel's used range is often
+// padded far past the real data, and sending that bloat balloons the parse
+// prompt and can time out the Edge Function. Cap rows as a final guard.
+const MAX_PARSE_ROWS = 300
+function trimSheet(rows: string[][]): string[][] {
+  const nonEmpty = rows.filter((r) => r.some((c) => (c ?? '').toString().trim() !== ''))
+  let maxCol = 0
+  for (const r of nonEmpty) {
+    for (let i = r.length - 1; i >= 0; i--) {
+      if ((r[i] ?? '').toString().trim() !== '') { if (i + 1 > maxCol) maxCol = i + 1; break }
+    }
+  }
+  return nonEmpty.slice(0, MAX_PARSE_ROWS).map((r) => r.slice(0, maxCol).map((c) => (c ?? '').toString()))
+}
 type Props = { cardId: string; defaultCurrency: string; onImported: () => void }
 
 function pickDefaultSheet(names: string[]): string {
@@ -64,7 +80,7 @@ export default function AirExcelImport({ cardId, defaultCurrency, onImported }: 
     setParsing(true)
     try {
       const { data, error } = await supabase.functions.invoke('rate-card-parse-air', {
-        body: { rate_card_id: cardId, sheet: current.rows },
+        body: { rate_card_id: cardId, sheet: trimSheet(current.rows) },
       })
       if (error) throw new Error(error.message || 'Parse failed')
       if (data?.error) throw new Error(data.error)

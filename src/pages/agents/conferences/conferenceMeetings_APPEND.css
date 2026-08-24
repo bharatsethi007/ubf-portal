@@ -1,0 +1,6 @@
+
+/* completed meetings read as a positive/green state */
+.conf-meeting__badge--done {
+  background: #d1fae5;
+  color: #047857;
+}

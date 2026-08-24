@@ -33,6 +33,31 @@ export function chargeLegsFor(
   return legs
 }
 
+// Default forwarder movement scope (origin endpoint → destination endpoint)
+// implied by an incoterm. A single incoterm only fixes one handover point, so
+// these are sensible starting defaults the user can override on the quote:
+//   EXW/FCA  → origin pickup at the door
+//   F*/C*    → port-to-port main carriage
+//   DAP/DPU  → delivered to the destination door
+//   DDP      → full door-to-door
+const SERVICE_TYPE: Record<string, string> = {
+  EXW: 'Door to Port',
+  FCA: 'Door to Port',
+  FAS: 'Port to Port',
+  FOB: 'Port to Port',
+  CFR: 'Port to Port',
+  CIF: 'Port to Port',
+  CPT: 'Port to Port',
+  CIP: 'Port to Port',
+  DAP: 'Port to Door',
+  DPU: 'Port to Door',
+  DDP: 'Door to Door',
+}
+
+export function serviceTypeForIncoterm(incoterm: string | null | undefined): string | null {
+  return SERVICE_TYPE[(incoterm || '').toUpperCase()] ?? null
+}
+
 // Absolute payer per leg (independent of who our customer is): the seller bears the
 // first `pivot` legs, the buyer bears the rest. Drives the Buyer/Seller bubbles.
 export type LegPayer = 'Seller' | 'Buyer'

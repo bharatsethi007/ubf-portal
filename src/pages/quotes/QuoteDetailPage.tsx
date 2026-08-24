@@ -24,6 +24,7 @@ import {
 import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
 import QuoteResponsesPanel from './QuoteResponsesPanel'
+import { serviceTypeForIncoterm } from '../rates/incotermLegs'
 import PartyPicker from './PartyPicker'
 import ExternalNotesField from './ExternalNotesField'
 import './quoteDetailPage.css'
@@ -415,7 +416,7 @@ export default function QuoteDetailPage() {
           </div>
           <div className="nqd-field">
             <span className="nqd-field__label">Incoterms</span>
-            <IncotermSelect value={fields.incoterms ?? ''} onChange={(v) => patch({ incoterms: v || null })} airOnly={isAir} />
+            <IncotermSelect value={fields.incoterms ?? ''} onChange={(v) => patch({ incoterms: v || null, service_type: serviceTypeForIncoterm(v) ?? fields.service_type })} airOnly={isAir} />
           </div>
           <div className="nqd-field">
             <span className="nqd-field__label">Movement type</span>

@@ -21,7 +21,7 @@ import RateOptionCard from '../rates/RateOptionCard'
 import LclRateOptionCard from '../rates/LclRateOptionCard'
 import AirRateOptionCard from '../rates/AirRateOptionCard'
 import { useEffectiveRates } from '../../hooks/useEffectiveRates'
-import { chargeLegsFor } from '../rates/incotermLegs'
+import { chargeLegsFor, serviceTypeForIncoterm } from '../rates/incotermLegs'
 import { overseasOfficeForPort } from '../rates/offices'
 import './newQuoteSearch.css'
 
@@ -200,6 +200,7 @@ export default function NewQuoteSearch() {
     try {
       const payload: QuoteDraft = {
         ...draft,
+        service_type: draft.service_type ?? serviceTypeForIncoterm(draft.incoterms),
         customer_account_id: customer.account_id,
         customer_name: customer.name,
       }
@@ -228,6 +229,8 @@ export default function NewQuoteSearch() {
       toPortCode: lane.to_port_code!,
       containers: lane.containers,
       option: o,
+      movement: draft.movement_type ?? null,
+      incoterm: draft.incoterms ?? null,
     })
     navigate(`/quotes/${quoteId}`)
   }
@@ -240,6 +243,8 @@ export default function NewQuoteSearch() {
       fromPortCode: lane.from_port_code!,
       toPortCode: lane.to_port_code!,
       option: o,
+      movement: draft.movement_type ?? null,
+      incoterm: draft.incoterms ?? null,
     })
     navigate(`/quotes/${quoteId}`)
   }
@@ -254,6 +259,8 @@ export default function NewQuoteSearch() {
         fromPortCode: draft.from_port_code,
         toPortCode: draft.to_port_code,
         option: o,
+        movement: draft.movement_type ?? null,
+        incoterm: draft.incoterms ?? null,
       })
       toast.success('Quote created with LCL buy rates')
       navigate(`/quotes/${quoteId}`)
@@ -273,6 +280,7 @@ export default function NewQuoteSearch() {
         fromPortCode: draft.from_port_code,
         toPortCode: draft.to_port_code,
         incoterm: draft.incoterms ?? null,
+        movement: draft.movement_type ?? null,
         cargoEntryMode: airMode,
         cargoLines: airLines,
         option: o,

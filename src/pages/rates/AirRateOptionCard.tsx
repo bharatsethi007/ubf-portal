@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Plane, Clock, ArrowRight, ChevronDown, CalendarClock } from 'lucide-react'
 import type { AirRateOption, AirRateSurcharge } from './airRateSearchApi'
 import { toNzd, fmtMoney, fmtNzd, type FxRates } from './fx'
+import AirlineLogo from './AirlineLogo.tsx'
 
 function marginColor(m: number | null): string {
   if (m == null) return 'var(--muted-foreground)'
@@ -88,6 +89,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
       <div style={{ display: 'flex', alignItems: 'stretch', gap: 16, padding: '14px 18px' }}>
         <button type="button" onClick={() => setOpen((v) => !v)} style={{ flex: 1, minWidth: 0, textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
+            <AirlineLogo code={o.airlineCode} name={o.airlineName} />
             <span style={{ fontWeight: 600, fontSize: 15 }}>{o.airlineName}</span>
             <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, padding: '2px 8px', borderRadius: 999, background: 'rgba(10,36,114,0.08)', color: '#0A2472' }}>{o.status}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--muted-foreground)' }}><Plane size={13} /> Air · {o.chargeableKg.toLocaleString()} kg</span>

@@ -1,5 +1,6 @@
 import { newQuoteResponseLine, saveQuoteResponseLines, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
 import { createQuote, emptyQuoteDraft, updateQuote } from '../quotes/quotesApi'
+import { serviceTypeForIncoterm } from './incotermLegs'
 import { saveQuoteCargo, type QuoteCargoLine } from '../quotes/quoteCargoApi'
 import { emptyContainerGroup, replaceQuoteContainers, type ContainerSize } from '../quotes/quoteContainersApi'
 import { createQuoteResponse, updateQuoteResponseHeader } from '../quotes/quoteResponsesApi'
@@ -69,11 +70,16 @@ export async function createQuoteWithBuyRates(args: {
   toPortCode: string
   containers: { size: string; qty: number }[]
   option: RateOption
+  movement?: string | null
+  incoterm?: string | null
 }): Promise<{ quoteId: string }> {
   const draft = {
     ...emptyQuoteDraft(),
     from_port_code: args.fromPortCode,
     to_port_code: args.toPortCode,
+    movement_type: args.movement ?? null,
+    incoterms: args.incoterm ?? null,
+    service_type: serviceTypeForIncoterm(args.incoterm),
     customer_account_id: args.customerAccountId,
     customer_name: args.customerName,
   }
@@ -156,6 +162,8 @@ export async function createQuoteWithLclBuyRates(args: {
   fromPortCode: string
   toPortCode: string
   option: LclRateOption
+  movement?: string | null
+  incoterm?: string | null
 }): Promise<{ quoteId: string }> {
   const draft = {
     ...emptyQuoteDraft(),
@@ -163,6 +171,9 @@ export async function createQuoteWithLclBuyRates(args: {
     shipment_type: 'LCL',
     from_port_code: args.fromPortCode,
     to_port_code: args.toPortCode,
+    movement_type: args.movement ?? null,
+    incoterms: args.incoterm ?? null,
+    service_type: serviceTypeForIncoterm(args.incoterm),
     customer_account_id: args.customerAccountId,
     customer_name: args.customerName,
   }
@@ -230,6 +241,7 @@ export async function createQuoteWithAirBuyRates(args: {
   fromPortCode: string
   toPortCode: string
   incoterm: string | null
+  movement?: string | null
   cargoEntryMode: 'total' | 'individual'
   cargoLines: QuoteCargoLine[]
   option: AirRateOption
@@ -242,6 +254,8 @@ export async function createQuoteWithAirBuyRates(args: {
     from_port_code: args.fromPortCode,
     to_port_code: args.toPortCode,
     incoterms: args.incoterm,
+    movement_type: args.movement ?? null,
+    service_type: serviceTypeForIncoterm(args.incoterm),
     customer_account_id: args.customerAccountId,
     customer_name: args.customerName,
   }

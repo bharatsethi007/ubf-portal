@@ -1,0 +1,27 @@
+
+/* --- header control cluster (icon-only: Settings + Desktop/Mobile) --- */
+.conf-hctl__seg {
+  display: inline-flex;
+  align-items: center;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  overflow: hidden;
+  flex-shrink: 0;
+}
+.conf-hctl__btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border: none;
+  background: #fff;
+  color: var(--color-muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.conf-hctl__btn:hover { background: #f8fafc; color: var(--color-ink); }
+.conf-hctl__seg .conf-hctl__btn + .conf-hctl__btn { border-left: 1px solid var(--color-line); }
+.conf-hctl__btn--solo { border: 1px solid var(--color-line); border-radius: 8px; }
+.conf-hctl__btn--on,
+.conf-hctl__btn--on:hover { background: #0a2472; color: #fff; }
