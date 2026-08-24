@@ -11,6 +11,7 @@ import {
 import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
 import QuoteResponseModal from './QuoteResponseModal'
 import QuoteVendorRates from './QuoteVendorRates'
+import QuoteRequestRates from './QuoteRequestRates'
 import { saveQuoteResponseLines } from './quoteResponseLinesApi'
 import RateSearchModal from '../rates/RateSearchModal'
 import { buildBuyLinesFromOption, buildLclBuyLinesFromOption } from '../rates/quoteFromRate'
@@ -215,7 +216,11 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
       )}
 
       {tab === 'vendor' && (
-        <QuoteVendorRates quoteId={quoteId} />
+        <QuoteVendorRates
+          quoteId={quoteId}
+          responses={responses}
+          onChanged={(openId) => { reload(); setTab('responses'); if (openId) setOpenId(openId) }}
+        />
       )}
       {tab === 'preview' && (
         <Suspense fallback={<p className="qr-placeholder">Loading preview…</p>}>
@@ -223,7 +228,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
         </Suspense>
       )}
       {tab === 'request' && (
-        <p className="qr-placeholder">Request rates from agents or vendors here.</p>
+        <QuoteRequestRates quoteId={quoteId} />
       )}
       {tab === 'audit' && (
         <p className="qr-placeholder">Response history will appear here.</p>
