@@ -1,6 +1,8 @@
 import { TooltipProvider } from '@/components/ui/tooltip'
 import TrackingEnablementPanel from './TrackingEnablementPanel'
 import TrackingTabSkeleton from './TrackingTabSkeleton'
+import TrackingRouteHeader from './TrackingRouteHeader'
+import CarrierEventsList from './CarrierEventsList'
 import BookingVesselMap from './BookingVesselMap'
 import type { useBookingTracking } from './useBookingTracking'
 
@@ -64,7 +66,16 @@ export default function BookingTrackingTab({
           onCarrierRefresh={refreshCarrier}
           onPatch={patchSettings}
         />
-        <BookingVesselMap bookingId={bookingId} />
+
+        <div className="grid gap-4 lg:grid-cols-[minmax(0,440px)_minmax(0,1fr)] lg:items-start">
+          <div className="flex min-w-0 flex-col gap-3">
+            <TrackingRouteHeader events={events} />
+            <CarrierEventsList events={events} />
+          </div>
+          <div className="lg:sticky lg:top-4">
+            <BookingVesselMap bookingId={bookingId} />
+          </div>
+        </div>
       </div>
     </TooltipProvider>
   )

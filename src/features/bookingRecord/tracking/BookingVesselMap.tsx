@@ -216,7 +216,7 @@ export default function BookingVesselMap({ bookingId }: { bookingId: string }) {
       {error ? <p className="px-4 py-3 text-sm text-red-600">{error}</p> : null}
 
       <div className="relative">
-        <div ref={containerRef} className="h-[420px] w-full" />
+        <div ref={containerRef} className="h-[460px] w-full lg:h-[720px]" />
         {!hasAny && !loading && !error ? (
           <div className="pointer-events-none absolute inset-0 flex items-center justify-center px-6 text-center text-sm text-muted-foreground">
             No live route yet. Refresh shipping-line tracking above — once the carrier returns AIS positions, the route and vessel appear here.

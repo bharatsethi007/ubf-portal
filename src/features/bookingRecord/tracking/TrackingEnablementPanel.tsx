@@ -2,7 +2,6 @@ import { RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import PortConnectEnablementRow from './PortConnectEnablementRow'
-import CarrierEventsList from './CarrierEventsList'
 import { relativeUpdatedAt } from './trackingFormat'
 import { deriveCarrierName } from './carrierNames'
 import type {
@@ -96,8 +95,6 @@ function CarrierRow({
           </div>
         </dl>
       ) : null}
-
-      <CarrierEventsList events={events} />
 
       {lineError ? (
         <p className="booking-tracking-enable__error">{lineError}</p>
