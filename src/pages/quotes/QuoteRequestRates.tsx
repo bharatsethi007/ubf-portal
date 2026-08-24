@@ -1,5 +1,13 @@
 import { useEffect, useState } from 'react'
-import { fetchRateRequestContext, buildRateRequestEmail, type RateRequestContext } from './rateRequestApi'
+import { Plus, X } from 'lucide-react'
+import { fetchRateRequestContext, buildRateRequestEmail, type RateRequestContext, type Recipient } from './rateRequestApi'
+import AgentRecipientPicker from './AgentRecipientPicker'
+
+const SRC_STYLE: Record<Recipient['source'], { bg: string; color: string; label: string }> = {
+  agent: { bg: '#EEF1FB', color: '#0A2472', label: 'Agent' },
+  customer: { bg: '#F0F1F5', color: '#555', label: 'Customer' },
+  manual: { bg: '#FCEFD6', color: '#B4791F', label: 'Manual' },
+}
 
 export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
   const [ctx, setCtx] = useState<RateRequestContext | null>(null)
@@ -7,6 +15,8 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
   const [err, setErr] = useState('')
   const [subject, setSubject] = useState('')
   const [body, setBody] = useState('')
+  const [recipients, setRecipients] = useState<Recipient[]>([])
+  const [pickerOpen, setPickerOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -45,6 +55,33 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
       </div>
       {ctx.ruleNote && <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>{ctx.ruleNote}</p>}
 
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+          <span style={{ fontSize: 12, color: 'var(--muted-foreground)' }}>Recipients ({recipients.length})</span>
+          <button className="btn" onClick={() => setPickerOpen(true)} style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '4px 10px', fontSize: 12 }}>
+            <Plus size={14} /> Add recipients
+          </button>
+        </div>
+        {recipients.length === 0 ? (
+          <p style={{ fontSize: 12, color: 'var(--muted-foreground)', margin: 0 }}>No recipients yet — pick agents, search the customer database, or add an email manually.</p>
+        ) : (
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6 }}>
+            {recipients.map((r) => {
+              const s = SRC_STYLE[r.source]
+              return (
+                <span key={r.key} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, border: '1px solid #E3E5EC', borderRadius: 8, padding: '4px 8px', fontSize: 12 }}>
+                  <span style={{ background: s.bg, color: s.color, borderRadius: 999, padding: '1px 7px', fontSize: 10, fontWeight: 600 }}>{s.label}</span>
+                  <span>{r.name ? `${r.name} · ` : ''}{r.email}</span>
+                  <button onClick={() => setRecipients((xs) => xs.filter((x) => x.key !== r.key))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#999', display: 'inline-flex', padding: 0 }} aria-label="Remove">
+                    <X size={13} />
+                  </button>
+                </span>
+              )
+            })}
+          </div>
+        )}
+      </div>
+
       <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
         <span style={{ color: 'var(--muted-foreground)' }}>Subject</span>
         <input className="input" value={subject} onChange={(e) => setSubject(e.target.value)} />
@@ -54,7 +91,17 @@ export default function QuoteRequestRates({ quoteId }: { quoteId: string }) {
         <textarea className="input" style={{ minHeight: 260, fontFamily: 'ui-monospace, monospace', fontSize: 12, lineHeight: 1.5 }} value={body} onChange={(e) => setBody(e.target.value)} />
       </label>
 
-      <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>Next step: pick agents / recipients and send.</p>
+      <p style={{ fontSize: 11, color: 'var(--muted-foreground)', margin: 0 }}>Next step: save &amp; send — records the request and recipients.</p>
+
+      {pickerOpen && (
+        <AgentRecipientPicker
+          agentCountry={ctx.agentCountry}
+          agentEnd={ctx.agentEnd}
+          existing={recipients}
+          onAdd={(r) => setRecipients((xs) => [...xs, r])}
+          onClose={() => setPickerOpen(false)}
+        />
+      )}
     </div>
   )
 }

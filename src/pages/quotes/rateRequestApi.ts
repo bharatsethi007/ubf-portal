@@ -126,3 +126,51 @@ export function buildRateRequestEmail(ctx: RateRequestContext, contactName?: str
   lines.push('', 'Please include validity, transit time and any conditions.', '', 'Kind regards,', 'UB Freight')
   return { subject, body: lines.join('\n') }
 }
+
+// ── Step 2: recipients + directory search ────────────────────────────────────
+
+export type Recipient = {
+  key: string
+  source: 'agent' | 'customer' | 'manual'
+  agentId: string | null
+  accountId: string | null
+  name: string | null
+  email: string
+}
+
+export type DirectoryAgent = {
+  id: string
+  name: string
+  trusted: boolean
+  country: string | null
+  email: string | null
+  contactName: string | null
+}
+
+export async function searchAgentDirectory(opts: { country: string | null; trustedOnly: boolean; query: string }): Promise<DirectoryAgent[]> {
+  let q = supabase.from('v_agent_directory').select('id, name, trusted, country, prime_email, prime_contact_name')
+  if (opts.country) q = q.eq('country', opts.country)
+  if (opts.trustedOnly) q = q.eq('trusted', true)
+  if (opts.query.trim()) q = q.ilike('name', `%${opts.query.trim()}%`)
+  const { data, error } = await q.order('trusted', { ascending: false }).order('name').limit(100)
+  if (error) throw error
+  return ((data as Record<string, any>[]) ?? []).map((r) => ({
+    id: String(r.id), name: String(r.name ?? ''), trusted: Boolean(r.trusted),
+    country: r.country ?? null, email: r.prime_email ?? null, contactName: r.prime_contact_name ?? null,
+  }))
+}
+
+export type DirectoryCustomer = { accountId: string; name: string; country: string | null; email: string | null; contactName: string | null }
+
+export async function searchCustomers(query: string, country?: string | null): Promise<DirectoryCustomer[]> {
+  const term = query.trim()
+  let q = supabase.from('customers').select('account_id, name, country, email, contact').or('closed.is.null,closed.eq.false')
+  if (country) q = q.eq('country', country)
+  if (term) q = q.or(`name.ilike.%${term}%,email.ilike.%${term}%,account_id.ilike.%${term}%`)
+  const { data, error } = await q.order('name').limit(50)
+  if (error) throw error
+  return ((data as Record<string, any>[]) ?? []).map((r) => ({
+    accountId: String(r.account_id), name: String(r.name ?? ''), country: r.country ?? null,
+    email: r.email ?? null, contactName: r.contact ?? null,
+  }))
+}
