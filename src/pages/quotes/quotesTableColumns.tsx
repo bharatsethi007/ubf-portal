@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   Files, FolderOpen, Send, Share2, Trophy, XCircle, Repeat2,
-  Plane, Boxes, Container, Ship, Mail, Globe, PenLine, type LucideIcon,
+  Plane, Boxes, Container, Ship, Mail, Globe, PenLine, ArrowDownToLine, ArrowUpFromLine, type LucideIcon,
 } from 'lucide-react'
 
 export type QuoteRow = {
@@ -11,6 +11,7 @@ export type QuoteRow = {
   customer_name: string | null
   shipment_mode: string | null
   shipment_type: string | null
+  movement_type: string | null
   from_port_code: string | null
   to_port_code: string | null
   source: string | null
@@ -79,6 +80,14 @@ export function quoteSourceCell(source: string | null) {
   )
 }
 
+export function quoteTypeCell(movement: string | null) {
+  const m = (movement ?? '').toLowerCase()
+  const base = { display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 500, lineHeight: 1.4 } as const
+  if (m === 'import') return <span style={{ ...base, background: '#ECFDFF', color: '#0E7090' }}><ArrowDownToLine size={12} strokeWidth={2} /> Import</span>
+  if (m === 'export') return <span style={{ ...base, background: '#FFF6ED', color: '#C4620E' }}><ArrowUpFromLine size={12} strokeWidth={2} /> Export</span>
+  return <>—</>
+}
+
 export function quotesTableColumns(
   portMap: Map<string, string>,
   staffMap: Map<string, string>,
@@ -106,6 +115,11 @@ export function quotesTableColumns(
           </span>
         )
       },
+    },
+    {
+      id: 'type',
+      header: 'Type',
+      cell: ({ row }) => quoteTypeCell(row.original.movement_type),
     },
     {
       accessorKey: 'status',

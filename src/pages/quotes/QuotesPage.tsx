@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search, List, LayoutGrid, CalendarDays } from 'lucide-react'
+import { Plus, Search, List, LayoutGrid, CalendarDays, Plane, Container, Boxes } from 'lucide-react'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
 import { useStaffList } from '../../hooks/useStaffList'
@@ -16,12 +16,21 @@ const VIEWS: { key: View; label: string; Icon: typeof List }[] = [
   { key: 'calendar', label: 'Calendar', Icon: CalendarDays },
 ]
 
+type ModeFilter = 'all' | 'air' | 'fcl' | 'lcl'
+const MODE_FILTERS: { key: ModeFilter; label: string; Icon: typeof List | null }[] = [
+  { key: 'all', label: 'All', Icon: null },
+  { key: 'air', label: 'Air', Icon: Plane },
+  { key: 'fcl', label: 'FCL', Icon: Container },
+  { key: 'lcl', label: 'LCL', Icon: Boxes },
+]
+
 export default function QuotesPage() {
   const navigate = useNavigate()
   const { ports } = useSeaPorts()
   const { staff } = useStaffList()
 
   const [view, setView] = useState<View>('list')
+  const [mode, setMode] = useState<ModeFilter>('all')
   const [search, setSearch] = useState('')
   const debouncedSearch = useDebouncedValue(search, 300)
 
@@ -59,6 +68,24 @@ export default function QuotesPage() {
           </label>
 
           <div className="quotes-page__actions">
+            {view === 'list' && (
+              <div className="quotes-viewtoggle" role="tablist" aria-label="Mode filter">
+                {MODE_FILTERS.map(({ key, label, Icon }) => (
+                  <button
+                    key={key}
+                    type="button"
+                    role="tab"
+                    aria-selected={mode === key}
+                    title={label}
+                    className={`quotes-viewtoggle__btn${mode === key ? ' quotes-viewtoggle__btn--on' : ''}`}
+                    style={{ lineHeight: 1, padding: '6px 12px', fontSize: 13, fontWeight: 500, gap: 5 }}
+                    onClick={() => setMode(key)}
+                  >
+                    {Icon && <Icon size={14} strokeWidth={2} />} {label}
+                  </button>
+                ))}
+              </div>
+            )}
             <div className="quotes-viewtoggle" role="tablist" aria-label="View">
               {VIEWS.map(({ key, label, Icon }) => (
                 <button
@@ -91,6 +118,7 @@ export default function QuotesPage() {
             onOpen={openQuote}
             portMap={portMap}
             staffMap={staffMap}
+            mode={mode}
           />
         )}
         {view === 'kanban' && (

@@ -17,6 +17,7 @@ type QuoteDbRow = {
   customer_name: string | null
   shipment_mode: string | null
   shipment_type: string | null
+  movement_type: string | null
   from_port_code: string | null
   to_port_code: string | null
   created_at: string
@@ -29,9 +30,10 @@ type Props = {
   onOpen: (id: string) => void
   portMap: Map<string, string>
   staffMap: Map<string, string>
+  mode: 'all' | 'air' | 'fcl' | 'lcl'
 }
 
-export default function QuotesListView({ search, onOpen, portMap, staffMap }: Props) {
+export default function QuotesListView({ search, onOpen, portMap, staffMap, mode }: Props) {
   const [statusTab, setStatusTab] = useState<string>('open')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
@@ -49,7 +51,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap }: Pr
   useEffect(() => {
     setPage(1)
     setSelectedIds(new Set())
-  }, [search, statusTab, pageSize])
+  }, [search, statusTab, pageSize, mode])
 
   const reload = useCallback(async () => {
     const my = ++reqId.current
@@ -60,12 +62,15 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap }: Pr
     let query = supabase
       .from('quotes')
       .select(
-        'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_at, created_by, source',
+        'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_at, created_by, source, movement_type',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
 
     if (statusTab !== 'all') query = query.eq('status', statusTab)
+    if (mode === 'air') query = query.or('shipment_type.ilike.Air,shipment_mode.ilike.%air%')
+    else if (mode === 'fcl') query = query.ilike('shipment_type', 'FCL')
+    else if (mode === 'lcl') query = query.ilike('shipment_type', 'LCL')
 
     const term = search.trim()
     if (term) query = query.or(`quote_no.ilike.%${term}%,customer_name.ilike.%${term}%`)
@@ -87,6 +92,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap }: Pr
           customer_name: r.customer_name,
           shipment_mode: r.shipment_mode,
           shipment_type: r.shipment_type,
+          movement_type: r.movement_type,
           from_port_code: r.from_port_code,
           to_port_code: r.to_port_code,
           source: r.source,
@@ -97,7 +103,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap }: Pr
       setTotal(count ?? 0)
     }
     setLoading(false)
-  }, [page, pageSize, search, statusTab])
+  }, [page, pageSize, search, statusTab, mode])
 
   useEffect(() => { reload() }, [reload])
 
