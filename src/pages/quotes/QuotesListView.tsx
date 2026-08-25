@@ -21,6 +21,7 @@ type QuoteDbRow = {
   to_port_code: string | null
   created_at: string
   created_by: string | null
+  source: string | null
 }
 
 type Props = {
@@ -59,7 +60,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap }: Pr
     let query = supabase
       .from('quotes')
       .select(
-        'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_at, created_by',
+        'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_at, created_by, source',
         { count: 'exact' },
       )
       .order('created_at', { ascending: false })
@@ -88,6 +89,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap }: Pr
           shipment_type: r.shipment_type,
           from_port_code: r.from_port_code,
           to_port_code: r.to_port_code,
+          source: r.source,
           created_by: r.created_by,
           created_at: r.created_at,
         })),

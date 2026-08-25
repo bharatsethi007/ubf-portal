@@ -1,7 +1,7 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import {
   Files, FolderOpen, Send, Share2, Trophy, XCircle, Repeat2,
-  Plane, Boxes, Container, Ship, type LucideIcon,
+  Plane, Boxes, Container, Ship, Mail, Globe, PenLine, type LucideIcon,
 } from 'lucide-react'
 
 export type QuoteRow = {
@@ -13,6 +13,7 @@ export type QuoteRow = {
   shipment_type: string | null
   from_port_code: string | null
   to_port_code: string | null
+  source: string | null
   created_by: string | null
   created_at: string
 }
@@ -59,6 +60,25 @@ function modeInfo(mode: string | null, type: string | null): { label: string; Ic
   return { label: mode ?? '—', Icon: Ship }
 }
 
+type SourceInfo = { label: string; Icon: LucideIcon; bg: string; fg: string }
+
+function sourceInfo(raw: string | null): SourceInfo {
+  const s = (raw ?? 'manual').toLowerCase()
+  if (s.includes('email')) return { label: 'Email', Icon: Mail, bg: '#EEF2FF', fg: '#4338CA' }
+  if (s.includes('portal')) return { label: 'Portal', Icon: Globe, bg: '#ECFDF3', fg: '#067647' }
+  if (s === 'manual' || s === '') return { label: 'Manual', Icon: PenLine, bg: '#F2F4F7', fg: '#667085' }
+  return { label: raw!.charAt(0).toUpperCase() + raw!.slice(1), Icon: PenLine, bg: '#F2F4F7', fg: '#667085' }
+}
+
+export function quoteSourceCell(source: string | null) {
+  const { label, Icon, bg, fg } = sourceInfo(source)
+  return (
+    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, background: bg, color: fg, borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 500, lineHeight: 1.4 }}>
+      <Icon size={12} strokeWidth={2} /> {label}
+    </span>
+  )
+}
+
 export function quotesTableColumns(
   portMap: Map<string, string>,
   staffMap: Map<string, string>,
@@ -101,6 +121,11 @@ export function quotesTableColumns(
       id: 'destination',
       header: 'Destination',
       cell: ({ row }) => port(row.original.to_port_code),
+    },
+    {
+      id: 'source',
+      header: 'Source',
+      cell: ({ row }) => quoteSourceCell(row.original.source),
     },
     {
       id: 'created_by',
