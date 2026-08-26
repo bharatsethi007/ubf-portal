@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import { Plus, Search } from 'lucide-react'
+import { Plus, Search, Truck, CalendarClock, AlertTriangle, CheckCircle2, Archive, ClipboardCheck } from 'lucide-react'
 import Pagination from '@/components/Pagination'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { listConsignments, boardCounts, TMS_BOARD_TABS, type TmsBoardKey, type TmsConsignmentRow } from './tmsApi'
@@ -9,6 +9,19 @@ import { opsColumns } from './opsColumns'
 import ConsignmentDetailWindow from './ConsignmentDetailWindow'
 
 const PAGE_SIZE = 50
+
+const TAB_ICON: Record<TmsBoardKey, typeof Truck> = {
+  current: Truck, scheduled: CalendarClock, incomplete: AlertTriangle,
+  completed: CheckCircle2, archived: Archive, checkins: ClipboardCheck,
+}
+const TAB_COLOR: Record<TmsBoardKey, { text: string; bar: string; pill: string }> = {
+  current: { text: 'text-[#0A2472]', bar: 'bg-[#0A2472]', pill: 'bg-[#0A2472]/10 text-[#0A2472]' },
+  scheduled: { text: 'text-amber-600', bar: 'bg-amber-500', pill: 'bg-amber-100 text-amber-700' },
+  incomplete: { text: 'text-red-600', bar: 'bg-red-500', pill: 'bg-red-100 text-red-700' },
+  completed: { text: 'text-emerald-600', bar: 'bg-emerald-500', pill: 'bg-emerald-100 text-emerald-700' },
+  archived: { text: 'text-neutral-600', bar: 'bg-neutral-400', pill: 'bg-neutral-200 text-neutral-600' },
+  checkins: { text: 'text-indigo-600', bar: 'bg-indigo-500', pill: 'bg-indigo-100 text-indigo-700' },
+}
 
 export default function TmsOpsBoard() {
   const navigate = useNavigate()
@@ -48,57 +61,70 @@ export default function TmsOpsBoard() {
   const colSpan = columns.length
 
   return (
-    <div className="quotes-page">
-      <div className="card quotes-page__card">
-        <header className="quotes-page__head"><h1>TMS — Operations</h1></header>
-
-        <div className="quotes-tabs" role="tablist" aria-label="Consignment board">
-          {TMS_BOARD_TABS.map(({ key, label }) => (
-            <button key={key} type="button" role="tab" aria-selected={board === key}
-              className={`quotes-tabs__btn${board === key ? ' quotes-tabs__btn--on' : ''}`}
-              onClick={() => setBoard(key)}>
-              {label}{counts[key] != null ? ` (${counts[key]})` : ''}
-            </button>
-          ))}
-        </div>
-
-        <div className="quotes-page__toolbar">
-          <label className="quotes-page__search">
-            <Search size={16} strokeWidth={2} />
-            <input className="input input--sm" placeholder="Search consignment, company" value={search} onChange={(e) => setSearch(e.target.value)} />
+    <div>
+      <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
+        <h1 className="text-2xl font-semibold text-neutral-900">TMS — Operations</h1>
+        <div className="flex items-center gap-2">
+          <label className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5">
+            <Search size={16} className="text-neutral-400" />
+            <input className="w-56 bg-transparent text-sm outline-none placeholder:text-neutral-400" placeholder="Search consignment, company" value={search} onChange={(e) => setSearch(e.target.value)} />
           </label>
-          <button type="button" className="btn quotes-page__new-btn" onClick={() => navigate('/tms/new')}>
-            <Plus size={16} strokeWidth={2} /> New consignment
+          <button type="button" onClick={() => navigate('/tms/new')}
+            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A2472] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0A2472]/90">
+            <Plus size={16} /> New consignment
           </button>
         </div>
-
-        {error && <p style={{ color: '#B23B3B', fontSize: 13, margin: '8px 0' }}>{error}</p>}
-
-        <div className="table-wrap">
-          <table className="data-table">
-            <thead>
-              {table.getHeaderGroups().map((hg) => (
-                <tr key={hg.id}>{hg.headers.map((h) => <th key={h.id}>{h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}</th>)}</tr>
-              ))}
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr><td colSpan={colSpan} className="text-muted-foreground pad-inline">Loading…</td></tr>
-              ) : rows.length === 0 ? (
-                <tr><td colSpan={colSpan} className="text-muted-foreground pad-inline">No consignments on this board.</td></tr>
-              ) : (
-                table.getRowModel().rows.map((r) => (
-                  <tr key={r.id} className="row-clickable" onClick={() => setDrawerId(r.original.id)}>
-                    {r.getVisibleCells().map((c) => <td key={c.id}>{flexRender(c.column.columnDef.cell, c.getContext())}</td>)}
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
-
-        <Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
+
+      <div className="mb-1 flex flex-wrap gap-1 border-b border-neutral-200" role="tablist" aria-label="Consignment board">
+        {TMS_BOARD_TABS.map(({ key, label }) => {
+          const Icon = TAB_ICON[key]
+          const c = TAB_COLOR[key]
+          const on = board === key
+          return (
+            <button key={key} type="button" role="tab" aria-selected={on} onClick={() => setBoard(key)}
+              className={`relative flex items-center gap-1.5 px-3 py-2 text-[13px] font-medium transition-colors ${on ? c.text : 'text-neutral-500 hover:text-neutral-800'}`}>
+              <Icon size={15} className={on ? c.text : 'text-neutral-400'} />
+              {label}
+              {counts[key] != null && <span className={`rounded-full px-1.5 py-0.5 text-[11px] tabular-nums ${on ? c.pill : 'bg-neutral-100 text-neutral-500'}`}>{counts[key]}</span>}
+              {on && <span className={`absolute inset-x-2 -bottom-px h-0.5 rounded-full ${c.bar}`} />}
+            </button>
+          )
+        })}
+      </div>
+
+      {error && <p className="my-2 text-sm text-red-600">{error}</p>}
+
+      <div className="overflow-x-auto">
+        <table className="w-full min-w-[1100px] text-[13px]">
+          <thead>
+            {table.getHeaderGroups().map((hg) => (
+              <tr key={hg.id} className="border-b border-neutral-200">
+                {hg.headers.map((h) => (
+                  <th key={h.id} className="whitespace-nowrap px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide text-neutral-400">
+                    {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
+                  </th>
+                ))}
+              </tr>
+            ))}
+          </thead>
+          <tbody>
+            {loading ? (
+              <tr><td colSpan={colSpan} className="px-3 py-6 text-sm text-neutral-400">Loading…</td></tr>
+            ) : rows.length === 0 ? (
+              <tr><td colSpan={colSpan} className="px-3 py-6 text-sm text-neutral-400">No consignments on this board.</td></tr>
+            ) : (
+              table.getRowModel().rows.map((r) => (
+                <tr key={r.id} className="cursor-pointer border-b border-neutral-100 hover:bg-neutral-50" onClick={() => setDrawerId(r.original.id)}>
+                  {r.getVisibleCells().map((c) => <td key={c.id} className="px-3 py-2.5 align-middle">{flexRender(c.column.columnDef.cell, c.getContext())}</td>)}
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+
+      <div className="mt-3"><Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} /></div>
 
       <ConsignmentDetailWindow id={drawerId} onClose={() => setDrawerId(null)} />
     </div>

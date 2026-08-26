@@ -1,9 +1,13 @@
 import type { ColumnDef } from '@tanstack/react-table'
-import { AlertTriangle } from 'lucide-react'
+import { AlertTriangle, ArrowUp, ArrowDown, ArrowLeftRight, Package, Ship } from 'lucide-react'
 import { format } from 'date-fns'
 import type { TmsConsignmentRow } from './tmsApi'
 
-const TYPE_LABEL: Record<string, string> = { 'pick-up': 'PICK-UP', 'drop-off': 'DROP-OFF', transfer: 'TRANSFER' }
+const TYPE_ICON: Record<string, { Icon: typeof ArrowUp; title: string }> = {
+  'pick-up': { Icon: ArrowUp, title: 'Pick-up' },
+  'drop-off': { Icon: ArrowDown, title: 'Drop-off' },
+  transfer: { Icon: ArrowLeftRight, title: 'Transfer' },
+}
 
 const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
   unassigned: { label: 'Unassigned', cls: 'bg-amber-100 text-amber-800' },
@@ -22,24 +26,51 @@ const STATUS_BADGE: Record<string, { label: string; cls: string }> = {
 }
 
 function fmt(v: string | null) { return v ? format(new Date(v), 'd MMM, h:mm a') : '—' }
+function initials(f?: string, l?: string) { return (`${f?.[0] ?? ''}${l?.[0] ?? ''}`).toUpperCase() || '—' }
 
 export function opsColumns(): ColumnDef<TmsConsignmentRow>[] {
   return [
-    { id: 'type', header: 'Type', cell: ({ row }) => <span className="text-xs font-semibold tracking-wide text-neutral-600">{TYPE_LABEL[row.original.order_type] ?? row.original.order_type}</span> },
-    { id: 'no', header: 'Consignment #', cell: ({ row }) => (
-      <span className="inline-flex items-center gap-1 font-medium">{row.original.consignment_no ?? '—'}{row.original.goods_type === 'dangerous' && <AlertTriangle size={14} className="text-red-600" />}</span>
-    ) },
-    { id: 'company', header: 'Company', cell: ({ row }) => (row.original.order_type === 'drop-off' ? row.original.receiver_company : row.original.sender_company) ?? '—' },
-    { id: 'origin', header: 'Origin', cell: ({ row }) => <span className="text-sm text-neutral-600">{row.original.sender_address ?? '—'}</span> },
-    { id: 'dest', header: 'Destination', cell: ({ row }) => <span className="text-sm text-neutral-600">{row.original.receiver_address ?? '—'}</span> },
-    { id: 'pickup', header: 'Preferred Pick-up', cell: ({ row }) => <span className="whitespace-nowrap text-sm">{fmt(row.original.preferred_pickup_at)}</span> },
-    { id: 'eta', header: 'Estimated Delivery', cell: ({ row }) => <span className="whitespace-nowrap text-sm">{fmt(row.original.estimated_delivery_at)}</span> },
-    { id: 'driver', header: 'Driver', cell: ({ row }) => (row.original.driver1 ? `${row.original.driver1.first_name} ${row.original.driver1.last_name?.[0] ?? ''}.` : '—') },
-    { id: 'wms', header: 'WMS Check-in', cell: () => <span className="text-neutral-400">—</span> },
-    { id: 'tms', header: 'TMS Check-in', cell: () => <span className="text-neutral-400">—</span> },
+    { id: 'no', header: 'Consignment #', cell: ({ row }) => {
+      const t = TYPE_ICON[row.original.order_type]
+      const Icon = t?.Icon
+      return (
+        <span className="inline-flex items-center gap-2 font-medium text-neutral-900">
+          {Icon && <span title={t.title} className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-100 text-neutral-500"><Icon size={13} /></span>}
+          <span className="inline-flex items-center gap-1 tabular-nums text-[13px]">{row.original.consignment_no ?? '—'}{row.original.goods_type === 'dangerous' && <AlertTriangle size={13} className="text-red-600" />}</span>
+        </span>
+      )
+    } },
+    { id: 'company', header: 'Company', cell: ({ row }) => <span className="text-[13px]">{(row.original.order_type === 'drop-off' ? row.original.receiver_company : row.original.sender_company) ?? '—'}</span> },
+    { id: 'origin', header: 'Origin', cell: ({ row }) => <span className="text-[13px] text-neutral-600">{row.original.sender_address ?? '—'}</span> },
+    { id: 'dest', header: 'Destination', cell: ({ row }) => <span className="text-[13px] text-neutral-600">{row.original.receiver_address ?? '—'}</span> },
+    { id: 'links', header: 'Links', cell: ({ row }) => {
+      const bref = row.original.booking?.booking_ref ?? (row.original.booking_id ? 'Booking' : null)
+      const sref = row.original.shipment_ref ?? (row.original.job_unique != null ? `#${row.original.job_unique}` : null)
+      if (!bref && !sref) return <span className="text-neutral-300">—</span>
+      return (
+        <span className="flex flex-col gap-1">
+          {bref && <span title="Booking" className="inline-flex w-fit items-center gap-1 rounded bg-emerald-50 px-1.5 py-0.5 text-[11px] font-medium text-emerald-700"><Package size={11} />{bref}</span>}
+          {sref && <span title="Shipment" className="inline-flex w-fit items-center gap-1 rounded bg-sky-50 px-1.5 py-0.5 text-[11px] font-medium text-sky-700"><Ship size={11} />{sref}</span>}
+        </span>
+      )
+    } },
+    { id: 'pickup', header: 'Preferred Pick-up', cell: ({ row }) => <span className="whitespace-nowrap text-[13px]">{fmt(row.original.preferred_pickup_at)}</span> },
+    { id: 'eta', header: 'Estimated Delivery', cell: ({ row }) => <span className="whitespace-nowrap text-[13px]">{fmt(row.original.estimated_delivery_at)}</span> },
+    { id: 'driver', header: 'Driver', cell: ({ row }) => {
+      const d = row.original.driver1
+      if (!d) return <span className="text-neutral-300">—</span>
+      return (
+        <span className="inline-flex items-center gap-2">
+          <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0A2472] text-[10px] font-semibold text-white">{initials(d.first_name, d.last_name)}</span>
+          <span className="whitespace-nowrap text-[13px] text-neutral-700">{d.first_name} {d.last_name?.[0] ?? ''}.</span>
+        </span>
+      )
+    } },
+    { id: 'wms', header: 'WMS', cell: () => <span className="text-neutral-300">—</span> },
+    { id: 'tms', header: 'TMS', cell: () => <span className="text-neutral-300">—</span> },
     { id: 'status', header: 'Status', cell: ({ row }) => {
       const b = STATUS_BADGE[row.original.status] ?? { label: row.original.status, cls: 'bg-neutral-100 text-neutral-700' }
-      return <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${b.cls}`}>{b.label}</span>
+      return <span className={`whitespace-nowrap rounded-full px-2 py-0.5 text-[11px] font-medium ${b.cls}`}>{b.label}</span>
     } },
   ]
 }

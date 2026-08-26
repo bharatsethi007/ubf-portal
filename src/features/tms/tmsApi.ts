@@ -26,10 +26,14 @@ export type TmsConsignmentRow = {
   preferred_pickup_at: string | null
   estimated_delivery_at: string | null
   driver1: { first_name: string; last_name: string } | null
+  booking_id: string | null
+  job_unique: number | null
+  shipment_ref: string | null
+  booking: { booking_ref: string | null } | null
 }
 
 const ROW_SELECT =
-  'id, consignment_no, order_type, status, goods_type, sender_company, sender_address, receiver_company, receiver_address, preferred_pickup_at, estimated_delivery_at, driver1:tms_drivers!tms_consignments_assigned_driver_leg1_fkey(first_name,last_name)'
+  'id, consignment_no, order_type, status, goods_type, sender_company, sender_address, receiver_company, receiver_address, preferred_pickup_at, estimated_delivery_at, booking_id, job_unique, shipment_ref, driver1:tms_drivers!tms_consignments_assigned_driver_leg1_fkey(first_name,last_name), booking:bookings!tms_consignments_booking_id_fkey(booking_ref)'
 
 function endOfTodayIso() {
   const d = new Date()

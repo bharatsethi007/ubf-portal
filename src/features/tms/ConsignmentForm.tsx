@@ -16,8 +16,12 @@ function Field({ label, children, className }: { label: string; children: ReactN
 }
 function Card({ title, children }: { title?: string; children: ReactNode }) {
   return (
-    <section className="rounded-xl border border-neutral-200 p-4">
-      {title && <h2 className="mb-3 text-xs font-semibold uppercase tracking-wide text-[#0A2472]">{title}</h2>}
+    <section className="rounded-xl border border-neutral-200 bg-white p-4">
+      {title && (
+        <h2 className="mb-3 flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-[#0A2472]">
+          <span className="h-3.5 w-1 rounded-full bg-[#0A2472]" />{title}
+        </h2>
+      )}
       {children}
     </section>
   )
@@ -79,7 +83,7 @@ export default function ConsignmentForm() {
           <h1>{isEdit ? 'Edit consignment' : 'New consignment'}</h1>
         </header>
 
-        <div className="mt-3 max-w-5xl space-y-4">
+        <div className="mt-3 space-y-4">
           <div className="grid gap-3 sm:grid-cols-2">
             <Field label="Order type *">
               <select className="input" value={v.order_type} onChange={(e) => setV({ ...v, order_type: e.target.value })}>
