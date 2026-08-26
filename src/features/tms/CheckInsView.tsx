@@ -1,40 +1,53 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { listCheckinQueue, listVariance, type CheckinQueueRow, type VarianceRow } from './checkinApi'
-import CheckinVerifyDialog from './CheckinVerifyDialog'
+import { Package, Truck, Plus } from 'lucide-react'
+import { listCheckinQueue, listVariance, listCompletedSheets, type CheckinQueueRow, type VarianceRow, type CompletedSheet } from './checkinApi'
+import CheckInSheetForm from './CheckInSheetForm'
+
+type Top = 'queue' | 'completed' | 'variance'
 
 export default function CheckInsView() {
-  const [tab, setTab] = useState<'queue' | 'variance'>('queue')
+  const [tab, setTab] = useState<Top>('queue')
+  const [bucket, setBucket] = useState<'ubf' | 'third'>('ubf')
   const [queue, setQueue] = useState<CheckinQueueRow[]>([])
   const [variance, setVariance] = useState<VarianceRow[]>([])
+  const [completed, setCompleted] = useState<CompletedSheet[]>([])
   const [loading, setLoading] = useState(true)
-  const [verify, setVerify] = useState<{ id: string; no: string | null } | null>(null)
+  const [sheet, setSheet] = useState<{ open: boolean; consignmentId: string | null }>({ open: false, consignmentId: null })
 
   const load = () => {
     setLoading(true)
-    Promise.all([listCheckinQueue(), listVariance()])
-      .then(([q, v]) => { setQueue(q); setVariance(v) })
+    Promise.all([listCheckinQueue(), listVariance(), listCompletedSheets(bucket)])
+      .then(([q, v, c]) => { setQueue(q); setVariance(v); setCompleted(c) })
       .catch(() => {}).finally(() => setLoading(false))
   }
-  useEffect(() => { load() }, [])
+  useEffect(() => { load() }, [bucket])
+
+  const topTabs: { key: Top; label: string; count: number }[] = [
+    { key: 'queue', label: 'Awaiting check-in', count: queue.length },
+    { key: 'completed', label: 'Completed', count: completed.length },
+    { key: 'variance', label: 'Variance', count: variance.length },
+  ]
 
   return (
     <div>
-      <div className="mb-1 flex gap-1 border-b border-neutral-200">
-        {([['queue', 'Awaiting check-in'], ['variance', 'Variance']] as const).map(([k, label]) => {
-          const on = tab === k
-          return (
-            <button key={k} type="button" onClick={() => setTab(k)}
-              className={`relative px-3 py-2 text-[13px] font-medium ${on ? 'text-[#0A2472]' : 'text-neutral-500 hover:text-neutral-800'}`}>
-              {label} ({k === 'queue' ? queue.length : variance.length})
-              {on && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#0A2472]" />}
-            </button>
-          )
-        })}
+      <div className="mb-1 flex flex-wrap items-center justify-between gap-2">
+        <div className="flex gap-1 border-b border-neutral-200">
+          {topTabs.map(({ key, label, count }) => {
+            const on = tab === key
+            return (
+              <button key={key} type="button" onClick={() => setTab(key)}
+                className={`relative px-3 py-2 text-[13px] font-medium ${on ? 'text-[#0A2472]' : 'text-neutral-500 hover:text-neutral-800'}`}>
+                {label} ({count}){on && <span className="absolute inset-x-2 -bottom-px h-0.5 rounded-full bg-[#0A2472]" />}
+              </button>
+            )
+          })}
+        </div>
+        <button type="button" onClick={() => setSheet({ open: true, consignmentId: null })} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A2472] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0A2472]/90"><Plus size={16} /> New check-in</button>
       </div>
 
-      <div className="overflow-x-auto">
-        {tab === 'queue' ? (
+      {tab === 'queue' && (
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[720px] text-[13px]">
             <thead><tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wide text-neutral-400">
               <th className="px-3 py-2">Consignment</th><th className="px-3 py-2">Company</th><th className="px-3 py-2">Origin</th><th className="px-3 py-2">Pickup</th><th className="px-3 py-2"></th>
@@ -48,12 +61,52 @@ export default function CheckInsView() {
                     <td className="px-3 py-2.5">{r.sender_company ?? '—'}</td>
                     <td className="px-3 py-2.5 text-neutral-600">{r.sender_address ?? '—'}</td>
                     <td className="whitespace-nowrap px-3 py-2.5">{r.preferred_pickup_at ? format(new Date(r.preferred_pickup_at), 'd MMM, h:mm a') : '—'}</td>
-                    <td className="px-3 py-2.5 text-right"><button type="button" onClick={() => setVerify({ id: r.id, no: r.consignment_no })} className="rounded-lg border border-[#0A2472] px-3 py-1 text-xs font-medium text-[#0A2472] hover:bg-[#0A2472]/[0.04]">Check in</button></td>
+                    <td className="px-3 py-2.5 text-right"><button type="button" onClick={() => setSheet({ open: true, consignmentId: r.id })} className="rounded-lg border border-[#0A2472] px-3 py-1 text-xs font-medium text-[#0A2472] hover:bg-[#0A2472]/[0.04]">Check in</button></td>
                   </tr>
                 ))}
             </tbody>
           </table>
-        ) : (
+        </div>
+      )}
+
+      {tab === 'completed' && (
+        <div>
+          <div className="my-3 inline-flex rounded-lg border border-neutral-200 p-0.5">
+            {([['ubf', 'UBF', Truck], ['third', '3rd Party', Package]] as const).map(([k, label, Icon]) => {
+              const on = bucket === k
+              return (
+                <button key={k} type="button" onClick={() => setBucket(k)}
+                  className={`inline-flex items-center gap-1.5 rounded-md px-3 py-1 text-[13px] font-medium ${on ? 'bg-[#0A2472]/[0.06] text-[#0A2472]' : 'text-neutral-500 hover:text-neutral-800'}`}>
+                  <Icon size={14} /> {label}
+                </button>
+              )
+            })}
+          </div>
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-[13px]">
+              <thead><tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wide text-neutral-400">
+                <th className="px-3 py-2">Sheet</th><th className="px-3 py-2">Consignment</th><th className="px-3 py-2">Shipper</th><th className="px-3 py-2">Consignee</th><th className="px-3 py-2">Checked in</th>
+              </tr></thead>
+              <tbody>
+                {loading ? <tr><td colSpan={5} className="px-3 py-6 text-neutral-400">Loading…</td></tr>
+                  : completed.length === 0 ? <tr><td colSpan={5} className="px-3 py-6 text-neutral-400">No {bucket === 'ubf' ? 'UBF' : '3rd-party'} check-ins yet.</td></tr>
+                  : completed.map((s) => (
+                    <tr key={s.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                      <td className="px-3 py-2.5 font-medium tabular-nums">{s.sheet_no}</td>
+                      <td className="px-3 py-2.5 tabular-nums">{s.consignment?.consignment_no ?? <span className="text-neutral-300">—</span>}</td>
+                      <td className="px-3 py-2.5">{s.shipper_company ?? '—'}</td>
+                      <td className="px-3 py-2.5">{s.consignee_company ?? '—'}</td>
+                      <td className="whitespace-nowrap px-3 py-2.5">{s.checked_in_at ? format(new Date(s.checked_in_at), 'd MMM, h:mm a') : '—'}</td>
+                    </tr>
+                  ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {tab === 'variance' && (
+        <div className="overflow-x-auto">
           <table className="w-full min-w-[620px] text-[13px]">
             <thead><tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wide text-neutral-400">
               <th className="px-3 py-2">Consignment</th><th className="px-3 py-2">Checked in</th><th className="px-3 py-2 text-right">Old CBM</th><th className="px-3 py-2 text-right">New CBM</th><th className="px-3 py-2 text-right">Δ</th>
@@ -77,10 +130,10 @@ export default function CheckInsView() {
                 })}
             </tbody>
           </table>
-        )}
-      </div>
+        </div>
+      )}
 
-      <CheckinVerifyDialog consignmentId={verify?.id ?? null} consignmentNo={verify?.no ?? null} onClose={() => setVerify(null)} onDone={() => { setVerify(null); load() }} />
+      <CheckInSheetForm open={sheet.open} consignmentId={sheet.consignmentId} onClose={() => setSheet({ open: false, consignmentId: null })} onDone={() => { setSheet({ open: false, consignmentId: null }); load() }} />
     </div>
   )
 }

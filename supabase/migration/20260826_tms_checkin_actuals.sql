@@ -1,3 +1,10 @@
+-- ============================================================
+-- TMS Check-in actuals + variance view (4a).
+-- Applied live to cpnkudbdzgnzmodhsrbf on 26 Aug 2026 via MCP.
+-- Repo-parity copy for supabase/migration.
+-- ============================================================
+
+-- Keep entered dims; record actuals alongside (billing-dispute proof)
 alter table public.tms_consignment_cargo
   add column if not exists actual_units numeric,
   add column if not exists actual_length_cm numeric,
@@ -6,10 +13,12 @@ alter table public.tms_consignment_cargo
   add column if not exists actual_weight_kg numeric,
   add column if not exists actual_total_cube_m3 numeric;
 
+-- Warehouse check-in stamp (pickup verified into warehouse)
 alter table public.tms_consignments
   add column if not exists wms_checkin_at timestamptz,
   add column if not exists wms_checkin_by uuid;
 
+-- Old vs new CBM per checked-in pickup (variance tab)
 create or replace view public.tms_checkin_variance with (security_invoker = true) as
 select c.id as consignment_id, c.consignment_no, c.wms_checkin_at,
        coalesce(sum(cg.total_cube_m3), 0) as old_cbm,

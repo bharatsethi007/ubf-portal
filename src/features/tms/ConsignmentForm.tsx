@@ -1,9 +1,11 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, BookMarked } from 'lucide-react'
 import { toast } from 'sonner'
 import AddressAutocomplete from '@/components/bookings/AddressAutocomplete'
 import CargoLinesEditor from './CargoLinesEditor'
+import PartyPicker from './PartyPicker'
+import AddressBookDialog from './AddressBookDialog'
 import { ORDER_TYPES, FLAG_KEYS, FLAG_LABELS, emptyForm, useDepots, createConsignment, updateConsignment, fetchConsignmentForEdit, type ConsignmentFormValues, type PartyDraft } from './consignmentFormApi'
 
 function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
@@ -28,17 +30,22 @@ function Card({ title, children }: { title?: string; children: ReactNode }) {
 }
 function Party({ title, party, onChange }: { title: string; party: PartyDraft; onChange: (p: PartyDraft) => void }) {
   const set = (patch: Partial<PartyDraft>) => onChange({ ...party, ...patch })
+  const [bookOpen, setBookOpen] = useState(false)
   return (
     <div className="space-y-3">
-      <h3 className="border-l-2 border-[#0A2472] pl-2 text-xs font-semibold uppercase tracking-wide text-[#0A2472]">{title}</h3>
-      <Field label="Company name"><input className="input" value={party.company} onChange={(e) => set({ company: e.target.value })} /></Field>
-      <Field label="Address"><AddressAutocomplete label="" value={party.address} onChange={(address) => set({ address })} /></Field>
+      <div className="flex items-center justify-between">
+        <h3 className="border-l-2 border-[#0A2472] pl-2 text-xs font-semibold uppercase tracking-wide text-[#0A2472]">{title}</h3>
+        <button type="button" onClick={() => setBookOpen(true)} title="Address book" className="flex h-7 w-7 items-center justify-center rounded-md border border-neutral-200 text-neutral-500 hover:bg-neutral-50"><BookMarked size={14} /></button>
+      </div>
+      <Field label="Company"><PartyPicker value={party.company} onType={(company) => set({ company })} onPick={(p) => set(p)} /></Field>
+      <Field label="Address"><AddressAutocomplete label="" value={party.address} onChange={(address) => set({ address })} usePlaces /></Field>
       <Field label="Additional address info"><input className="input" value={party.additional_info} onChange={(e) => set({ additional_info: e.target.value })} /></Field>
       <div className="grid grid-cols-3 gap-2">
         <Field label="Contact"><input className="input" value={party.contact} onChange={(e) => set({ contact: e.target.value })} /></Field>
         <Field label="Phone"><input className="input" value={party.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
         <Field label="Email"><input className="input" value={party.email} onChange={(e) => set({ email: e.target.value })} /></Field>
       </div>
+      <AddressBookDialog open={bookOpen} current={party} onClose={() => setBookOpen(false)} onPick={(p) => set(p)} />
     </div>
   )
 }

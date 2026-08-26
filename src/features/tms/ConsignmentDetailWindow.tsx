@@ -1,9 +1,12 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { ArrowRight, Pencil, AlertTriangle } from 'lucide-react'
+import { ArrowRight, Pencil, AlertTriangle, FileText, Tag } from 'lucide-react'
 import { format } from 'date-fns'
 import ConsignmentMiniMap from './ConsignmentMiniMap'
+import LinksField from './LinksField'
+import ConsignmentNoteModal from './ConsignmentNoteModal'
+import LabelsModal from './LabelsModal'
 import { fetchConsignment, type TmsConsignmentDetail } from './tmsApi'
 import { fetchConsignmentActivity, activityLabel, type ActivityRow } from './tmsActivityApi'
 
@@ -62,6 +65,9 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   const [activity, setActivity] = useState<ActivityRow[]>([])
   const [loading, setLoading] = useState(false)
   const [tab, setTab] = useState<'map' | 'activity'>('map')
+  const [reload, setReload] = useState(0)
+  const [noteOpen, setNoteOpen] = useState(false)
+  const [labelsOpen, setLabelsOpen] = useState(false)
 
   useEffect(() => {
     if (!id) { setD(null); setActivity([]); return }
@@ -71,7 +77,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
       .then(([det, act]) => { if (!cancelled) { setD(det); setActivity(act) } })
       .finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
-  }, [id])
+  }, [id, reload])
 
   const origin = d?.sender_address || d?.sender_company || '—'
   const dest = d?.receiver_address || d?.receiver_company || '—'
@@ -105,10 +111,14 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
                   {d.goods_type === 'dangerous' && <span className="inline-flex items-center gap-1 rounded-full bg-red-50 px-2 py-0.5 text-xs font-medium text-red-600"><AlertTriangle size={12} />Dangerous goods</span>}
                 </div>
               </div>
-              <button type="button" onClick={() => navigate(`/tms/${d.id}/edit`)}
-                className="mr-8 inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
-                <Pencil size={14} /> Edit
-              </button>
+              <div className="mr-8 flex shrink-0 items-center gap-2">
+                <button type="button" onClick={() => setNoteOpen(true)} title="Consignment note" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><FileText size={16} /></button>
+                <button type="button" onClick={() => setLabelsOpen(true)} title="Labels" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><Tag size={16} /></button>
+                <button type="button" onClick={() => navigate(`/tms/${d.id}/edit`)}
+                  className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
+                  <Pencil size={14} /> Edit
+                </button>
+              </div>
             </div>
 
             <div className="flex min-h-0 flex-1">
@@ -124,14 +134,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
                   <Field label="PO number" value={d.po_number} />
                   <Field label="Supplier" value={d.supplier_name} />
                   <Field label="Reference" value={d.reference} />
-                  <Field label="Links" value={
-                    (d.booking?.booking_ref || d.booking_id || d.shipment_ref || d.job_unique != null) ? (
-                      <span className="flex flex-col gap-1">
-                        {(d.booking?.booking_ref || d.booking_id) && <span className="w-fit rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">{d.booking?.booking_ref ?? 'Booking linked'}</span>}
-                        {(d.shipment_ref || d.job_unique != null) && <span className="w-fit rounded bg-sky-50 px-1.5 py-0.5 text-xs font-medium text-sky-700">{d.shipment_ref ?? `#${d.job_unique}`}</span>}
-                      </span>
-                    ) : '—'
-                  } />
+                  <LinksField d={d} onChanged={() => setReload((x) => x + 1)} />
                 </section>
 
                 <section className="grid grid-cols-1 gap-6 sm:grid-cols-2">
@@ -221,6 +224,12 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
           </div>
         )}
       </DialogContent>
+      {d && (
+        <>
+          <ConsignmentNoteModal id={d.id} open={noteOpen} onClose={() => setNoteOpen(false)} />
+          <LabelsModal id={d.id} open={labelsOpen} onClose={() => setLabelsOpen(false)} />
+        </>
+      )}
     </Dialog>
   )
 }

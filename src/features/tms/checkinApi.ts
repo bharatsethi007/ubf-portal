@@ -59,3 +59,23 @@ export async function confirmCheckin(consignmentId: string, drafts: ActualDraft[
     .eq('id', consignmentId)
   if (error) throw error
 }
+
+export type CompletedSheet = {
+  id: string
+  sheet_no: string | null
+  checked_in_at: string | null
+  consignment_id: string | null
+  shipper_company: string | null
+  consignee_company: string | null
+  consignment: { consignment_no: string | null } | null
+}
+
+export async function listCompletedSheets(bucket: 'ubf' | 'third'): Promise<CompletedSheet[]> {
+  let q = supabase.from('tms_checkin_sheets')
+    .select('id,sheet_no,checked_in_at,consignment_id,shipper_company,consignee_company,consignment:tms_consignments!tms_checkin_sheets_consignment_id_fkey(consignment_no)')
+    .order('checked_in_at', { ascending: false, nullsFirst: false })
+  q = bucket === 'ubf' ? q.not('consignment_id', 'is', null) : q.is('consignment_id', null)
+  const { data, error } = await q
+  if (error) throw error
+  return (data ?? []) as CompletedSheet[]
+}
