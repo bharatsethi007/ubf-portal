@@ -4,6 +4,7 @@ import DriverRail from './DriverRail'
 import ConsignmentCard from './ConsignmentCard'
 import ConsignmentDrawer from './ConsignmentDrawer'
 import AssignConfirmDialog from './AssignConfirmDialog'
+import TruckMap from './TruckMap'
 import {
   listDrivers, listDispatchConsignments, boardKpis, assignConsignment, unassignConsignment,
   DISPATCH_TABS, type DispatchTab, type DriverRow, type CardRow, type Kpis,
@@ -80,9 +81,9 @@ export default function DispatchBoard() {
           ))}
         </div>
 
-        <div className="mt-3 flex gap-3" style={{ minHeight: 420 }}>
+        <div className="mt-3 flex flex-wrap gap-3" style={{ minHeight: 420 }}>
           <DriverRail drivers={drivers} selectedId={selectedDriver} onSelect={setSelectedDriver} onDropCard={onDropCard} />
-          <div className="flex-1 space-y-2 overflow-y-auto">
+          <div className="min-w-0 flex-1 space-y-2 overflow-y-auto">
             {loading ? (
               <p className="py-6 text-sm text-neutral-400">Loading…</p>
             ) : shown.length === 0 ? (
@@ -91,6 +92,7 @@ export default function DispatchBoard() {
               shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} />)
             )}
           </div>
+          <div className="w-full lg:w-[38%] lg:min-w-[300px]"><TruckMap /></div>
         </div>
         <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign. Hover a card to unassign.</p>
       </div>
