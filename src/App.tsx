@@ -23,6 +23,8 @@ import QuoteDetailPage from './pages/quotes/QuoteDetailPage'
 import QuoteResponsePage from './pages/quotes/QuoteResponsePage'
 import CustomerProfile from './pages/CustomerProfile'
 import Shipments from './pages/Shipments'
+import TmsPage from './features/tms/TmsPage'
+import ConsignmentForm from './features/tms/ConsignmentForm'
 import Dashboard from './pages/DashboardPage'
 import ShipmentDetail from './pages/ShipmentDetail'
 import BookingsPage from './pages/BookingsPage'
@@ -155,6 +157,9 @@ export default function App() {
             <Route path="/" element={<Dashboard />} />
             <Route path="/shipments/:id" element={<ShipmentDetail />} />
             <Route path="/shipments" element={<Shipments globalSearch={search} />} />
+            <Route path="/tms" element={<StaffRoute><TmsPage /></StaffRoute>} />
+            <Route path="/tms/new" element={<StaffRoute><ConsignmentForm /></StaffRoute>} />
+            <Route path="/tms/:id/edit" element={<StaffRoute><ConsignmentForm /></StaffRoute>} />
             <Route path="/new-booking" element={<NewBookingPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
             <Route path="/quotes" element={<StaffRoute><QuotesPage /></StaffRoute>} />

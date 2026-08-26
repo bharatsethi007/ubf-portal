@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronDown, ClipboardList, FileText, Handshake,
-  Menu, MessageCircle, Package, Plane, Search, Settings, Ship, TowerControl, User, Users, X,
+  Menu, MessageCircle, Package, Plane, Search, Settings, Ship, TowerControl, Truck, User, Users, X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Logo from '../components/Logo'
@@ -16,6 +16,7 @@ const NAV = [
   { to: '/', label: 'Control Tower', icon: TowerControl, end: true },
   { to: '/quotes', label: 'Quotes', icon: FileText },
   { to: '/shipments', label: 'Shipments', icon: Package },
+  { to: '/tms', label: 'TMS', icon: Truck },
 ]
 const NAV2 = [
   { to: '/customers', label: 'Customers', icon: Building2 },
