@@ -124,7 +124,14 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
                   <Field label="PO number" value={d.po_number} />
                   <Field label="Supplier" value={d.supplier_name} />
                   <Field label="Reference" value={d.reference} />
-                  <Field label="Booking" value={d.booking_id ? <span className="rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">Linked</span> : '—'} />
+                  <Field label="Links" value={
+                    (d.booking?.booking_ref || d.booking_id || d.shipment_ref || d.job_unique != null) ? (
+                      <span className="flex flex-col gap-1">
+                        {(d.booking?.booking_ref || d.booking_id) && <span className="w-fit rounded bg-emerald-50 px-1.5 py-0.5 text-xs font-medium text-emerald-700">{d.booking?.booking_ref ?? 'Booking linked'}</span>}
+                        {(d.shipment_ref || d.job_unique != null) && <span className="w-fit rounded bg-sky-50 px-1.5 py-0.5 text-xs font-medium text-sky-700">{d.shipment_ref ?? `#${d.job_unique}`}</span>}
+                      </span>
+                    ) : '—'
+                  } />
                 </section>
 
                 <section className="grid grid-cols-1 gap-6 sm:grid-cols-2">

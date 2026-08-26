@@ -1,6 +1,6 @@
 import { supabase } from '@/supabase'
 
-export type TmsBoardKey = 'current' | 'scheduled' | 'incomplete' | 'completed' | 'archived' | 'checkins'
+export type TmsBoardKey = 'current' | 'scheduled' | 'incomplete' | 'completed' | 'archived'
 
 export const TMS_BOARD_TABS: { key: TmsBoardKey; label: string }[] = [
   { key: 'current', label: 'Current' },
@@ -8,7 +8,6 @@ export const TMS_BOARD_TABS: { key: TmsBoardKey; label: string }[] = [
   { key: 'incomplete', label: 'Incomplete/Failed' },
   { key: 'completed', label: 'Recently Completed' },
   { key: 'archived', label: 'Archived' },
-  { key: 'checkins', label: 'Check-Ins' },
 ]
 
 const ACTIVE = ['unassigned', 'assigned', 'inTransit', 'atDepot', 'assignedLeg2', 'inTransitLeg2', 'onHold']
@@ -30,10 +29,11 @@ export type TmsConsignmentRow = {
   job_unique: number | null
   shipment_ref: string | null
   booking: { booking_ref: string | null } | null
+  wms_checkin_at: string | null
 }
 
 const ROW_SELECT =
-  'id, consignment_no, order_type, status, goods_type, sender_company, sender_address, receiver_company, receiver_address, preferred_pickup_at, estimated_delivery_at, booking_id, job_unique, shipment_ref, driver1:tms_drivers!tms_consignments_assigned_driver_leg1_fkey(first_name,last_name), booking:bookings!tms_consignments_booking_id_fkey(booking_ref)'
+  'id, consignment_no, order_type, status, goods_type, sender_company, sender_address, receiver_company, receiver_address, preferred_pickup_at, estimated_delivery_at, wms_checkin_at, booking_id, job_unique, shipment_ref, driver1:tms_drivers!tms_consignments_assigned_driver_leg1_fkey(first_name,last_name), booking:bookings!tms_consignments_booking_id_fkey(booking_ref)'
 
 function endOfTodayIso() {
   const d = new Date()
@@ -54,8 +54,6 @@ function applyBoard(q: any, board: TmsBoardKey) {
       return q.eq('archived', false).in('status', ['complete', 'checked_in'])
     case 'archived':
       return q.or('archived.eq.true,status.in.(archived,cancel)')
-    case 'checkins':
-      return q.eq('order_type', 'pick-up').eq('archived', false).not('status', 'in', '("complete","checked_in","failed","inComplete","cancel","archived")')
   }
 }
 
@@ -101,7 +99,7 @@ export type TmsConsignmentDetail = TmsConsignmentRow & {
 export async function fetchConsignment(id: string): Promise<TmsConsignmentDetail | null> {
   const { data, error } = await supabase
     .from('tms_consignments')
-    .select('*, driver1:tms_drivers!tms_consignments_assigned_driver_leg1_fkey(first_name,last_name), cargo:tms_consignment_cargo(*)')
+    .select('*, driver1:tms_drivers!tms_consignments_assigned_driver_leg1_fkey(first_name,last_name), booking:bookings!tms_consignments_booking_id_fkey(booking_ref), cargo:tms_consignment_cargo(*)')
     .eq('id', id)
     .maybeSingle()
   if (error) throw error

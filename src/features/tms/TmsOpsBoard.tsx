@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
-import { Plus, Search, Truck, CalendarClock, AlertTriangle, CheckCircle2, Archive, ClipboardCheck } from 'lucide-react'
+import { Plus, Search, Truck, CalendarClock, AlertTriangle, CheckCircle2, Archive } from 'lucide-react'
 import Pagination from '@/components/Pagination'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { listConsignments, boardCounts, TMS_BOARD_TABS, type TmsBoardKey, type TmsConsignmentRow } from './tmsApi'
@@ -12,7 +12,7 @@ const PAGE_SIZE = 50
 
 const TAB_ICON: Record<TmsBoardKey, typeof Truck> = {
   current: Truck, scheduled: CalendarClock, incomplete: AlertTriangle,
-  completed: CheckCircle2, archived: Archive, checkins: ClipboardCheck,
+  completed: CheckCircle2, archived: Archive,
 }
 const TAB_COLOR: Record<TmsBoardKey, { text: string; bar: string; pill: string }> = {
   current: { text: 'text-[#0A2472]', bar: 'bg-[#0A2472]', pill: 'bg-[#0A2472]/10 text-[#0A2472]' },
@@ -20,7 +20,6 @@ const TAB_COLOR: Record<TmsBoardKey, { text: string; bar: string; pill: string }
   incomplete: { text: 'text-red-600', bar: 'bg-red-500', pill: 'bg-red-100 text-red-700' },
   completed: { text: 'text-emerald-600', bar: 'bg-emerald-500', pill: 'bg-emerald-100 text-emerald-700' },
   archived: { text: 'text-neutral-600', bar: 'bg-neutral-400', pill: 'bg-neutral-200 text-neutral-600' },
-  checkins: { text: 'text-indigo-600', bar: 'bg-indigo-500', pill: 'bg-indigo-100 text-indigo-700' },
 }
 
 export default function TmsOpsBoard() {
@@ -63,7 +62,7 @@ export default function TmsOpsBoard() {
   return (
     <div>
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-        <h1 className="text-2xl font-semibold text-neutral-900">TMS — Operations</h1>
+        <h1 className="text-2xl font-semibold text-neutral-900">Ops</h1>
         <div className="flex items-center gap-2">
           <label className="flex items-center gap-2 rounded-lg border border-neutral-200 px-3 py-1.5">
             <Search size={16} className="text-neutral-400" />
