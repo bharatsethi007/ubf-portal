@@ -47,6 +47,7 @@ export const emptyParty = (): PartyDraft => ({ company: '', address: '', additio
 export type ConsignmentFormValues = {
   order_type: string
   depot_id: string
+  mode: string
   sender: PartyDraft
   receiver: PartyDraft
   preferred_pickup_at: string
@@ -65,7 +66,7 @@ export type ConsignmentFormValues = {
 
 export function emptyForm(): ConsignmentFormValues {
   return {
-    order_type: 'pick-up', depot_id: '', sender: emptyParty(), receiver: emptyParty(),
+    order_type: 'pick-up', depot_id: '', mode: '', sender: emptyParty(), receiver: emptyParty(),
     preferred_pickup_at: '', preferred_delivery_at: '', estimated_delivery_at: '',
     po_number: '', supplier_name: '', reference: '', delivery_instructions: '',
     calculate_volume_by: 'unitType', goods_type: 'general', dangerous_goods_reason: '',
@@ -88,6 +89,7 @@ function toPayload(v: ConsignmentFormValues) {
   return {
     order_type: v.order_type,
     depot_id: v.depot_id || null,
+    mode: v.mode || null,
     source: 'manual',
     sender_company: v.sender.company || null,
     sender_address: v.sender.address || null,
@@ -160,7 +162,7 @@ export async function fetchConsignmentForEdit(id: string): Promise<ConsignmentFo
   if (!data) return null
   const d: any = data
   return {
-    order_type: d.order_type, depot_id: d.depot_id ?? '',
+    order_type: d.order_type, depot_id: d.depot_id ?? '', mode: d.mode ?? '',
     sender: { company: d.sender_company ?? '', address: d.sender_address ?? '', additional_info: d.sender_additional_info ?? '', contact: d.sender_contact ?? '', phone: d.sender_phone ?? '', email: d.sender_email ?? '' },
     receiver: { company: d.receiver_company ?? '', address: d.receiver_address ?? '', additional_info: d.receiver_additional_info ?? '', contact: d.receiver_contact ?? '', phone: d.receiver_phone ?? '', email: d.receiver_email ?? '' },
     preferred_pickup_at: toLocalInput(d.preferred_pickup_at), preferred_delivery_at: toLocalInput(d.preferred_delivery_at), estimated_delivery_at: toLocalInput(d.estimated_delivery_at),

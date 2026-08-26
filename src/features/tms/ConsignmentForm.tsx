@@ -91,7 +91,7 @@ export default function ConsignmentForm() {
         </header>
 
         <div className="mt-3 space-y-4">
-          <div className="grid gap-3 sm:grid-cols-2">
+          <div className="grid gap-3 sm:grid-cols-3">
             <Field label="Order type *">
               <select className="input" value={v.order_type} onChange={(e) => setV({ ...v, order_type: e.target.value })}>
                 {ORDER_TYPES.map((t) => <option key={t.code} value={t.code}>{t.label}</option>)}
@@ -101,6 +101,15 @@ export default function ConsignmentForm() {
               <select className="input" value={v.depot_id} onChange={(e) => setV({ ...v, depot_id: e.target.value })}>
                 <option value="">Select…</option>
                 {depots.map((d) => <option key={d.id} value={d.id}>{d.name}</option>)}
+              </select>
+            </Field>
+            <Field label="Mode">
+              <select className="input" value={v.mode} onChange={(e) => setV({ ...v, mode: e.target.value })}>
+                <option value="">Select…</option>
+                <option value="EA">Export Air</option>
+                <option value="ES">Export Sea</option>
+                <option value="IA">Import Air</option>
+                <option value="IS">Import Sea</option>
               </select>
             </Field>
           </div>

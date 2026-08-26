@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Dialog, DialogContent } from '@/components/ui/dialog'
 import { Printer } from 'lucide-react'
+import ubLogo from '@/assets/ub-logo.jpg'
 import { fetchConsignment, type TmsConsignmentDetail } from './tmsApi'
-import { qr, buildNoteHtml, printHtml } from './consignmentDocs'
+import { qr, barcode, buildNoteHtml, printHtml } from './consignmentDocs'
 
 export default function ConsignmentNoteModal({ id, open, onClose }: { id: string | null; open: boolean; onClose: () => void }) {
   const [html, setHtml] = useState('')
@@ -13,8 +14,11 @@ export default function ConsignmentNoteModal({ id, open, onClose }: { id: string
     setLoading(true)
     fetchConsignment(id).then(async (d) => {
       if (!d || cancelled) return
-      const qrUrl = await qr(d.consignment_no ?? d.id)
-      if (!cancelled) setHtml(buildNoteHtml(d as TmsConsignmentDetail, qrUrl))
+      const cd = d as TmsConsignmentDetail
+      const ref = cd.consignment_no ?? cd.id
+      const qrUrl = await qr(ref)
+      const barcodeUrl = barcode(ref)
+      if (!cancelled) setHtml(buildNoteHtml(cd, { qrUrl, barcodeUrl, logoUrl: ubLogo }))
     }).finally(() => { if (!cancelled) setLoading(false) })
     return () => { cancelled = true }
   }, [open, id])

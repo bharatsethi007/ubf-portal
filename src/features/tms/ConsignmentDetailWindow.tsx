@@ -105,6 +105,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
                 </DialogTitle>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
                   <span className="tabular-nums font-medium text-neutral-700">{d.consignment_no}</span>
+                  {d.mode && <span className="rounded-full bg-[#0A2472]/10 px-2 py-0.5 text-xs font-medium text-[#0A2472]">{({ EA: 'Export Air', ES: 'Export Sea', IA: 'Import Air', IS: 'Import Sea' } as Record<string, string>)[d.mode] ?? d.mode}</span>}
                   <span className="text-neutral-300">·</span>
                   <span className="capitalize">{d.order_type.replace('-', ' ')}</span>
                   {badge && <span className={`rounded-full px-2 py-0.5 text-xs font-medium ${badge.cls}`}>{badge.label}</span>}
