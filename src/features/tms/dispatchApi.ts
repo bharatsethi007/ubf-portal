@@ -97,3 +97,36 @@ export async function unassignConsignment(id: string) {
   if (error) throw error
   await supabase.from('tms_events').insert({ consignment_id: id, event_code: 'TMS_UNASSIGNED', to_status: 'unassigned' })
 }
+
+// ---- Kanban ----
+export const KANBAN_COLUMNS: { key: string; label: string; status: string }[] = [
+  { key: 'unassigned', label: 'Unassigned', status: 'unassigned' },
+  { key: 'assigned', label: 'Assigned', status: 'assigned' },
+  { key: 'inTransit', label: 'In Transit', status: 'inTransit' },
+  { key: 'complete', label: 'Completed', status: 'complete' },
+  { key: 'failed', label: 'Incomplete/Failed', status: 'failed' },
+]
+
+export function kanbanBucket(status: string): string {
+  if (['assigned', 'assignedLeg2'].includes(status)) return 'assigned'
+  if (['inTransit', 'inTransitLeg2', 'atDepot'].includes(status)) return 'inTransit'
+  if (['complete', 'checked_in'].includes(status)) return 'complete'
+  if (['failed', 'inComplete'].includes(status)) return 'failed'
+  return 'unassigned'
+}
+
+export async function listKanbanConsignments(): Promise<CardRow[]> {
+  const { data, error } = await supabase.from('tms_consignments').select(CARD_SELECT)
+    .eq('archived', false).not('status', 'in', '("cancel","archived")')
+    .order('preferred_pickup_at', { ascending: true, nullsFirst: false })
+  if (error) throw error
+  return (data ?? []) as CardRow[]
+}
+
+export async function setConsignmentStatus(id: string, status: string) {
+  const patch: any = { status }
+  if (status === 'unassigned') { patch.assigned_driver_leg1 = null; patch.assigned_vehicle_id = null; patch.assigned_at = null }
+  const { error } = await supabase.from('tms_consignments').update(patch).eq('id', id)
+  if (error) throw error
+  await supabase.from('tms_events').insert({ consignment_id: id, event_code: 'TMS_STATUS', to_status: status })
+}

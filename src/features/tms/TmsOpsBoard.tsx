@@ -6,7 +6,7 @@ import Pagination from '@/components/Pagination'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { listConsignments, boardCounts, TMS_BOARD_TABS, type TmsBoardKey, type TmsConsignmentRow } from './tmsApi'
 import { opsColumns } from './opsColumns'
-import ConsignmentDrawer from './ConsignmentDrawer'
+import ConsignmentDetailWindow from './ConsignmentDetailWindow'
 
 const PAGE_SIZE = 50
 
@@ -100,7 +100,7 @@ export default function TmsOpsBoard() {
         <Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
       </div>
 
-      <ConsignmentDrawer id={drawerId} onClose={() => setDrawerId(null)} />
+      <ConsignmentDetailWindow id={drawerId} onClose={() => setDrawerId(null)} />
     </div>
   )
 }

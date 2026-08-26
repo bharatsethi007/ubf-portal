@@ -45,6 +45,12 @@ const LABELS: Record<string, string> = {
   RA: 'Rail arrived',
   BD: 'Barge departed',
   BA: 'Barge arrived',
+  // UBF TMS cartage milestones
+  TMS_ALLOCATED: 'Cartage allocated',
+  TMS_ONBOARD: 'Collected — on truck',
+  TMS_DELIVERED: 'Delivered (cartage)',
+  TMS_FAILED: 'Delivery failed',
+  TMS_POD: 'Proof of delivery',
 }
 
 export function carrierEventLabel(code: string, fallback?: string | null): string {
