@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
+import { UserCheck, Inbox, AlertTriangle, CheckCircle2, type LucideIcon } from 'lucide-react'
 import DriverRail from './DriverRail'
 import ConsignmentCard from './ConsignmentCard'
 import ConsignmentDrawer from './ConsignmentDrawer'
@@ -15,6 +16,10 @@ const KPI_ITEMS: { key: keyof Kpis; label: string }[] = [
   { key: 'inTransit', label: 'In Transit' }, { key: 'complete', label: 'Complete' },
   { key: 'incomplete', label: 'Incomplete' }, { key: 'total', label: 'Total' },
 ]
+
+const TAB_ICON: Record<DispatchTab, LucideIcon> = {
+  assigned: UserCheck, unassigned: Inbox, incomplete: AlertTriangle, completed: CheckCircle2,
+}
 
 export default function DispatchBoardView() {
   const [tab, setTab] = useState<DispatchTab>('assigned')
@@ -69,19 +74,24 @@ export default function DispatchBoardView() {
           ))}
         </div>
         <div className="quotes-tabs" role="tablist" aria-label="Dispatch board">
-          {DISPATCH_TABS.map(({ key, label }) => (
-            <button key={key} type="button" role="tab" aria-selected={tab === key}
-              className={`quotes-tabs__btn${tab === key ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab(key)}>{label}</button>
-          ))}
+          {DISPATCH_TABS.map(({ key, label }) => {
+            const Icon = TAB_ICON[key]
+            return (
+              <button key={key} type="button" role="tab" aria-selected={tab === key}
+                className={`quotes-tabs__btn${tab === key ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab(key)}>
+                <span className="inline-flex items-center gap-1.5"><Icon size={14} />{label}</span>
+              </button>
+            )
+          })}
         </div>
-        <div className="mt-3 flex flex-wrap gap-3" style={{ minHeight: 420 }}>
+        <div className="mt-3 flex flex-wrap gap-3" style={{ minHeight: 620 }}>
           <DriverRail drivers={drivers} selectedId={selectedDriver} onSelect={setSelectedDriver} onDropCard={onDropCard} />
-          <div className="min-w-0 flex-1 space-y-2 overflow-y-auto">
+          <div className="w-full space-y-2 overflow-y-auto lg:w-[280px] lg:shrink-0" style={{ maxHeight: 620 }}>
             {loading ? <p className="py-6 text-sm text-neutral-400">Loading…</p>
              : shown.length === 0 ? <p className="py-6 text-sm text-neutral-400">No consignments{selectedDriver ? ' for this driver' : ''} on this board.</p>
              : shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} />)}
           </div>
-          <div className="w-full lg:w-[38%] lg:min-w-[300px]"><TruckMap /></div>
+          <div className="min-w-0 flex-1 lg:min-w-[360px]"><TruckMap /></div>
         </div>
         <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign. Hover a card to unassign.</p>
       </div>
