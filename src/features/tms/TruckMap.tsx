@@ -345,7 +345,7 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         ))}
       </div>
       <button type="button" onClick={() => setFull((v) => !v)} title={full ? 'Exit full screen' : 'Full screen'}
-        className="absolute right-3 top-14 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white/95 text-neutral-600 shadow-sm hover:bg-neutral-50">
+        className="absolute right-2.5 top-[84px] z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white/95 text-neutral-600 shadow-sm hover:bg-neutral-50">
         {full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
       {assignMenu && (

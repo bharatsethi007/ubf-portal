@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { CheckCircle2 } from 'lucide-react'
 import type { CardRow } from './dispatchApi'
 
@@ -12,14 +13,14 @@ export default function CompleteConfirmDialog({ card, saving, onCancel, onConfir
         <div className="space-y-2 py-1 text-sm text-neutral-600">
           <div className="flex items-start gap-2 text-emerald-700">
             <CheckCircle2 size={15} className="mt-0.5 shrink-0" />
-            <span>Do you want to manually complete this job? It will be marked as complete on the driver’s app as well.</span>
+            <span>Do you want to manually complete this job? It will be marked as complete on the driver's app as well.</span>
           </div>
         </div>
         <DialogFooter>
-          <button type="button" className="btn" onClick={onCancel}>Cancel</button>
-          <button type="button" className="btn quotes-page__new-btn" disabled={saving} onClick={onConfirm}>
+          <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>Cancel</Button>
+          <Button type="button" disabled={saving} className="!bg-ub-navy !text-white hover:!bg-ub-navy/90 !border-ub-navy" onClick={onConfirm}>
             {saving ? 'Completing…' : 'Mark complete'}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

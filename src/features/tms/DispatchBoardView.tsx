@@ -9,7 +9,7 @@ import CompleteConfirmDialog from './CompleteConfirmDialog'
 import TruckMap from './TruckMap'
 import {
   listDrivers, listDispatchConsignments, boardKpis, assignConsignment, unassignConsignment,
-  completeConsignment, assignConsignmentToDriver,
+  completeConsignment, setConsignmentStatus, assignConsignmentToDriver,
   DISPATCH_TABS, type DispatchTab, type DriverRow, type CardRow, type Kpis,
 } from './dispatchApi'
 
@@ -80,6 +80,13 @@ export default function DispatchBoardView() {
       setCompleting(null); loadCards(); loadAux()
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Complete failed') } finally { setCompleteSaving(false) }
   }
+  async function onIncomplete(id: string) {
+    try {
+      await setConsignmentStatus(id, 'failed')
+      toast.success('Marked incomplete')
+      loadCards(); loadAux()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Update failed') }
+  }
   async function onAssignJob(consignmentId: string, driverId: string) {
     const driver = drivers.find((d) => d.id === driverId)
     if (!driver) return
@@ -114,7 +121,7 @@ export default function DispatchBoardView() {
           <div className="w-full space-y-2 overflow-y-auto lg:w-[280px] lg:shrink-0" style={{ maxHeight: 620 }}>
             {loading ? <p className="py-6 text-sm text-neutral-400">Loading…</p>
              : shown.length === 0 ? <p className="py-6 text-sm text-neutral-400">No consignments{selectedDriver ? ' for this driver' : ''} on this board.</p>
-             : shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} onComplete={onComplete} />)}
+             : shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} onComplete={onComplete} onIncomplete={onIncomplete} />)}
           </div>
           <div className="min-w-0 flex-1 lg:min-w-[360px]">
             <TruckMap
@@ -131,7 +138,7 @@ export default function DispatchBoardView() {
             />
           </div>
         </div>
-        <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign, or tap a job on the map to assign it. Tap ✓ on a card to complete.</p>
+        <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign, or tap a job on the map to assign it. Use the ⋯ menu on a card to complete, mark incomplete, or unassign.</p>
       </div>
       <ConsignmentDrawer id={drawerId} onClose={() => setDrawerId(null)} />
       <AssignConfirmDialog card={pending?.card ?? null} driver={pending?.driver ?? null} saving={saving} onCancel={() => setPending(null)} onConfirm={confirmAssign} />

@@ -1,4 +1,5 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from '@/components/ui/dialog'
+import { Button } from '@/components/ui/button'
 import { AlertTriangle, XCircle, CheckCircle2 } from 'lucide-react'
 import type { CardRow, DriverRow } from './dispatchApi'
 import { validateAssignment } from './assignValidation'
@@ -21,10 +22,17 @@ export default function AssignConfirmDialog({ card, driver, saving, onCancel, on
           {clean && <div className="flex items-center gap-2 text-emerald-700"><CheckCircle2 size={15} />No constraint issues.</div>}
         </div>
         <DialogFooter>
-          <button type="button" className="btn" onClick={onCancel}>Cancel</button>
-          <button type="button" className="btn quotes-page__new-btn" style={hasErrors ? { backgroundColor: '#d97706' } : undefined} disabled={saving} onClick={onConfirm}>
+          <Button type="button" variant="outline" disabled={saving} onClick={onCancel}>Cancel</Button>
+          <Button
+            type="button"
+            disabled={saving}
+            onClick={onConfirm}
+            className={hasErrors
+              ? '!bg-amber-600 !text-white hover:!bg-amber-600/90 !border-amber-600'
+              : '!bg-ub-navy !text-white hover:!bg-ub-navy/90 !border-ub-navy'}
+          >
             {saving ? 'Assigning…' : hasErrors ? 'Assign anyway' : 'Confirm assign'}
-          </button>
+          </Button>
         </DialogFooter>
       </DialogContent>
     </Dialog>

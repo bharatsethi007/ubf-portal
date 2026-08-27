@@ -1,18 +1,32 @@
 import { useState } from 'react'
-import { ArrowUp, ArrowDown, AlertTriangle, X, Check, Package, Weight, Box, Clock, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowUp, ArrowDown, AlertTriangle, X, MoreHorizontal, CheckCircle2, Package, Weight, Box, Clock, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react'
 import { format } from 'date-fns'
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from '@/components/ui/dropdown-menu'
 import { cardTotals, type CardRow } from './dispatchApi'
 
 const TYPE_LABEL: Record<string, string> = { 'pick-up': 'PICK-UP', 'drop-off': 'DROP-OFF', transfer: 'TRANSFER' }
 const fmt = (v: string | null) => (v ? format(new Date(v), 'd MMM, h:mm a') : '—')
 const DONE = ['complete', 'checked_in', 'cancel', 'archived']
 
-type Props = { card: CardRow; onOpen: () => void; onUnassign?: (id: string) => void; onComplete?: (id: string) => void }
+type Props = {
+  card: CardRow
+  onOpen: () => void
+  onUnassign?: (id: string) => void
+  onComplete?: (id: string) => void
+  onIncomplete?: (id: string) => void
+}
 
-export default function ConsignmentCard({ card, onOpen, onUnassign, onComplete }: Props) {
+export default function ConsignmentCard({ card, onOpen, onUnassign, onComplete, onIncomplete }: Props) {
   const [expanded, setExpanded] = useState(false)
   const t = cardTotals(card)
   const canComplete = !DONE.includes(card.status)
+  const canUnassign = Boolean(card.assigned_driver_leg1 && onUnassign)
+  const hasMenu = (canComplete && (onComplete || onIncomplete)) || canUnassign
   const flags = [
     card.signature_required && 'Signature', card.photo_pod_required && 'Photo POD',
     card.tail_lift_required && 'Tail Lift', card.temperature_control && 'Temp',
@@ -24,17 +38,34 @@ export default function ConsignmentCard({ card, onOpen, onUnassign, onComplete }
   return (
     <div draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', card.id)}
       className="group relative w-full cursor-grab rounded-lg border border-neutral-200 bg-white p-2.5 text-left hover:border-[#0A2472]/40 hover:shadow-sm active:cursor-grabbing">
-      {canComplete && onComplete && (
-        <button type="button" aria-label="Mark complete" title="Mark complete" onClick={(e) => { e.stopPropagation(); onComplete(card.id) }}
-          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded text-emerald-600 hover:bg-emerald-50">
-          <Check size={14} />
-        </button>
-      )}
-      {card.assigned_driver_leg1 && onUnassign && (
-        <button type="button" aria-label="Unassign" onClick={(e) => { e.stopPropagation(); onUnassign(card.id) }}
-          className="absolute right-8 top-1.5 hidden h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-red-50 hover:text-red-600 group-hover:flex">
-          <X size={13} />
-        </button>
+      {hasMenu && (
+        <DropdownMenu>
+          <DropdownMenuTrigger
+            render={
+              <button type="button" aria-label="Actions"
+                className="absolute right-1.5 top-1.5 flex h-6 w-6 items-center justify-center rounded text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700" />
+            }
+          >
+            <MoreHorizontal size={15} />
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-40">
+            {canComplete && onComplete && (
+              <DropdownMenuItem onClick={() => onComplete(card.id)}>
+                <CheckCircle2 size={14} className="text-emerald-600" />Complete
+              </DropdownMenuItem>
+            )}
+            {canComplete && onIncomplete && (
+              <DropdownMenuItem onClick={() => onIncomplete(card.id)}>
+                <AlertTriangle size={14} className="text-amber-600" />Incomplete
+              </DropdownMenuItem>
+            )}
+            {canUnassign && (
+              <DropdownMenuItem onClick={() => onUnassign?.(card.id)}>
+                <X size={14} className="text-neutral-500" />Unassign
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
       )}
 
       <div className="flex items-stretch gap-1">
