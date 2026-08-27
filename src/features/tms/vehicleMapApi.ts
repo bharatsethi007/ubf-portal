@@ -38,6 +38,11 @@ export type JobPin = {
   company: string | null
   address: string | null
   status: string
+  driver_id: string | null
+  pickup_at: string | null
+  units: number
+  weight_kg: number
+  cbm: number
   lat: number
   lng: number
 }
@@ -62,7 +67,7 @@ async function geocode(q: string): Promise<{ lat: number; lng: number } | null> 
 }
 
 const SELECT =
-  'id,consignment_no,status,sender_company,sender_address,sender_lat,sender_lng,receiver_company,receiver_address,receiver_lat,receiver_lng'
+  'id,consignment_no,status,preferred_pickup_at,assigned_driver_leg1,sender_company,sender_address,sender_lat,sender_lng,receiver_company,receiver_address,receiver_lat,receiver_lng,cargo:tms_consignment_cargo(units,weight_kg,total_cube_m3)'
 
 async function resolveRow(c: any): Promise<{ pickup: JobPin | null; dropoff: JobPin | null }> {
   let sLat = c.sender_lat, sLng = c.sender_lng
@@ -82,9 +87,14 @@ async function resolveRow(c: any): Promise<{ pickup: JobPin | null; dropoff: Job
       supabase.from('tms_consignments').update(patch).eq('id', c.id).then(() => {}, () => {})
     }
   }
+  const cargo = Array.isArray(c.cargo) ? c.cargo : []
+  const units = cargo.reduce((t: number, l: any) => t + (l.units ?? 0), 0)
+  const weight_kg = cargo.reduce((t: number, l: any) => t + (l.weight_kg ?? 0), 0)
+  const cbm = +cargo.reduce((t: number, l: any) => t + (l.total_cube_m3 ?? 0), 0).toFixed(3)
+  const base = { driver_id: c.assigned_driver_leg1 ?? null, pickup_at: c.preferred_pickup_at ?? null, units, weight_kg, cbm }
   return {
-    pickup: sLat != null && sLng != null ? { id: c.id, consignment_no: c.consignment_no, company: c.sender_company, address: c.sender_address, status: c.status, lat: Number(sLat), lng: Number(sLng) } : null,
-    dropoff: rLat != null && rLng != null ? { id: c.id, consignment_no: c.consignment_no, company: c.receiver_company, address: c.receiver_address, status: c.status, lat: Number(rLat), lng: Number(rLng) } : null,
+    pickup: sLat != null && sLng != null ? { id: c.id, consignment_no: c.consignment_no, company: c.sender_company, address: c.sender_address, status: c.status, ...base, lat: Number(sLat), lng: Number(sLng) } : null,
+    dropoff: rLat != null && rLng != null ? { id: c.id, consignment_no: c.consignment_no, company: c.receiver_company, address: c.receiver_address, status: c.status, ...base, lat: Number(rLat), lng: Number(rLng) } : null,
   }
 }
 

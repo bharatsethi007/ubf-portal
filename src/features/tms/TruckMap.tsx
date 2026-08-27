@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { Maximize2, Minimize2, X } from 'lucide-react'
+import { format } from 'date-fns'
+import { Maximize2, Minimize2, X, UserCog, Building2, MapPin, ChevronLeft, User, Clock, Package, Weight, Box } from 'lucide-react'
 import {
   fetchTruckPositions, fetchDispatchJobPins, fetchCompletedJobPins,
   type TruckPosition, type JobPin,
@@ -57,7 +58,11 @@ function pinsGeo(rows: JobPin[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
     features: rows.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng)).map((r) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [r.lng, r.lat] },
-      properties: { id: r.id, label: r.consignment_no ?? r.company ?? '', company: r.company ?? '' },
+      properties: {
+        id: r.id, label: r.consignment_no ?? r.company ?? '', company: r.company ?? '', address: r.address ?? '',
+        status: r.status ?? '', driver_id: r.driver_id ?? '', pickup_at: r.pickup_at ?? '',
+        units: r.units ?? 0, weight_kg: r.weight_kg ?? 0, cbm: r.cbm ?? 0,
+      },
     })),
   }
 }
@@ -68,6 +73,10 @@ const lineFeature = (coords: [number, number][]): any =>
   coords.length >= 2 ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } : EMPTY_FC
 
 type PickerDriver = { id: string; first_name: string; last_name: string; current_registration: string | null }
+type PinPopup = {
+  id: string; no: string | null; company: string | null; address: string | null; kind: 'Pickup' | 'Drop-off'
+  driverId: string | null; pickupAt: string | null; units: number; weightKg: number; cbm: number; x: number; y: number
+}
 type Props = {
   routeDriverId?: string | null
   driverName?: string | null
@@ -90,7 +99,8 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
   const manualOrderRef = useRef<string[] | null>(null)
   const [removed, setRemoved] = useState<RouteStop[]>([])
   const [returnToDepot, setReturnToDepot] = useState(true)
-  const [assignMenu, setAssignMenu] = useState<{ id: string; no: string | null; x: number; y: number } | null>(null)
+  const [pinPopup, setPinPopup] = useState<PinPopup | null>(null)
+  const [pinMode, setPinMode] = useState<'details' | 'assign'>('details')
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -164,14 +174,28 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; popup.remove() })
       }
 
-      const pinClick = (e: mapboxgl.MapLayerMouseEvent) => {
+      const pinClick = (e: mapboxgl.MapLayerMouseEvent, kind: 'Pickup' | 'Drop-off') => {
         const f = e.features?.[0] as any
         if (!f?.properties?.id) return
-        setAssignMenu({ id: String(f.properties.id), no: f.properties.label ? String(f.properties.label) : null, x: e.point.x, y: e.point.y })
+        const p = f.properties
+        setPinMode('details')
+        setPinPopup({
+          id: String(p.id),
+          no: p.label ? String(p.label) : null,
+          company: p.company ? String(p.company) : null,
+          address: p.address ? String(p.address) : null,
+          kind,
+          driverId: p.driver_id ? String(p.driver_id) : null,
+          pickupAt: p.pickup_at ? String(p.pickup_at) : null,
+          units: Number(p.units ?? 0),
+          weightKg: Number(p.weight_kg ?? 0),
+          cbm: Number(p.cbm ?? 0),
+          x: e.point.x, y: e.point.y,
+        })
       }
-      map.on('click', 'pickups-dot', pinClick)
-      map.on('click', 'dropoffs-dot', pinClick)
-      map.on('movestart', () => setAssignMenu(null))
+      map.on('click', 'pickups-dot', (e) => pinClick(e, 'Pickup'))
+      map.on('click', 'dropoffs-dot', (e) => pinClick(e, 'Drop-off'))
+      map.on('movestart', () => setPinPopup(null))
 
       const handleTruckClick = (e: mapboxgl.MapLayerMouseEvent) => {
         const reg = (e.features?.[0]?.properties as any)?.registration
@@ -333,6 +357,7 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
   }, [full])
 
   const showPanel = !!routeDriverId
+  const popupDriver = pinPopup?.driverId ? drivers.find((d) => d.id === pinPopup.driverId) ?? null : null
 
   return (
     <div className={full ? 'fixed inset-0 z-[60] bg-white p-3' : 'relative h-full w-full'}>
@@ -348,24 +373,66 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         className="absolute right-2.5 top-[84px] z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white/95 text-neutral-600 shadow-sm hover:bg-neutral-50">
         {full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
-      {assignMenu && (
-        <div className="absolute z-20 w-52 -translate-x-1/2 rounded-lg border border-neutral-200 bg-white p-2 shadow-xl"
-          style={{ left: assignMenu.x, top: assignMenu.y + 12 }}>
-          <div className="mb-1 flex items-center justify-between gap-2 px-1">
-            <span className="truncate text-xs font-semibold text-[#0A2472]">Assign {assignMenu.no ?? 'job'}</span>
-            <button type="button" onClick={() => setAssignMenu(null)} className="shrink-0 text-neutral-400 hover:text-neutral-700"><X size={13} /></button>
-          </div>
-          <div className="max-h-48 overflow-y-auto">
-            {drivers.length === 0 && <p className="px-1 py-1 text-xs text-neutral-400">No active drivers.</p>}
-            {drivers.map((d) => (
-              <button key={d.id} type="button" onClick={() => { onAssignJob?.(assignMenu.id, d.id); setAssignMenu(null) }}
-                className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-neutral-50">
-                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0A2472] text-[10px] font-semibold text-white">{(d.first_name[0] ?? '') + (d.last_name[0] ?? '')}</span>
-                <span className="min-w-0 flex-1 truncate text-sm">{d.first_name} {d.last_name[0]}.</span>
-                <span className="shrink-0 truncate text-[11px] text-neutral-500">{d.current_registration ?? ''}</span>
-              </button>
-            ))}
-          </div>
+      {pinPopup && (
+        <div className="absolute z-20 w-64 -translate-x-1/2 rounded-lg border border-neutral-200 bg-white p-2.5 shadow-xl"
+          style={{ left: pinPopup.x, top: pinPopup.y + 12 }}>
+          {pinMode === 'details' ? (
+            <>
+              <div className="mb-2 flex items-center gap-1.5">
+                <span className="min-w-0 flex-1 truncate text-sm font-semibold text-[#0A2472]">{pinPopup.no ?? 'Job'}</span>
+                <span className={`shrink-0 rounded px-1.5 py-0.5 text-[10px] font-semibold tracking-wide ${pinPopup.kind === 'Pickup' ? 'bg-[#0F7A4E]/10 text-[#0F7A4E]' : 'bg-[#B0264A]/10 text-[#B0264A]'}`}>{pinPopup.kind === 'Pickup' ? 'PICK-UP' : 'DROP-OFF'}</span>
+                {onAssignJob && (
+                  <button type="button" title="Change driver" onClick={() => setPinMode('assign')}
+                    className="shrink-0 rounded p-1 text-neutral-500 hover:bg-neutral-100 hover:text-[#0A2472]"><UserCog size={14} /></button>
+                )}
+                <button type="button" aria-label="Close" onClick={() => setPinPopup(null)}
+                  className="shrink-0 rounded p-1 text-neutral-400 hover:bg-neutral-100 hover:text-neutral-700"><X size={13} /></button>
+              </div>
+              <div className="space-y-1.5 text-xs text-neutral-600">
+                {pinPopup.company && <div className="flex items-start gap-1.5"><Building2 size={13} className="mt-0.5 shrink-0 text-neutral-400" /><span className="min-w-0 flex-1">{pinPopup.company}</span></div>}
+                {pinPopup.address && <div className="flex items-start gap-1.5"><MapPin size={13} className="mt-0.5 shrink-0 text-neutral-400" /><span className="min-w-0 flex-1">{pinPopup.address}</span></div>}
+                <div className="flex items-center gap-1.5">
+                  <User size={13} className="shrink-0 text-neutral-400" />
+                  <span className="min-w-0 flex-1 truncate">
+                    {popupDriver
+                      ? `${popupDriver.first_name} ${popupDriver.last_name[0] ?? ''}.${popupDriver.current_registration ? ' · ' + popupDriver.current_registration : ''}`
+                      : pinPopup.driverId ? 'Assigned' : 'Unassigned'}
+                  </span>
+                </div>
+                {pinPopup.pickupAt && (
+                  <div className="flex items-center gap-1.5">
+                    <Clock size={13} className="shrink-0 text-neutral-400" />
+                    <span className="min-w-0 flex-1 truncate">Pickup {format(new Date(pinPopup.pickupAt), 'd MMM, h:mm a')}</span>
+                  </div>
+                )}
+                <div className="flex items-center gap-3 border-t border-neutral-100 pt-1.5 text-[11px] text-neutral-500">
+                  <span className="inline-flex items-center gap-1"><Package size={12} className="text-neutral-400" />{pinPopup.units}</span>
+                  <span className="inline-flex items-center gap-1"><Weight size={12} className="text-neutral-400" />{pinPopup.weightKg} kg</span>
+                  <span className="inline-flex items-center gap-1"><Box size={12} className="text-neutral-400" />{pinPopup.cbm} CBM</span>
+                </div>
+              </div>
+            </>
+          ) : (
+            <>
+              <div className="mb-1 flex items-center justify-between gap-2 px-0.5">
+                <button type="button" onClick={() => setPinMode('details')} className="flex min-w-0 items-center gap-1 text-xs font-semibold text-[#0A2472] hover:underline">
+                  <ChevronLeft size={13} className="shrink-0" /><span className="truncate">Assign {pinPopup.no ?? 'job'}</span>
+                </button>
+                <button type="button" aria-label="Close" onClick={() => setPinPopup(null)} className="shrink-0 text-neutral-400 hover:text-neutral-700"><X size={13} /></button>
+              </div>
+              <div className="max-h-48 overflow-y-auto">
+                {drivers.length === 0 && <p className="px-1 py-1 text-xs text-neutral-400">No active drivers.</p>}
+                {drivers.map((d) => (
+                  <button key={d.id} type="button" onClick={() => { onAssignJob?.(pinPopup.id, d.id); setPinPopup(null) }}
+                    className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-neutral-50">
+                    <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0A2472] text-[10px] font-semibold text-white">{(d.first_name[0] ?? '') + (d.last_name[0] ?? '')}</span>
+                    <span className="min-w-0 flex-1 truncate text-sm">{d.first_name} {d.last_name[0]}.</span>
+                    <span className="shrink-0 truncate text-[11px] text-neutral-500">{d.current_registration ?? ''}</span>
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </div>
       )}
       {showPanel && (
