@@ -63,6 +63,8 @@ function pinsGeo(rows: JobPin[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
 
 const EMPTY_FC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
 const STALE_OPACITY: any = ['case', ['<', ['get', 'mins'], 30], 1, ['<', ['get', 'mins'], 180], 0.85, 0.5]
+const lineFeature = (coords: [number, number][]): any =>
+  coords.length >= 2 ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } : EMPTY_FC
 
 type Props = { routeDriverId?: string | null; driverName?: string | null }
 
@@ -92,7 +94,8 @@ export default function TruckMap({ routeDriverId = null, driverName = null }: Pr
       map.addSource('pickups', { type: 'geojson', data: pinsGeo([]) })
       map.addSource('dropoffs', { type: 'geojson', data: pinsGeo([]) })
       map.addSource('completed', { type: 'geojson', data: pinsGeo([]) })
-      map.addSource('route-line', { type: 'geojson', data: EMPTY_FC })
+      map.addSource('route-done', { type: 'geojson', data: EMPTY_FC })
+      map.addSource('route-todo', { type: 'geojson', data: EMPTY_FC })
       map.addSource('route-stops', { type: 'geojson', data: EMPTY_FC })
       map.addSource('mapbox-traffic', { type: 'vector', url: 'mapbox://mapbox.mapbox-traffic-v1' })
 
@@ -102,8 +105,10 @@ export default function TruckMap({ routeDriverId = null, driverName = null }: Pr
         paint: { 'line-width': 2.5, 'line-color': ['match', ['get', 'congestion'], 'low', '#37A24A', 'moderate', '#F2A93B', 'heavy', '#E24A3B', 'severe', '#A11423', '#9CA3AF'] },
       })
 
-      map.addLayer({ id: 'route-casing', type: 'line', source: 'route-line', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 7 } })
-      map.addLayer({ id: 'route-line', type: 'line', source: 'route-line', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#F26A21', 'line-width': 4, 'line-opacity': 0.95 } })
+      // done run = solid orange (white casing); to-do run = dotted red
+      map.addLayer({ id: 'route-done-casing', type: 'line', source: 'route-done', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 7 } })
+      map.addLayer({ id: 'route-done', type: 'line', source: 'route-done', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#F26A21', 'line-width': 4, 'line-opacity': 0.95 } })
+      map.addLayer({ id: 'route-todo', type: 'line', source: 'route-todo', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#DC2626', 'line-width': 3, 'line-opacity': 0.9, 'line-dasharray': [1.5, 1.5] } })
 
       map.addLayer({ id: 'completed-dot', type: 'circle', source: 'completed', layout: { visibility: 'none' }, paint: { 'circle-radius': 8, 'circle-color': '#9CA3AF', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
       map.addLayer({ id: 'completed-mark', type: 'symbol', source: 'completed', layout: { visibility: 'none', 'text-field': '✓', 'text-size': 11, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#ffffff' } })
@@ -114,7 +119,7 @@ export default function TruckMap({ routeDriverId = null, driverName = null }: Pr
       map.addLayer({ id: 'dropoffs-dot', type: 'circle', source: 'dropoffs', paint: { 'circle-radius': 8, 'circle-color': '#B0264A', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
       map.addLayer({ id: 'dropoffs-arrow', type: 'symbol', source: 'dropoffs', layout: { 'text-field': '↓', 'text-size': 13, 'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#ffffff' } })
 
-      map.addLayer({ id: 'route-stops-dot', type: 'circle', source: 'route-stops', paint: { 'circle-radius': 11, 'circle-color': ['match', ['get', 'type'], 'pickup', '#0F7A4E', '#B0264A'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
+      map.addLayer({ id: 'route-stops-dot', type: 'circle', source: 'route-stops', paint: { 'circle-radius': 11, 'circle-color': ['case', ['get', 'done'], '#9CA3AF', ['match', ['get', 'type'], 'pickup', '#0F7A4E', '#B0264A']], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
       map.addLayer({ id: 'route-stops-num', type: 'symbol', source: 'route-stops', layout: { 'text-field': ['get', 'seq'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#ffffff' } })
 
       map.addLayer({ id: 'trucks-label', type: 'symbol', source: 'trucks', layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, 1.8], 'text-anchor': 'top' }, paint: { 'text-color': '#0A2472', 'text-halo-color': '#fff', 'text-halo-width': 1.5 } })
@@ -179,23 +184,38 @@ export default function TruckMap({ routeDriverId = null, driverName = null }: Pr
   function paintRoute(r: DriverRoute | null) {
     const map = mapRef.current
     if (!map) return
-    const lineSrc = map.getSource('route-line') as mapboxgl.GeoJSONSource | undefined
+    const doneSrc = map.getSource('route-done') as mapboxgl.GeoJSONSource | undefined
+    const todoSrc = map.getSource('route-todo') as mapboxgl.GeoJSONSource | undefined
     const stopSrc = map.getSource('route-stops') as mapboxgl.GeoJSONSource | undefined
     if (!r || !r.stops.length) {
-      lineSrc?.setData(EMPTY_FC as any)
+      doneSrc?.setData(EMPTY_FC as any)
+      todoSrc?.setData(EMPTY_FC as any)
       stopSrc?.setData(EMPTY_FC as any)
       routeActiveRef.current = false
       return
     }
-    const coords = r.polyline ? decodePolyline(r.polyline) : [[r.depot.lng, r.depot.lat], ...r.stops.map((s) => [s.lng, s.lat] as [number, number])]
-    lineSrc?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } as any)
+    const doneCoords: [number, number][] = []
+    const todoCoords: [number, number][] = []
+    for (const lg of r.legs ?? []) {
+      if (!lg.polyline) continue
+      const seg = decodePolyline(lg.polyline)
+      const target = lg.done ? doneCoords : todoCoords
+      if (target.length) target.push(...seg.slice(1)); else target.push(...seg)
+    }
+    if (!doneCoords.length && !todoCoords.length && r.polyline) todoCoords.push(...decodePolyline(r.polyline))
+
+    doneSrc?.setData(lineFeature(doneCoords))
+    todoSrc?.setData(lineFeature(todoCoords))
     stopSrc?.setData({
       type: 'FeatureCollection',
-      features: r.stops.map((s) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { seq: String(s.seq), type: s.type } })),
+      features: r.stops.map((s) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { seq: String(s.seq), type: s.type, done: !!s.done } })),
     } as any)
     routeActiveRef.current = true
+
     const b = new mapboxgl.LngLatBounds()
-    coords.forEach((c) => b.extend(c as [number, number]))
+    const all = [...doneCoords, ...todoCoords]
+    if (all.length) all.forEach((c) => b.extend(c))
+    else r.stops.forEach((s) => b.extend([s.lng, s.lat] as [number, number]))
     b.extend([r.depot.lng, r.depot.lat])
     map.fitBounds(b, { padding: { top: 60, right: 60, bottom: 60, left: 300 }, maxZoom: 13, duration: 400 })
   }

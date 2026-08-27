@@ -9,9 +9,17 @@ export type RouteStop = {
   lat: number
   lng: number
   seq: number
-  etaMs: number
+  done: boolean
+  etaMs: number | null
   legSec: number
   legM: number
+}
+
+export type RouteLeg = {
+  polyline: string | null
+  done: boolean
+  durationSec: number
+  distanceM: number
 }
 
 export type DriverRoute = {
@@ -19,8 +27,10 @@ export type DriverRoute = {
   driverId: string
   optimized: boolean
   fixedOrder?: boolean
+  doneCount: number
   depot: { lat: number; lng: number }
   stops: RouteStop[]
+  legs: RouteLeg[]
   backToDepot: { etaMs: number; sec: number; m: number }
   polyline: string | null
   totalSec: number
@@ -28,7 +38,7 @@ export type DriverRoute = {
   note?: string
 }
 
-// On-demand only. Pass `order` (array of stop keys) to recompute along a fixed sequence.
+// On-demand only. Pass `order` (array of pending stop keys) to recompute along a fixed sequence.
 export async function computeDriverRoute(driverId: string, order?: string[]): Promise<DriverRoute> {
   const { data, error } = await supabase.functions.invoke('dispatch-route', {
     body: order && order.length ? { driverId, order } : { driverId },
