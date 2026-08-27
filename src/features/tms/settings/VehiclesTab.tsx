@@ -30,14 +30,14 @@ function PhotoBubble({ url, rego }: { url: string | null; rego: string }) {
   )
 }
 
-export default function VehiclesTab({ onEdit, onAdd }: { onEdit: (v: FleetVehicle) => void; onAdd: () => void }) {
+export default function VehiclesTab({ onEdit, onAdd, reloadKey = 0 }: { onEdit: (v: FleetVehicle) => void; onAdd: () => void; reloadKey?: number }) {
   const [rows, setRows] = useState<FleetVehicle[]>([])
   const [loading, setLoading] = useState(true)
 
   useEffect(() => {
     setLoading(true)
     listFleetVehicles().then(setRows).catch((e) => { toast.error(e instanceof Error ? e.message : 'Load failed'); setRows([]) }).finally(() => setLoading(false))
-  }, [])
+  }, [reloadKey])
 
   return (
     <div className="space-y-2">

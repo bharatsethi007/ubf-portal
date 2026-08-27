@@ -26,7 +26,6 @@ export async function listFleetVehicles(): Promise<FleetVehicle[]> {
     .order('registration_number')
   if (error) throw error
 
-  // Telematics model fallback by registration (best-effort; ignore if blocked)
   const modelByRego = new Map<string, string>()
   try {
     const { data: dv } = await supabase.from('dispatch_vehicles').select('registration,make,model')
@@ -74,4 +73,34 @@ export async function listFleetDrivers(): Promise<FleetDriver[]> {
     .order('first_name')
   if (error) throw error
   return (data ?? []) as FleetDriver[]
+}
+
+export type VehicleInput = {
+  registration_number: string
+  model: string | null
+  photo_url: string | null
+  rego_expiry: string | null
+  cof_expiry: string | null
+  last_service_at: string | null
+  next_service_at: string | null
+  active: boolean
+}
+
+export async function uploadVehiclePhoto(file: File): Promise<string> {
+  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
+  const path = `vehicles/${crypto.randomUUID()}.${ext}`
+  const { error } = await supabase.storage.from('fleet').upload(path, file, { upsert: true })
+  if (error) throw error
+  const { data } = supabase.storage.from('fleet').getPublicUrl(path)
+  return data.publicUrl
+}
+
+export async function createVehicle(input: VehicleInput): Promise<void> {
+  const { error } = await supabase.from('tms_vehicles').insert(input)
+  if (error) throw error
+}
+
+export async function updateVehicle(id: string, input: VehicleInput): Promise<void> {
+  const { error } = await supabase.from('tms_vehicles').update(input).eq('id', id)
+  if (error) throw error
 }

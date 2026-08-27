@@ -1,18 +1,21 @@
 import { useState } from 'react'
 import { ArrowLeft, Truck, Users } from 'lucide-react'
-import { toast } from 'sonner'
 import VehiclesTab from './VehiclesTab'
 import DriversTab from './DriversTab'
+import VehicleEditor from './VehicleEditor'
 import type { FleetVehicle } from './fleetApi'
 
 type Tab = 'vehicles' | 'drivers'
 
 export default function FleetSettingsPage({ onBack }: { onBack: () => void }) {
   const [tab, setTab] = useState<Tab>('vehicles')
+  const [editing, setEditing] = useState<FleetVehicle | null>(null)
+  const [adding, setAdding] = useState(false)
+  const [reloadKey, setReloadKey] = useState(0)
 
-  // Step 2 will replace these with the edit/add popup.
-  const onEdit = (_v: FleetVehicle) => toast('Editing a vehicle lands in the next step.')
-  const onAdd = () => toast('Add vehicle lands in the next step.')
+  const editorOpen = adding || !!editing
+  const closeEditor = () => { setEditing(null); setAdding(false) }
+  const onSaved = () => { closeEditor(); setReloadKey((k) => k + 1) }
 
   const TABS: { key: Tab; label: string; Icon: typeof Truck }[] = [
     { key: 'vehicles', label: 'Vehicles', Icon: Truck },
@@ -41,8 +44,13 @@ export default function FleetSettingsPage({ onBack }: { onBack: () => void }) {
         })}
       </div>
       <div className="pt-3">
-        {tab === 'vehicles' ? <VehiclesTab onEdit={onEdit} onAdd={onAdd} /> : <DriversTab />}
+        {tab === 'vehicles'
+          ? <VehiclesTab reloadKey={reloadKey} onEdit={(v) => setEditing(v)} onAdd={() => setAdding(true)} />
+          : <DriversTab />}
       </div>
+      {editorOpen && (
+        <VehicleEditor key={editing?.id ?? 'new'} open vehicle={editing} onClose={closeEditor} onSaved={onSaved} />
+      )}
     </div>
   )
 }

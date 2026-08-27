@@ -1,10 +1,11 @@
 import { useState } from 'react'
-import { BookMarked, LayoutList, Columns3, CalendarDays, Settings } from 'lucide-react'
+import { BookMarked, LayoutList, Columns3, CalendarDays, Settings, Bell } from 'lucide-react'
 import TmsOpsBoard from './TmsOpsBoard'
 import DispatchBoard, { type DispatchMode } from './DispatchBoard'
 import CheckInsView from './CheckInsView'
 import AddressBookManager from './AddressBookManager'
 import FleetSettingsPage from './settings/FleetSettingsPage'
+import NotificationRecipientsDialog from './settings/NotificationRecipientsDialog'
 
 type View = 'ops' | 'dispatch' | 'checkins'
 const VIEWS: { key: View; label: string }[] = [
@@ -24,6 +25,7 @@ export default function TmsPage() {
   const [bookOpen, setBookOpen] = useState(false)
   const [dispatchMode, setDispatchMode] = useState<DispatchMode>('board')
   const [fleetOpen, setFleetOpen] = useState(false)
+  const [notifOpen, setNotifOpen] = useState(false)
 
   if (fleetOpen) {
     return (
@@ -61,6 +63,10 @@ export default function TmsPage() {
               </button>
             ))}
             <span className="mx-1 h-5 w-px bg-neutral-200" />
+            <button type="button" title="Reminder emails" aria-label="Reminder emails" onClick={() => setNotifOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-neutral-600 hover:bg-neutral-50">
+              <Bell size={16} />
+            </button>
             <button type="button" title="Fleet settings" aria-label="Fleet settings" onClick={() => setFleetOpen(true)}
               className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-neutral-600 hover:bg-neutral-50">
               <Settings size={16} />
@@ -72,6 +78,7 @@ export default function TmsPage() {
       {view === 'dispatch' && <DispatchBoard mode={dispatchMode} />}
       {view === 'checkins' && <CheckInsView />}
       <AddressBookManager open={bookOpen} onClose={() => setBookOpen(false)} />
+      <NotificationRecipientsDialog open={notifOpen} onClose={() => setNotifOpen(false)} />
     </div>
   )
 }
