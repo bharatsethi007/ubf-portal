@@ -43,6 +43,7 @@ function trucksGeo(rows: TruckPosition[]): GeoJSON.FeatureCollection<GeoJSON.Poi
       geometry: { type: 'Point', coordinates: [r.lng, r.lat] },
       properties: {
         label: r.driver_name ? `${r.registration_number} · ${r.driver_name}` : r.registration_number,
+        registration: r.registration_number,
         heading: r.heading ?? 0,
         mins: r.minutes_since ?? 9999,
       },
@@ -66,12 +67,14 @@ const STALE_OPACITY: any = ['case', ['<', ['get', 'mins'], 30], 1, ['<', ['get',
 const lineFeature = (coords: [number, number][]): any =>
   coords.length >= 2 ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } : EMPTY_FC
 
-type Props = { routeDriverId?: string | null; driverName?: string | null }
+type Props = { routeDriverId?: string | null; driverName?: string | null; onTruckClick?: (registration: string) => void }
 
-export default function TruckMap({ routeDriverId = null, driverName = null }: Props) {
+export default function TruckMap({ routeDriverId = null, driverName = null, onTruckClick }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const routeActiveRef = useRef(false)
+  const onTruckClickRef = useRef(onTruckClick)
+  onTruckClickRef.current = onTruckClick
   const [ready, setReady] = useState(false)
   const [full, setFull] = useState(false)
   const [layers, setLayers] = useState<LayerState>({ trucks: true, pickups: true, dropoffs: true, completed: false, traffic: false })
@@ -131,6 +134,8 @@ export default function TruckMap({ routeDriverId = null, driverName = null }: Pr
         if (!m.hasImage('ubf-truck')) m.addImage('ubf-truck', img, { pixelRatio: 2 })
         if (!m.getLayer('trucks-icon')) {
           m.addLayer({ id: 'trucks-icon', type: 'symbol', source: 'trucks', layout: { 'icon-image': 'ubf-truck', 'icon-size': 1.1, 'icon-rotate': ['get', 'heading'], 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true }, paint: { 'icon-opacity': STALE_OPACITY } }, 'trucks-label')
+          m.on('mouseenter', 'trucks-icon', () => { m.getCanvas().style.cursor = 'pointer' })
+          m.on('mouseleave', 'trucks-icon', () => { m.getCanvas().style.cursor = '' })
         }
       }
       img.src = TRUCK_URL
@@ -144,6 +149,18 @@ export default function TruckMap({ routeDriverId = null, driverName = null }: Pr
         })
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; popup.remove() })
       }
+
+      // Click a truck (icon or label) -> select that driver by registration.
+      map.on('mouseenter', 'trucks-label', () => { map.getCanvas().style.cursor = 'pointer' })
+      map.on('mouseleave', 'trucks-label', () => { map.getCanvas().style.cursor = '' })
+      map.on('click', (e) => {
+        const ids = ['trucks-icon', 'trucks-label'].filter((id) => map.getLayer(id))
+        if (!ids.length) return
+        const f: any = map.queryRenderedFeatures(e.point, { layers: ids })[0]
+        const reg = f?.properties?.registration
+        if (reg) onTruckClickRef.current?.(String(reg))
+      })
+
       setReady(true)
     })
     return () => { map.remove(); mapRef.current = null }

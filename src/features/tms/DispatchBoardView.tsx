@@ -93,7 +93,17 @@ export default function DispatchBoardView() {
              : shown.length === 0 ? <p className="py-6 text-sm text-neutral-400">No consignments{selectedDriver ? ' for this driver' : ''} on this board.</p>
              : shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} />)}
           </div>
-          <div className="min-w-0 flex-1 lg:min-w-[360px]"><TruckMap routeDriverId={selectedDriver} driverName={routeDriverName} /></div>
+          <div className="min-w-0 flex-1 lg:min-w-[360px]">
+            <TruckMap
+              routeDriverId={selectedDriver}
+              driverName={routeDriverName}
+              onTruckClick={(reg) => {
+                const norm = (s?: string | null) => (s ?? '').replace(/\s+/g, '').toUpperCase()
+                const d = drivers.find((x) => norm(x.current_registration) === norm(reg))
+                if (d) setSelectedDriver(d.id)
+              }}
+            />
+          </div>
         </div>
         <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign. Hover a card to unassign.</p>
       </div>
