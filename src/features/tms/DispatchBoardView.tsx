@@ -45,6 +45,8 @@ export default function DispatchBoardView() {
   useEffect(() => { loadAux() }, [loadAux])
 
   const shown = selectedDriver && tab === 'assigned' ? cards.filter((c) => c.assigned_driver_leg1 === selectedDriver) : cards
+  const routeDriver = drivers.find((d) => d.id === selectedDriver)
+  const routeDriverName = routeDriver ? `${routeDriver.first_name} ${routeDriver.last_name}` : null
 
   function onDropCard(driverId: string, cardId: string) {
     const card = cards.find((c) => c.id === cardId)
@@ -91,7 +93,7 @@ export default function DispatchBoardView() {
              : shown.length === 0 ? <p className="py-6 text-sm text-neutral-400">No consignments{selectedDriver ? ' for this driver' : ''} on this board.</p>
              : shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} />)}
           </div>
-          <div className="min-w-0 flex-1 lg:min-w-[360px]"><TruckMap /></div>
+          <div className="min-w-0 flex-1 lg:min-w-[360px]"><TruckMap routeDriverId={selectedDriver} driverName={routeDriverName} /></div>
         </div>
         <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign. Hover a card to unassign.</p>
       </div>

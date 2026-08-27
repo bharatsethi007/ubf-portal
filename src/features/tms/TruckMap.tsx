@@ -6,6 +6,8 @@ import {
   fetchTruckPositions, fetchDispatchJobPins, fetchCompletedJobPins,
   type TruckPosition, type JobPin,
 } from './vehicleMapApi'
+import { computeDriverRoute, decodePolyline, type DriverRoute } from './dispatchRouteApi'
+import DriverRoutePanel from './DriverRoutePanel'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN as string
 
@@ -59,14 +61,21 @@ function pinsGeo(rows: JobPin[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
   }
 }
 
+const EMPTY_FC: GeoJSON.FeatureCollection = { type: 'FeatureCollection', features: [] }
 const STALE_OPACITY: any = ['case', ['<', ['get', 'mins'], 30], 1, ['<', ['get', 'mins'], 180], 0.85, 0.5]
 
-export default function TruckMap() {
+type Props = { routeDriverId?: string | null; driverName?: string | null }
+
+export default function TruckMap({ routeDriverId = null, driverName = null }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
+  const routeActiveRef = useRef(false)
   const [ready, setReady] = useState(false)
   const [full, setFull] = useState(false)
   const [layers, setLayers] = useState<LayerState>({ trucks: true, pickups: true, dropoffs: true, completed: false, traffic: false })
+  const [route, setRoute] = useState<DriverRoute | null>(null)
+  const [routeLoading, setRouteLoading] = useState(false)
+  const manualOrderRef = useRef<string[] | null>(null)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -83,31 +92,33 @@ export default function TruckMap() {
       map.addSource('pickups', { type: 'geojson', data: pinsGeo([]) })
       map.addSource('dropoffs', { type: 'geojson', data: pinsGeo([]) })
       map.addSource('completed', { type: 'geojson', data: pinsGeo([]) })
+      map.addSource('route-line', { type: 'geojson', data: EMPTY_FC })
+      map.addSource('route-stops', { type: 'geojson', data: EMPTY_FC })
       map.addSource('mapbox-traffic', { type: 'vector', url: 'mapbox://mapbox.mapbox-traffic-v1' })
 
-      // traffic (hidden by default), under everything else
       map.addLayer({
         id: 'traffic', type: 'line', source: 'mapbox-traffic', 'source-layer': 'traffic',
         layout: { visibility: 'none' },
         paint: { 'line-width': 2.5, 'line-color': ['match', ['get', 'congestion'], 'low', '#37A24A', 'moderate', '#F2A93B', 'heavy', '#E24A3B', 'severe', '#A11423', '#9CA3AF'] },
       })
 
-      // completed (grey dot + check)
+      map.addLayer({ id: 'route-casing', type: 'line', source: 'route-line', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#ffffff', 'line-width': 7 } })
+      map.addLayer({ id: 'route-line', type: 'line', source: 'route-line', layout: { 'line-cap': 'round', 'line-join': 'round' }, paint: { 'line-color': '#F26A21', 'line-width': 4, 'line-opacity': 0.95 } })
+
       map.addLayer({ id: 'completed-dot', type: 'circle', source: 'completed', layout: { visibility: 'none' }, paint: { 'circle-radius': 8, 'circle-color': '#9CA3AF', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
       map.addLayer({ id: 'completed-mark', type: 'symbol', source: 'completed', layout: { visibility: 'none', 'text-field': '✓', 'text-size': 11, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#ffffff' } })
 
-      // pickups (green circle + up arrow)
       map.addLayer({ id: 'pickups-dot', type: 'circle', source: 'pickups', paint: { 'circle-radius': 8, 'circle-color': '#0F7A4E', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
       map.addLayer({ id: 'pickups-arrow', type: 'symbol', source: 'pickups', layout: { 'text-field': '↑', 'text-size': 13, 'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#ffffff' } })
 
-      // drop-offs (rose circle + down arrow)
       map.addLayer({ id: 'dropoffs-dot', type: 'circle', source: 'dropoffs', paint: { 'circle-radius': 8, 'circle-color': '#B0264A', 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
       map.addLayer({ id: 'dropoffs-arrow', type: 'symbol', source: 'dropoffs', layout: { 'text-field': '↓', 'text-size': 13, 'text-font': ['DIN Pro Bold', 'Arial Unicode MS Bold'], 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#ffffff' } })
 
-      // truck label
+      map.addLayer({ id: 'route-stops-dot', type: 'circle', source: 'route-stops', paint: { 'circle-radius': 11, 'circle-color': ['match', ['get', 'type'], 'pickup', '#0F7A4E', '#B0264A'], 'circle-stroke-width': 2, 'circle-stroke-color': '#fff' } })
+      map.addLayer({ id: 'route-stops-num', type: 'symbol', source: 'route-stops', layout: { 'text-field': ['get', 'seq'], 'text-size': 12, 'text-allow-overlap': true, 'text-ignore-placement': true }, paint: { 'text-color': '#ffffff' } })
+
       map.addLayer({ id: 'trucks-label', type: 'symbol', source: 'trucks', layout: { 'text-field': ['get', 'label'], 'text-size': 11, 'text-offset': [0, 1.8], 'text-anchor': 'top' }, paint: { 'text-color': '#0A2472', 'text-halo-color': '#fff', 'text-halo-width': 1.5 } })
 
-      // truck icon (async)
       const img = new Image(64, 96)
       img.onload = () => {
         const m = mapRef.current
@@ -133,7 +144,6 @@ export default function TruckMap() {
     return () => { map.remove(); mapRef.current = null }
   }, [])
 
-  // poll data
   useEffect(() => {
     if (!ready) return
     let active = true
@@ -147,6 +157,7 @@ export default function TruckMap() {
         ;(map.getSource('pickups') as mapboxgl.GeoJSONSource | undefined)?.setData(pinsGeo(pins.pickups) as any)
         ;(map.getSource('dropoffs') as mapboxgl.GeoJSONSource | undefined)?.setData(pinsGeo(pins.dropoffs) as any)
         ;(map.getSource('completed') as mapboxgl.GeoJSONSource | undefined)?.setData(pinsGeo(completed) as any)
+        if (routeActiveRef.current) return
         const inNZ = (lat: number, lng: number) => lat > -48 && lat < -33 && lng > 165 && lng < 180
         const all = [
           ...trucks.filter((t) => Number.isFinite(t.lat)).map((t) => [t.lng, t.lat] as [number, number]),
@@ -165,7 +176,68 @@ export default function TruckMap() {
     return () => { active = false; clearInterval(t) }
   }, [ready])
 
-  // apply layer toggles
+  function paintRoute(r: DriverRoute | null) {
+    const map = mapRef.current
+    if (!map) return
+    const lineSrc = map.getSource('route-line') as mapboxgl.GeoJSONSource | undefined
+    const stopSrc = map.getSource('route-stops') as mapboxgl.GeoJSONSource | undefined
+    if (!r || !r.stops.length) {
+      lineSrc?.setData(EMPTY_FC as any)
+      stopSrc?.setData(EMPTY_FC as any)
+      routeActiveRef.current = false
+      return
+    }
+    const coords = r.polyline ? decodePolyline(r.polyline) : [[r.depot.lng, r.depot.lat], ...r.stops.map((s) => [s.lng, s.lat] as [number, number])]
+    lineSrc?.setData({ type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } as any)
+    stopSrc?.setData({
+      type: 'FeatureCollection',
+      features: r.stops.map((s) => ({ type: 'Feature', geometry: { type: 'Point', coordinates: [s.lng, s.lat] }, properties: { seq: String(s.seq), type: s.type } })),
+    } as any)
+    routeActiveRef.current = true
+    const b = new mapboxgl.LngLatBounds()
+    coords.forEach((c) => b.extend(c as [number, number]))
+    b.extend([r.depot.lng, r.depot.lat])
+    map.fitBounds(b, { padding: { top: 60, right: 60, bottom: 60, left: 300 }, maxZoom: 13, duration: 400 })
+  }
+
+  async function runRoute(driverId: string, order?: string[]) {
+    setRouteLoading(true)
+    try {
+      const r = await computeDriverRoute(driverId, order)
+      setRoute(r)
+      paintRoute(r)
+    } catch {
+      setRoute(null)
+      paintRoute(null)
+    } finally {
+      setRouteLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    if (!ready) return
+    manualOrderRef.current = null
+    if (routeDriverId) {
+      runRoute(routeDriverId)
+    } else {
+      setRoute(null)
+      paintRoute(null)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeDriverId, ready])
+
+  function onRefresh() {
+    if (routeDriverId) runRoute(routeDriverId, manualOrderRef.current ?? undefined)
+  }
+  function onReorder(keys: string[]) {
+    manualOrderRef.current = keys
+    if (routeDriverId) runRoute(routeDriverId, keys)
+  }
+  function onClosePanel() {
+    setRoute(null)
+    paintRoute(null)
+  }
+
   useEffect(() => {
     const map = mapRef.current
     if (!map || !ready) return
@@ -184,6 +256,8 @@ export default function TruckMap() {
     return () => clearTimeout(t)
   }, [full])
 
+  const showPanel = !!routeDriverId
+
   return (
     <div className={full ? 'fixed inset-0 z-[60] bg-white p-3' : 'relative h-full w-full'}>
       <div className="absolute left-3 top-3 z-10 inline-flex flex-wrap gap-1 rounded-lg border border-neutral-200 bg-white/95 p-0.5 shadow-sm">
@@ -198,6 +272,9 @@ export default function TruckMap() {
         className="absolute right-3 top-14 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white/95 text-neutral-600 shadow-sm hover:bg-neutral-50">
         {full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
+      {showPanel && (
+        <DriverRoutePanel driverName={driverName} route={route} loading={routeLoading} onRefresh={onRefresh} onReorder={onReorder} onClose={onClosePanel} />
+      )}
       <div ref={containerRef} className="h-full w-full overflow-hidden rounded-lg border border-neutral-200" style={{ minHeight: full ? '100%' : 560 }} />
     </div>
   )
