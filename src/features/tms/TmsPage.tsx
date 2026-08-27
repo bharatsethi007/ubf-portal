@@ -1,9 +1,10 @@
 import { useState } from 'react'
-import { BookMarked, LayoutList, Columns3, CalendarDays } from 'lucide-react'
+import { BookMarked, LayoutList, Columns3, CalendarDays, Settings } from 'lucide-react'
 import TmsOpsBoard from './TmsOpsBoard'
 import DispatchBoard, { type DispatchMode } from './DispatchBoard'
 import CheckInsView from './CheckInsView'
 import AddressBookManager from './AddressBookManager'
+import FleetSettingsPage from './settings/FleetSettingsPage'
 
 type View = 'ops' | 'dispatch' | 'checkins'
 const VIEWS: { key: View; label: string }[] = [
@@ -22,6 +23,16 @@ export default function TmsPage() {
   const [view, setView] = useState<View>('ops')
   const [bookOpen, setBookOpen] = useState(false)
   const [dispatchMode, setDispatchMode] = useState<DispatchMode>('board')
+  const [fleetOpen, setFleetOpen] = useState(false)
+
+  if (fleetOpen) {
+    return (
+      <div className="min-h-screen bg-white px-6 py-4">
+        <FleetSettingsPage onBack={() => setFleetOpen(false)} />
+      </div>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-white px-6 py-4">
       <div className="mb-4 flex items-center justify-between">
@@ -42,13 +53,18 @@ export default function TmsPage() {
           </button>
         )}
         {view === 'dispatch' && (
-          <div className="inline-flex gap-1">
+          <div className="inline-flex items-center gap-1">
             {DISPATCH_MODES.map(({ key, label, Icon }) => (
               <button key={key} type="button" title={label} aria-label={label} aria-pressed={dispatchMode === key} onClick={() => setDispatchMode(key)}
                 className={`flex h-8 w-8 items-center justify-center rounded-md border ${dispatchMode === key ? 'border-[#0A2472] bg-[#0A2472] text-white' : 'border-neutral-200 text-neutral-600 hover:bg-neutral-50'}`}>
                 <Icon size={16} />
               </button>
             ))}
+            <span className="mx-1 h-5 w-px bg-neutral-200" />
+            <button type="button" title="Fleet settings" aria-label="Fleet settings" onClick={() => setFleetOpen(true)}
+              className="flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 text-neutral-600 hover:bg-neutral-50">
+              <Settings size={16} />
+            </button>
           </div>
         )}
       </div>
