@@ -29,6 +29,7 @@ const KIND_DOT: Record<DriverActivity['kind'], string> = {
   pickup: 'bg-[#0F7A4E]',
   delivery: 'bg-[#B0264A]',
   status: 'bg-amber-500',
+  stop: 'bg-slate-500',
   other: 'bg-neutral-400',
 }
 
@@ -188,14 +189,14 @@ export default function DriverRoutePanel({
           {actLoading && activity.length === 0 && <p className="px-2 py-3 text-sm text-neutral-400">Loading activity…</p>}
           {!actLoading && activity.length === 0 && <p className="px-2 py-3 text-sm text-neutral-400">No activity logged today.</p>}
           {activity.map((a, i) => (
-            <div key={a.key} className="flex gap-2.5 px-1.5 py-1.5">
+            <div key={a.key} className={`flex gap-2.5 px-1.5 py-1.5 ${a.highlight ? 'rounded-lg bg-amber-50' : ''}`}>
               <div className="flex flex-col items-center">
-                <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${KIND_DOT[a.kind]}`} />
+                <span className={`mt-1 h-2.5 w-2.5 shrink-0 rounded-full ${a.highlight ? 'bg-amber-500' : KIND_DOT[a.kind]}`} />
                 {i < activity.length - 1 && <span className="mt-0.5 w-px flex-1 bg-neutral-200" />}
               </div>
               <div className="min-w-0 flex-1 pb-1">
                 <div className="flex items-baseline justify-between gap-2">
-                  <span className="truncate text-sm font-medium">{a.label}</span>
+                  <span className={`truncate text-sm font-medium ${a.highlight ? 'text-amber-700' : ''}`}>{a.label}</span>
                   <span className="inline-flex shrink-0 items-center gap-1 text-[11px] text-neutral-500"><Clock size={11} />{fmtClock(a.at)}</span>
                 </div>
                 <div className="truncate text-[11px] text-neutral-500">
