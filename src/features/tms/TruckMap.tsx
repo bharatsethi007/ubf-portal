@@ -136,6 +136,10 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
           m.addLayer({ id: 'trucks-icon', type: 'symbol', source: 'trucks', layout: { 'icon-image': 'ubf-truck', 'icon-size': 1.1, 'icon-rotate': ['get', 'heading'], 'icon-rotation-alignment': 'map', 'icon-allow-overlap': true }, paint: { 'icon-opacity': STALE_OPACITY } }, 'trucks-label')
           m.on('mouseenter', 'trucks-icon', () => { m.getCanvas().style.cursor = 'pointer' })
           m.on('mouseleave', 'trucks-icon', () => { m.getCanvas().style.cursor = '' })
+          m.on('click', 'trucks-icon', (e) => {
+            const reg = (e.features?.[0]?.properties as any)?.registration
+            if (reg) onTruckClickRef.current?.(String(reg))
+          })
         }
       }
       img.src = TRUCK_URL
@@ -150,16 +154,13 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; popup.remove() })
       }
 
-      // Click a truck (icon or label) -> select that driver by registration.
+      const handleTruckClick = (e: mapboxgl.MapLayerMouseEvent) => {
+        const reg = (e.features?.[0]?.properties as any)?.registration
+        if (reg) onTruckClickRef.current?.(String(reg))
+      }
+      map.on('click', 'trucks-label', handleTruckClick)
       map.on('mouseenter', 'trucks-label', () => { map.getCanvas().style.cursor = 'pointer' })
       map.on('mouseleave', 'trucks-label', () => { map.getCanvas().style.cursor = '' })
-      map.on('click', (e) => {
-        const ids = ['trucks-icon', 'trucks-label'].filter((id) => map.getLayer(id))
-        if (!ids.length) return
-        const f: any = map.queryRenderedFeatures(e.point, { layers: ids })[0]
-        const reg = f?.properties?.registration
-        if (reg) onTruckClickRef.current?.(String(reg))
-      })
 
       setReady(true)
     })
@@ -310,7 +311,7 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         {full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
       {showPanel && (
-        <DriverRoutePanel driverName={driverName} route={route} loading={routeLoading} onRefresh={onRefresh} onReorder={onReorder} onClose={onClosePanel} />
+        <DriverRoutePanel driverId={routeDriverId} driverName={driverName} route={route} loading={routeLoading} onRefresh={onRefresh} onReorder={onReorder} onClose={onClosePanel} />
       )}
       <div ref={containerRef} className="h-full w-full overflow-hidden rounded-lg border border-neutral-200" style={{ minHeight: full ? '100%' : 560 }} />
     </div>

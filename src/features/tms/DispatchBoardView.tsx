@@ -101,6 +101,7 @@ export default function DispatchBoardView() {
                 const norm = (s?: string | null) => (s ?? '').replace(/\s+/g, '').toUpperCase()
                 const d = drivers.find((x) => norm(x.current_registration) === norm(reg))
                 if (d) setSelectedDriver(d.id)
+                else toast(`No driver assigned to ${reg}`)
               }}
             />
           </div>
