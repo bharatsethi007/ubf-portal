@@ -130,3 +130,25 @@ export async function setConsignmentStatus(id: string, status: string) {
   if (error) throw error
   await supabase.from('tms_events').insert({ consignment_id: id, event_code: 'TMS_STATUS', to_status: status })
 }
+
+export async function completeConsignment(id: string) {
+  const { error } = await supabase.from('tms_consignments').update({
+    status: 'complete', delivered_at: new Date().toISOString(),
+  }).eq('id', id)
+  if (error) throw error
+  await supabase.from('tms_events').insert({
+    consignment_id: id, event_code: 'TMS_STATUS', to_status: 'complete', note: 'Manually completed',
+  })
+}
+
+export async function assignConsignmentToDriver(consignmentId: string, driver: DriverRow) {
+  const { error } = await supabase.from('tms_consignments').update({
+    assigned_driver_leg1: driver.id, assigned_vehicle_id: driver.vehicle?.id ?? null,
+    status: 'assigned', assigned_at: new Date().toISOString(),
+  }).eq('id', consignmentId)
+  if (error) throw error
+  await supabase.from('tms_events').insert({
+    consignment_id: consignmentId, event_code: 'TMS_ALLOCATED', to_status: 'assigned',
+    note: `Assigned to ${driver.first_name} ${driver.last_name}${driver.vehicle ? ' / ' + driver.vehicle.registration_number : ''}`,
+  })
+}

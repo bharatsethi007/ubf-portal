@@ -5,9 +5,11 @@ import DriverRail from './DriverRail'
 import ConsignmentCard from './ConsignmentCard'
 import ConsignmentDrawer from './ConsignmentDrawer'
 import AssignConfirmDialog from './AssignConfirmDialog'
+import CompleteConfirmDialog from './CompleteConfirmDialog'
 import TruckMap from './TruckMap'
 import {
   listDrivers, listDispatchConsignments, boardKpis, assignConsignment, unassignConsignment,
+  completeConsignment, assignConsignmentToDriver,
   DISPATCH_TABS, type DispatchTab, type DriverRow, type CardRow, type Kpis,
 } from './dispatchApi'
 
@@ -31,6 +33,8 @@ export default function DispatchBoardView() {
   const [drawerId, setDrawerId] = useState<string | null>(null)
   const [pending, setPending] = useState<{ card: CardRow; driver: DriverRow } | null>(null)
   const [saving, setSaving] = useState(false)
+  const [completing, setCompleting] = useState<CardRow | null>(null)
+  const [completeSaving, setCompleteSaving] = useState(false)
 
   const loadCards = useCallback(() => {
     setLoading(true)
@@ -66,6 +70,25 @@ export default function DispatchBoardView() {
     try { await unassignConsignment(id); toast.success('Unassigned'); loadCards(); loadAux() }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Unassign failed') }
   }
+  function onComplete(id: string) { setCompleting(cards.find((c) => c.id === id) ?? null) }
+  async function confirmComplete() {
+    if (!completing) return
+    setCompleteSaving(true)
+    try {
+      await completeConsignment(completing.id)
+      toast.success(`${completing.consignment_no} marked complete`)
+      setCompleting(null); loadCards(); loadAux()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Complete failed') } finally { setCompleteSaving(false) }
+  }
+  async function onAssignJob(consignmentId: string, driverId: string) {
+    const driver = drivers.find((d) => d.id === driverId)
+    if (!driver) return
+    try {
+      await assignConsignmentToDriver(consignmentId, driver)
+      toast.success(`Assigned to ${driver.first_name}`)
+      loadCards(); loadAux()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Assign failed') }
+  }
 
   return (
     <div className="quotes-page">
@@ -91,12 +114,14 @@ export default function DispatchBoardView() {
           <div className="w-full space-y-2 overflow-y-auto lg:w-[280px] lg:shrink-0" style={{ maxHeight: 620 }}>
             {loading ? <p className="py-6 text-sm text-neutral-400">Loading…</p>
              : shown.length === 0 ? <p className="py-6 text-sm text-neutral-400">No consignments{selectedDriver ? ' for this driver' : ''} on this board.</p>
-             : shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} />)}
+             : shown.map((c) => <ConsignmentCard key={c.id} card={c} onOpen={() => setDrawerId(c.id)} onUnassign={onUnassign} onComplete={onComplete} />)}
           </div>
           <div className="min-w-0 flex-1 lg:min-w-[360px]">
             <TruckMap
               routeDriverId={selectedDriver}
               driverName={routeDriverName}
+              drivers={drivers}
+              onAssignJob={onAssignJob}
               onTruckClick={(reg) => {
                 const norm = (s?: string | null) => (s ?? '').replace(/\s+/g, '').toUpperCase()
                 const d = drivers.find((x) => norm(x.current_registration) === norm(reg))
@@ -106,10 +131,11 @@ export default function DispatchBoardView() {
             />
           </div>
         </div>
-        <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign. Hover a card to unassign.</p>
+        <p className="mt-2 text-xs text-neutral-400">Drag a consignment onto a driver to assign, or tap a job on the map to assign it. Tap ✓ on a card to complete.</p>
       </div>
       <ConsignmentDrawer id={drawerId} onClose={() => setDrawerId(null)} />
       <AssignConfirmDialog card={pending?.card ?? null} driver={pending?.driver ?? null} saving={saving} onCancel={() => setPending(null)} onConfirm={confirmAssign} />
+      <CompleteConfirmDialog card={completing} saving={completeSaving} onCancel={() => setCompleting(null)} onConfirm={confirmComplete} />
     </div>
   )
 }

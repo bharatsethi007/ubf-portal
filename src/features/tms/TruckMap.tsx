@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
-import { Maximize2, Minimize2 } from 'lucide-react'
+import { Maximize2, Minimize2, X } from 'lucide-react'
 import {
   fetchTruckPositions, fetchDispatchJobPins, fetchCompletedJobPins,
   type TruckPosition, type JobPin,
@@ -57,7 +57,7 @@ function pinsGeo(rows: JobPin[]): GeoJSON.FeatureCollection<GeoJSON.Point> {
     features: rows.filter((r) => Number.isFinite(r.lat) && Number.isFinite(r.lng)).map((r) => ({
       type: 'Feature',
       geometry: { type: 'Point', coordinates: [r.lng, r.lat] },
-      properties: { label: r.consignment_no ?? r.company ?? '', company: r.company ?? '' },
+      properties: { id: r.id, label: r.consignment_no ?? r.company ?? '', company: r.company ?? '' },
     })),
   }
 }
@@ -67,9 +67,16 @@ const STALE_OPACITY: any = ['case', ['<', ['get', 'mins'], 30], 1, ['<', ['get',
 const lineFeature = (coords: [number, number][]): any =>
   coords.length >= 2 ? { type: 'Feature', properties: {}, geometry: { type: 'LineString', coordinates: coords } } : EMPTY_FC
 
-type Props = { routeDriverId?: string | null; driverName?: string | null; onTruckClick?: (registration: string) => void }
+type PickerDriver = { id: string; first_name: string; last_name: string; current_registration: string | null }
+type Props = {
+  routeDriverId?: string | null
+  driverName?: string | null
+  onTruckClick?: (registration: string) => void
+  drivers?: PickerDriver[]
+  onAssignJob?: (consignmentId: string, driverId: string) => void
+}
 
-export default function TruckMap({ routeDriverId = null, driverName = null, onTruckClick }: Props) {
+export default function TruckMap({ routeDriverId = null, driverName = null, onTruckClick, drivers = [], onAssignJob }: Props) {
   const containerRef = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const routeActiveRef = useRef(false)
@@ -83,6 +90,7 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
   const manualOrderRef = useRef<string[] | null>(null)
   const [removed, setRemoved] = useState<RouteStop[]>([])
   const [returnToDepot, setReturnToDepot] = useState(true)
+  const [assignMenu, setAssignMenu] = useState<{ id: string; no: string | null; x: number; y: number } | null>(null)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -155,6 +163,15 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         })
         map.on('mouseleave', id, () => { map.getCanvas().style.cursor = ''; popup.remove() })
       }
+
+      const pinClick = (e: mapboxgl.MapLayerMouseEvent) => {
+        const f = e.features?.[0] as any
+        if (!f?.properties?.id) return
+        setAssignMenu({ id: String(f.properties.id), no: f.properties.label ? String(f.properties.label) : null, x: e.point.x, y: e.point.y })
+      }
+      map.on('click', 'pickups-dot', pinClick)
+      map.on('click', 'dropoffs-dot', pinClick)
+      map.on('movestart', () => setAssignMenu(null))
 
       const handleTruckClick = (e: mapboxgl.MapLayerMouseEvent) => {
         const reg = (e.features?.[0]?.properties as any)?.registration
@@ -331,6 +348,26 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         className="absolute right-3 top-14 z-10 inline-flex h-8 w-8 items-center justify-center rounded-md border border-neutral-200 bg-white/95 text-neutral-600 shadow-sm hover:bg-neutral-50">
         {full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
+      {assignMenu && (
+        <div className="absolute z-20 w-52 -translate-x-1/2 rounded-lg border border-neutral-200 bg-white p-2 shadow-xl"
+          style={{ left: assignMenu.x, top: assignMenu.y + 12 }}>
+          <div className="mb-1 flex items-center justify-between gap-2 px-1">
+            <span className="truncate text-xs font-semibold text-[#0A2472]">Assign {assignMenu.no ?? 'job'}</span>
+            <button type="button" onClick={() => setAssignMenu(null)} className="shrink-0 text-neutral-400 hover:text-neutral-700"><X size={13} /></button>
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {drivers.length === 0 && <p className="px-1 py-1 text-xs text-neutral-400">No active drivers.</p>}
+            {drivers.map((d) => (
+              <button key={d.id} type="button" onClick={() => { onAssignJob?.(assignMenu.id, d.id); setAssignMenu(null) }}
+                className="flex w-full items-center gap-2 rounded-md px-1.5 py-1 text-left hover:bg-neutral-50">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-[#0A2472] text-[10px] font-semibold text-white">{(d.first_name[0] ?? '') + (d.last_name[0] ?? '')}</span>
+                <span className="min-w-0 flex-1 truncate text-sm">{d.first_name} {d.last_name[0]}.</span>
+                <span className="shrink-0 truncate text-[11px] text-neutral-500">{d.current_registration ?? ''}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
       {showPanel && (
         <DriverRoutePanel driverId={routeDriverId} driverName={driverName} route={route} loading={routeLoading}
           removed={removed} returnToDepot={returnToDepot}

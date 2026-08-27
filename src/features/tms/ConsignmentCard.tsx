@@ -1,39 +1,45 @@
 import { useState } from 'react'
-import { ArrowUp, ArrowDown, AlertTriangle, X, Package, Weight, Box, Clock, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react'
+import { ArrowUp, ArrowDown, AlertTriangle, X, Check, Package, Weight, Box, Clock, CalendarClock, ChevronDown, ChevronUp } from 'lucide-react'
 import { format } from 'date-fns'
 import { cardTotals, type CardRow } from './dispatchApi'
 
 const TYPE_LABEL: Record<string, string> = { 'pick-up': 'PICK-UP', 'drop-off': 'DROP-OFF', transfer: 'TRANSFER' }
 const fmt = (v: string | null) => (v ? format(new Date(v), 'd MMM, h:mm a') : '—')
+const DONE = ['complete', 'checked_in', 'cancel', 'archived']
 
-type Props = { card: CardRow; onOpen: () => void; onUnassign?: (id: string) => void }
+type Props = { card: CardRow; onOpen: () => void; onUnassign?: (id: string) => void; onComplete?: (id: string) => void }
 
-export default function ConsignmentCard({ card, onOpen, onUnassign }: Props) {
+export default function ConsignmentCard({ card, onOpen, onUnassign, onComplete }: Props) {
   const [expanded, setExpanded] = useState(false)
   const t = cardTotals(card)
+  const canComplete = !DONE.includes(card.status)
   const flags = [
     card.signature_required && 'Signature', card.photo_pod_required && 'Photo POD',
     card.tail_lift_required && 'Tail Lift', card.temperature_control && 'Temp',
   ].filter(Boolean) as string[]
 
-  // Summary shows only the relevant party: pickup company for pick-ups, drop-off for drop-offs, both for transfers.
   const showPickup = card.order_type !== 'drop-off'
   const showDropoff = card.order_type !== 'pick-up'
 
   return (
     <div draggable onDragStart={(e) => e.dataTransfer.setData('text/plain', card.id)}
       className="group relative w-full cursor-grab rounded-lg border border-neutral-200 bg-white p-2.5 text-left hover:border-[#0A2472]/40 hover:shadow-sm active:cursor-grabbing">
+      {canComplete && onComplete && (
+        <button type="button" aria-label="Mark complete" title="Mark complete" onClick={(e) => { e.stopPropagation(); onComplete(card.id) }}
+          className="absolute right-1.5 top-1.5 flex h-5 w-5 items-center justify-center rounded text-emerald-600 hover:bg-emerald-50">
+          <Check size={14} />
+        </button>
+      )}
       {card.assigned_driver_leg1 && onUnassign && (
         <button type="button" aria-label="Unassign" onClick={(e) => { e.stopPropagation(); onUnassign(card.id) }}
-          className="absolute right-1.5 top-1.5 hidden h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-red-50 hover:text-red-600 group-hover:flex">
+          className="absolute right-8 top-1.5 hidden h-5 w-5 items-center justify-center rounded text-neutral-400 hover:bg-red-50 hover:text-red-600 group-hover:flex">
           <X size={13} />
         </button>
       )}
 
       <div className="flex items-stretch gap-1">
         <button type="button" onClick={onOpen} className="min-w-0 flex-1 text-left">
-          {/* header */}
-          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 pr-5">
+          <div className="mb-1.5 flex flex-wrap items-center gap-1.5 pr-12">
             <span className="text-sm font-semibold text-[#0A2472]">{card.consignment_no ?? '—'}</span>
             <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-600">{TYPE_LABEL[card.order_type] ?? card.order_type}</span>
             {card.goods_type === 'dangerous' && <AlertTriangle size={13} className="text-red-600" />}
@@ -41,7 +47,6 @@ export default function ConsignmentCard({ card, onOpen, onUnassign }: Props) {
           </div>
 
           {expanded ? (
-            /* full order view */
             <div className="space-y-1.5 text-sm">
               <div className="flex items-start gap-1.5">
                 <ArrowUp size={13} className="mt-0.5 shrink-0 text-[#0F7A4E]" />
@@ -68,7 +73,6 @@ export default function ConsignmentCard({ card, onOpen, onUnassign }: Props) {
               </div>
             </div>
           ) : (
-            /* summary view */
             <>
               <div className="space-y-0.5 text-sm">
                 {showPickup && (
