@@ -6,7 +6,7 @@ import {
   fetchTruckPositions, fetchDispatchJobPins, fetchCompletedJobPins,
   type TruckPosition, type JobPin,
 } from './vehicleMapApi'
-import { computeDriverRoute, decodePolyline, type DriverRoute } from './dispatchRouteApi'
+import { computeDriverRoute, decodePolyline, type DriverRoute, type RouteStop } from './dispatchRouteApi'
 import DriverRoutePanel from './DriverRoutePanel'
 
 mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN as string
@@ -81,6 +81,8 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
   const [route, setRoute] = useState<DriverRoute | null>(null)
   const [routeLoading, setRouteLoading] = useState(false)
   const manualOrderRef = useRef<string[] | null>(null)
+  const [removed, setRemoved] = useState<RouteStop[]>([])
+  const [returnToDepot, setReturnToDepot] = useState(true)
 
   useEffect(() => {
     if (!containerRef.current || mapRef.current) return
@@ -195,8 +197,7 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
       } catch { /* ignore */ }
     }
     load()
-    const t = setInterval(load, 60000)
-    return () => { active = false; clearInterval(t) }
+    return () => { active = false }
   }, [ready])
 
   function paintRoute(r: DriverRoute | null) {
@@ -238,10 +239,10 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
     map.fitBounds(b, { padding: { top: 60, right: 60, bottom: 60, left: 300 }, maxZoom: 13, duration: 400 })
   }
 
-  async function runRoute(driverId: string, order?: string[]) {
+  async function runRoute(driverId: string, opts: { order?: string[]; exclude?: string[]; returnToDepot?: boolean } = {}) {
     setRouteLoading(true)
     try {
-      const r = await computeDriverRoute(driverId, order)
+      const r = await computeDriverRoute(driverId, opts)
       setRoute(r)
       paintRoute(r)
     } catch {
@@ -255,8 +256,10 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
   useEffect(() => {
     if (!ready) return
     manualOrderRef.current = null
+    setRemoved([])
+    setReturnToDepot(true)
     if (routeDriverId) {
-      runRoute(routeDriverId)
+      runRoute(routeDriverId, { returnToDepot: true })
     } else {
       setRoute(null)
       paintRoute(null)
@@ -264,12 +267,30 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [routeDriverId, ready])
 
+  function currentOpts(over: { order?: string[]; exclude?: string[]; returnToDepot?: boolean } = {}) {
+    return { order: manualOrderRef.current ?? undefined, exclude: removed.map((s) => s.key), returnToDepot, ...over }
+  }
   function onRefresh() {
-    if (routeDriverId) runRoute(routeDriverId, manualOrderRef.current ?? undefined)
+    if (routeDriverId) runRoute(routeDriverId, currentOpts())
   }
   function onReorder(keys: string[]) {
     manualOrderRef.current = keys
-    if (routeDriverId) runRoute(routeDriverId, keys)
+    if (routeDriverId) runRoute(routeDriverId, currentOpts({ order: keys }))
+  }
+  function onRemoveStop(stop: RouteStop) {
+    const next = [...removed, stop]
+    setRemoved(next)
+    if (routeDriverId) runRoute(routeDriverId, currentOpts({ exclude: next.map((s) => s.key) }))
+  }
+  function onRestoreStop(key: string) {
+    const next = removed.filter((s) => s.key !== key)
+    setRemoved(next)
+    if (routeDriverId) runRoute(routeDriverId, currentOpts({ exclude: next.map((s) => s.key) }))
+  }
+  function onToggleDepot() {
+    const next = !returnToDepot
+    setReturnToDepot(next)
+    if (routeDriverId) runRoute(routeDriverId, currentOpts({ returnToDepot: next }))
   }
   function onClosePanel() {
     setRoute(null)
@@ -311,7 +332,9 @@ export default function TruckMap({ routeDriverId = null, driverName = null, onTr
         {full ? <Minimize2 size={16} /> : <Maximize2 size={16} />}
       </button>
       {showPanel && (
-        <DriverRoutePanel driverId={routeDriverId} driverName={driverName} route={route} loading={routeLoading} onRefresh={onRefresh} onReorder={onReorder} onClose={onClosePanel} />
+        <DriverRoutePanel driverId={routeDriverId} driverName={driverName} route={route} loading={routeLoading}
+          removed={removed} returnToDepot={returnToDepot}
+          onRefresh={onRefresh} onReorder={onReorder} onRemove={onRemoveStop} onRestore={onRestoreStop} onToggleDepot={onToggleDepot} onClose={onClosePanel} />
       )}
       <div ref={containerRef} className="h-full w-full overflow-hidden rounded-lg border border-neutral-200" style={{ minHeight: full ? '100%' : 560 }} />
     </div>

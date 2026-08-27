@@ -27,22 +27,28 @@ export type DriverRoute = {
   driverId: string
   optimized: boolean
   fixedOrder?: boolean
+  returnToDepot?: boolean
   doneCount: number
   depot: { lat: number; lng: number }
   stops: RouteStop[]
   legs: RouteLeg[]
-  backToDepot: { etaMs: number; sec: number; m: number }
+  backToDepot: { etaMs: number; sec: number; m: number } | null
   polyline: string | null
   totalSec: number
   totalM: number
   note?: string
 }
 
-// On-demand only. Pass `order` (array of pending stop keys) to recompute along a fixed sequence.
-export async function computeDriverRoute(driverId: string, order?: string[]): Promise<DriverRoute> {
-  const { data, error } = await supabase.functions.invoke('dispatch-route', {
-    body: order && order.length ? { driverId, order } : { driverId },
-  })
+export type ComputeRouteOpts = { order?: string[]; exclude?: string[]; returnToDepot?: boolean }
+
+// On-demand only. order = fixed pending sequence; exclude = stop keys to drop (removed lines);
+// returnToDepot=false ends the run at the last stop instead of driving back to the depot.
+export async function computeDriverRoute(driverId: string, opts: ComputeRouteOpts = {}): Promise<DriverRoute> {
+  const body: Record<string, unknown> = { driverId }
+  if (opts.order && opts.order.length) body.order = opts.order
+  if (opts.exclude && opts.exclude.length) body.exclude = opts.exclude
+  if (opts.returnToDepot === false) body.returnToDepot = false
+  const { data, error } = await supabase.functions.invoke('dispatch-route', { body })
   if (error) throw error
   if (data && data.ok === false) throw new Error(data.error || 'route computation failed')
   return data as DriverRoute

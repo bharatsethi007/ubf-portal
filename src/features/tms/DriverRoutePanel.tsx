@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
-import { ChevronUp, ChevronDown, RefreshCw, X, Flag, Check, Clock } from 'lucide-react'
-import type { DriverRoute } from './dispatchRouteApi'
+import { ChevronUp, ChevronDown, RefreshCw, X, Flag, Check, Clock, Plus } from 'lucide-react'
+import type { DriverRoute, RouteStop } from './dispatchRouteApi'
 import { fetchDriverActivityToday, type DriverActivity } from './driverActivityApi'
 
 type Props = {
@@ -8,8 +8,13 @@ type Props = {
   driverName?: string | null
   route: DriverRoute | null
   loading: boolean
+  removed?: RouteStop[]
+  returnToDepot?: boolean
   onRefresh: () => void
   onReorder: (keys: string[]) => void
+  onRemove?: (stop: RouteStop) => void
+  onRestore?: (key: string) => void
+  onToggleDepot?: () => void
   onClose: () => void
 }
 
@@ -27,7 +32,10 @@ const KIND_DOT: Record<DriverActivity['kind'], string> = {
   other: 'bg-neutral-400',
 }
 
-export default function DriverRoutePanel({ driverId, driverName, route, loading, onRefresh, onReorder, onClose }: Props) {
+export default function DriverRoutePanel({
+  driverId, driverName, route, loading, removed = [], returnToDepot = true,
+  onRefresh, onReorder, onRemove, onRestore, onToggleDepot, onClose,
+}: Props) {
   const [tab, setTab] = useState<'route' | 'history'>('route')
   const [activity, setActivity] = useState<DriverActivity[]>([])
   const [actLoading, setActLoading] = useState(false)
@@ -68,7 +76,7 @@ export default function DriverRoutePanel({ driverId, driverName, route, loading,
           <div className="truncate text-sm font-semibold text-[#0A2472]">{driverName || 'Driver'}</div>
           {tab === 'route' && route && stops.length > 0 && (
             <div className="text-[11px] text-neutral-500">
-              {fmtKm(route.totalM)} · {fmtMin(route.totalSec)} · back {fmtClock(route.backToDepot.etaMs)}
+              {fmtKm(route.totalM)} · {fmtMin(route.totalSec)}{route.backToDepot ? ` · back ${fmtClock(route.backToDepot.etaMs)}` : ''}
             </div>
           )}
           {tab === 'history' && <div className="text-[11px] text-neutral-500">Today’s activity</div>}
@@ -100,32 +108,75 @@ export default function DriverRoutePanel({ driverId, driverName, route, loading,
 
           {stops.map((s, i) => {
             const firstPending = i === doneCount
+            const hasConnector = i < stops.length - 1 || returnToDepot
             return (
-              <div key={s.key} className={`flex items-center gap-2 rounded-lg px-1.5 py-1.5 ${s.done ? 'opacity-60' : 'hover:bg-neutral-50'}`}>
-                <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${s.done ? 'bg-neutral-400' : s.type === 'pickup' ? 'bg-[#0F7A4E]' : 'bg-[#B0264A]'}`}>
-                  {s.done ? <Check size={13} /> : s.seq}
-                </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-medium">{s.consignmentNo ?? s.company ?? '—'}</span>
-                  <span className="block truncate text-[11px] text-neutral-500">{s.type === 'pickup' ? 'Pickup' : 'Delivery'} · {s.company ?? ''}</span>
-                </span>
-                <span className="shrink-0 text-[11px] font-medium text-neutral-600">{s.done ? 'Done' : s.etaMs ? fmtClock(s.etaMs) : '—'}</span>
-                {!s.done && (
-                  <span className="flex shrink-0 flex-col">
-                    <button type="button" onClick={() => move(i, -1)} disabled={firstPending} className="text-neutral-400 hover:text-[#0A2472] disabled:opacity-30"><ChevronUp size={14} /></button>
-                    <button type="button" onClick={() => move(i, 1)} disabled={i === stops.length - 1} className="text-neutral-400 hover:text-[#0A2472] disabled:opacity-30"><ChevronDown size={14} /></button>
+              <div key={s.key} className={`flex gap-2.5 ${s.done ? 'opacity-60' : ''}`}>
+                <div className="flex flex-col items-center">
+                  <span className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full text-[11px] font-semibold text-white ${s.done ? 'bg-neutral-400' : s.type === 'pickup' ? 'bg-[#0F7A4E]' : 'bg-[#B0264A]'}`}>
+                    {s.done ? <Check size={13} /> : s.seq}
                   </span>
-                )}
+                  {hasConnector && <span className="my-0.5 w-px flex-1 bg-neutral-200" />}
+                </div>
+                <div className="min-w-0 flex-1 pb-2">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="truncate text-sm font-medium">{s.consignmentNo ?? s.company ?? '—'}</div>
+                      <div className="truncate text-[11px] text-neutral-500">{s.type === 'pickup' ? 'Pickup' : 'Delivery'} · {s.company ?? ''}</div>
+                    </div>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <span className="text-[11px] font-medium text-neutral-600">{s.done ? 'Done' : s.etaMs ? fmtClock(s.etaMs) : '—'}</span>
+                      {!s.done && (
+                        <>
+                          <span className="flex flex-col">
+                            <button type="button" onClick={() => move(i, -1)} disabled={firstPending} className="text-neutral-400 hover:text-[#0A2472] disabled:opacity-30"><ChevronUp size={14} /></button>
+                            <button type="button" onClick={() => move(i, 1)} disabled={i === stops.length - 1} className="text-neutral-400 hover:text-[#0A2472] disabled:opacity-30"><ChevronDown size={14} /></button>
+                          </span>
+                          <button type="button" onClick={() => onRemove?.(s)} title="Remove from plan" className="text-neutral-300 hover:text-[#B0264A]"><X size={14} /></button>
+                        </>
+                      )}
+                    </div>
+                  </div>
+                </div>
               </div>
             )
           })}
 
-          {route && stops.length > 0 && (
-            <div className="mt-1 flex items-center gap-2 border-t border-neutral-100 px-1.5 pt-2 text-[11px] text-neutral-500">
-              <Flag size={13} className="shrink-0 text-neutral-400" />
-              Depot · {fmtClock(route.backToDepot.etaMs)}
+          {stops.length > 0 && returnToDepot && route?.backToDepot && (
+            <div className="flex gap-2.5">
+              <div className="flex flex-col items-center">
+                <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-300 text-white"><Flag size={12} /></span>
+              </div>
+              <div className="min-w-0 flex-1 pb-1">
+                <div className="flex items-center justify-between gap-2">
+                  <span className="text-sm font-medium text-neutral-600">Depot</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[11px] font-medium text-neutral-600">{fmtClock(route.backToDepot.etaMs)}</span>
+                    <button type="button" onClick={() => onToggleDepot?.()} title="Don’t return to depot" className="text-neutral-300 hover:text-[#B0264A]"><X size={14} /></button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
+
+          {stops.length > 0 && !returnToDepot && (
+            <div className="mt-1 flex items-center justify-between border-t border-neutral-100 px-1.5 pt-2 text-[11px] text-neutral-400">
+              <span>Ends at last stop</span>
+              <button type="button" onClick={() => onToggleDepot?.()} className="inline-flex items-center gap-1 font-medium text-[#0A2472] hover:underline"><Plus size={12} />Return to depot</button>
+            </div>
+          )}
+
+          {removed.length > 0 && (
+            <div className="mt-2 border-t border-neutral-100 pt-2">
+              <div className="px-1.5 pb-1 text-[10px] font-medium uppercase tracking-wide text-neutral-400">Removed</div>
+              {removed.map((s) => (
+                <div key={s.key} className="flex items-center justify-between px-1.5 py-1">
+                  <span className="min-w-0 truncate text-[11px] text-neutral-400 line-through">{s.consignmentNo ?? s.company ?? '—'} · {s.type === 'pickup' ? 'Pickup' : 'Delivery'}</span>
+                  <button type="button" onClick={() => onRestore?.(s.key)} title="Add back to plan" className="shrink-0 text-neutral-400 hover:text-[#0F7A4E]"><Plus size={14} /></button>
+                </div>
+              ))}
+            </div>
+          )}
+
           {route && stops.length > 0 && (
             <div className="mt-2 border-t border-neutral-100 px-1.5 pt-2 text-[10px] text-neutral-400">
               {route.fixedOrder ? 'Manual order' : route.optimized ? 'Optimised order' : 'Nearest-first order'} · solid = done, dotted = to do
