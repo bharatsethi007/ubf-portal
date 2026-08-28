@@ -129,6 +129,7 @@ export async function setConsignmentStatus(id: string, status: string) {
   const { error } = await supabase.from('tms_consignments').update(patch).eq('id', id)
   if (error) throw error
   await supabase.from('tms_events').insert({ consignment_id: id, event_code: 'TMS_STATUS', to_status: status })
+  if (status === 'complete') import('./podAutoSend').then((m) => m.maybeSendPodOnComplete(id)).catch(() => {})
 }
 
 export async function completeConsignment(id: string) {
@@ -139,6 +140,7 @@ export async function completeConsignment(id: string) {
   await supabase.from('tms_events').insert({
     consignment_id: id, event_code: 'TMS_STATUS', to_status: 'complete', note: 'Manually completed',
   })
+  import('./podAutoSend').then((m) => m.maybeSendPodOnComplete(id)).catch(() => {})
 }
 
 export async function assignConsignmentToDriver(consignmentId: string, driver: DriverRow) {

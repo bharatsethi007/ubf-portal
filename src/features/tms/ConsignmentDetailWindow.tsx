@@ -1,12 +1,15 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
+import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { ArrowRight, Pencil, AlertTriangle, FileText, Tag, Mail } from 'lucide-react'
+import { ArrowRight, Pencil, AlertTriangle, FileText, Tag, Mail, ClipboardCheck, Send } from 'lucide-react'
 import { format } from 'date-fns'
 import ConsignmentMiniMap from './ConsignmentMiniMap'
 import LinksField from './LinksField'
 import ConsignmentNoteModal from './ConsignmentNoteModal'
 import LabelsModal from './LabelsModal'
+import { renderPodPdf } from './pdf/podPdf'
+import PodEmailDialog from './PodEmailDialog'
 import { fetchConsignment, type TmsConsignmentDetail } from './tmsApi'
 import { fetchConsignmentActivity, activityLabel, type ActivityRow } from './tmsActivityApi'
 
@@ -68,6 +71,8 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   const [reload, setReload] = useState(0)
   const [noteOpen, setNoteOpen] = useState(false)
   const [labelsOpen, setLabelsOpen] = useState(false)
+  const [podBusy, setPodBusy] = useState(false)
+  const [podDialogOpen, setPodDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!id) { setD(null); setActivity([]); return }
@@ -84,6 +89,21 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   const activeFlags = d ? FLAGS.filter((f) => d[f.key]) : []
   const badge = d ? (STATUS_BADGE[d.status] ?? { label: d.status, cls: 'bg-neutral-100 text-neutral-600' }) : null
   const dd = d as any
+
+  async function openPod() {
+    if (!d || podBusy) return
+    setPodBusy(true)
+    try {
+      const blob = await renderPodPdf(d)
+      window.open(URL.createObjectURL(blob), '_blank', 'noopener')
+    } catch (e) {
+      toast.error(`Couldn't generate POD: ${e instanceof Error ? e.message : 'unknown error'}`)
+    } finally { setPodBusy(false) }
+  }
+  function emailPod() {
+    if (!d) return
+    setPodDialogOpen(true)
+  }
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
@@ -119,6 +139,8 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
               <div className="mr-8 flex shrink-0 items-center gap-2">
                 <button type="button" onClick={() => setNoteOpen(true)} title="Consignment note" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><FileText size={16} /></button>
                 <button type="button" onClick={() => setLabelsOpen(true)} title="Labels" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><Tag size={16} /></button>
+                <button type="button" onClick={openPod} disabled={podBusy} title="Proof of delivery" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"><ClipboardCheck size={16} /></button>
+                <button type="button" onClick={emailPod} title="Email POD to receiver" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><Send size={16} /></button>
                 <button type="button" onClick={() => navigate(`/tms/${d.id}/edit`)}
                   className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
                   <Pencil size={14} /> Edit
@@ -235,6 +257,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
         <>
           <ConsignmentNoteModal id={d.id} open={noteOpen} onClose={() => setNoteOpen(false)} />
           <LabelsModal id={d.id} open={labelsOpen} onClose={() => setLabelsOpen(false)} />
+          <PodEmailDialog consignment={d} open={podDialogOpen} onClose={() => setPodDialogOpen(false)} />
         </>
       )}
     </Dialog>
