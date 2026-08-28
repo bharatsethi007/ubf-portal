@@ -83,6 +83,9 @@ export async function boardCounts(): Promise<Record<TmsBoardKey, number>> {
 
 export type TmsConsignmentDetail = TmsConsignmentRow & {
   source: string
+  mode: string | null
+  created_by: string | null
+  source_payload: { channel?: string; staff_email?: string; from_name?: string; from_email?: string; internet_message_id?: string } | null
   booking_id: string | null
   sender_contact: string | null; sender_phone: string | null; sender_email: string | null
   receiver_contact: string | null; receiver_phone: string | null; receiver_email: string | null

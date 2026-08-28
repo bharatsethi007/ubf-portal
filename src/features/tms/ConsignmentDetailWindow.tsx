@@ -1,7 +1,7 @@
 import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { ArrowRight, Pencil, AlertTriangle, FileText, Tag } from 'lucide-react'
+import { ArrowRight, Pencil, AlertTriangle, FileText, Tag, Mail } from 'lucide-react'
 import { format } from 'date-fns'
 import ConsignmentMiniMap from './ConsignmentMiniMap'
 import LinksField from './LinksField'
@@ -105,6 +105,10 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
                 </DialogTitle>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
                   <span className="tabular-nums font-medium text-neutral-700">{d.consignment_no}</span>
+                  {d.source === 'email' && (
+                    <span title={`Added from email${d.source_payload?.staff_email ? ` by ${d.source_payload.staff_email}` : ''}`}
+                      className="inline-flex items-center text-[#0A2472]"><Mail size={14} /></span>
+                  )}
                   {d.mode && <span className="rounded-full bg-[#0A2472]/10 px-2 py-0.5 text-xs font-medium text-[#0A2472]">{({ EA: 'Export Air', ES: 'Export Sea', IA: 'Import Air', IS: 'Import Sea' } as Record<string, string>)[d.mode] ?? d.mode}</span>}
                   <span className="text-neutral-300">·</span>
                   <span className="capitalize">{d.order_type.replace('-', ' ')}</span>
@@ -210,7 +214,9 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
                           {activity.map((a) => (
                             <li key={a.id} className="relative">
                               <span className="absolute -left-[21px] top-1 h-2 w-2 rounded-full bg-[#0A2472] ring-2 ring-white" />
-                              <div className="text-sm text-neutral-900">{activityLabel(a)}</div>
+                              <div className="text-sm text-neutral-900">{activityLabel(a)}
+                                {a.actor_label && <span className="font-normal text-neutral-400"> · by {a.actor_label}</span>}
+                              </div>
                               {a.note && <div className="text-xs text-neutral-500">{a.note}</div>}
                               <div className="mt-0.5 text-[11px] tabular-nums text-neutral-400">{fmt(a.created_at)}</div>
                             </li>
