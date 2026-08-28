@@ -48,7 +48,7 @@ const m = StyleSheet.create({
   g: { borderColor: INK, color: INK },
   dg: { borderColor: '#e11d1d', color: '#e11d1d' },
   fr: { borderColor: INK, color: INK },
-  t: { fontSize: 12, fontWeight: 700, letterSpacing: 0.5 },
+  t: { fontSize: 12, fontWeight: 600, letterSpacing: 0.5 },
 })
 
 /** Goods markers: G / DG (+ Fragile) — mirrors the print-doc markers. */

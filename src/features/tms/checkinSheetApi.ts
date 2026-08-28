@@ -30,7 +30,7 @@ export async function prefillFromConsignment(consignmentId: string): Promise<She
     consignment_id: d.id, booking_id: d.booking_id, job_unique: d.job_unique, shipment_ref: d.shipment_ref, ref_input: d.consignment_no ?? '',
     mode: normMode(d.mode),
     shipper_company: d.sender_company ?? '', shipper_address: d.sender_address ?? '',
-    consignee_company: d.receiver_company ?? '', consignee_port_country: d.receiver_address ?? '',
+    consignee_company: d.receiver_company ?? '',
     picked_up_at: d.picked_up_at ?? d.preferred_pickup_at ?? null,
     delivered_by_name: d.driver1 ? `${d.driver1.first_name} ${d.driver1.last_name}` : '',
     lines: (d.cargo ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((c: any) => ({
@@ -57,7 +57,7 @@ export async function resolveReference(ref: string): Promise<SheetPrefill | null
 
 export type SheetForm = {
   ref_input: string; consignment_id: string | null; booking_id: string | null; job_unique: number | null; shipment_ref: string | null
-  mode: PortMode; job_type: string; delivered_by_name: string; picked_up_at: string | null
+  mode: PortMode; delivered_by_name: string; picked_up_at: string | null
   shipper_company: string; shipper_address: string; reference: string
   consignee_company: string; consignee_port_country: string; known_customer: boolean
   goods_type: 'general' | 'dangerous'; screen_at: string | null
@@ -70,7 +70,7 @@ export type SheetForm = {
 export function emptySheetForm(): SheetForm {
   return {
     ref_input: '', consignment_id: null, booking_id: null, job_unique: null, shipment_ref: null,
-    mode: '', job_type: '', delivered_by_name: '', picked_up_at: null,
+    mode: '', delivered_by_name: '', picked_up_at: null,
     shipper_company: '', shipper_address: '', reference: '',
     consignee_company: '', consignee_port_country: '', known_customer: false,
     goods_type: 'general', screen_at: new Date().toISOString().slice(0, 10),
@@ -133,12 +133,14 @@ export async function saveCheckinSheet(f: SheetForm) {
   const { data: u } = await supabase.auth.getUser()
   const uid = u?.user?.id ?? null
 
+  const modeVal = f.mode === 'air' ? 'Air' : f.mode === 'sea' ? 'Sea' : null
+
   const signaturePath = f.signature_data_url ? await uploadCheckinSignature(f.signature_data_url) : null
   const photoPaths = f.photo_files.length ? await uploadCheckinPhotos(f.photo_files) : []
 
   const payload: any = {
     consignment_id: f.consignment_id, booking_id: f.booking_id, job_unique: f.job_unique, shipment_ref: f.shipment_ref,
-    ref_input: f.ref_input || null, mode: f.mode || null, job_type: f.job_type || null,
+    ref_input: f.ref_input || null, mode: modeVal,
     delivered_by_name: f.delivered_by_name || null, picked_up_at: f.picked_up_at || null,
     shipper_company: f.shipper_company || null, shipper_address: f.shipper_address || null, reference: f.reference || null,
     consignee_company: f.consignee_company || null, consignee_port_country: f.consignee_port_country || null, known_customer: f.known_customer,
@@ -148,7 +150,7 @@ export async function saveCheckinSheet(f: SheetForm) {
     booking_docs_attached: sv(f.booking_docs_attached), damaged: sv(f.damaged), fragile: sv(f.fragile),
     temperature_controlled: sv(f.temperature_controlled), physically_scanned: sv(f.physically_scanned),
     comments: f.comments || null, checked_in_at: new Date().toISOString(), created_by: uid, received_by: uid,
-    received_by_signature_url: signaturePath, documents: photoPaths.length ? { photos: photoPaths } : null,
+    received_by_signature_url: signaturePath, documents: photoPaths,
   }
   const { data: sheet, error } = await supabase.from('tms_checkin_sheets').insert(payload).select('id,sheet_no').single()
   if (error) throw error

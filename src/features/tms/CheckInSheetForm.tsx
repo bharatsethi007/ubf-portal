@@ -82,6 +82,7 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
     { key: 'temperature_controlled', label: 'Temperature controlled' }, { key: 'physically_scanned', label: 'Physically scanned' },
   ]
   const selectNum = (e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select()
+  const TYPE_OPTS = ['Pallet', 'Cartons', 'Crate', 'Bags', 'Rolls', 'Other']
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
@@ -89,7 +90,7 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
         <DialogHeader className="border-b border-neutral-200 px-5 py-3"><DialogTitle className="text-base">{isUbf ? `Check-in — ${f.ref_input || 'consignment'}` : 'New check-in sheet'}</DialogTitle></DialogHeader>
         <div ref={scrollRef} onKeyDown={advance} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
 
-          <div className="grid gap-2.5 sm:grid-cols-4">
+          <div className="grid gap-2.5 sm:grid-cols-3">
             <div className="sm:col-span-2">
               <Field label="Reference (consignment / booking / shipment)">
                 <div className="flex gap-2">
@@ -103,7 +104,6 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
                 <option value="">—</option><option value="air">Air</option><option value="sea">Sea</option>
               </select>
             </Field>
-            <Field label="Job type"><input className="input input--sm" value={f.job_type} onChange={(e) => set({ job_type: e.target.value })} /></Field>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -120,8 +120,8 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
               <h3 className="mb-2 border-l-2 border-[#0A2472] pl-2 text-[11px] font-semibold uppercase tracking-wide text-[#0A2472]">Consignee</h3>
               <div className="grid gap-2.5">
                 <Field label="Company"><PartyPicker value={f.consignee_company} onType={(company) => set({ consignee_company: company })} onPick={(p) => set({ consignee_company: p.company ?? '' })} /></Field>
-                <Field label={f.mode === 'air' ? 'Destination airport' : 'Destination port'}>
-                  <CheckinPortSelect mode={f.mode === 'air' ? 'air' : 'sea'} value={f.consignee_port_country} onChange={(v) => set({ consignee_port_country: v })} placeholder={f.mode === 'air' ? 'Search airport' : 'Search port'} />
+                <Field label={f.mode === 'air' ? 'Destination airport' : f.mode === 'sea' ? 'Destination port' : 'Destination port / airport'}>
+                  <CheckinPortSelect mode={f.mode} value={f.consignee_port_country} onChange={(v, kind) => set({ consignee_port_country: v, ...(!f.mode && kind ? { mode: kind } : {}) })} />
                 </Field>
                 <label className="mt-0.5 flex items-center gap-2 text-[13px] text-neutral-700"><input type="checkbox" checked={f.known_customer} onChange={(e) => set({ known_customer: e.target.checked })} /> Known customer</label>
               </div>
@@ -134,7 +134,11 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
               <span>Type</span><span>Units</span><span>Kg</span><span>L</span><span>W</span><span>H</span><span>CBM</span><span>Marks</span><span /></div>
             {f.lines.map((l, i) => (
               <div key={i} className="mb-1.5 grid grid-cols-2 gap-1.5 md:grid-cols-[1.2fr_0.6fr_0.7fr_0.7fr_0.7fr_0.7fr_0.7fr_1fr_28px] md:items-center">
-                <input className="input input--sm" placeholder="Type" value={l.type} onChange={(e) => setLine(i, { type: e.target.value })} />
+                <select className="input input--sm" value={l.type} onChange={(e) => setLine(i, { type: e.target.value })}>
+                  <option value="">Type</option>
+                  {l.type && !TYPE_OPTS.includes(l.type) && <option value={l.type}>{l.type}</option>}
+                  {TYPE_OPTS.map((o) => <option key={o} value={o}>{o}</option>)}
+                </select>
                 <input className="input input--sm" inputMode="decimal" placeholder="Units" value={l.units} onFocus={selectNum} onChange={(e) => setLine(i, { units: e.target.value })} />
                 <input className="input input--sm" inputMode="decimal" placeholder="Kg" value={l.weight_kg} onFocus={selectNum} onChange={(e) => setLine(i, { weight_kg: e.target.value })} />
                 <input className="input input--sm" inputMode="decimal" placeholder="L" value={l.length_cm} onFocus={selectNum} onChange={(e) => setLine(i, { length_cm: e.target.value })} />
