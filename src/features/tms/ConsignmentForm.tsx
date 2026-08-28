@@ -6,7 +6,12 @@ import AddressAutocomplete from '@/components/bookings/AddressAutocomplete'
 import CargoLinesEditor from './CargoLinesEditor'
 import PartyPicker from './PartyPicker'
 import AddressBookDialog from './AddressBookDialog'
-import { ORDER_TYPES, FLAG_KEYS, FLAG_LABELS, emptyForm, useDepots, createConsignment, updateConsignment, fetchConsignmentForEdit, type ConsignmentFormValues, type PartyDraft } from './consignmentFormApi'
+import { PickupDocActions, DropoffDocActions } from './ConsignmentDocActions'
+import {
+  ORDER_TYPES, FLAG_KEYS, FLAG_LABELS, emptyForm, emptyParty, mangereParty, isMangere,
+  useDepots, useCurrentUserIdentity, createConsignment, updateConsignment, fetchConsignmentForEdit,
+  type ConsignmentFormValues, type PartyDraft,
+} from './consignmentFormApi'
 
 function Field({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
@@ -28,7 +33,7 @@ function Card({ title, children }: { title?: string; children: ReactNode }) {
     </section>
   )
 }
-function Party({ title, party, onChange }: { title: string; party: PartyDraft; onChange: (p: PartyDraft) => void }) {
+function Party({ title, party, onChange, footer }: { title: string; party: PartyDraft; onChange: (p: PartyDraft) => void; footer?: ReactNode }) {
   const set = (patch: Partial<PartyDraft>) => onChange({ ...party, ...patch })
   const [bookOpen, setBookOpen] = useState(false)
   return (
@@ -45,6 +50,7 @@ function Party({ title, party, onChange }: { title: string; party: PartyDraft; o
         <Field label="Phone"><input className="input" value={party.phone} onChange={(e) => set({ phone: e.target.value })} /></Field>
         <Field label="Email"><input className="input" value={party.email} onChange={(e) => set({ email: e.target.value })} /></Field>
       </div>
+      {footer}
       <AddressBookDialog open={bookOpen} current={party} onClose={() => setBookOpen(false)} onPick={(p) => set(p)} />
     </div>
   )
@@ -55,6 +61,7 @@ export default function ConsignmentForm() {
   const { id } = useParams()
   const isEdit = Boolean(id)
   const depots = useDepots()
+  const identity = useCurrentUserIdentity()
   const [v, setV] = useState<ConsignmentFormValues>(emptyForm())
   const [saving, setSaving] = useState(false)
   const [loading, setLoading] = useState(isEdit)
@@ -68,7 +75,29 @@ export default function ConsignmentForm() {
     return () => { cancelled = true }
   }, [id])
 
+  // Default the depot to UB Freight Mangere on a new consignment.
+  useEffect(() => {
+    if (isEdit || !depots.length) return
+    setV((prev) => (prev.depot_id ? prev : { ...prev, depot_id: (depots.find((d) => /mangere/i.test(d.name)) ?? depots[0]).id }))
+  }, [depots, isEdit])
+
+  // Auto-fill the UB Freight Mangere party: receiver on pick-up, sender on drop-off.
+  useEffect(() => {
+    if (isEdit || !identity) return
+    const depotSide = v.order_type === 'pick-up' ? 'receiver' : v.order_type === 'drop-off' ? 'sender' : null
+    setV((prev) => {
+      const mang = mangereParty(identity)
+      let { sender, receiver } = prev
+      if (depotSide === 'receiver') { receiver = mang; if (isMangere(prev.sender)) sender = emptyParty() }
+      else if (depotSide === 'sender') { sender = mang; if (isMangere(prev.receiver)) receiver = emptyParty() }
+      return { ...prev, sender, receiver }
+    })
+  }, [v.order_type, identity, isEdit])
+
+  const patch = (p: Partial<ConsignmentFormValues>) => setV((prev) => ({ ...prev, ...p }))
   const valid = v.order_type !== '' && v.sender.company.trim() !== '' && v.receiver.company.trim() !== ''
+  const isPickup = v.order_type === 'pick-up'
+  const isDropoff = v.order_type === 'drop-off'
 
   async function onSubmit() {
     if (!valid || saving) return
@@ -116,18 +145,17 @@ export default function ConsignmentForm() {
 
           <Card>
             <div className="grid gap-6 md:grid-cols-2">
-              <Party title="Sender" party={v.sender} onChange={(sender) => setV({ ...v, sender })} />
-              <Party title="Receiver" party={v.receiver} onChange={(receiver) => setV({ ...v, receiver })} />
+              <Party title="Sender" party={v.sender} onChange={(sender) => setV({ ...v, sender })}
+                footer={isPickup ? <PickupDocActions v={v} patch={patch} /> : undefined} />
+              <Party title="Receiver" party={v.receiver} onChange={(receiver) => setV({ ...v, receiver })}
+                footer={isDropoff ? <DropoffDocActions v={v} patch={patch} /> : undefined} />
             </div>
           </Card>
 
           <Card title="Timing & references">
-            <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
-              <Field label="Preferred pick-up"><input type="datetime-local" className="input" value={v.preferred_pickup_at} onChange={(e) => setV({ ...v, preferred_pickup_at: e.target.value })} /></Field>
-              <Field label="Preferred delivery"><input type="datetime-local" className="input" value={v.preferred_delivery_at} onChange={(e) => setV({ ...v, preferred_delivery_at: e.target.value })} /></Field>
-              <Field label="Estimated delivery"><input type="datetime-local" className="input" value={v.estimated_delivery_at} onChange={(e) => setV({ ...v, estimated_delivery_at: e.target.value })} /></Field>
-              <Field label="Purchase order #"><input className="input" value={v.po_number} onChange={(e) => setV({ ...v, po_number: e.target.value })} /></Field>
-              <Field label="Supplier"><input className="input" value={v.supplier_name} onChange={(e) => setV({ ...v, supplier_name: e.target.value })} /></Field>
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+              {!isDropoff && <Field label="Preferred pick-up"><input type="datetime-local" className="input" value={v.preferred_pickup_at} onChange={(e) => setV({ ...v, preferred_pickup_at: e.target.value })} /></Field>}
+              {!isPickup && <Field label="Preferred delivery"><input type="datetime-local" className="input" value={v.preferred_delivery_at} onChange={(e) => setV({ ...v, preferred_delivery_at: e.target.value })} /></Field>}
               <Field label="Reference"><input className="input" value={v.reference} onChange={(e) => setV({ ...v, reference: e.target.value })} /></Field>
             </div>
             <Field label="Delivery instructions" className="mt-3"><textarea className="input" rows={2} value={v.delivery_instructions} onChange={(e) => setV({ ...v, delivery_instructions: e.target.value })} /></Field>

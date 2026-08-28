@@ -44,6 +44,15 @@ export function cubeM3(l: string, w: string, h: string, units: string) {
 export type PartyDraft = { company: string; address: string; additional_info: string; contact: string; phone: string; email: string }
 export const emptyParty = (): PartyDraft => ({ company: '', address: '', additional_info: '', contact: '', phone: '', email: '' })
 
+/** UB Freight Mangere depot party — auto-filled as receiver (pick-up) or sender (drop-off). */
+export const MANGERE_COMPANY = 'UB Freight Mangere'
+export const MANGERE_ADDRESS = '173 Montgomerie Road, Mangere, Auckland'
+export const MANGERE_PHONE = '09 966 3850'
+export function mangereParty(identity: { username: string; email: string }): PartyDraft {
+  return { company: MANGERE_COMPANY, address: MANGERE_ADDRESS, additional_info: '', contact: identity.username, phone: MANGERE_PHONE, email: identity.email }
+}
+export const isMangere = (p: PartyDraft) => p.company.trim() === MANGERE_COMPANY
+
 export type ConsignmentFormValues = {
   order_type: string
   depot_id: string
@@ -52,9 +61,6 @@ export type ConsignmentFormValues = {
   receiver: PartyDraft
   preferred_pickup_at: string
   preferred_delivery_at: string
-  estimated_delivery_at: string
-  po_number: string
-  supplier_name: string
   reference: string
   delivery_instructions: string
   calculate_volume_by: 'unitType' | 'totalShipment'
@@ -62,16 +68,21 @@ export type ConsignmentFormValues = {
   dangerous_goods_reason: string
   flags: Record<string, boolean>
   cargo: CargoDraft[]
+  email_labels: boolean
+  email_consignment_note: boolean
+  email_pod: boolean
+  pod_additional_emails: string[]
 }
 
 export function emptyForm(): ConsignmentFormValues {
   return {
     order_type: 'pick-up', depot_id: '', mode: '', sender: emptyParty(), receiver: emptyParty(),
-    preferred_pickup_at: '', preferred_delivery_at: '', estimated_delivery_at: '',
-    po_number: '', supplier_name: '', reference: '', delivery_instructions: '',
+    preferred_pickup_at: '', preferred_delivery_at: '',
+    reference: '', delivery_instructions: '',
     calculate_volume_by: 'unitType', goods_type: 'general', dangerous_goods_reason: '',
     flags: Object.fromEntries(FLAG_KEYS.map((k) => [k, false])),
     cargo: [emptyCargo()],
+    email_labels: false, email_consignment_note: false, email_pod: false, pod_additional_emails: [],
   }
 }
 
@@ -83,7 +94,23 @@ export function useDepots() {
   return depots
 }
 
+/** Signed-in user identity for auto-filling the depot party contact. username = email local-part. */
+export function useCurrentUserIdentity() {
+  const [identity, setIdentity] = useState<{ username: string; email: string } | null>(null)
+  useEffect(() => {
+    let cancelled = false
+    supabase.auth.getUser().then(({ data }) => {
+      if (cancelled) return
+      const email = data.user?.email ?? ''
+      setIdentity({ email, username: email ? email.split('@')[0] : '' })
+    })
+    return () => { cancelled = true }
+  }, [])
+  return identity
+}
+
 const toIso = (s: string) => (s ? new Date(s).toISOString() : null)
+const cleanEmails = (arr: string[]) => arr.map((e) => e.trim()).filter(Boolean)
 
 function toPayload(v: ConsignmentFormValues) {
   return {
@@ -103,16 +130,17 @@ function toPayload(v: ConsignmentFormValues) {
     receiver_contact: v.receiver.contact || null,
     receiver_phone: v.receiver.phone || null,
     receiver_email: v.receiver.email || null,
+    receiver_additional_emails: v.order_type === 'drop-off' ? cleanEmails(v.pod_additional_emails) : [],
     preferred_pickup_at: toIso(v.preferred_pickup_at),
     preferred_delivery_at: toIso(v.preferred_delivery_at),
-    estimated_delivery_at: toIso(v.estimated_delivery_at),
-    po_number: v.po_number || null,
-    supplier_name: v.supplier_name || null,
     reference: v.reference || null,
     delivery_instructions: v.delivery_instructions || null,
     calculate_volume_by: v.calculate_volume_by,
     goods_type: v.goods_type,
     dangerous_goods_reason: v.goods_type === 'dangerous' ? (v.dangerous_goods_reason || null) : null,
+    email_labels: v.order_type === 'pick-up' ? v.email_labels : false,
+    email_consignment_note: v.order_type === 'pick-up' ? v.email_consignment_note : false,
+    email_pod: v.order_type === 'drop-off' ? v.email_pod : false,
     ...Object.fromEntries(FLAG_KEYS.map((k) => [k, !!v.flags[k]])),
   }
 }
@@ -165,13 +193,15 @@ export async function fetchConsignmentForEdit(id: string): Promise<ConsignmentFo
     order_type: d.order_type, depot_id: d.depot_id ?? '', mode: d.mode ?? '',
     sender: { company: d.sender_company ?? '', address: d.sender_address ?? '', additional_info: d.sender_additional_info ?? '', contact: d.sender_contact ?? '', phone: d.sender_phone ?? '', email: d.sender_email ?? '' },
     receiver: { company: d.receiver_company ?? '', address: d.receiver_address ?? '', additional_info: d.receiver_additional_info ?? '', contact: d.receiver_contact ?? '', phone: d.receiver_phone ?? '', email: d.receiver_email ?? '' },
-    preferred_pickup_at: toLocalInput(d.preferred_pickup_at), preferred_delivery_at: toLocalInput(d.preferred_delivery_at), estimated_delivery_at: toLocalInput(d.estimated_delivery_at),
-    po_number: d.po_number ?? '', supplier_name: d.supplier_name ?? '', reference: d.reference ?? '', delivery_instructions: d.delivery_instructions ?? '',
+    preferred_pickup_at: toLocalInput(d.preferred_pickup_at), preferred_delivery_at: toLocalInput(d.preferred_delivery_at),
+    reference: d.reference ?? '', delivery_instructions: d.delivery_instructions ?? '',
     calculate_volume_by: d.calculate_volume_by ?? 'unitType', goods_type: d.goods_type ?? 'general', dangerous_goods_reason: d.dangerous_goods_reason ?? '',
     flags: Object.fromEntries(FLAG_KEYS.map((k) => [k, !!d[k]])),
     cargo: (d.cargo ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((c: any) => ({
       type: c.type, units: String(c.units ?? ''), weight_kg: String(c.weight_kg ?? ''),
       length_cm: String(c.length_cm ?? ''), width_cm: String(c.width_cm ?? ''), height_cm: String(c.height_cm ?? ''),
     })),
+    email_labels: !!d.email_labels, email_consignment_note: !!d.email_consignment_note, email_pod: !!d.email_pod,
+    pod_additional_emails: Array.isArray(d.receiver_additional_emails) ? d.receiver_additional_emails : [],
   }
 }
