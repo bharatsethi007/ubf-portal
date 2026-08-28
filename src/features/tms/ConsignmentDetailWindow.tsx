@@ -2,7 +2,7 @@ import { useEffect, useState, type ReactNode } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
-import { ArrowRight, Pencil, AlertTriangle, FileText, Tag, Mail, ClipboardCheck, Send } from 'lucide-react'
+import { ArrowRight, Pencil, AlertTriangle, FileText, Tag, Mail, ClipboardCheck, Send, PackageCheck, FileDown } from 'lucide-react'
 import { format } from 'date-fns'
 import ConsignmentMiniMap from './ConsignmentMiniMap'
 import LinksField from './LinksField'
@@ -10,6 +10,9 @@ import ConsignmentNoteModal from './ConsignmentNoteModal'
 import LabelsModal from './LabelsModal'
 import { renderPodPdf } from './pdf/podPdf'
 import EmailDocsDialog from './EmailDocsDialog'
+import CheckInSheetForm from './CheckInSheetForm'
+import { checkinSheetIdForConsignment } from './checkinSheetApi'
+import { openCheckinSheetPdf } from './pdf/checkinPdf'
 import { fetchConsignment, type TmsConsignmentDetail } from './tmsApi'
 import { fetchConsignmentActivity, activityLabel, type ActivityRow } from './tmsActivityApi'
 
@@ -73,6 +76,9 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   const [labelsOpen, setLabelsOpen] = useState(false)
   const [podBusy, setPodBusy] = useState(false)
   const [emailDialogOpen, setEmailDialogOpen] = useState(false)
+  const [checkinOpen, setCheckinOpen] = useState(false)
+  const [checkinSheetId, setCheckinSheetId] = useState<string | null>(null)
+  const [pdfBusy, setPdfBusy] = useState(false)
 
   useEffect(() => {
     if (!id) { setD(null); setActivity([]); return }
@@ -84,6 +90,12 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
     return () => { cancelled = true }
   }, [id, reload])
 
+  useEffect(() => {
+    if (d?.order_type === 'pick-up' && (d as any).wms_checkin_at) {
+      checkinSheetIdForConsignment(d.id).then(setCheckinSheetId).catch(() => setCheckinSheetId(null))
+    } else setCheckinSheetId(null)
+  }, [d?.id, (d as any)?.wms_checkin_at])
+
   const origin = d?.sender_address || d?.sender_company || '—'
   const dest = d?.receiver_address || d?.receiver_company || '—'
   const activeFlags = d ? FLAGS.filter((f) => d[f.key]) : []
@@ -91,6 +103,8 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   const dd = d as any
   const isDropoff = d?.order_type === 'drop-off'
   const isDelivered = !!d && (d.status === 'complete' || Boolean(dd.delivered_at))
+  const isPickup = d?.order_type === 'pick-up'
+  const isCheckedIn = Boolean(d?.wms_checkin_at)
 
   async function openPod() {
     if (!d || podBusy) return
@@ -105,6 +119,13 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   function emailPod() {
     if (!d) return
     setEmailDialogOpen(true)
+  }
+  async function downloadCheckinPdf() {
+    if (!checkinSheetId || pdfBusy) return
+    setPdfBusy(true)
+    try { const ok = await openCheckinSheetPdf(checkinSheetId); if (!ok) toast.error('Check-in sheet not found') }
+    catch (e) { toast.error(`Couldn't generate check-in PDF: ${e instanceof Error ? e.message : 'unknown error'}`) }
+    finally { setPdfBusy(false) }
   }
 
   return (
@@ -139,6 +160,12 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
               <div className="mr-8 flex shrink-0 items-center gap-2">
                 <button type="button" onClick={() => setNoteOpen(true)} title="Consignment note" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><FileText size={16} /></button>
                 <button type="button" onClick={() => setLabelsOpen(true)} title="Labels" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><Tag size={16} /></button>
+                {isPickup && (
+                  <button type="button" onClick={() => setCheckinOpen(true)} title={isCheckedIn ? 'Edit check-in' : 'Check in'} className={`inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border hover:bg-neutral-50 ${isCheckedIn ? 'border-emerald-300 text-emerald-600' : 'border-neutral-300 text-neutral-600'}`}><PackageCheck size={16} /></button>
+                )}
+                {isPickup && isCheckedIn && (
+                  <button type="button" onClick={downloadCheckinPdf} disabled={pdfBusy || !checkinSheetId} title="Download check-in PDF" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:hover:bg-transparent"><FileDown size={16} /></button>
+                )}
                 {d.order_type === 'drop-off' && (
                   <button type="button" onClick={openPod} disabled={podBusy || !isDelivered} title={isDelivered ? 'Proof of delivery' : 'Proof of delivery — available once delivered'} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:hover:bg-transparent"><ClipboardCheck size={16} /></button>
                 )}
@@ -260,6 +287,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
           <ConsignmentNoteModal id={d.id} open={noteOpen} onClose={() => setNoteOpen(false)} />
           <LabelsModal id={d.id} open={labelsOpen} onClose={() => setLabelsOpen(false)} />
           <EmailDocsDialog consignment={d} open={emailDialogOpen} onClose={() => setEmailDialogOpen(false)} />
+          <CheckInSheetForm open={checkinOpen} consignmentId={d.id} sheetId={isCheckedIn ? checkinSheetId : null} onClose={() => setCheckinOpen(false)} onDone={() => { setCheckinOpen(false); setReload((r) => r + 1) }} />
         </>
       )}
     </Dialog>
