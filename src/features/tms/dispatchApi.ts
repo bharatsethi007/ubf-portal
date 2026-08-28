@@ -29,13 +29,13 @@ export type CardRow = {
   id: string; consignment_no: string | null; order_type: string; status: string; goods_type: string
   sender_company: string | null; sender_address: string | null
   receiver_company: string | null; receiver_address: string | null
-  preferred_pickup_at: string | null; assigned_at: string | null; assigned_driver_leg1: string | null
+  preferred_pickup_at: string | null; assigned_at: string | null; assigned_driver_leg1: string | null; wms_checkin_at: string | null
   signature_required: boolean; photo_pod_required: boolean; tail_lift_required: boolean; temperature_control: boolean
   cargo: { units: number | null; weight_kg: number | null; total_cube_m3: number | null }[]
 }
 
 const CARD_SELECT =
-  'id,consignment_no,order_type,status,goods_type,sender_company,sender_address,receiver_company,receiver_address,preferred_pickup_at,assigned_at,assigned_driver_leg1,signature_required,photo_pod_required,tail_lift_required,temperature_control,cargo:tms_consignment_cargo(units,weight_kg,total_cube_m3)'
+  'id,consignment_no,order_type,status,goods_type,sender_company,sender_address,receiver_company,receiver_address,preferred_pickup_at,assigned_at,assigned_driver_leg1,wms_checkin_at,signature_required,photo_pod_required,tail_lift_required,temperature_control,cargo:tms_consignment_cargo(units,weight_kg,total_cube_m3)'
 
 function applyTab(q: any, tab: DispatchTab) {
   switch (tab) {

@@ -73,6 +73,7 @@ export default function ConsignmentCard({ card, onOpen, onUnassign, onComplete, 
           <div className="mb-1.5 flex flex-wrap items-center gap-1.5 pr-12">
             <span className="text-sm font-semibold text-[#0A2472]">{card.consignment_no ?? '—'}</span>
             <span className="rounded bg-neutral-100 px-1.5 py-0.5 text-[10px] font-semibold tracking-wide text-neutral-600">{TYPE_LABEL[card.order_type] ?? card.order_type}</span>
+            {card.wms_checkin_at && <span title="Checked in" className="inline-flex items-center gap-1 rounded-full bg-emerald-50 px-1.5 py-0.5 text-[10px] font-medium text-emerald-700"><CheckCircle2 size={11} />Checked in</span>}
             {card.goods_type === 'dangerous' && <AlertTriangle size={13} className="text-red-600" />}
             {flags.map((f) => <span key={f} className="rounded-full bg-neutral-100 px-1.5 py-0.5 text-[10px] text-neutral-600">{f}</span>)}
           </div>
