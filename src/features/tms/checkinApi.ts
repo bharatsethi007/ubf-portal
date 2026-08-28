@@ -77,5 +77,5 @@ export async function listCompletedSheets(bucket: 'ubf' | 'third'): Promise<Comp
   q = bucket === 'ubf' ? q.not('consignment_id', 'is', null) : q.is('consignment_id', null)
   const { data, error } = await q
   if (error) throw error
-  return (data ?? []) as CompletedSheet[]
+  return (data ?? []) as unknown as CompletedSheet[]
 }
