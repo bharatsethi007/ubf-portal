@@ -1,6 +1,8 @@
 import { useEffect, useState } from 'react'
 import { format } from 'date-fns'
-import { Package, Truck, Plus } from 'lucide-react'
+import { Package, Truck, Plus, Download } from 'lucide-react'
+import { toast } from 'sonner'
+import { openCheckinSheetPdf } from './pdf/checkinPdf'
 import { listCheckinQueue, listVariance, listCompletedSheets, type CheckinQueueRow, type VarianceRow, type CompletedSheet } from './checkinApi'
 import CheckInSheetForm from './CheckInSheetForm'
 
@@ -22,6 +24,11 @@ export default function CheckInsView() {
       .catch(() => {}).finally(() => setLoading(false))
   }
   useEffect(() => { load() }, [bucket])
+
+  async function downloadPdf(id: string) {
+    try { const ok = await openCheckinSheetPdf(id); if (!ok) toast.error('Sheet not found') }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Could not generate PDF') }
+  }
 
   const topTabs: { key: Top; label: string; count: number }[] = [
     { key: 'queue', label: 'Awaiting check-in', count: queue.length },
@@ -85,11 +92,11 @@ export default function CheckInsView() {
           <div className="overflow-x-auto">
             <table className="w-full min-w-[720px] text-[13px]">
               <thead><tr className="border-b border-neutral-200 text-left text-[10px] uppercase tracking-wide text-neutral-400">
-                <th className="px-3 py-2">Sheet</th><th className="px-3 py-2">Consignment</th><th className="px-3 py-2">Shipper</th><th className="px-3 py-2">Consignee</th><th className="px-3 py-2">Checked in</th>
+                <th className="px-3 py-2">Sheet</th><th className="px-3 py-2">Consignment</th><th className="px-3 py-2">Shipper</th><th className="px-3 py-2">Consignee</th><th className="px-3 py-2">Checked in</th><th className="px-3 py-2"></th>
               </tr></thead>
               <tbody>
-                {loading ? <tr><td colSpan={5} className="px-3 py-6 text-neutral-400">Loading…</td></tr>
-                  : completed.length === 0 ? <tr><td colSpan={5} className="px-3 py-6 text-neutral-400">No {bucket === 'ubf' ? 'UBF' : '3rd-party'} check-ins yet.</td></tr>
+                {loading ? <tr><td colSpan={6} className="px-3 py-6 text-neutral-400">Loading…</td></tr>
+                  : completed.length === 0 ? <tr><td colSpan={6} className="px-3 py-6 text-neutral-400">No {bucket === 'ubf' ? 'UBF' : '3rd-party'} check-ins yet.</td></tr>
                   : completed.map((s) => (
                     <tr key={s.id} onClick={() => setSheet({ open: true, consignmentId: null, sheetId: s.id })} className="cursor-pointer border-b border-neutral-100 hover:bg-neutral-50">
                       <td className="px-3 py-2.5 font-medium tabular-nums">{s.sheet_no}</td>
@@ -97,6 +104,7 @@ export default function CheckInsView() {
                       <td className="px-3 py-2.5">{s.shipper_company ?? '—'}</td>
                       <td className="px-3 py-2.5">{s.consignee_company ?? '—'}</td>
                       <td className="whitespace-nowrap px-3 py-2.5">{s.checked_in_at ? format(new Date(s.checked_in_at), 'd MMM, h:mm a') : '—'}</td>
+                      <td className="px-3 py-2.5 text-right"><button type="button" onClick={(e) => { e.stopPropagation(); downloadPdf(s.id) }} title="Download PDF" className="inline-flex h-7 w-7 items-center justify-center rounded border border-neutral-300 text-neutral-500 hover:bg-neutral-50 hover:text-[#0A2472]"><Download size={14} /></button></td>
                     </tr>
                   ))}
               </tbody>
