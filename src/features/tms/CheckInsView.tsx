@@ -13,7 +13,7 @@ export default function CheckInsView() {
   const [variance, setVariance] = useState<VarianceRow[]>([])
   const [completed, setCompleted] = useState<CompletedSheet[]>([])
   const [loading, setLoading] = useState(true)
-  const [sheet, setSheet] = useState<{ open: boolean; consignmentId: string | null }>({ open: false, consignmentId: null })
+  const [sheet, setSheet] = useState<{ open: boolean; consignmentId: string | null; sheetId: string | null }>({ open: false, consignmentId: null, sheetId: null })
 
   const load = () => {
     setLoading(true)
@@ -43,7 +43,7 @@ export default function CheckInsView() {
             )
           })}
         </div>
-        <button type="button" onClick={() => setSheet({ open: true, consignmentId: null })} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A2472] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0A2472]/90"><Plus size={16} /> New check-in</button>
+        <button type="button" onClick={() => setSheet({ open: true, consignmentId: null, sheetId: null })} className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A2472] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0A2472]/90"><Plus size={16} /> New check-in</button>
       </div>
 
       {tab === 'queue' && (
@@ -61,7 +61,7 @@ export default function CheckInsView() {
                     <td className="px-3 py-2.5">{r.sender_company ?? '—'}</td>
                     <td className="px-3 py-2.5 text-neutral-600">{r.sender_address ?? '—'}</td>
                     <td className="whitespace-nowrap px-3 py-2.5">{r.preferred_pickup_at ? format(new Date(r.preferred_pickup_at), 'd MMM, h:mm a') : '—'}</td>
-                    <td className="px-3 py-2.5 text-right"><button type="button" onClick={() => setSheet({ open: true, consignmentId: r.id })} className="rounded-lg border border-[#0A2472] px-3 py-1 text-xs font-medium text-[#0A2472] hover:bg-[#0A2472]/[0.04]">Check in</button></td>
+                    <td className="px-3 py-2.5 text-right"><button type="button" onClick={() => setSheet({ open: true, consignmentId: r.id, sheetId: null })} className="rounded-lg border border-[#0A2472] px-3 py-1 text-xs font-medium text-[#0A2472] hover:bg-[#0A2472]/[0.04]">Check in</button></td>
                   </tr>
                 ))}
             </tbody>
@@ -91,7 +91,7 @@ export default function CheckInsView() {
                 {loading ? <tr><td colSpan={5} className="px-3 py-6 text-neutral-400">Loading…</td></tr>
                   : completed.length === 0 ? <tr><td colSpan={5} className="px-3 py-6 text-neutral-400">No {bucket === 'ubf' ? 'UBF' : '3rd-party'} check-ins yet.</td></tr>
                   : completed.map((s) => (
-                    <tr key={s.id} className="border-b border-neutral-100 hover:bg-neutral-50">
+                    <tr key={s.id} onClick={() => setSheet({ open: true, consignmentId: null, sheetId: s.id })} className="cursor-pointer border-b border-neutral-100 hover:bg-neutral-50">
                       <td className="px-3 py-2.5 font-medium tabular-nums">{s.sheet_no}</td>
                       <td className="px-3 py-2.5 tabular-nums">{s.consignment?.consignment_no ?? <span className="text-neutral-300">—</span>}</td>
                       <td className="px-3 py-2.5">{s.shipper_company ?? '—'}</td>
@@ -133,7 +133,7 @@ export default function CheckInsView() {
         </div>
       )}
 
-      <CheckInSheetForm open={sheet.open} consignmentId={sheet.consignmentId} onClose={() => setSheet({ open: false, consignmentId: null })} onDone={() => { setSheet({ open: false, consignmentId: null }); load() }} />
+      <CheckInSheetForm open={sheet.open} consignmentId={sheet.consignmentId} sheetId={sheet.sheetId} onClose={() => setSheet({ open: false, consignmentId: null, sheetId: null })} onDone={() => { setSheet({ open: false, consignmentId: null, sheetId: null }); load() }} />
     </div>
   )
 }

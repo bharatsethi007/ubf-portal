@@ -66,7 +66,7 @@ export async function listConsignments(params: { board: TmsBoardKey; page: numbe
   q = q.order('preferred_pickup_at', { ascending: true, nullsFirst: false }).range((page - 1) * pageSize, page * pageSize - 1)
   const { data, error, count } = await q
   if (error) throw error
-  return { rows: (data ?? []) as TmsConsignmentRow[], total: count ?? 0 }
+  return { rows: (data ?? []) as unknown as TmsConsignmentRow[], total: count ?? 0 }
 }
 
 export async function boardCounts(): Promise<Record<TmsBoardKey, number>> {

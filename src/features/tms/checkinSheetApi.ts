@@ -12,6 +12,8 @@ function normMode(v: any): PortMode {
   if (s.includes('sea') || s.includes('ocean') || s.includes('fcl') || s.includes('lcl')) return 'sea'
   return ''
 }
+const sv = (v: ScreenVal) => (v === '' ? null : v)
+const asScreen = (v: any): ScreenVal => (v === 'yes' || v === 'no' ? v : '')
 
 export type SheetPrefill = {
   consignment_id?: string | null; booking_id?: string | null; job_unique?: number | null; shipment_ref?: string | null; ref_input?: string
@@ -65,6 +67,7 @@ export type SheetForm = {
   booking_docs_attached: ScreenVal; damaged: ScreenVal; fragile: ScreenVal; temperature_controlled: ScreenVal; physically_scanned: ScreenVal
   comments: string; lines: SheetLine[]
   signature_data_url: string | null; photo_files: File[]
+  existing_signature_path: string | null; existing_photo_paths: string[]
 }
 
 export function emptySheetForm(): SheetForm {
@@ -77,6 +80,7 @@ export function emptySheetForm(): SheetForm {
     known_shipper: '', sufficient_packaging: '', ipsm_pallet: '', statement_of_content: '', tamper_evident_form: '',
     booking_docs_attached: '', damaged: '', fragile: '', temperature_controlled: '', physically_scanned: '',
     comments: '', lines: [emptyLine()], signature_data_url: null, photo_files: [],
+    existing_signature_path: null, existing_photo_paths: [],
   }
 }
 
@@ -93,8 +97,6 @@ export function mergePrefill(base: SheetForm, p: SheetPrefill): SheetForm {
   }
 }
 
-const sv = (v: ScreenVal) => (v === '' ? null : v)
-
 /** Resolves the logged-in user's display name (contacts by email -> email prefix). */
 export async function currentUserName(): Promise<string> {
   const { data: auth } = await supabase.auth.getUser()
@@ -107,7 +109,6 @@ export async function currentUserName(): Promise<string> {
 
 async function dataUrlToBlob(dataUrl: string): Promise<Blob> { return (await fetch(dataUrl)).blob() }
 
-/** Uploads a signature PNG to the private `checkin` bucket; returns the object path (sign on read). */
 export async function uploadCheckinSignature(dataUrl: string): Promise<string> {
   const blob = await dataUrlToBlob(dataUrl)
   const path = `signatures/${crypto.randomUUID()}.png`
@@ -116,7 +117,6 @@ export async function uploadCheckinSignature(dataUrl: string): Promise<string> {
   return path
 }
 
-/** Uploads cargo photos to the private `checkin` bucket; returns object paths. */
 export async function uploadCheckinPhotos(files: File[]): Promise<string[]> {
   const out: string[] = []
   for (const f of files) {
@@ -129,18 +129,21 @@ export async function uploadCheckinPhotos(files: File[]): Promise<string[]> {
   return out
 }
 
-export async function saveCheckinSheet(f: SheetForm) {
-  const { data: u } = await supabase.auth.getUser()
-  const uid = u?.user?.id ?? null
+/** Signed URLs (1h) for stored checkin object paths, keyed by path. */
+export async function signCheckinPaths(paths: string[]): Promise<Record<string, string>> {
+  const clean = paths.filter(Boolean)
+  if (!clean.length) return {}
+  const { data } = await supabase.storage.from('checkin').createSignedUrls(clean, 3600)
+  const map: Record<string, string> = {}
+  for (const row of data ?? []) if (row.path && row.signedUrl) map[row.path] = row.signedUrl
+  return map
+}
 
-  const modeVal = f.mode === 'air' ? 'Air' : f.mode === 'sea' ? 'Sea' : null
+const modeToDb = (m: PortMode) => (m === 'air' ? 'Air' : m === 'sea' ? 'Sea' : null)
 
-  const signaturePath = f.signature_data_url ? await uploadCheckinSignature(f.signature_data_url) : null
-  const photoPaths = f.photo_files.length ? await uploadCheckinPhotos(f.photo_files) : []
-
-  const payload: any = {
-    consignment_id: f.consignment_id, booking_id: f.booking_id, job_unique: f.job_unique, shipment_ref: f.shipment_ref,
-    ref_input: f.ref_input || null, mode: modeVal,
+function headerPayload(f: SheetForm, signaturePath: string | null, documents: string[]) {
+  return {
+    ref_input: f.ref_input || null, mode: modeToDb(f.mode),
     delivered_by_name: f.delivered_by_name || null, picked_up_at: f.picked_up_at || null,
     shipper_company: f.shipper_company || null, shipper_address: f.shipper_address || null, reference: f.reference || null,
     consignee_company: f.consignee_company || null, consignee_port_country: f.consignee_port_country || null, known_customer: f.known_customer,
@@ -149,30 +152,102 @@ export async function saveCheckinSheet(f: SheetForm) {
     statement_of_content: sv(f.statement_of_content), tamper_evident_form: sv(f.tamper_evident_form),
     booking_docs_attached: sv(f.booking_docs_attached), damaged: sv(f.damaged), fragile: sv(f.fragile),
     temperature_controlled: sv(f.temperature_controlled), physically_scanned: sv(f.physically_scanned),
-    comments: f.comments || null, checked_in_at: new Date().toISOString(), created_by: uid, received_by: uid,
-    received_by_signature_url: signaturePath, documents: photoPaths,
+    comments: f.comments || null, received_by_signature_url: signaturePath, documents,
   }
-  const { data: sheet, error } = await supabase.from('tms_checkin_sheets').insert(payload).select('id,sheet_no').single()
-  if (error) throw error
-  const sheetId = sheet.id as string
-  const lineRows = f.lines.filter((l) => l.type && (parseFloat(l.units) || 0) > 0).map((l, i) => ({
+}
+
+function lineRowsFor(sheetId: string, lines: SheetLine[]) {
+  return lines.filter((l) => l.type && (parseFloat(l.units) || 0) > 0).map((l, i) => ({
     sheet_id: sheetId, type: l.type, units: parseFloat(l.units) || null, weight_kg: parseFloat(l.weight_kg) || null,
     length_cm: parseFloat(l.length_cm) || null, width_cm: parseFloat(l.width_cm) || null, height_cm: parseFloat(l.height_cm) || null,
     total_cube_m3: cube(l.length_cm, l.width_cm, l.height_cm, l.units) || null, marks: l.marks || null, sort_order: i,
   }))
-  if (lineRows.length) { const { error: le } = await supabase.from('tms_checkin_sheet_lines').insert(lineRows); if (le) throw le }
-  if (f.consignment_id) {
-    const { data: cargo } = await supabase.from('tms_consignment_cargo').select('id,sort_order').eq('consignment_id', f.consignment_id).order('sort_order')
-    const cg = cargo ?? []
-    for (let i = 0; i < f.lines.length && i < cg.length; i++) {
-      const l = f.lines[i]
-      await supabase.from('tms_consignment_cargo').update({
-        actual_units: parseFloat(l.units) || null, actual_length_cm: parseFloat(l.length_cm) || null, actual_width_cm: parseFloat(l.width_cm) || null,
-        actual_height_cm: parseFloat(l.height_cm) || null, actual_weight_kg: parseFloat(l.weight_kg) || null,
-        actual_total_cube_m3: cube(l.length_cm, l.width_cm, l.height_cm, l.units) || null,
-      }).eq('id', (cg[i] as any).id)
-    }
-    await supabase.from('tms_consignments').update({ wms_checkin_at: new Date().toISOString(), wms_checkin_by: uid }).eq('id', f.consignment_id)
+}
+
+async function syncCargoActuals(consignmentId: string, lines: SheetLine[], uid: string | null) {
+  const { data: cargo } = await supabase.from('tms_consignment_cargo').select('id,sort_order').eq('consignment_id', consignmentId).order('sort_order')
+  const cg = cargo ?? []
+  for (let i = 0; i < lines.length && i < cg.length; i++) {
+    const l = lines[i]
+    await supabase.from('tms_consignment_cargo').update({
+      actual_units: parseFloat(l.units) || null, actual_length_cm: parseFloat(l.length_cm) || null, actual_width_cm: parseFloat(l.width_cm) || null,
+      actual_height_cm: parseFloat(l.height_cm) || null, actual_weight_kg: parseFloat(l.weight_kg) || null,
+      actual_total_cube_m3: cube(l.length_cm, l.width_cm, l.height_cm, l.units) || null,
+    }).eq('id', (cg[i] as any).id)
   }
+  await supabase.from('tms_consignments').update({ wms_checkin_at: new Date().toISOString(), wms_checkin_by: uid }).eq('id', consignmentId)
+}
+
+async function resolveMedia(f: SheetForm): Promise<{ signature: string | null; documents: string[] }> {
+  const signature = f.signature_data_url ? await uploadCheckinSignature(f.signature_data_url) : f.existing_signature_path
+  const uploaded = f.photo_files.length ? await uploadCheckinPhotos(f.photo_files) : []
+  return { signature, documents: [...f.existing_photo_paths, ...uploaded] }
+}
+
+export async function saveCheckinSheet(f: SheetForm) {
+  const { data: u } = await supabase.auth.getUser()
+  const uid = u?.user?.id ?? null
+  const media = await resolveMedia(f)
+  const payload: any = {
+    ...headerPayload(f, media.signature, media.documents),
+    consignment_id: f.consignment_id, booking_id: f.booking_id, job_unique: f.job_unique, shipment_ref: f.shipment_ref,
+    checked_in_at: new Date().toISOString(), created_by: uid, received_by: uid,
+  }
+  const { data: sheet, error } = await supabase.from('tms_checkin_sheets').insert(payload).select('id,sheet_no').single()
+  if (error) throw error
+  const sheetId = sheet.id as string
+  const lineRows = lineRowsFor(sheetId, f.lines)
+  if (lineRows.length) { const { error: le } = await supabase.from('tms_checkin_sheet_lines').insert(lineRows); if (le) throw le }
+  if (f.consignment_id) await syncCargoActuals(f.consignment_id, f.lines, uid)
   return sheet.sheet_no as string
+}
+
+export async function updateCheckinSheet(sheetId: string, f: SheetForm) {
+  const { data: u } = await supabase.auth.getUser()
+  const uid = u?.user?.id ?? null
+  const media = await resolveMedia(f)
+  const { error } = await supabase.from('tms_checkin_sheets').update(headerPayload(f, media.signature, media.documents)).eq('id', sheetId)
+  if (error) throw error
+  await supabase.from('tms_checkin_sheet_lines').delete().eq('sheet_id', sheetId)
+  const lineRows = lineRowsFor(sheetId, f.lines)
+  if (lineRows.length) { const { error: le } = await supabase.from('tms_checkin_sheet_lines').insert(lineRows); if (le) throw le }
+  if (f.consignment_id) await syncCargoActuals(f.consignment_id, f.lines, uid)
+  const { data: row } = await supabase.from('tms_checkin_sheets').select('sheet_no').eq('id', sheetId).maybeSingle()
+  return (row?.sheet_no as string) ?? ''
+}
+
+export type FetchedSheet = { sheetId: string; sheetNo: string | null; form: SheetForm }
+
+/** Loads an existing check-in sheet (header + lines) into editable form shape. */
+export async function fetchCheckinSheet(sheetId: string): Promise<FetchedSheet | null> {
+  const { data, error } = await supabase.from('tms_checkin_sheets').select('*, lines:tms_checkin_sheet_lines(*)').eq('id', sheetId).maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  const d: any = data
+  const photos: string[] = Array.isArray(d.documents) ? d.documents : (d.documents?.photos ?? [])
+  const lines: SheetLine[] = (d.lines ?? []).sort((a: any, b: any) => a.sort_order - b.sort_order).map((l: any) => ({
+    type: l.type ?? '', units: String(l.units ?? ''), weight_kg: String(l.weight_kg ?? ''),
+    length_cm: String(l.length_cm ?? ''), width_cm: String(l.width_cm ?? ''), height_cm: String(l.height_cm ?? ''), marks: l.marks ?? '',
+  }))
+  const form: SheetForm = {
+    ...emptySheetForm(),
+    ref_input: d.ref_input ?? '', consignment_id: d.consignment_id, booking_id: d.booking_id, job_unique: d.job_unique, shipment_ref: d.shipment_ref,
+    mode: normMode(d.mode), delivered_by_name: d.delivered_by_name ?? '', picked_up_at: d.picked_up_at ?? null,
+    shipper_company: d.shipper_company ?? '', shipper_address: d.shipper_address ?? '', reference: d.reference ?? '',
+    consignee_company: d.consignee_company ?? '', consignee_port_country: d.consignee_port_country ?? '', known_customer: Boolean(d.known_customer),
+    goods_type: d.goods_type === 'dangerous' ? 'dangerous' : 'general', screen_at: d.screen_at ? String(d.screen_at).slice(0, 10) : null,
+    known_shipper: asScreen(d.known_shipper), sufficient_packaging: asScreen(d.sufficient_packaging), ipsm_pallet: asScreen(d.ipsm_pallet),
+    statement_of_content: asScreen(d.statement_of_content), tamper_evident_form: asScreen(d.tamper_evident_form),
+    booking_docs_attached: asScreen(d.booking_docs_attached), damaged: asScreen(d.damaged), fragile: asScreen(d.fragile),
+    temperature_controlled: asScreen(d.temperature_controlled), physically_scanned: asScreen(d.physically_scanned),
+    comments: d.comments ?? '', lines: lines.length ? lines : [emptyLine()],
+    existing_signature_path: d.received_by_signature_url ?? null, existing_photo_paths: photos,
+  }
+  return { sheetId: d.id, sheetNo: d.sheet_no ?? null, form }
+}
+
+/** Latest check-in sheet id for a consignment, if any (for edit/PDF from job details). */
+export async function checkinSheetIdForConsignment(consignmentId: string): Promise<string | null> {
+  const { data } = await supabase.from('tms_checkin_sheets').select('id').eq('consignment_id', consignmentId).order('checked_in_at', { ascending: false, nullsFirst: false }).limit(1).maybeSingle()
+  return data?.id ?? null
 }

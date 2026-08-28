@@ -1,15 +1,14 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { Plus, X, Search, UserCheck } from 'lucide-react'
+import { Plus, X, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import AddressAutocomplete from '@/components/bookings/AddressAutocomplete'
 import PartyPicker from './PartyPicker'
 import CheckinPortSelect from './CheckinPortSelect'
-import SignaturePad from './SignaturePad'
-import CheckinPhotoStrip from './CheckinPhotoStrip'
-import { emptySheetForm, mergePrefill, prefillFromConsignment, resolveReference, saveCheckinSheet, currentUserName, emptyLine, cube, type SheetForm, type ScreenVal } from './checkinSheetApi'
+import CheckinSignoffSection from './CheckinSignoffSection'
+import { emptySheetForm, mergePrefill, prefillFromConsignment, resolveReference, saveCheckinSheet, updateCheckinSheet, fetchCheckinSheet, currentUserName, emptyLine, cube, type SheetForm, type ScreenVal } from './checkinSheetApi'
 
-type Props = { open: boolean; consignmentId?: string | null; onClose: () => void; onDone: () => void }
+type Props = { open: boolean; consignmentId?: string | null; sheetId?: string | null; onClose: () => void; onDone: () => void }
 
 function Field({ label, children }: { label: string; children: ReactNode }) {
   return <label className="flex min-w-0 flex-col gap-1"><span className="text-[11px] font-medium text-neutral-500">{label}</span>{children}</label>
@@ -27,21 +26,25 @@ function ScreenRow({ label, value, onChange }: { label: string; value: ScreenVal
   )
 }
 
-export default function CheckInSheetForm({ open, consignmentId, onClose, onDone }: Props) {
+export default function CheckInSheetForm({ open, consignmentId, sheetId, onClose, onDone }: Props) {
   const [f, setF] = useState<SheetForm>(emptySheetForm())
   const [saving, setSaving] = useState(false)
   const [resolving, setResolving] = useState(false)
   const [me, setMe] = useState('')
+  const [sheetNo, setSheetNo] = useState<string | null>(null)
   const scrollRef = useRef<HTMLDivElement>(null)
   const isUbf = Boolean(consignmentId)
+  const editing = Boolean(sheetId)
   const set = (patch: Partial<SheetForm>) => setF((prev) => ({ ...prev, ...patch }))
 
   useEffect(() => {
     if (!open) return
     currentUserName().then(setMe).catch(() => setMe(''))
-    if (consignmentId) prefillFromConsignment(consignmentId).then((p) => setF(mergePrefill(emptySheetForm(), p))).catch(() => setF(emptySheetForm()))
+    setSheetNo(null)
+    if (sheetId) fetchCheckinSheet(sheetId).then((r) => { if (r) { setF(r.form); setSheetNo(r.sheetNo) } }).catch(() => {})
+    else if (consignmentId) prefillFromConsignment(consignmentId).then((p) => setF(mergePrefill(emptySheetForm(), p))).catch(() => setF(emptySheetForm()))
     else setF(emptySheetForm())
-  }, [open, consignmentId])
+  }, [open, consignmentId, sheetId])
 
   async function fetchRef() {
     if (!f.ref_input.trim()) return
@@ -70,7 +73,7 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
   async function save() {
     if (saving) return
     setSaving(true)
-    try { const no = await saveCheckinSheet(f); toast.success(`Checked in — ${no}`); onDone() }
+    try { const no = editing ? await updateCheckinSheet(sheetId as string, f) : await saveCheckinSheet(f); toast.success(editing ? `Updated — ${no}` : `Checked in — ${no}`); onDone() }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Save failed'); setSaving(false) }
   }
 
@@ -87,7 +90,7 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!o) onClose() }}>
       <DialogContent className="flex max-h-[92vh] flex-col gap-0 overflow-hidden p-0 sm:max-w-none w-[92vw] max-w-[880px] rounded-2xl">
-        <DialogHeader className="border-b border-neutral-200 px-5 py-3"><DialogTitle className="text-base">{isUbf ? `Check-in — ${f.ref_input || 'consignment'}` : 'New check-in sheet'}</DialogTitle></DialogHeader>
+        <DialogHeader className="border-b border-neutral-200 px-5 py-3"><DialogTitle className="text-base">{editing ? `Edit check-in${sheetNo ? ` — ${sheetNo}` : ''}` : isUbf ? `Check-in — ${f.ref_input || 'consignment'}` : 'New check-in sheet'}</DialogTitle></DialogHeader>
         <div ref={scrollRef} onKeyDown={advance} className="min-h-0 flex-1 space-y-4 overflow-y-auto px-5 py-4">
 
           <div className="grid gap-2.5 sm:grid-cols-3">
@@ -166,13 +169,18 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
           </section>
 
           <section className="rounded-xl border border-neutral-200 p-3">
-            <div className="grid gap-3 sm:grid-cols-2">
-              <div className="flex flex-col gap-2">
-                <div className="flex items-center gap-2 text-[13px] text-neutral-700"><UserCheck size={15} className="text-[#0A2472]" /><span className="text-neutral-500">Received by</span><span className="font-medium text-neutral-800">{me || '—'}</span>{f.delivered_by_name && <span className="ml-auto text-xs text-neutral-400">Driver: {f.delivered_by_name}</span>}</div>
-                <SignaturePad label="Signature" value={f.signature_data_url} onChange={(url) => set({ signature_data_url: url })} />
-              </div>
-              <CheckinPhotoStrip label="Photos" files={f.photo_files} onChange={(files) => set({ photo_files: files })} />
-            </div>
+            <CheckinSignoffSection
+              me={me}
+              deliveredByName={f.delivered_by_name}
+              signatureDataUrl={f.signature_data_url}
+              onSignature={(url) => set({ signature_data_url: url })}
+              existingSignaturePath={f.existing_signature_path}
+              onClearExistingSignature={() => set({ existing_signature_path: null })}
+              photoFiles={f.photo_files}
+              onPhotoFiles={(files) => set({ photo_files: files })}
+              existingPhotoPaths={f.existing_photo_paths}
+              onRemoveExistingPhoto={(pth) => set({ existing_photo_paths: f.existing_photo_paths.filter((x) => x !== pth) })}
+            />
           </section>
 
           <Field label="Comments / remarks"><textarea className="input" rows={2} value={f.comments} onChange={(e) => set({ comments: e.target.value })} /></Field>
@@ -180,7 +188,7 @@ export default function CheckInSheetForm({ open, consignmentId, onClose, onDone 
 
         <div className="flex justify-end gap-2 border-t border-neutral-200 px-5 py-3">
           <button type="button" onClick={onClose} className="rounded-lg border border-neutral-300 px-4 py-2 text-sm font-medium text-neutral-700 hover:bg-neutral-50">Cancel</button>
-          <button type="button" onClick={save} disabled={saving} className="rounded-lg bg-[#0A2472] px-4 py-2 text-sm font-medium text-white hover:bg-[#0A2472]/90 disabled:opacity-50">{saving ? 'Saving…' : 'Save check-in'}</button>
+          <button type="button" onClick={save} disabled={saving} className="rounded-lg bg-[#0A2472] px-4 py-2 text-sm font-medium text-white hover:bg-[#0A2472]/90 disabled:opacity-50">{saving ? 'Saving…' : editing ? 'Save changes' : 'Save check-in'}</button>
         </div>
       </DialogContent>
     </Dialog>
