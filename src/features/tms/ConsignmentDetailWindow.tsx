@@ -9,7 +9,7 @@ import LinksField from './LinksField'
 import ConsignmentNoteModal from './ConsignmentNoteModal'
 import LabelsModal from './LabelsModal'
 import { renderPodPdf } from './pdf/podPdf'
-import PodEmailDialog from './PodEmailDialog'
+import EmailDocsDialog from './EmailDocsDialog'
 import { fetchConsignment, type TmsConsignmentDetail } from './tmsApi'
 import { fetchConsignmentActivity, activityLabel, type ActivityRow } from './tmsActivityApi'
 
@@ -72,7 +72,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   const [noteOpen, setNoteOpen] = useState(false)
   const [labelsOpen, setLabelsOpen] = useState(false)
   const [podBusy, setPodBusy] = useState(false)
-  const [podDialogOpen, setPodDialogOpen] = useState(false)
+  const [emailDialogOpen, setEmailDialogOpen] = useState(false)
 
   useEffect(() => {
     if (!id) { setD(null); setActivity([]); return }
@@ -89,6 +89,8 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   const activeFlags = d ? FLAGS.filter((f) => d[f.key]) : []
   const badge = d ? (STATUS_BADGE[d.status] ?? { label: d.status, cls: 'bg-neutral-100 text-neutral-600' }) : null
   const dd = d as any
+  const isDropoff = d?.order_type === 'drop-off'
+  const isDelivered = !!d && (d.status === 'complete' || Boolean(dd.delivered_at))
 
   async function openPod() {
     if (!d || podBusy) return
@@ -102,7 +104,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
   }
   function emailPod() {
     if (!d) return
-    setPodDialogOpen(true)
+    setEmailDialogOpen(true)
   }
 
   return (
@@ -114,14 +116,12 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
           <div className="flex min-h-0 flex-1 flex-col">
             <div className="flex items-start justify-between gap-4 border-b border-neutral-200 bg-gradient-to-r from-[#0A2472]/[0.05] to-transparent px-6 py-4">
               <div className="min-w-0">
-                <DialogTitle asChild>
-                  <h2 className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-[#0A2472]" />
-                    <span className="truncate">{origin}</span>
-                    <ArrowRight size={18} className="shrink-0 text-neutral-400" />
-                    <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
-                    <span className="truncate">{dest}</span>
-                  </h2>
+                <DialogTitle className="flex items-center gap-2 text-lg font-semibold text-neutral-900">
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-[#0A2472]" />
+                  <span className="truncate">{origin}</span>
+                  <ArrowRight size={18} className="shrink-0 text-neutral-400" />
+                  <span className="h-2 w-2 shrink-0 rounded-full bg-rose-500" />
+                  <span className="truncate">{dest}</span>
                 </DialogTitle>
                 <div className="mt-1 flex flex-wrap items-center gap-2 text-sm text-neutral-500">
                   <span className="tabular-nums font-medium text-neutral-700">{d.consignment_no}</span>
@@ -139,8 +139,10 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
               <div className="mr-8 flex shrink-0 items-center gap-2">
                 <button type="button" onClick={() => setNoteOpen(true)} title="Consignment note" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><FileText size={16} /></button>
                 <button type="button" onClick={() => setLabelsOpen(true)} title="Labels" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><Tag size={16} /></button>
-                <button type="button" onClick={openPod} disabled={podBusy} title="Proof of delivery" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50"><ClipboardCheck size={16} /></button>
-                <button type="button" onClick={emailPod} title="Email POD to receiver" className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50"><Send size={16} /></button>
+                {d.order_type === 'drop-off' && (
+                  <button type="button" onClick={openPod} disabled={podBusy || !isDelivered} title={isDelivered ? 'Proof of delivery' : 'Proof of delivery — available once delivered'} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:hover:bg-transparent"><ClipboardCheck size={16} /></button>
+                )}
+                <button type="button" onClick={emailPod} disabled={isDropoff && !isDelivered} title={isDropoff && !isDelivered ? 'Email POD — available once delivered' : 'Email documents'} className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-neutral-300 text-neutral-600 hover:bg-neutral-50 disabled:opacity-50 disabled:hover:bg-transparent"><Send size={16} /></button>
                 <button type="button" onClick={() => navigate(`/tms/${d.id}/edit`)}
                   className="inline-flex shrink-0 items-center gap-1.5 rounded-lg border border-neutral-300 px-3 py-1.5 text-sm font-medium text-neutral-700 hover:bg-neutral-50">
                   <Pencil size={14} /> Edit
@@ -257,7 +259,7 @@ export default function ConsignmentDetailWindow({ id, onClose }: Props) {
         <>
           <ConsignmentNoteModal id={d.id} open={noteOpen} onClose={() => setNoteOpen(false)} />
           <LabelsModal id={d.id} open={labelsOpen} onClose={() => setLabelsOpen(false)} />
-          <PodEmailDialog consignment={d} open={podDialogOpen} onClose={() => setPodDialogOpen(false)} />
+          <EmailDocsDialog consignment={d} open={emailDialogOpen} onClose={() => setEmailDialogOpen(false)} />
         </>
       )}
     </Dialog>

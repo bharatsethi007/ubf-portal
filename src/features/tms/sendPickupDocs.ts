@@ -44,20 +44,34 @@ function toEmailInput(d: TmsConsignmentDetail): DocEmailInput {
   }
 }
 
-/** Pickup only: emails the sender the Consignment Note and/or A4 Labels PDFs. Throws on failure. */
-export async function sendPickupDocsEmail(consignmentId: string, which: { labels: boolean; note: boolean }): Promise<void> {
+/** Emails the Consignment Note and/or A4 Labels. Recipients default to the sender (+ any extra
+ *  sender emails); pass `recipients` to override (used by the job-details email dialog). Throws on failure. */
+export async function sendPickupDocsEmail(
+  consignment: string | TmsConsignmentDetail,
+  which: { labels: boolean; note: boolean },
+  recipients?: { to: string; cc?: string[] },
+): Promise<void> {
   if (!which.labels && !which.note) return
-  const d = await fetchConsignment(consignmentId)
+  const d = typeof consignment === 'string' ? await fetchConsignment(consignment) : consignment
   if (!d) throw new Error('consignment not found')
-  const to = (d.sender_email ?? '').trim()
-  if (!to) throw new Error('sender has no email address')
+  let to: string
+  let cc: string[]
+  if (recipients) {
+    to = (recipients.to ?? '').trim()
+    cc = (recipients.cc ?? []).map((e) => (e ?? '').trim()).filter(Boolean)
+  } else {
+    to = (d.sender_email ?? '').trim()
+    const extra = (d as { sender_additional_emails?: string[] }).sender_additional_emails
+    cc = (Array.isArray(extra) ? extra : []).map((e) => (e ?? '').trim()).filter(Boolean)
+  }
+  if (!to) throw new Error('no recipient email address')
 
   const attachments = await buildPickupAttachments(d, which)
   const html = buildDocEmailHtml(toEmailInput(d))
   const subject = `Freight documentation \u2014 UB Freight consignment ${d.consignment_no ?? d.id}`
 
   const { data, error } = await supabase.functions.invoke('tms-doc-email', {
-    body: { consignment_id: consignmentId, to, subject, html, attachments },
+    body: { consignment_id: d.id, to, cc, subject, html, attachments },
   })
   if (error) throw error
   const status = (data as { email_status?: string; detail?: string } | null)
