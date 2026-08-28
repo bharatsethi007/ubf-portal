@@ -95,12 +95,12 @@ export default function TmsOpsBoard() {
       {error && <p className="my-2 text-sm text-red-600">{error}</p>}
 
       <div className="overflow-x-auto">
-        <table className="w-full min-w-[1100px] text-[13px]">
+        <table className="w-full min-w-[1100px] text-[12px]">
           <thead>
             {table.getHeaderGroups().map((hg) => (
               <tr key={hg.id} className="border-b border-neutral-200">
                 {hg.headers.map((h) => (
-                  <th key={h.id} className="whitespace-nowrap px-3 py-2 text-left text-[10px] font-medium uppercase tracking-wide text-neutral-400">
+                  <th key={h.id} className="whitespace-nowrap px-3 py-1.5 text-left text-[10px] font-medium uppercase tracking-wide text-neutral-400">
                     {h.isPlaceholder ? null : flexRender(h.column.columnDef.header, h.getContext())}
                   </th>
                 ))}
@@ -115,7 +115,7 @@ export default function TmsOpsBoard() {
             ) : (
               table.getRowModel().rows.map((r) => (
                 <tr key={r.id} className="cursor-pointer border-b border-neutral-100 hover:bg-neutral-50" onClick={() => setDrawerId(r.original.id)}>
-                  {r.getVisibleCells().map((c) => <td key={c.id} className="px-3 py-2.5 align-middle">{flexRender(c.column.columnDef.cell, c.getContext())}</td>)}
+                  {r.getVisibleCells().map((c) => <td key={c.id} className="px-3 py-1.5 align-middle">{flexRender(c.column.columnDef.cell, c.getContext())}</td>)}
                 </tr>
               ))
             )}

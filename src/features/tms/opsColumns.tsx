@@ -36,13 +36,13 @@ export function opsColumns(): ColumnDef<TmsConsignmentRow>[] {
       return (
         <span className="inline-flex items-center gap-2 font-medium text-neutral-900">
           {Icon && <span title={t.title} className={`flex h-6 w-6 shrink-0 items-center justify-center rounded-full ${t.cls}`}><Icon size={13} /></span>}
-          <span className="inline-flex items-center gap-1 tabular-nums text-[13px]">{row.original.consignment_no ?? '—'}{row.original.goods_type === 'dangerous' && <AlertTriangle size={13} className="text-red-600" />}</span>
+          <span className="inline-flex items-center gap-1 tabular-nums text-[12px]">{row.original.consignment_no ?? '—'}{row.original.goods_type === 'dangerous' && <AlertTriangle size={13} className="text-red-600" />}</span>
         </span>
       )
     } },
-    { id: 'company', header: 'Company', cell: ({ row }) => <span className="text-[13px]">{(row.original.order_type === 'drop-off' ? row.original.receiver_company : row.original.sender_company) ?? '—'}</span> },
-    { id: 'origin', header: 'Origin', cell: ({ row }) => <span className="text-[13px] text-neutral-600">{row.original.sender_address ?? '—'}</span> },
-    { id: 'dest', header: 'Destination', cell: ({ row }) => <span className="text-[13px] text-neutral-600">{row.original.receiver_address ?? '—'}</span> },
+    { id: 'company', header: 'Company', cell: ({ row }) => <span className="text-[12px]">{(row.original.order_type === 'drop-off' ? row.original.receiver_company : row.original.sender_company) ?? '—'}</span> },
+    { id: 'origin', header: 'Origin', cell: ({ row }) => <span title={row.original.sender_address ?? undefined} className="block max-w-[240px] truncate text-[12px] text-neutral-600">{row.original.sender_address ?? '—'}</span> },
+    { id: 'dest', header: 'Destination', cell: ({ row }) => <span title={row.original.receiver_address ?? undefined} className="block max-w-[240px] truncate text-[12px] text-neutral-600">{row.original.receiver_address ?? '—'}</span> },
     { id: 'links', header: 'Links', cell: ({ row }) => {
       const bref = row.original.booking?.booking_ref ?? (row.original.booking_id ? 'Booking linked' : null)
       const sref = row.original.shipment_ref ?? (row.original.job_unique != null ? `Shipment #${row.original.job_unique}` : null)
@@ -54,8 +54,8 @@ export function opsColumns(): ColumnDef<TmsConsignmentRow>[] {
         </span>
       )
     } },
-    { id: 'pickup', header: 'Preferred Pick-up', cell: ({ row }) => <span className="whitespace-nowrap text-[13px]">{fmt(row.original.preferred_pickup_at)}</span> },
-    { id: 'eta', header: 'Estimated Delivery', cell: ({ row }) => <span className="whitespace-nowrap text-[13px]">{fmt(row.original.estimated_delivery_at)}</span> },
+    { id: 'pickup', header: 'Preferred Pick-up', cell: ({ row }) => <span className="whitespace-nowrap text-[12px]">{fmt(row.original.preferred_pickup_at)}</span> },
+    { id: 'eta', header: 'Estimated Delivery', cell: ({ row }) => <span className="whitespace-nowrap text-[12px]">{fmt(row.original.estimated_delivery_at)}</span> },
     { id: 'driver', header: 'Driver', cell: ({ row }) => {
       const d = row.original.driver1
       if (!d) return <span className="text-neutral-300">—</span>
