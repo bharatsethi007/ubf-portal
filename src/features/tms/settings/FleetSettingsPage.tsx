@@ -3,7 +3,8 @@ import { ArrowLeft, Truck, Users } from 'lucide-react'
 import VehiclesTab from './VehiclesTab'
 import DriversTab from './DriversTab'
 import VehicleEditor from './VehicleEditor'
-import type { FleetVehicle } from './fleetApi'
+import DriverEditor from './DriverEditor'
+import type { FleetVehicle, FleetDriver } from './fleetApi'
 
 type Tab = 'vehicles' | 'drivers'
 
@@ -12,10 +13,13 @@ export default function FleetSettingsPage({ onBack }: { onBack: () => void }) {
   const [editing, setEditing] = useState<FleetVehicle | null>(null)
   const [adding, setAdding] = useState(false)
   const [reloadKey, setReloadKey] = useState(0)
+  const [editingDriver, setEditingDriver] = useState<FleetDriver | null>(null)
+  const [driverReloadKey, setDriverReloadKey] = useState(0)
 
   const editorOpen = adding || !!editing
   const closeEditor = () => { setEditing(null); setAdding(false) }
   const onSaved = () => { closeEditor(); setReloadKey((k) => k + 1) }
+  const onDriverSaved = () => { setEditingDriver(null); setDriverReloadKey((k) => k + 1) }
 
   const TABS: { key: Tab; label: string; Icon: typeof Truck }[] = [
     { key: 'vehicles', label: 'Vehicles', Icon: Truck },
@@ -46,10 +50,13 @@ export default function FleetSettingsPage({ onBack }: { onBack: () => void }) {
       <div className="pt-3">
         {tab === 'vehicles'
           ? <VehiclesTab reloadKey={reloadKey} onEdit={(v) => setEditing(v)} onAdd={() => setAdding(true)} />
-          : <DriversTab />}
+          : <DriversTab reloadKey={driverReloadKey} onEdit={(d) => setEditingDriver(d)} />}
       </div>
       {editorOpen && (
         <VehicleEditor key={editing?.id ?? 'new'} open vehicle={editing} onClose={closeEditor} onSaved={onSaved} />
+      )}
+      {editingDriver && (
+        <DriverEditor key={editingDriver.id} open driver={editingDriver} onClose={() => setEditingDriver(null)} onSaved={onDriverSaved} />
       )}
     </div>
   )
