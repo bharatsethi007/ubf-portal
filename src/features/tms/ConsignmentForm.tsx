@@ -7,6 +7,7 @@ import CargoLinesEditor from './CargoLinesEditor'
 import PartyPicker from './PartyPicker'
 import AddressBookDialog from './AddressBookDialog'
 import { PickupDocActions, DropoffDocActions } from './ConsignmentDocActions'
+import { sendPickupDocsEmail } from './sendPickupDocs'
 import {
   ORDER_TYPES, FLAG_KEYS, FLAG_LABELS, emptyForm, emptyParty, mangereParty, isMangere,
   useDepots, useCurrentUserIdentity, createConsignment, updateConsignment, fetchConsignmentForEdit,
@@ -104,7 +105,17 @@ export default function ConsignmentForm() {
     setSaving(true); setError('')
     try {
       if (isEdit && id) { await updateConsignment(id, v); toast.success('Consignment updated') }
-      else { const res = await createConsignment(v); toast.success(`Created ${res.consignment_no}`) }
+      else {
+        const res = await createConsignment(v)
+        toast.success(`Created ${res.consignment_no}`)
+        if (v.order_type === 'pick-up' && (v.email_labels || v.email_consignment_note)) {
+          toast.promise(sendPickupDocsEmail(res.id, { labels: v.email_labels, note: v.email_consignment_note }), {
+            loading: 'Emailing documentation to sender…',
+            success: 'Documentation emailed to sender',
+            error: (e) => `Documentation email failed: ${e instanceof Error ? e.message : 'unknown error'}`,
+          })
+        }
+      }
       navigate('/tms')
     } catch (e) { setError(e instanceof Error ? e.message : 'Failed to save consignment'); setSaving(false) }
   }

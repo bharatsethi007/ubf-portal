@@ -105,8 +105,8 @@ Deno.serve(async (req) => {
       });
     } catch { /* logging is non-fatal */ }
 
-    if (emailStatus !== "sent") return json({ email_status: emailStatus, detail }, 502);
-    return json({ email_status: emailStatus, to, cc, attachments: attachments.map((a) => a.name) });
+    // Always 200: send-failures return email_status:"failed" (+detail) so the caller can surface it.
+    return json({ email_status: emailStatus, to, cc, attachments: attachments.map((a) => a.name), ...(detail ? { detail } : {}) });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }
