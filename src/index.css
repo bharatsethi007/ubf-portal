@@ -341,7 +341,7 @@ a:hover { text-decoration: underline; }
 .nav-link--sub { padding-left: 28px; font-size: 13px; font-weight: 500; }
 
 .shell-main {
-  margin-left: var(--sidebar-width); min-height: 100vh;
+  margin-left: calc(var(--sidebar-width) + 24px); min-height: 100vh;
   display: flex; flex-direction: column; min-width: 0;
 }
 .topbar {
