@@ -5,6 +5,7 @@ import { supabase } from './supabase'
 import AppShell from './layouts/AppShell'
 import { PermissionsProvider } from './access/PermissionsProvider'
 import Login from './Login'
+import StaffSetPasswordPage from './StaffSetPasswordPage'
 import { portalRoutes } from './routes/portalRoutes'
 import { EstimatesPage, NewBookingPage, SchedulesPage } from './pages/stubs/StubPages'
 import UsersArea from './pages/users/UsersArea'
@@ -142,6 +143,7 @@ export default function App() {
       <Routes>
         <Route path="/sli/:token" element={<SliPage />} />
         <Route path="/rate" element={<RatePage />} />
+        <Route path="/set-password" element={<StaffSetPasswordPage />} />
 
         {portalRoutes({ session, authReady: ready, isStaff, staffReady })}
 
