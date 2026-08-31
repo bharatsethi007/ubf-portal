@@ -7,6 +7,7 @@ import {
   saveRolePermissions, updateRole, type AppModule, type Role, type RolePerm,
 } from './usersApi'
 
+const NAVY = '#2563EB'
 type Cell = { can_read: boolean; can_add: boolean; can_edit: boolean; can_delete: boolean }
 type Grid = Record<string, Cell>
 const OPS: Array<{ key: keyof Cell; label: string }> = [
@@ -14,8 +15,14 @@ const OPS: Array<{ key: keyof Cell; label: string }> = [
   { key: 'can_edit', label: 'Edit' }, { key: 'can_delete', label: 'Delete' },
 ]
 const OFF: Cell = { can_read: false, can_add: false, can_edit: false, can_delete: false }
-const emptyGrid = (modules: AppModule[]): Grid =>
-  Object.fromEntries(modules.map((m) => [m.key, { ...OFF }]))
+const emptyGrid = (modules: AppModule[]): Grid => Object.fromEntries(modules.map((m) => [m.key, { ...OFF }]))
+
+const iconBtn = (enabled: boolean, tone: 'primary' | 'ghost' = 'primary'): React.CSSProperties => ({
+  display: 'inline-grid', placeItems: 'center', width: 36, height: 36, borderRadius: 8,
+  border: tone === 'ghost' ? '1px solid var(--line)' : 'none',
+  background: tone === 'ghost' ? '#fff' : NAVY, color: tone === 'ghost' ? '#64748b' : '#fff',
+  cursor: enabled ? 'pointer' : 'default', opacity: enabled ? 1 : 0.4,
+})
 
 export default function RolesTab() {
   const canEdit = usePerm('users', 'edit')
@@ -23,7 +30,6 @@ export default function RolesTab() {
   const [roles, setRoles] = useState<Role[]>([])
   const [selectedId, setSelectedId] = useState<string | null>(null)
   const [name, setName] = useState('')
-  const [description, setDescription] = useState('')
   const [grid, setGrid] = useState<Grid>({})
   const [dirty, setDirty] = useState(false)
   const [saving, setSaving] = useState(false)
@@ -63,8 +69,7 @@ export default function RolesTab() {
         g[p.module_key] = { can_read: p.can_read, can_add: p.can_add, can_edit: p.can_edit, can_delete: p.can_delete }
       }
       setGrid(g)
-      const r = roles.find((x) => x.id === selectedId)
-      setName(r?.name ?? ''); setDescription(r?.description ?? ''); setDirty(false)
+      setName(roles.find((x) => x.id === selectedId)?.name ?? ''); setDirty(false)
     })()
     return () => { c = true }
   }, [selectedId, modules, roles])
@@ -84,7 +89,7 @@ export default function RolesTab() {
     if (!selectedId) return
     setSaving(true)
     try {
-      await updateRole(selectedId, { name: name.trim(), description: description.trim() || null })
+      await updateRole(selectedId, { name: name.trim() })
       const rows: RolePerm[] = modules.map((m) => ({ module_key: m.key, ...(grid[m.key] ?? OFF) }))
       await saveRolePermissions(selectedId, rows)
       toast.success('Role saved'); setDirty(false)
@@ -110,33 +115,35 @@ export default function RolesTab() {
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Delete failed') }
   }
 
+  const cb = (checked: boolean, on: () => void): React.ReactElement => (
+    <input type="checkbox" checked={checked} disabled={!canEdit} onChange={on}
+      style={{ width: 16, height: 16, accentColor: NAVY, cursor: canEdit ? 'pointer' : 'default' }} />
+  )
+
   if (loading) return <div className="muted pad">Loading...</div>
 
   return (
-    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 20, alignItems: 'start' }}>
+    <div style={{ display: 'grid', gridTemplateColumns: '240px 1fr', gap: 24, alignItems: 'start' }}>
       <div>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
           {roles.map((r) => (
             <button key={r.id} type="button" onClick={() => setSelectedId(r.id)}
-              style={{
-                display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
+              style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', width: '100%',
                 textAlign: 'left', cursor: 'pointer', fontSize: 13,
-                background: r.id === selectedId ? '#0A2472' : '#fff',
-                color: r.id === selectedId ? '#fff' : 'inherit',
-                border: '1px solid var(--line)', borderRadius: 8, padding: '8px 10px',
-              }}>
+                background: r.id === selectedId ? NAVY : '#fff', color: r.id === selectedId ? '#fff' : '#334155',
+                border: `1px solid ${r.id === selectedId ? NAVY : 'var(--line)'}`, borderRadius: 8, padding: '9px 12px' }}>
               <span>{r.name}</span>
-              {r.is_preset && <span style={{ fontSize: 9, opacity: .7, letterSpacing: '.04em' }}>PRESET</span>}
+              {r.is_preset && <span style={{ fontSize: 9, opacity: .6, letterSpacing: '.06em' }}>PRESET</span>}
             </button>
           ))}
         </div>
         {canEdit && (
-          <div style={{ marginTop: 12, display: 'flex', gap: 6 }}>
-            <input className="input input--sm" placeholder="New role name" value={newName}
+          <div style={{ marginTop: 12, display: 'flex', gap: 8 }}>
+            <input className="input input--sm" placeholder="New role" value={newName}
               onChange={(e) => setNewName(e.target.value)}
-              onKeyDown={(e) => { if (e.key === 'Enter') void onCreate() }} />
-            <button type="button" className="btn btn--inline" onClick={onCreate} disabled={!newName.trim()}>
-              <Plus size={14} /> Add
+              onKeyDown={(e) => { if (e.key === 'Enter') void onCreate() }} style={{ flex: 1 }} />
+            <button type="button" onClick={onCreate} disabled={!newName.trim()} title="Add role" style={iconBtn(!!newName.trim())}>
+              <Plus size={16} />
             </button>
           </div>
         )}
@@ -144,27 +151,17 @@ export default function RolesTab() {
 
       {selected ? (
         <div>
-          <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', marginBottom: 16, flexWrap: 'wrap' }}>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12 }}>
-              <span className="text-muted-foreground">Role name</span>
-              <input className="input input--sm" value={name} disabled={!canEdit}
-                onChange={(e) => { setName(e.target.value); setDirty(true) }} />
-            </label>
-            <label style={{ display: 'flex', flexDirection: 'column', gap: 4, fontSize: 12, flex: 1, minWidth: 220 }}>
-              <span className="text-muted-foreground">Description</span>
-              <input className="input input--sm" value={description} disabled={!canEdit}
-                onChange={(e) => { setDescription(e.target.value); setDirty(true) }} />
-            </label>
-            <div style={{ display: 'flex', gap: 8 }}>
-              <button type="button" className="btn btn--inline" onClick={onSave} disabled={!canEdit || !dirty || saving}>
-                <Save size={14} /> {saving ? 'Saving...' : 'Save'}
-              </button>
+          <div style={{ display: 'flex', gap: 12, alignItems: 'center', marginBottom: 18 }}>
+            <input className="input input--sm" value={name} disabled={!canEdit}
+              onChange={(e) => { setName(e.target.value); setDirty(true) }}
+              style={{ flex: 1, maxWidth: 320, fontSize: 15, fontWeight: 600 }} />
+            <div style={{ display: 'flex', gap: 8, marginLeft: 'auto' }}>
               {!selected.is_preset && canEdit && (
-                <button type="button" className="btn btn--inline" onClick={onDelete}
-                  style={{ color: '#b42318', borderColor: '#f0c4c0' }}>
-                  <Trash2 size={14} /> Delete
-                </button>
+                <button type="button" onClick={onDelete} title="Delete role" style={iconBtn(true, 'ghost')}><Trash2 size={16} /></button>
               )}
+              <button type="button" onClick={onSave} disabled={!canEdit || !dirty || saving} title="Save" style={iconBtn(canEdit && dirty && !saving)}>
+                <Save size={16} />
+              </button>
             </div>
           </div>
 
@@ -184,25 +181,14 @@ export default function RolesTab() {
                   return (
                     <tr key={m.key}>
                       <td>{m.label}</td>
-                      {OPS.map((o) => (
-                        <td key={o.key} style={{ textAlign: 'center' }}>
-                          <input type="checkbox" checked={row[o.key]} disabled={!canEdit} onChange={() => toggle(m.key, o.key)} />
-                        </td>
-                      ))}
-                      <td style={{ textAlign: 'center' }}>
-                        <input type="checkbox" checked={allOn} disabled={!canEdit} onChange={() => toggleRowAll(m.key, !allOn)} />
-                      </td>
+                      {OPS.map((o) => <td key={o.key} style={{ textAlign: 'center' }}>{cb(row[o.key], () => toggle(m.key, o.key))}</td>)}
+                      <td style={{ textAlign: 'center' }}>{cb(allOn, () => toggleRowAll(m.key, !allOn))}</td>
                     </tr>
                   )
                 })}
               </tbody>
             </table>
           </div>
-          {selected.is_preset && (
-            <p className="text-muted-foreground" style={{ fontSize: 12, marginTop: 10 }}>
-              This is a preset role. You can tune its permissions but it cannot be deleted.
-            </p>
-          )}
         </div>
       ) : (
         <div className="muted pad">Select a role to edit its permissions.</div>

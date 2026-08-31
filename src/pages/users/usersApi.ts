@@ -128,3 +128,19 @@ export async function deleteUserOverride(userId: string, moduleKey: string): Pro
     .delete().eq('user_id', userId).eq('module_key', moduleKey)
   if (error) throw error
 }
+
+export type CreateStaffUserResult = {
+  ok: boolean; user_id?: string; link?: string; email_sent?: boolean; error?: string; message?: string
+}
+export async function createStaffUser(email: string, roleIds: string[]): Promise<CreateStaffUserResult> {
+  const { data, error } = await supabase.functions.invoke('create-staff-user', { body: { email, role_ids: roleIds } })
+  if (error) {
+    let msg = error.message
+    const resp = (error as unknown as { context?: Response }).context
+    if (resp && typeof resp.json === 'function') {
+      try { const b = await resp.json(); if (b?.message || b?.error) msg = b.message ?? b.error } catch { /* ignore */ }
+    }
+    throw new Error(msg)
+  }
+  return data as CreateStaffUserResult
+}

@@ -80,3 +80,28 @@
   align-items: center;
   gap: 6px;
 }
+
+.conferences-section {
+  margin-top: 20px;
+}
+
+.conferences-section .conference-grid {
+  margin-top: 8px;
+}
+
+.conferences-section__title {
+  font-size: 13px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: #6b7280;
+  margin: 0 0 4px;
+}
+
+.conference-grid--featured {
+  grid-template-columns: 1fr;
+}
+
+.conference-card--featured .conference-card__banner {
+  height: 200px;
+}

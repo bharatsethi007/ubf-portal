@@ -5,7 +5,7 @@ export function conferenceDays(startDate: string, endDate: string): string[] {
   const cur = new Date(`${startDate}T00:00:00`)
   const end = new Date(`${endDate}T00:00:00`)
   while (cur <= end) {
-    out.push(cur.toISOString().slice(0, 10))
+    out.push(format(cur, 'yyyy-MM-dd'))
     cur.setDate(cur.getDate() + 1)
   }
   return out
