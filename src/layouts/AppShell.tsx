@@ -1,8 +1,9 @@
-import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+﻿import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
-  BarChart3, Building2, Calendar, ChevronDown, ClipboardList, FileText, Handshake,
-  Menu, MessageCircle, Package, Plane, Search, Settings, Ship, TowerControl, Truck, User, Users, X,
+  BarChart3, Building2, Calendar, ChevronDown, ChevronsLeft, ChevronsRight, ClipboardList,
+  FileText, Handshake, Menu, MessageCircle, Package, Plane, Search, Settings, Ship,
+  TowerControl, Truck, User, Users, X,
 } from 'lucide-react'
 import { useEffect, useRef, useState } from 'react'
 import Logo from '../components/Logo'
@@ -11,6 +12,7 @@ import { needsActionTotal } from '../pages/whatsapp/whatsappInboxApi'
 import { supabase } from '../supabase'
 
 const ORANGE = '#F7941D'
+const COLLAPSE_KEY = 'ubf.sidebar.collapsed'
 
 const NAV = [
   { to: '/', label: 'Control Tower', icon: TowerControl, end: true },
@@ -42,7 +44,7 @@ const linkBase: React.CSSProperties = {
 }
 const onPill: React.CSSProperties = { color: '#fff', fontWeight: 500, background: 'rgba(255,255,255,.12)' }
 const orangeBar: React.CSSProperties = { position: 'absolute', left: -8, top: 9, bottom: 9, width: 3, borderRadius: 3, background: ORANGE }
-const navLinkStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => isActive ? { ...linkBase, ...onPill } : linkBase
+const collapsedLink: React.CSSProperties = { justifyContent: 'center', gap: 0, padding: '10px 0' }
 const ActiveBar = ({ on }: { on: boolean }) => (on ? <span style={orangeBar} /> : null)
 
 type Props = { session: Session; staffName: string; search: string; onSearch: (q: string) => void }
@@ -53,9 +55,26 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
   const [navOpen, setNavOpen] = useState(false)
   const [bkOpen, setBkOpen] = useState(true)
   const [waNeedsAction, setWaNeedsAction] = useState(0)
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return localStorage.getItem(COLLAPSE_KEY) === '1' } catch { return false }
+  })
+  const [isDesktop, setIsDesktop] = useState<boolean>(() =>
+    typeof window !== 'undefined' ? window.matchMedia('(min-width: 901px)').matches : true)
   const menuRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const bkActive = location.pathname.startsWith('/bookings')
+  const shrink = collapsed && isDesktop
+
+  useEffect(() => {
+    const mq = window.matchMedia('(min-width: 901px)')
+    const onChange = () => setIsDesktop(mq.matches)
+    mq.addEventListener('change', onChange)
+    return () => mq.removeEventListener('change', onChange)
+  }, [])
+
+  useEffect(() => {
+    try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0') } catch { /* ignore */ }
+  }, [collapsed])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -80,8 +99,21 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
     return () => { cancelled = true; window.clearInterval(id) }
   }, [])
 
+  const navStyle = ({ isActive }: { isActive: boolean }): React.CSSProperties => {
+    const base = shrink ? { ...linkBase, ...collapsedLink } : linkBase
+    return isActive ? { ...base, ...onPill } : base
+  }
+  const bkBtnStyle: React.CSSProperties = shrink
+    ? { ...linkBase, ...collapsedLink, ...(bkActive ? onPill : {}) }
+    : (bkActive ? { ...linkBase, ...onPill } : linkBase)
+
+  function onBookingsClick() {
+    if (shrink) { setCollapsed(false); setBkOpen(true) }
+    else setBkOpen((o) => !o)
+  }
+
   return (
-    <div className="shell">
+    <div className={`shell${shrink ? ' shell--nav-collapsed' : ''}`}>
       {navOpen && <button type="button" className="sidebar-backdrop" aria-label="Close menu" onClick={() => setNavOpen(false)} />}
 
       <aside
@@ -93,31 +125,30 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
           margin: 12, borderRadius: 20, alignSelf: 'flex-start',
           height: 'calc(100vh - 24px)', overflow: 'hidden auto',
           boxShadow: '0 18px 48px rgba(6,16,50,.38)',
-          display: 'flex', flexDirection: 'column', padding: 16,
+          display: 'flex', flexDirection: 'column', padding: shrink ? '16px 8px' : 16,
         }}
       >
-        {/* centered logo (grid placeItems centers regardless of inner margins) */}
-        <div className="sidebar__head" style={{ position: 'relative', display: 'grid', placeItems: 'center', marginBottom: 18 }}>
+        <div className="sidebar__head" style={{ position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 18, minHeight: 40 }}>
           <Logo />
           <button type="button" className="sidebar-close" aria-label="Close navigation" onClick={() => setNavOpen(false)} style={{ position: 'absolute', right: 0, top: 0 }}>
             <X size={20} />
           </button>
         </div>
 
-        <nav className="sidebar__nav" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: '0 6px' }}>
+        <nav className="sidebar__nav" style={{ display: 'flex', flexDirection: 'column', gap: 2, padding: shrink ? '0' : '0 6px' }}>
           {NAV.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} style={navLinkStyle} onClick={() => setNavOpen(false)}>
-              {({ isActive }) => (<><ActiveBar on={isActive} /><Icon size={18} strokeWidth={1.8} />{label}</>)}
+            <NavLink key={to} to={to} end={end} style={navStyle} title={shrink ? label : undefined} onClick={() => setNavOpen(false)}>
+              {({ isActive }) => (<><ActiveBar on={isActive} /><Icon size={18} strokeWidth={1.8} />{!shrink && label}</>)}
             </NavLink>
           ))}
 
-          <button type="button" onClick={() => setBkOpen((o) => !o)} style={bkActive ? { ...linkBase, ...onPill } : linkBase}>
+          <button type="button" onClick={onBookingsClick} title={shrink ? 'Bookings' : undefined} style={bkBtnStyle}>
             <ActiveBar on={bkActive} />
             <ClipboardList size={18} strokeWidth={1.8} />
-            <span style={{ flex: 1 }}>Bookings</span>
-            <ChevronDown size={15} style={{ transition: '.15s', transform: bkOpen ? 'rotate(180deg)' : 'none' }} />
+            {!shrink && <span style={{ flex: 1 }}>Bookings</span>}
+            {!shrink && <ChevronDown size={15} style={{ transition: '.15s', transform: bkOpen ? 'rotate(180deg)' : 'none' }} />}
           </button>
-          {bkOpen && BOOKINGS.map(({ to, label, icon: Icon }) => (
+          {!shrink && bkOpen && BOOKINGS.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} onClick={() => setNavOpen(false)}
               style={({ isActive }) => isActive ? { ...linkBase, ...onPill, paddingLeft: 38, fontSize: 12.5 } : { ...linkBase, paddingLeft: 38, fontSize: 12.5 }}>
               <Icon size={15} strokeWidth={1.8} />{label}
@@ -125,11 +156,23 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
           ))}
 
           {NAV2.map(({ to, label, icon: Icon, end }) => (
-            <NavLink key={to} to={to} end={end} style={navLinkStyle} onClick={() => setNavOpen(false)}>
-              {({ isActive }) => (<><ActiveBar on={isActive} /><Icon size={18} strokeWidth={1.8} />{label}</>)}
+            <NavLink key={to} to={to} end={end} style={navStyle} title={shrink ? label : undefined} onClick={() => setNavOpen(false)}>
+              {({ isActive }) => (<><ActiveBar on={isActive} /><Icon size={18} strokeWidth={1.8} />{!shrink && label}</>)}
             </NavLink>
           ))}
         </nav>
+
+        <div className="sidebar__foot">
+          <button
+            type="button"
+            className="sidebar-collapse-toggle"
+            onClick={() => setCollapsed((c) => !c)}
+            title={shrink ? 'Expand sidebar' : 'Collapse sidebar'}
+            aria-label={shrink ? 'Expand sidebar' : 'Collapse sidebar'}
+          >
+            {shrink ? <ChevronsRight size={18} /> : <><ChevronsLeft size={18} /><span>Collapse</span></>}
+          </button>
+        </div>
       </aside>
 
       <div className="shell-main">
