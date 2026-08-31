@@ -12,6 +12,10 @@ export type StaffWithRoles = {
   user_id: string; email: string | null; initials: string | null; is_admin: boolean
   roles: { id: string; name: string }[]
 }
+export type OverrideCell = {
+  can_read: boolean | null; can_add: boolean | null; can_edit: boolean | null; can_delete: boolean | null
+}
+export type UserOverride = { module_key: string } & OverrideCell
 
 export async function listModules(): Promise<AppModule[]> {
   const { data, error } = await supabase.from('app_modules')
@@ -78,4 +82,49 @@ export async function listStaffWithRoles(): Promise<StaffWithRoles[]> {
       .map((sr) => sr.roles)
       .filter((r): r is { id: string; name: string } => !!r),
   }))
+}
+
+export async function getUserRoleIds(userId: string): Promise<string[]> {
+  const { data, error } = await supabase.from('staff_user_roles').select('role_id').eq('user_id', userId)
+  if (error) throw error
+  return (data ?? []).map((r) => r.role_id as string)
+}
+
+export async function assignRole(userId: string, roleId: string): Promise<void> {
+  const { data: auth } = await supabase.auth.getUser()
+  const { error } = await supabase.from('staff_user_roles')
+    .upsert({ user_id: userId, role_id: roleId, assigned_by: auth.user?.id ?? null }, { onConflict: 'user_id,role_id' })
+  if (error) throw error
+}
+
+export async function unassignRole(userId: string, roleId: string): Promise<void> {
+  const { error } = await supabase.from('staff_user_roles').delete().eq('user_id', userId).eq('role_id', roleId)
+  if (error) throw error
+}
+
+export async function getUserOverrides(userId: string): Promise<UserOverride[]> {
+  const { data, error } = await supabase.from('user_permission_overrides')
+    .select('module_key,can_read,can_add,can_edit,can_delete').eq('user_id', userId)
+  if (error) throw error
+  return (data ?? []).map((r) => ({
+    module_key: r.module_key as string,
+    can_read: r.can_read as boolean | null,
+    can_add: r.can_add as boolean | null,
+    can_edit: r.can_edit as boolean | null,
+    can_delete: r.can_delete as boolean | null,
+  }))
+}
+
+export async function upsertUserOverride(userId: string, moduleKey: string, cell: OverrideCell): Promise<void> {
+  const allInherit = cell.can_read === null && cell.can_add === null && cell.can_edit === null && cell.can_delete === null
+  if (allInherit) { await deleteUserOverride(userId, moduleKey); return }
+  const { error } = await supabase.from('user_permission_overrides')
+    .upsert({ user_id: userId, module_key: moduleKey, ...cell }, { onConflict: 'user_id,module_key' })
+  if (error) throw error
+}
+
+export async function deleteUserOverride(userId: string, moduleKey: string): Promise<void> {
+  const { error } = await supabase.from('user_permission_overrides')
+    .delete().eq('user_id', userId).eq('module_key', moduleKey)
+  if (error) throw error
 }
