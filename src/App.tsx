@@ -6,12 +6,8 @@ import AppShell from './layouts/AppShell'
 import { PermissionsProvider } from './access/PermissionsProvider'
 import Login from './Login'
 import { portalRoutes } from './routes/portalRoutes'
-import {
-  EstimatesPage,
-  NewBookingPage,
-  SchedulesPage,
-  UsersPage,
-} from './pages/stubs/StubPages'
+import { EstimatesPage, NewBookingPage, SchedulesPage } from './pages/stubs/StubPages'
+import UsersArea from './pages/users/UsersArea'
 import ReportsPage from './pages/reports/ReportsPage'
 import CustomersPage from './pages/CustomersPage'
 import AgentsArea from './pages/agents/AgentsArea'
@@ -207,7 +203,7 @@ export default function App() {
             <Route path="/agents/:id" element={<StaffRoute><AgentRecordPage /></StaffRoute>} />
             <Route path="/schedules" element={<SchedulesPage />} />
             <Route path="/reports" element={<ReportsPage />} />
-            <Route path="/users" element={<UsersPage />} />
+            <Route path="/users" element={<UsersArea />} />
             <Route path="/setup/rates" element={<StaffRoute><RatesPage /></StaffRoute>} />
             <Route path="/setup/rates/fcl" element={<StaffRoute><FclRateCardsList /></StaffRoute>} />
             <Route path="/setup/rates/fcl/new" element={<StaffRoute><FclRateCardForm /></StaffRoute>} />
