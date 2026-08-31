@@ -4,6 +4,7 @@ import { Plus, Search, List, LayoutGrid, CalendarDays, Plane, Container, Boxes }
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
 import { useStaffList } from '../../hooks/useStaffList'
+import { usePerm } from '../../access/PermissionsProvider'
 import QuotesListView from './QuotesListView'
 import QuotesKanban from './QuotesKanban'
 import QuotesCalendar from './QuotesCalendar'
@@ -26,6 +27,7 @@ const MODE_FILTERS: { key: ModeFilter; label: string; Icon: typeof List | null }
 
 export default function QuotesPage() {
   const navigate = useNavigate()
+  const canAddQuote = usePerm('quotes', 'add')
   const { ports } = useSeaPorts()
   const { staff } = useStaffList()
 
@@ -101,14 +103,16 @@ export default function QuotesPage() {
                 </button>
               ))}
             </div>
-            <button
-              type="button"
-              className="btn quotes-page__new-btn"
-              onClick={() => navigate('/quotes/new')}
-            >
-              <Plus size={16} strokeWidth={2} />
-              New Quote
-            </button>
+            {canAddQuote && (
+              <button
+                type="button"
+                className="btn quotes-page__new-btn"
+                onClick={() => navigate('/quotes/new')}
+              >
+                <Plus size={16} strokeWidth={2} />
+                New Quote
+              </button>
+            )}
           </div>
         </div>
 

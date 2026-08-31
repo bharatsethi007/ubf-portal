@@ -89,13 +89,15 @@ export function ModuleGuard({ children }: { children: ReactNode }) {
   const { pathname } = useLocation()
   const { perms, loading } = usePermissions()
   const module = moduleForPath(pathname)
+  const op: ModuleOp = pathname.endsWith('/new') ? 'add' : pathname.endsWith('/edit') ? 'edit' : 'read'
 
   if (loading) return <div className="muted pad">Loading...</div>
-  if (module && !(perms[module]?.read ?? false)) {
+  if (module && !(perms[module]?.[op] ?? false)) {
+    const verb = op === 'add' ? 'create records in' : op === 'edit' ? 'edit' : 'view'
     return (
       <div className="pad" style={{ maxWidth: 460, margin: '48px auto', textAlign: 'center' }}>
         <h2 style={{ marginBottom: 8 }}>No access</h2>
-        <p className="muted">You do not have permission to view this module. Ask an administrator if you need access.</p>
+        <p className="muted">You do not have permission to {verb} this module. Ask an administrator if you need access.</p>
       </div>
     )
   }

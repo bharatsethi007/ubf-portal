@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { Plus, Search, Truck, CalendarClock, AlertTriangle, CheckCircle2, Archive } from 'lucide-react'
+import { usePerm } from '@/access/PermissionsProvider'
 import Pagination from '@/components/Pagination'
 import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { listConsignments, boardCounts, TMS_BOARD_TABS, type TmsBoardKey, type TmsConsignmentRow } from './tmsApi'
@@ -24,6 +25,7 @@ const TAB_COLOR: Record<TmsBoardKey, { text: string; bar: string; pill: string }
 
 export default function TmsOpsBoard() {
   const navigate = useNavigate()
+  const canAddTms = usePerm('tms', 'add')
   const [search, setSearch] = useState('')
   const [board, setBoard] = useState<TmsBoardKey>('current')
   const [page, setPage] = useState(1)
@@ -68,10 +70,12 @@ export default function TmsOpsBoard() {
             <Search size={16} className="text-neutral-400" />
             <input className="w-56 bg-transparent text-sm outline-none placeholder:text-neutral-400" placeholder="Search consignment, company" value={search} onChange={(e) => setSearch(e.target.value)} />
           </label>
-          <button type="button" onClick={() => navigate('/tms/new')}
-            className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A2472] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0A2472]/90">
-            <Plus size={16} /> New consignment
-          </button>
+          {canAddTms && (
+            <button type="button" onClick={() => navigate('/tms/new')}
+              className="inline-flex items-center gap-1.5 rounded-lg bg-[#0A2472] px-3 py-1.5 text-sm font-medium text-white hover:bg-[#0A2472]/90">
+              <Plus size={16} /> New consignment
+            </button>
+          )}
         </div>
       </div>
 
