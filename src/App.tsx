@@ -3,6 +3,7 @@ import { BrowserRouter, Navigate, Outlet, Route, Routes } from 'react-router-dom
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from './supabase'
 import AppShell from './layouts/AppShell'
+import { PermissionsProvider } from './access/PermissionsProvider'
 import Login from './Login'
 import { portalRoutes } from './routes/portalRoutes'
 import {
@@ -151,7 +152,9 @@ export default function App() {
         <Route element={<AuthGate session={session} isStaff={isStaff} isPortalUser={isPortalUser} staffReady={staffReady} />}>
           <Route
             element={
-              <AppShell session={session!} staffName={staffName} search={search} onSearch={setSearch} />
+              <PermissionsProvider>
+                <AppShell session={session!} staffName={staffName} search={search} onSearch={setSearch} />
+              </PermissionsProvider>
             }
           >
             <Route path="/" element={<Dashboard />} />
