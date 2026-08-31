@@ -1,0 +1,36 @@
+﻿// PUBLIC (verify_jwt = false). Single-use token in body authorises staff set-password.
+// Body: { token: string, password: string }
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { cors, json, serviceClient, validatePassword } from "../_shared/portalCommon.ts";
+
+Deno.serve(async (req) => {
+  if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
+  if (req.method !== "POST") return json({ error: "method not allowed" }, 405);
+  try {
+    const body = await req.json().catch(() => ({}));
+    const token = typeof body?.token === "string" ? body.token.trim() : "";
+    const password = typeof body?.password === "string" ? body.password : "";
+    if (!token || !password) return json({ error: "token and password are required" }, 400);
+    const pwError = validatePassword(password);
+    if (pwError) return json({ error: pwError }, 400);
+
+    const db = serviceClient();
+    const now = new Date().toISOString();
+
+    const { data: row } = await db.from("staff_invite_tokens").select("user_id, expires_at, used_at").eq("token", token).maybeSingle();
+    if (!row || row.used_at || new Date(row.expires_at).getTime() < Date.now()) return json({ error: "invalid_token" }, 400);
+
+    const { data: staff } = await db.from("staff_users").select("email").eq("user_id", row.user_id).maybeSingle();
+    if (!staff?.email) return json({ error: "invalid_token" }, 400);
+
+    const { data: consumed } = await db.from("staff_invite_tokens").update({ used_at: now }).eq("token", token).is("used_at", null).gt("expires_at", now).select("user_id").maybeSingle();
+    if (!consumed) return json({ error: "invalid_token" }, 400);
+
+    const { error: pwErr } = await db.auth.admin.updateUserById(consumed.user_id, { password });
+    if (pwErr) return json({ error: pwErr.message }, 400);
+
+    return json({ ok: true, email: staff.email });
+  } catch (e) {
+    return json({ error: String(e) }, 500);
+  }
+});

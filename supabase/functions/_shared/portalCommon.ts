@@ -126,3 +126,24 @@ export async function issueInviteToken(
   if (error) throw new Error(error.message);
   return { token, expiresAt, link: portalSetPasswordLink(token) };
 }
+
+export function staffSetPasswordLink(token: string): string {
+  const base = (Deno.env.get("PORTAL_PUBLIC_BASE_URL") ?? "").replace(/\/$/, "");
+  if (!base) throw new Error("PORTAL_PUBLIC_BASE_URL not configured");
+  return `${base}/set-password?token=${encodeURIComponent(token)}`;
+}
+
+export async function issueStaffInviteToken(
+  db: SupabaseClient,
+  opts: { userId: string; staffId: string },
+): Promise<{ token: string; expiresAt: string; link: string }> {
+  await db.from("staff_invite_tokens").update({ used_at: new Date().toISOString() })
+    .eq("user_id", opts.userId).is("used_at", null);
+  const token = generateToken();
+  const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+  const { error } = await db.from("staff_invite_tokens").insert({
+    token, user_id: opts.userId, expires_at: expiresAt, created_by: opts.staffId,
+  });
+  if (error) throw new Error(error.message);
+  return { token, expiresAt, link: staffSetPasswordLink(token) };
+}
