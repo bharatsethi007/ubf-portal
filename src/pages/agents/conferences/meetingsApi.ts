@@ -256,3 +256,46 @@ export async function listConferenceMeetings(conferenceId: string): Promise<Conf
   if (error) throw error
   return ((data as MeetingRow[]) ?? []).map(mapMeeting)
 }
+
+// ---- Meeting transcription (Deepgram + Claude via meeting-transcribe edge fn) ----
+
+export type MeetingNotesState = {
+  notes_fields: NoteField[] | null
+  notes: string | null
+  transcribe_status: string
+}
+
+export async function uploadMeetingAudio(meetingId: string, blob: Blob): Promise<string> {
+  const type = blob.type || 'audio/webm'
+  const ext = type.includes('mp4') ? 'mp4' : type.includes('aac') ? 'aac' : 'webm'
+  const path = `${meetingId}/${Date.now()}.${ext}`
+  const { error } = await supabase.storage
+    .from('meeting-audio')
+    .upload(path, blob, { contentType: type, upsert: true })
+  if (error) throw error
+  return path
+}
+
+export async function transcribeMeeting(meetingId: string, audioPath: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('meeting-transcribe', {
+    body: { meeting_id: meetingId, audio_path: audioPath },
+  })
+  if (error) throw error
+  if (data && (data as { ok?: boolean }).ok === false) {
+    throw new Error((data as { error?: string }).error ?? 'Transcription failed')
+  }
+}
+
+export async function fetchMeetingNotesState(meetingId: string): Promise<MeetingNotesState> {
+  const { data, error } = await supabase
+    .from('conference_meetings')
+    .select('notes_fields, notes, transcribe_status')
+    .eq('id', meetingId)
+    .maybeSingle()
+  if (error) throw error
+  return {
+    notes_fields: (data?.notes_fields ?? null) as NoteField[] | null,
+    notes: (data?.notes ?? null) as string | null,
+    transcribe_status: (data?.transcribe_status ?? 'none') as string,
+  }
+}

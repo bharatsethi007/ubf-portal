@@ -10,6 +10,7 @@ import {
   Mic,
   MoreHorizontal,
   ScanLine,
+  Share2,
   UserX,
   X,
 } from 'lucide-react'
@@ -19,6 +20,8 @@ import type { ViewMode } from './conferencesApi'
 import { hhmm, meetingBadge } from './meetingTime'
 import MeetingCards, { type MeetingCardsHandle } from './MeetingCards'
 import MeetingNotes, { type MeetingNotesHandle } from './MeetingNotes'
+import MeetingShareButton from './MeetingShareButton'
+import { shareMeeting } from './meetingShare'
 import type { ConferenceMeeting } from './meetingsApi'
 import './meetingCards.css'
 
@@ -236,6 +239,17 @@ export default function MeetingRow({
                     className={tile}
                     onClick={() => {
                       setAppsOpen(false)
+                      void shareMeeting(meeting.id, 'native')
+                    }}
+                  >
+                    <Share2 className="size-5" />
+                    Share
+                  </button>
+                  <button
+                    type="button"
+                    className={tile}
+                    onClick={() => {
+                      setAppsOpen(false)
                       onNoShow?.()
                     }}
                   >
@@ -317,6 +331,7 @@ export default function MeetingRow({
             >
               <ScanLine className="size-[18px]" />
             </Button>
+            <MeetingShareButton meetingId={meeting.id} />
             <Button
               type="button"
               variant="ghost"

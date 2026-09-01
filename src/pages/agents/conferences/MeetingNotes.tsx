@@ -6,10 +6,19 @@ import {
   useRef,
   useState,
 } from 'react'
-import { ArrowLeft, Plus, X } from 'lucide-react'
+import { ArrowLeft, Loader2, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
 import type { ViewMode } from './conferencesApi'
-import { updateMeeting, type NoteField } from './meetingsApi'
+import {
+  fetchMeetingNotesState,
+  transcribeMeeting,
+  updateMeeting,
+  uploadMeetingAudio,
+  type MeetingNotesState,
+  type NoteField,
+} from './meetingsApi'
+import MeetingRecorder from './MeetingRecorder'
+import MeetingPhotos from './MeetingPhotos'
 
 export type MeetingNotesHandle = { openEditor: () => void }
 
@@ -190,8 +199,16 @@ const MeetingNotes = forwardRef<MeetingNotesHandle, Props>(function MeetingNotes
   )
   const [saving, setSaving] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [transcribing, setTranscribing] = useState(false)
   const timer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const isMobile = viewMode === 'mobile'
+
+  const applyState = useCallback((s: MeetingNotesState) => {
+    const parsed = parseInitialFields(s.notes_fields, s.notes)
+    setFields(parsed)
+    setSavedJson(JSON.stringify(parsed))
+    setSavedText(flattenFields(parsed))
+  }, [])
 
   useImperativeHandle(ref, () => ({ openEditor: () => setEditing(true) }), [])
 
@@ -208,6 +225,21 @@ const MeetingNotes = forwardRef<MeetingNotesHandle, Props>(function MeetingNotes
       if (timer.current) clearTimeout(timer.current)
     }
   }, [])
+
+  // On open, load the latest notes from the DB (picks up transcription results
+  // and any edits made elsewhere; avoids showing a stale parent-provided copy).
+  useEffect(() => {
+    if (!editing) return
+    let cancelled = false
+    fetchMeetingNotesState(meetingId)
+      .then((s) => {
+        if (!cancelled) applyState(s)
+      })
+      .catch(() => {})
+    return () => {
+      cancelled = true
+    }
+  }, [editing, meetingId, applyState])
 
   const dirty = JSON.stringify(fields) !== savedJson
 
@@ -268,7 +300,46 @@ const MeetingNotes = forwardRef<MeetingNotesHandle, Props>(function MeetingNotes
     </button>
   )
 
-  const editor = <FieldsEditor fields={fields} isMobile={isMobile} onChange={handleChange} />
+  const editor = (
+    <>
+      <FieldsEditor fields={fields} isMobile={isMobile} onChange={handleChange} />
+      <MeetingPhotos meetingId={meetingId} />
+    </>
+  )
+
+  async function handleRecorded(blob: Blob, _seconds: number) {
+    setTranscribing(true)
+    try {
+      const path = await uploadMeetingAudio(meetingId, blob)
+      await transcribeMeeting(meetingId, path)
+      applyState(await fetchMeetingNotesState(meetingId))
+      toast.success('Transcribed — summary added to Discussion')
+    } catch (e) {
+      // The function may have finished despite an invoke timeout — check once.
+      try {
+        const s = await fetchMeetingNotesState(meetingId)
+        if (s.transcribe_status === 'done') {
+          applyState(s)
+          toast.success('Transcribed — summary added to Discussion')
+        } else {
+          toast.error(e instanceof Error ? e.message : 'Transcription failed')
+        }
+      } catch {
+        toast.error(e instanceof Error ? e.message : 'Transcription failed')
+      }
+    } finally {
+      setTranscribing(false)
+    }
+  }
+
+  const recorderSlot = transcribing ? (
+    <span className="inline-flex items-center gap-1.5 text-[13px] text-muted-foreground">
+      <Loader2 size={15} className="animate-spin" />
+      Transcribing…
+    </span>
+  ) : (
+    <MeetingRecorder onComplete={handleRecorded} />
+  )
 
   return (
     <>
@@ -286,7 +357,10 @@ const MeetingNotes = forwardRef<MeetingNotesHandle, Props>(function MeetingNotes
               <ArrowLeft size={20} />
             </button>
             <span className="text-sm font-medium text-foreground">{heading}</span>
-            <span className="ml-auto text-xs text-muted-foreground">{statusText}</span>
+            <div className="ml-auto flex items-center gap-2">
+              {recorderSlot}
+              {statusText && <span className="text-xs text-muted-foreground">{statusText}</span>}
+            </div>
           </div>
           <div className="flex-1 overflow-y-auto">{editor}</div>
         </div>
@@ -304,14 +378,17 @@ const MeetingNotes = forwardRef<MeetingNotesHandle, Props>(function MeetingNotes
             <div className="flex items-center gap-2 border-b border-border px-4 py-3">
               <span className="text-sm font-medium text-foreground">{heading}</span>
               <span className="text-xs text-muted-foreground">{statusText}</span>
-              <button
-                type="button"
-                aria-label="Close notes"
-                className="ml-auto inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
-                onClick={() => void closeEditor()}
-              >
-                <X size={18} />
-              </button>
+              <div className="ml-auto flex items-center gap-2">
+                {recorderSlot}
+                <button
+                  type="button"
+                  aria-label="Close notes"
+                  className="inline-flex h-8 w-8 items-center justify-center rounded-md text-muted-foreground hover:text-foreground"
+                  onClick={() => void closeEditor()}
+                >
+                  <X size={18} />
+                </button>
+              </div>
             </div>
             <div className="flex-1 overflow-y-auto">{editor}</div>
           </div>
