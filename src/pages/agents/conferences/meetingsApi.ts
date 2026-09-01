@@ -2,6 +2,8 @@ import { supabase } from '../../../supabase'
 
 export type MeetingStatus = 'upcoming' | 'completed' | 'cancelled' | 'no_show'
 
+export type NoteField = { id: string; label: string; value: string }
+
 export type ConferenceMeeting = {
   id: string
   conference_id: string
@@ -17,6 +19,7 @@ export type ConferenceMeeting = {
   is_break: boolean
   cancel_reason: string | null
   notes: string | null
+  notes_fields: NoteField[] | null
   ai_summary: string | null
   transcript: string | null
   audio_url: string | null
@@ -96,6 +99,7 @@ export async function updateMeeting(
       | 'is_break'
       | 'cancel_reason'
       | 'notes'
+      | 'notes_fields'
     >
   >,
 ): Promise<void> {

@@ -142,6 +142,7 @@ export default function MeetingRow({
             hidePreview
             meetingId={meeting.id}
             initialNotes={meeting.notes}
+            initialFields={meeting.notes_fields}
             viewMode={viewMode}
             title={agentLabel}
           />
@@ -333,6 +334,7 @@ export default function MeetingRow({
           <MeetingNotes
             meetingId={meeting.id}
             initialNotes={meeting.notes}
+            initialFields={meeting.notes_fields}
             viewMode={viewMode}
             title={agentLabel}
           />
