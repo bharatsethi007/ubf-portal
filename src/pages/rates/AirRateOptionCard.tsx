@@ -54,7 +54,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
   const freightMeta = `${o.billedKg.toLocaleString()} kg @ ${fmtMoney(o.appliedRatePerKg, cur)}/kg`
     + (o.billedKg > o.chargeableKg ? ` · break-pivot from ${o.chargeableKg} kg` : '')
     + (o.minApplied ? ` · min ${fmtMoney(o.minCharge, cur)}` : '')
-  const freightItem = mk('f:air', 'Air freight', freightMeta, o.freightTotal, o.freightSellTotal)
+  const freightItem = o.freightless ? null : mk('f:air', 'Air freight', freightMeta, o.freightTotal, o.freightSellTotal)
 
   const surItems = o.surcharges.map((s, i) => {
     const a = surAmounts(s)
@@ -70,7 +70,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
 
   const originItems = [...localOrigin, ...surItems.filter((x) => x.scope === 'origin').map((x) => x.it)]
   const destItems = [...localDest, ...surItems.filter((x) => x.scope === 'dest').map((x) => x.it)]
-  const freightItems = [freightItem, ...surItems.filter((x) => x.scope !== 'origin' && x.scope !== 'dest').map((x) => x.it)]
+  const freightItems = [...(freightItem ? [freightItem] : []), ...surItems.filter((x) => x.scope !== 'origin' && x.scope !== 'dest').map((x) => x.it)]
 
   const legs: { key: LegKey; title: string; word: string; port: string; items: Item[] }[] = [
     { key: 'origin', title: 'Origin charges', word: 'origin', port: fromCode, items: originItems },

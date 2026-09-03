@@ -200,7 +200,7 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
   const lines: QuoteResponseLine[] = []
   let ord = 0
 
-  if (inc('f:air')) {
+  if (inc('f:air') && !o.freightless) {
     const f = newQuoteResponseLine(ord++, cur)
     f.description = 'Air freight'
     f.charge_group = 'freight'
@@ -230,6 +230,21 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
     else if (s.basis === 'per_cbm') { const cbm = o.cbm > 0 ? o.cbm : 1; l.unit = 'Per CBM'; l.qty = String(cbm); l.buy_rate = String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
     else if (s.basis === 'percent') { l.unit = '% of freight'; l.qty = '1'; l.buy_rate = String(Math.round((s.amount / 100) * o.freightTotal * 100) / 100); l.sell_rate = String(Math.round((s.sellAmount / 100) * o.freightSellTotal * 100) / 100) }
     else { l.unit = s.basis === 'per_awb' ? 'Per AWB' : s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1'; l.buy_rate = String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
+    lines.push(l)
+  })
+
+  o.localCharges.forEach((lc, i) => {
+    if (!inc(`l:${i}`)) return
+    const l = newQuoteResponseLine(ord++, lc.buyCurrency || cur)
+    l.description = lc.label
+    l.charge_group = lc.group
+    l.vendor = lc.vendorName || o.airlineName
+    l.unit = 'Flat'
+    l.qty = '1'
+    l.buy_currency = lc.buyCurrency || cur
+    l.sell_currency = lc.sellCurrency || lc.buyCurrency || cur
+    l.buy_rate = String(lc.buyAmount)
+    l.sell_rate = String(lc.sellAmount)
     lines.push(l)
   })
   return lines

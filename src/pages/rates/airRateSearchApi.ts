@@ -46,6 +46,7 @@ export type AirRateOption = {
   surchargeSellTotal: number
   sellTotal: number
   localCharges: OptionAirLocalCharge[]
+  freightless?: boolean   // synthetic charges-only option (no freight rate on the lane)
 }
 
 function round2(n: number): number { return Math.round(n * 100) / 100 }
@@ -99,6 +100,29 @@ export async function fetchAirQuoteLane(quoteId: string): Promise<AirQuoteLane> 
     movement: r.movement_type ?? null, incoterm: r.incoterms ?? null, hasPickup: !!r.pickup_address, hasDelivery: !!r.drop_address }
 }
 
+// When no freight card matches the lane we still want to surface matching local
+// charges so destination-only incoterms (e.g. DPU/DAP import, where freight is the
+// seller's cost) can be quoted. This synthesises a freight-less option to hang them on.
+function makeChargesOnlyOption(lane: AirQuoteLane): AirRateOption {
+  return {
+    cardId: 'charges-only',
+    airlineCode: '',
+    airlineName: 'Charges only \u2014 no freight rate',
+    currency: lane.currency || '',
+    transitDays: null, via: null, frequency: null,
+    validFrom: null, validTo: null,
+    status: 'charges-only',
+    chargeableKg: lane.chargeableKg, grossKg: lane.grossKg, cbm: lane.cbm,
+    billedKg: 0, appliedRatePerKg: 0, sellRatePerKg: 0,
+    minCharge: 0, minApplied: false,
+    surcharges: [],
+    freightTotal: 0, surchargeTotal: 0, total: 0,
+    freightSellTotal: 0, surchargeSellTotal: 0, sellTotal: 0,
+    localCharges: [],
+    freightless: true,
+  }
+}
+
 export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[]> {
   if (!lane.from_port_code || !lane.to_port_code || lane.chargeableKg <= 0) return []
   const today = new Date().toISOString().slice(0, 10)
@@ -123,7 +147,11 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
     const id = String(card.id)
     if (!groups.has(id)) groups.set(id, { card, line: raw })
   }
-  if (groups.size === 0) return []
+  if (groups.size === 0) {
+    const chargesOnly = makeChargesOnlyOption(lane)
+    await attachAirLocalCharges(lane, [chargesOnly])
+    return chargesOnly.localCharges.length > 0 ? [chargesOnly] : []
+  }
 
   const cardIds = [...groups.keys()]
   const { data: surs } = await supabase
