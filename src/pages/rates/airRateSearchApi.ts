@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { attachAirLocalCharges, type OptionAirLocalCharge } from './airLocalChargeMatch'
 
 // IATA volumetric standard: 1 m³ = 6000 cm³ → 167 kg. (Courier/express uses 5000 → 200; not air cargo.)
 export const AIR_VOLUMETRIC_KG_PER_CBM = 167
@@ -10,6 +11,10 @@ export type AirQuoteLane = {
   chargeableKg: number  // max(gross kg, volumetric kg)
   grossKg: number
   cbm: number
+  movement?: string | null   // 'import' | 'export' — scopes local-charge sheets
+  incoterm?: string | null   // drives leg defaults + completeness in the card
+  hasPickup?: boolean        // pickup address set → origin cartage in play
+  hasDelivery?: boolean      // drop address set → destination cartage in play
 }
 
 export type AirRateSurcharge = { label: string; amount: number; sellAmount: number; basis: string; scope: string | null }
@@ -40,6 +45,7 @@ export type AirRateOption = {
   freightSellTotal: number
   surchargeSellTotal: number
   sellTotal: number
+  localCharges: OptionAirLocalCharge[]
 }
 
 function round2(n: number): number { return Math.round(n * 100) / 100 }
@@ -84,12 +90,13 @@ export function chargeableKgFromCargo(rows: { total_cbm: number | null; gross_wt
 
 export async function fetchAirQuoteLane(quoteId: string): Promise<AirQuoteLane> {
   const { data: q, error } = await supabase
-    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency').eq('id', quoteId).single()
+    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type, incoterms, pickup_address, drop_address').eq('id', quoteId).single()
   if (error) throw error
   const { data: cargo } = await supabase.from('quote_cargo_lines').select('total_cbm, gross_wt').eq('quote_id', quoteId)
   const r = q as Record<string, any>
   const { chargeableKg, grossKg, cbm } = chargeableKgFromCargo(((cargo as any[]) ?? []).map((c) => ({ total_cbm: c.total_cbm, gross_wt: c.gross_wt })))
-  return { from_port_code: r.from_port_code ?? null, to_port_code: r.to_port_code ?? null, currency: r.cargo_value_currency ?? null, chargeableKg, grossKg, cbm }
+  return { from_port_code: r.from_port_code ?? null, to_port_code: r.to_port_code ?? null, currency: r.cargo_value_currency ?? null, chargeableKg, grossKg, cbm,
+    movement: r.movement_type ?? null, incoterm: r.incoterms ?? null, hasPickup: !!r.pickup_address, hasDelivery: !!r.drop_address }
 }
 
 export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[]> {
@@ -196,8 +203,10 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
       freightSellTotal: sell.freight,
       surchargeSellTotal,
       sellTotal: round2(sell.freight + surchargeSellTotal),
+      localCharges: [],
     })
   }
   options.sort((a, b) => a.total - b.total)
+  await attachAirLocalCharges(lane, options)
   return options
 }

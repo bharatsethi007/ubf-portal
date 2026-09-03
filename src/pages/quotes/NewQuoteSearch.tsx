@@ -162,6 +162,10 @@ export default function NewQuoteSearch() {
           chargeableKg,
           grossKg: Math.round(gross * 100) / 100,
           cbm: Math.round(cbm * 1000) / 1000,
+          movement: draft.movement_type ?? null,
+          incoterm: draft.incoterms ?? null,
+          hasPickup: !!draft.pickup_address,
+          hasDelivery: !!draft.drop_address,
         }))
       } else if (draft.shipment_type === 'LCL') {
         const lane: LclQuoteLane = {
@@ -453,7 +457,7 @@ export default function NewQuoteSearch() {
                 </div>
                 {isAir
                   ? airOptions.map((o) => (
-                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} />
+                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} />
                     ))
                   : isLcl
                   ? lclOptions.map((o) => (

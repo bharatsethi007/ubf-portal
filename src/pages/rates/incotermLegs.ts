@@ -72,3 +72,42 @@ export function legPayersFor(
   order.forEach((k, i) => { out[k] = i < pivot ? 'Seller' : 'Buyer' })
   return out
 }
+
+// ---------------------------------------------------------------------------
+// Completeness (advisory, never blocks). Given the incoterm leg scope + service
+// type + which priced sources the matcher actually found, list what's required
+// for this incoterm/direction but missing. Cartage (door legs) is required only
+// when the service type starts/ends "Door" and a pickup/drop address is present.
+export type FoundSources = {
+  freight: boolean
+  originCharges: boolean
+  destCharges: boolean
+  originCartage: boolean
+  destCartage: boolean
+}
+
+export type Completeness = { complete: boolean; missing: string[] }
+
+export function completenessFor(
+  incoterm: string | null | undefined,
+  movement: string | null | undefined,
+  found: FoundSources,
+  opts?: { hasPickup?: boolean; hasDelivery?: boolean },
+): Completeness {
+  const legs = chargeLegsFor(incoterm, movement)
+  if (!legs) return { complete: true, missing: [] } // unknown term → no warnings
+  const svc = serviceTypeForIncoterm(incoterm) || ''
+  const startsDoor = /^Door/i.test(svc)
+  const endsDoor = /Door$/i.test(svc)
+  const missing: string[] = []
+  if (legs.freight && !found.freight) missing.push('Freight')
+  if (legs.origin) {
+    if (!found.originCharges) missing.push('Origin charges')
+    if (startsDoor && (opts?.hasPickup ?? true) && !found.originCartage) missing.push('Origin cartage (pickup)')
+  }
+  if (legs.dest) {
+    if (!found.destCharges) missing.push('Destination charges')
+    if (endsDoor && (opts?.hasDelivery ?? true) && !found.destCartage) missing.push('Destination cartage (delivery)')
+  }
+  return { complete: missing.length === 0, missing }
+}

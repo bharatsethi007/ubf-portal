@@ -1,6 +1,7 @@
 import { useState } from 'react'
-import { Plane, Clock, ArrowRight, ChevronDown, CalendarClock } from 'lucide-react'
+import { Plane, Clock, ArrowRight, ChevronDown, CalendarClock, AlertTriangle } from 'lucide-react'
 import type { AirRateOption, AirRateSurcharge } from './airRateSearchApi'
+import { chargeLegsFor, completenessFor, type FoundSources } from './incotermLegs'
 import { toNzd, fmtMoney, fmtNzd, type FxRates } from './fx'
 import AirlineLogo from './AirlineLogo.tsx'
 
@@ -21,19 +22,25 @@ type Props = {
   onUse?: (selectedKeys: string[]) => void
   busy?: boolean
   fxRates?: FxRates
+  incoterm?: string
+  movement?: string
 }
 
-export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates }: Props) {
+export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, incoterm, movement }: Props) {
   const [open, setOpen] = useState(false)
   const [sel, setSel] = useState<Record<string, boolean>>({})
   const rates: FxRates = fxRates ?? new Map()
   const cur = o.currency || 'NZD'
 
-  const isOn = (key: string) => (key in sel ? sel[key] : true)
-  const toggle = (key: string) => setSel((s) => ({ ...s, [key]: !(key in s ? s[key] : true) }))
+  // Which legs the customer pays under this incoterm+direction (null = unknown → all on).
+  const scope = chargeLegsFor(incoterm, movement)
+  const legDefault = (leg: LegKey) => (scope ? scope[leg] : true)
 
-  function mk(key: string, label: string, meta: string, buy: number, sell: number): Item {
-    return { key, label, meta, buy, sell, currency: cur, sellNzd: toNzd(sell, cur, rates, 'sell'), buyNzd: toNzd(buy, cur, rates, 'buy') }
+  const isOn = (key: string, def: boolean) => (key in sel ? sel[key] : def)
+  const toggle = (key: string, def: boolean) => setSel((s) => ({ ...s, [key]: !(key in s ? s[key] : def) }))
+
+  function mk(key: string, label: string, meta: string, buy: number, sell: number, currency: string = cur): Item {
+    return { key, label, meta, buy, sell, currency, sellNzd: toNzd(sell, currency, rates, 'sell'), buyNzd: toNzd(buy, currency, rates, 'buy') }
   }
 
   // Per-line surcharge amounts, computed exactly as the search engine totals them.
@@ -44,7 +51,6 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
     return { buy: s.amount, sell: s.sellAmount, meta: s.basis === 'per_awb' ? 'per AWB' : s.basis === 'per_bl' ? 'per B/L' : 'flat' }
   }
 
-  // Freight item
   const freightMeta = `${o.billedKg.toLocaleString()} kg @ ${fmtMoney(o.appliedRatePerKg, cur)}/kg`
     + (o.billedKg > o.chargeableKg ? ` · break-pivot from ${o.chargeableKg} kg` : '')
     + (o.minApplied ? ` · min ${fmtMoney(o.minCharge, cur)}` : '')
@@ -55,8 +61,15 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
     return { it: mk(`s:${i}`, s.label, a.meta, a.buy, a.sell), scope: s.scope }
   })
 
-  const originItems = surItems.filter((x) => x.scope === 'origin').map((x) => x.it)
-  const destItems = surItems.filter((x) => x.scope === 'dest').map((x) => x.it)
+  // Local charges (origin/dest sheets), each in its own currency; cartage tagged.
+  const localMeta = (basis: string, cartage: string | null) => (cartage ? `${basis} · cartage (${cartage})` : basis)
+  const localOrigin = o.localCharges.map((c, i) => ({ c, i })).filter((x) => x.c.group === 'origin')
+    .map(({ c, i }) => mk(`l:${i}`, c.label, localMeta(c.basis, c.cartageType), c.buyAmount, c.sellAmount, c.sellCurrency || c.buyCurrency || cur))
+  const localDest = o.localCharges.map((c, i) => ({ c, i })).filter((x) => x.c.group === 'dest')
+    .map(({ c, i }) => mk(`l:${i}`, c.label, localMeta(c.basis, c.cartageType), c.buyAmount, c.sellAmount, c.sellCurrency || c.buyCurrency || cur))
+
+  const originItems = [...localOrigin, ...surItems.filter((x) => x.scope === 'origin').map((x) => x.it)]
+  const destItems = [...localDest, ...surItems.filter((x) => x.scope === 'dest').map((x) => x.it)]
   const freightItems = [freightItem, ...surItems.filter((x) => x.scope !== 'origin' && x.scope !== 'dest').map((x) => x.it)]
 
   const legs: { key: LegKey; title: string; word: string; port: string; items: Item[] }[] = [
@@ -68,9 +81,19 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
   const allKeys = legs.flatMap((l) => l.items.map((i) => i.key))
   const setAll = (v: boolean) => setSel(Object.fromEntries(allKeys.map((k) => [k, v])))
 
+  // Completeness (advisory): what this incoterm/direction requires but we didn't find.
+  const found: FoundSources = {
+    freight: o.freightTotal > 0,
+    originCharges: originItems.length > 0,
+    destCharges: destItems.length > 0,
+    originCartage: o.localCharges.some((c) => c.group === 'origin' && !!c.cartageType),
+    destCartage: o.localCharges.some((c) => c.group === 'dest' && !!c.cartageType),
+  }
+  const completeness = completenessFor(incoterm, movement, found)
+
   let grandSell = 0, grandBuy = 0, convertible = true
   for (const leg of legs) for (const it of leg.items) {
-    if (!isOn(it.key)) continue
+    if (!isOn(it.key, legDefault(leg.key))) continue
     if (it.sellNzd == null || it.buyNzd == null) { convertible = false; continue }
     grandSell += it.sellNzd; grandBuy += it.buyNzd
   }
@@ -81,7 +104,10 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
 
   function handleUse() {
     if (!onUse) return
-    onUse(allKeys.filter((k) => isOn(k)))
+    onUse(allKeys.filter((k, idx) => {
+      const leg = legs.find((l) => l.items.some((it) => it.key === k))
+      return isOn(k, leg ? legDefault(leg.key) : true)
+    }))
   }
 
   return (
@@ -144,24 +170,36 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
         </div>
       </div>
 
+      {!completeness.complete && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px', background: '#FFF7E6', borderTop: '1px solid #FCE2B0', color: '#8A5A00', fontSize: 12 }}>
+          <AlertTriangle size={14} />
+          <span>Incomplete for {incoterm} {movement} — usually needs: {completeness.missing.join(', ')}. Add in Rates or price manually; you can still use it.</span>
+        </div>
+      )}
+
       {open && (
         <div style={{ borderTop: '1px solid var(--color-line)', background: '#f8fafc', padding: '12px 18px 16px' }}>
           <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 14, marginBottom: 2 }}>
             <button type="button" onClick={() => setAll(true)} style={{ fontSize: 11, fontWeight: 600, color: '#3B5BFE', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Select all</button>
             <button type="button" onClick={() => setAll(false)} style={{ fontSize: 11, fontWeight: 600, color: 'var(--muted-foreground)', background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}>Clear</button>
           </div>
-          {legs.map((leg) => (
+          {legs.map((leg) => {
+            const inScope = scope ? scope[leg.key] : true
+            return (
             <div key={leg.key} style={{ marginTop: 10 }}>
-              <div style={{ fontSize: 12, fontWeight: 600, color: '#0A2472', marginBottom: 6 }}>{leg.title}</div>
+              <div style={{ fontSize: 12, fontWeight: 600, color: '#0A2472', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
+                {leg.title}
+                {!inScope && <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted-foreground)', background: '#eef2f6', borderRadius: 999, padding: '1px 7px' }}>not billed for {incoterm}</span>}
+              </div>
               {leg.items.length === 0 ? (
-                <div style={{ fontSize: 12, color: 'var(--muted-foreground)', padding: '4px 0' }}>No {leg.word} charges for {leg.port} on this lane.</div>
+                <div style={{ fontSize: 12, color: inScope ? '#B4791F' : 'var(--muted-foreground)', padding: '4px 0' }}>No {leg.word} charges for {leg.port} on this lane.</div>
               ) : (
                 leg.items.map((it) => {
-                  const on = isOn(it.key)
+                  const on = isOn(it.key, legDefault(leg.key))
                   return (
                     <div key={it.key} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 12, padding: '5px 0', borderBottom: '1px solid #eef2f6', opacity: on ? 1 : 0.55 }}>
                       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, cursor: 'pointer' }}>
-                        <input type="checkbox" checked={on} onChange={() => toggle(it.key)} style={{ marginTop: 3 }} />
+                        <input type="checkbox" checked={on} onChange={() => toggle(it.key, legDefault(leg.key))} style={{ marginTop: 3 }} />
                         <span style={{ minWidth: 0 }}>
                           <span style={{ fontSize: 13, display: 'block' }}>{it.label}</span>
                           <span className="text-muted-foreground" style={{ fontSize: 11 }}>{it.meta}</span>
@@ -176,7 +214,8 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
                 })
               )}
             </div>
-          ))}
+            )
+          })}
           {convertible && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12, fontSize: 14 }}>
               <span className="text-muted-foreground">Selected total (sell)</span>
