@@ -24,6 +24,7 @@ import {
 import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
 import QuoteResponsesPanel from './QuoteResponsesPanel'
+import FreightIntelligence from './FreightIntelligence'
 import { serviceTypeForIncoterm } from '../rates/incotermLegs'
 import PartyPicker from './PartyPicker'
 import ExternalNotesField from './ExternalNotesField'
@@ -539,6 +540,21 @@ export default function QuoteDetailPage() {
 
       <div className="nqd-band">
         <QuoteResponsesPanel quoteId={quote.id} />
+        {quote.from_port_code && quote.to_port_code && (
+          <FreightIntelligence
+            from={quote.from_port_code}
+            to={quote.to_port_code}
+            mode={isAir ? 'air' : 'sea'}
+            direction={fields.movement_type ?? null}
+            incoterm={fields.incoterms ?? null}
+            onAddNote={(line) => {
+              const existing = fields.external_notes ?? ''
+              const next = existing ? `${line}\n${existing}` : line
+              patch({ external_notes: next })
+              void updateQuote(quote.id, { external_notes: next })
+            }}
+          />
+        )}
       </div>
 
       <div className="nqd-band nqd-band--pad">

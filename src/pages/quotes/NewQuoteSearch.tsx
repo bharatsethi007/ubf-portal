@@ -73,7 +73,6 @@ export default function NewQuoteSearch() {
   const [airMode, setAirMode] = useState<CargoEntryMode>('total')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [party, setParty] = useState<Party | null>(null)
-  const [showIntel, setShowIntel] = useState(true)
   const [agentMode, setAgentMode] = useState(false)
   const [agent, setAgent] = useState<AgentPick | null>(null)
   const [freightTerms, setFreightTermsState] = useState<string | null>(null)
@@ -310,14 +309,13 @@ export default function NewQuoteSearch() {
         <div className="nqs-customer">
           <PartySearch value={party} agentMode={agentMode} onSelect={onPartySelect} onToggleAgent={onToggleAgent} />
         </div>
-        {draft.from_port_code && draft.to_port_code && showIntel && (
+        {draft.from_port_code && draft.to_port_code && (
           <FreightIntelligence
             from={draft.from_port_code}
             to={draft.to_port_code}
             mode={isAir ? 'air' : 'sea'}
             direction={draft.movement_type ?? null}
             incoterm={draft.incoterms ?? null}
-            onClose={() => setShowIntel(false)}
           />
         )}
 

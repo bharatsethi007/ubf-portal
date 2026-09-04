@@ -1,7 +1,7 @@
 import { supabase } from '../../supabase'
 
-export type LaneChargeStat = { code: string; description: string; pct: number; jobs: number; jobCount: number }
-export type LaneQuote = { quoteNo: string | null; customer: string | null; status: string | null; createdAt: string }
+export type LaneChargeStat = { code: string; description: string; pct: number; avgSell: number | null; jobs: number; jobCount: number }
+export type LaneQuote = { id: string; quoteNo: string | null; customer: string | null; status: string | null; createdAt: string }
 
 // Past-shipment charge-set for a lane (validated algorithm, staff-gated RPC).
 export async function laneChargeStats(origin: string, dest: string, mode: string, direction: string): Promise<LaneChargeStat[]> {
@@ -13,6 +13,7 @@ export async function laneChargeStats(origin: string, dest: string, mode: string
     code: String(r.charge_code),
     description: r.description ? String(r.description) : '',
     pct: Number(r.pct) || 0,
+    avgSell: r.avg_sell == null ? null : Number(r.avg_sell),
     jobs: Number(r.jobs_with) || 0,
     jobCount: Number(r.job_count) || 0,
   }))
@@ -21,13 +22,14 @@ export async function laneChargeStats(origin: string, dest: string, mode: string
 export async function lastQuotesForLane(from: string, to: string, limit = 5): Promise<LaneQuote[]> {
   const { data, error } = await supabase
     .from('quotes')
-    .select('quote_no, customer_name, status, created_at')
+    .select('id, quote_no, customer_name, status, created_at')
     .eq('from_port_code', from)
     .eq('to_port_code', to)
     .order('created_at', { ascending: false })
     .limit(limit)
   if (error) throw error
   return ((data as Record<string, any>[]) ?? []).map((r) => ({
+    id: String(r.id),
     quoteNo: r.quote_no ? String(r.quote_no) : null,
     customer: r.customer_name ? String(r.customer_name) : null,
     status: r.status ? String(r.status) : null,
