@@ -261,6 +261,9 @@ export async function createQuoteWithAirBuyRates(args: {
   cargoLines: QuoteCargoLine[]
   option: AirRateOption
   selectedKeys?: string[]
+  agentId?: string | null
+  agentName?: string | null
+  freightTerms?: string | null
 }): Promise<{ quoteId: string }> {
   const draft = {
     ...emptyQuoteDraft(),
@@ -273,6 +276,9 @@ export async function createQuoteWithAirBuyRates(args: {
     service_type: serviceTypeForIncoterm(args.incoterm),
     customer_account_id: args.customerAccountId,
     customer_name: args.customerName,
+    agent_id: args.agentId ?? null,
+    agent_name: args.agentName ?? null,
+    freight_terms: args.freightTerms ?? null,
   }
   const { id: quoteId } = await createQuote(draft)
   await updateQuote(quoteId, { cargo_entry_mode: args.cargoEntryMode })
