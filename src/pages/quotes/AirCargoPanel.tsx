@@ -23,6 +23,9 @@ type Props = {
   onEntryModeChange: (m: CargoEntryMode) => void
   onLinesChange: (lines: QuoteCargoLine[]) => void
   onAddLine: () => void
+  agentMode?: boolean
+  freightTerms?: string
+  onFreightTermsChange?: (v: string) => void
 }
 
 // Address fields by incoterm.
@@ -38,6 +41,7 @@ export default function AirCargoPanel({
   incoterm, onIncotermChange, movement, onMovementChange,
   originAddress, onOriginAddressChange, deliveryAddress, onDeliveryAddressChange,
   lines, entryMode, onEntryModeChange, onLinesChange, onAddLine,
+  agentMode, freightTerms, onFreightTermsChange,
 }: Props) {
   const addr = addressFieldsFor(incoterm)
 
@@ -60,6 +64,20 @@ export default function AirCargoPanel({
           <span className="acp__label">Incoterm</span>
           <IncotermSelect value={incoterm} onChange={onIncotermChange} airOnly />
         </label>
+        {agentMode && (
+          <div className="acp__field">
+            <span className="acp__label">Freight</span>
+            <div className="cg-chips">
+              {(['prepaid', 'collect'] as const).map((t) => (
+                <button type="button" key={t} style={{ textTransform: 'capitalize' }}
+                  className={`cg-chip${freightTerms === t ? ' cg-chip--on' : ''}`}
+                  onClick={() => onFreightTermsChange?.(t)}>
+                  {t}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {(addr.origin || addr.delivery) && (

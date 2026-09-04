@@ -1,8 +1,8 @@
-import { type CSSProperties, useEffect, useMemo, useState } from 'react'
+import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Sparkles, Info, Boxes } from 'lucide-react'
-import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
+import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Info, Boxes, Handshake } from 'lucide-react'
+import type { CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
@@ -16,12 +16,15 @@ import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSe
 import { buildBuyLinesFromOption, createQuoteWithAirBuyRates, createQuoteWithBuyRates, createQuoteWithLclBuyRates } from '../rates/quoteFromRate'
 import { searchLclRates, type LclRateOption, type LclQuoteLane } from '../rates/lclRateSearchApi'
 import { searchAirRates, type AirRateOption } from '../rates/airRateSearchApi'
-import RateSearchModal from '../rates/RateSearchModal'
 import RateOptionCard from '../rates/RateOptionCard'
 import LclRateOptionCard from '../rates/LclRateOptionCard'
 import AirRateOptionCard from '../rates/AirRateOptionCard'
 import { useEffectiveRates } from '../../hooks/useEffectiveRates'
-import { chargeLegsFor, serviceTypeForIncoterm } from '../rates/incotermLegs'
+import { chargeLegsFor, serviceTypeForIncoterm, defaultFreightTerms } from '../rates/incotermLegs'
+import PartySearch from './PartySearch'
+import FreightIntelligence from './FreightIntelligence'
+import { type Party } from './partySearchApi'
+import { type AgentPick } from './agentLookupApi'
 import { overseasOfficeForPort } from '../rates/offices'
 import './newQuoteSearch.css'
 
@@ -69,27 +72,46 @@ export default function NewQuoteSearch() {
   const [airLines, setAirLines] = useState<QuoteCargoLine[]>([newQuoteCargoLine(0)])
   const [airMode, setAirMode] = useState<CargoEntryMode>('total')
   const [busyId, setBusyId] = useState<string | null>(null)
-  const [chatOpen, setChatOpen] = useState(false)
-  const [aiQuery, setAiQuery] = useState('')
+  const [party, setParty] = useState<Party | null>(null)
+  const [showIntel, setShowIntel] = useState(true)
+  const [agentMode, setAgentMode] = useState(false)
+  const [agent, setAgent] = useState<AgentPick | null>(null)
+  const [freightTerms, setFreightTermsState] = useState<string | null>(null)
+  const freightTouched = useRef(false)
   const creating = busyId !== null
 
-  // Any change to the request invalidates a prior search.
-  function invalidate() { setSearched(false); setOptions([]); setLclOptions([]); setAirOptions([]) }
-  function patch(p: Partial<QuoteDraft>) {
-    setDraft((d) => ({ ...d, ...p }))
+  function setFreightTerms(v: string | null) { freightTouched.current = true; setFreightTermsState(v) }
+  function onToggleAgent(on: boolean) {
+    setAgentMode(on)
+    if (on) { freightTouched.current = false; setFreightTermsState(defaultFreightTerms(draft.movement_type)) }
     invalidate()
   }
-  function onCustomerChange(c: CustomerPickerValue | null) {
-    setCustomer(c)
-    // Prefill the customer-side address (export -> origin/pickup, import -> delivery).
-    // The user can still edit or clear it in the loads panel.
-    const addr = c ? formatCustomerAddress(c) : ''
+  function onPartySelect(pty: Party | null) {
+    setParty(pty)
+    setCustomer(pty && pty.isCustomer ? pty : null)
+    const isAgent = !!pty?.isAgent
+    setAgentMode(isAgent)
+    setAgent(isAgent && pty ? { agentId: pty.agentId ?? '', name: pty.name, erpAccountCode: pty.account_id, country: pty.country ?? null } : null)
+    if (isAgent) { freightTouched.current = false; setFreightTermsState(defaultFreightTerms(draft.movement_type)) }
+    // Addresses never auto-fill for agents.
+    const addr = pty && pty.isCustomer && !isAgent ? formatCustomerAddress(pty) : ''
     if (addr) {
       if (draft.movement_type === 'import') patch({ drop_address: addr })
       else patch({ pickup_address: addr })
     } else {
       invalidate()
     }
+  }
+  // Agent nomination: freight terms follow direction until the user overrides them.
+  useEffect(() => {
+    if (agentMode && !freightTouched.current) setFreightTermsState(defaultFreightTerms(draft.movement_type))
+  }, [agentMode, draft.movement_type])
+
+  // Any change to the request invalidates a prior search.
+  function invalidate() { setSearched(false); setOptions([]); setLclOptions([]); setAirOptions([]) }
+  function patch(p: Partial<QuoteDraft>) {
+    setDraft((d) => ({ ...d, ...p }))
+    invalidate()
   }
   function onGroupsChange(g: QuoteContainerDraft[]) {
     setGroups(g)
@@ -104,7 +126,7 @@ export default function NewQuoteSearch() {
   const cbmNum = (Number(lclCbm) || 0) > 0 ? Number(lclCbm) : wmNum
 
   const canSearch = useMemo(() => {
-    if (!customer || !draft.from_port_code || !draft.to_port_code) return false
+    if (!draft.from_port_code || !draft.to_port_code) return false
     if (draft.shipment_type === 'LCL') return wmNum > 0
     return true
   }, [customer, draft.from_port_code, draft.to_port_code, draft.shipment_type, wmNum])
@@ -224,34 +246,7 @@ export default function NewQuoteSearch() {
     }
   }
 
-  async function useRateFromChat(o: RateOption, lane: QuoteLane) {
-    if (!customer) throw new Error('Pick a customer above first, then tap Use rate again.')
-    const { quoteId } = await createQuoteWithBuyRates({
-      customerAccountId: customer.account_id,
-      customerName: customer.name,
-      fromPortCode: lane.from_port_code!,
-      toPortCode: lane.to_port_code!,
-      containers: lane.containers,
-      option: o,
-      movement: draft.movement_type ?? null,
-      incoterm: draft.incoterms ?? null,
-    })
-    navigate(`/quotes/${quoteId}`)
-  }
 
-  async function useLclRateFromChat(o: LclRateOption, lane: LclQuoteLane) {
-    if (!customer) throw new Error('Pick a customer above first, then tap Use rate again.')
-    const { quoteId } = await createQuoteWithLclBuyRates({
-      customerAccountId: customer.account_id,
-      customerName: customer.name,
-      fromPortCode: lane.from_port_code!,
-      toPortCode: lane.to_port_code!,
-      option: o,
-      movement: draft.movement_type ?? null,
-      incoterm: draft.incoterms ?? null,
-    })
-    navigate(`/quotes/${quoteId}`)
-  }
 
   async function handleCreateLcl(o: LclRateOption) {
     if (!customer || !draft.from_port_code || !draft.to_port_code) return
@@ -289,6 +284,9 @@ export default function NewQuoteSearch() {
         cargoLines: airLines,
         option: o,
         selectedKeys,
+        agentId: agent?.agentId ?? null,
+        agentName: agent?.name ?? null,
+        freightTerms,
       })
       toast.success('Quote created with air buy rates')
       navigate(`/quotes/${quoteId}`)
@@ -309,24 +307,19 @@ export default function NewQuoteSearch() {
           <Link to="/quotes" className="nqs-quoteno">Cancel</Link>
         </div>
 
-        <div style={{ marginBottom: 12, display: 'flex', gap: 8 }}>
-          <div style={{ position: 'relative', flex: 1 }}>
-            <Sparkles size={16} style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: '#3B5BFE' }} />
-            <input value={aiQuery} onChange={(e) => setAiQuery(e.target.value)} onKeyDown={(e) => { if (e.key === 'Enter' && aiQuery.trim()) setChatOpen(true) }}
-              placeholder="Ask AI to find rates — e.g. “Ningbo to Auckland, 2×40ft”"
-              style={{ width: '100%', height: 46, padding: '0 16px 0 40px', border: '1px solid var(--color-line)', borderRadius: 12, fontSize: 14, outline: 'none' }} />
-          </div>
-          <button type="button" disabled={!aiQuery.trim()} onClick={() => setChatOpen(true)}
-            style={{ height: 46, padding: '0 18px', border: 'none', borderRadius: 12, color: '#fff', fontWeight: 600, cursor: aiQuery.trim() ? 'pointer' : 'not-allowed', opacity: aiQuery.trim() ? 1 : .5, display: 'inline-flex', alignItems: 'center', gap: 8, background: 'linear-gradient(120deg,#0A2472,#3B5BFE 55%,#F5A623 150%)', boxShadow: '0 6px 18px rgba(59,91,254,.28)' }}>
-            <Search size={16} /> Search
-          </button>
-        </div>
-        {chatOpen && (
-          <RateSearchModal initialQuery={aiQuery} onUseRate={useRateFromChat} onUseLclRate={useLclRateFromChat} onClose={() => setChatOpen(false)} />
-        )}
         <div className="nqs-customer">
-          <CustomerPicker label="Customer" required value={customer} onChange={onCustomerChange} />
+          <PartySearch value={party} agentMode={agentMode} onSelect={onPartySelect} onToggleAgent={onToggleAgent} />
         </div>
+        {draft.from_port_code && draft.to_port_code && showIntel && (
+          <FreightIntelligence
+            from={draft.from_port_code}
+            to={draft.to_port_code}
+            mode={isAir ? 'air' : 'sea'}
+            direction={draft.movement_type ?? null}
+            incoterm={draft.incoterms ?? null}
+            onClose={() => setShowIntel(false)}
+          />
+        )}
 
         <div className="nqs-modes">
           <button type="button" className={`nqs-mode${!isLcl && !isAir ? ' nqs-mode--active' : ''}`} onClick={() => setMode('FCL')}>
@@ -410,6 +403,9 @@ export default function NewQuoteSearch() {
             lines={airLines}
             entryMode={airMode}
             onEntryModeChange={setAirMode}
+            agentMode={agentMode}
+            freightTerms={freightTerms ?? ''}
+            onFreightTermsChange={(v) => { setFreightTerms(v); invalidate() }}
             onLinesChange={setAirLines}
             onAddLine={addAirLine}
           />
@@ -457,7 +453,7 @@ export default function NewQuoteSearch() {
                 </div>
                 {isAir
                   ? airOptions.map((o) => (
-                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} />
+                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} />
                     ))
                   : isLcl
                   ? lclOptions.map((o) => (

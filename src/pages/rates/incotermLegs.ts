@@ -74,10 +74,42 @@ export function legPayersFor(
 }
 
 // ---------------------------------------------------------------------------
-// Completeness (advisory, never blocks). Given the incoterm leg scope + service
-// type + which priced sources the matcher actually found, list what's required
-// for this incoterm/direction but missing. Cartage (door legs) is required only
-// when the service type starts/ends "Door" and a pickup/drop address is present.
+// Resolve which legs the customer is billed for, covering BOTH cases:
+//  - Direct principal (default): the incoterm + movement decide (chargeLegsFor).
+//  - Overseas agent (nomination): UBF bills the NZ-side leg it handles, largely
+//    incoterm-independent — destination on imports, origin on exports — and the
+//    freight leg follows prepaid/collect (the NZ-side agent bills freight when it
+//    is collect on imports / prepaid on exports).
+export function resolveLegs(p: {
+  isAgent?: boolean
+  incoterm?: string | null
+  movement?: string | null
+  freightTerms?: string | null
+}): ChargeLegs | null {
+  const mv = (p.movement || '').toLowerCase()
+  if (p.isAgent) {
+    if (mv !== 'import' && mv !== 'export') return null
+    const terms = (p.freightTerms || '').toLowerCase()
+    if (mv === 'import') return { origin: false, freight: terms === 'collect', dest: true }
+    return { origin: true, freight: terms === 'prepaid', dest: false } // export
+  }
+  return chargeLegsFor(p.incoterm, p.movement)
+}
+
+// The prepaid/collect default for an agent nomination in a given direction:
+// import → collect (destination agent bills freight); export → prepaid.
+export function defaultFreightTerms(movement: string | null | undefined): 'prepaid' | 'collect' | null {
+  const mv = (movement || '').toLowerCase()
+  if (mv === 'import') return 'collect'
+  if (mv === 'export') return 'prepaid'
+  return null
+}
+
+// ---------------------------------------------------------------------------
+// Completeness (advisory, never blocks). Given the already-resolved leg scope +
+// which priced sources the matcher found + whether each end is a door leg, list
+// what this scope requires but is missing. Door/cartage requirements are supplied
+// by the caller (agents pass no door legs, so cartage is never demanded for them).
 export type FoundSources = {
   freight: boolean
   originCharges: boolean
@@ -89,25 +121,20 @@ export type FoundSources = {
 export type Completeness = { complete: boolean; missing: string[] }
 
 export function completenessFor(
-  incoterm: string | null | undefined,
-  movement: string | null | undefined,
+  legs: ChargeLegs | null,
   found: FoundSources,
-  opts?: { hasPickup?: boolean; hasDelivery?: boolean },
+  door?: { origin?: boolean; dest?: boolean },
 ): Completeness {
-  const legs = chargeLegsFor(incoterm, movement)
-  if (!legs) return { complete: true, missing: [] } // unknown term → no warnings
-  const svc = serviceTypeForIncoterm(incoterm) || ''
-  const startsDoor = /^Door/i.test(svc)
-  const endsDoor = /Door$/i.test(svc)
+  if (!legs) return { complete: true, missing: [] }
   const missing: string[] = []
   if (legs.freight && !found.freight) missing.push('Freight')
   if (legs.origin) {
     if (!found.originCharges) missing.push('Origin charges')
-    if (startsDoor && (opts?.hasPickup ?? true) && !found.originCartage) missing.push('Origin cartage (pickup)')
+    if (door?.origin && !found.originCartage) missing.push('Origin cartage (pickup)')
   }
   if (legs.dest) {
     if (!found.destCharges) missing.push('Destination charges')
-    if (endsDoor && (opts?.hasDelivery ?? true) && !found.destCartage) missing.push('Destination cartage (delivery)')
+    if (door?.dest && !found.destCartage) missing.push('Destination cartage (delivery)')
   }
   return { complete: missing.length === 0, missing }
 }

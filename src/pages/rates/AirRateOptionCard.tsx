@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Plane, Clock, ArrowRight, ChevronDown, CalendarClock, AlertTriangle } from 'lucide-react'
 import type { AirRateOption, AirRateSurcharge } from './airRateSearchApi'
-import { chargeLegsFor, completenessFor, type FoundSources } from './incotermLegs'
+import { resolveLegs, completenessFor, serviceTypeForIncoterm, type FoundSources } from './incotermLegs'
 import { toNzd, fmtMoney, fmtNzd, type FxRates } from './fx'
 import AirlineLogo from './AirlineLogo.tsx'
 
@@ -24,16 +24,19 @@ type Props = {
   fxRates?: FxRates
   incoterm?: string
   movement?: string
+  isAgent?: boolean
+  freightTerms?: string
 }
 
-export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, incoterm, movement }: Props) {
+export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, incoterm, movement, isAgent, freightTerms }: Props) {
   const [open, setOpen] = useState(false)
   const [sel, setSel] = useState<Record<string, boolean>>({})
   const rates: FxRates = fxRates ?? new Map()
   const cur = o.currency || 'NZD'
 
   // Which legs the customer pays under this incoterm+direction (null = unknown → all on).
-  const scope = chargeLegsFor(incoterm, movement)
+  const scope = resolveLegs({ isAgent, incoterm, movement, freightTerms })
+  const scopeLabel = isAgent ? 'agent' : (incoterm || 'terms')
   const legDefault = (leg: LegKey) => (scope ? scope[leg] : true)
 
   const isOn = (key: string, def: boolean) => (key in sel ? sel[key] : def)
@@ -89,7 +92,8 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
     originCartage: o.localCharges.some((c) => c.group === 'origin' && !!c.cartageType),
     destCartage: o.localCharges.some((c) => c.group === 'dest' && !!c.cartageType),
   }
-  const completeness = completenessFor(incoterm, movement, found)
+  const svc = isAgent ? '' : (serviceTypeForIncoterm(incoterm) || '')
+  const completeness = completenessFor(scope, found, { origin: /^Door/i.test(svc), dest: /Door$/i.test(svc) })
 
   let grandSell = 0, grandBuy = 0, convertible = true
   for (const leg of legs) for (const it of leg.items) {
@@ -173,7 +177,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
       {!completeness.complete && (
         <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 18px', background: '#FFF7E6', borderTop: '1px solid #FCE2B0', color: '#8A5A00', fontSize: 12 }}>
           <AlertTriangle size={14} />
-          <span>Incomplete for {incoterm} {movement} — usually needs: {completeness.missing.join(', ')}. Add in Rates or price manually; you can still use it.</span>
+          <span>Incomplete for {scopeLabel} {movement} — usually needs: {completeness.missing.join(', ')}. Add in Rates or price manually; you can still use it.</span>
         </div>
       )}
 
@@ -189,7 +193,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
             <div key={leg.key} style={{ marginTop: 10 }}>
               <div style={{ fontSize: 12, fontWeight: 600, color: '#0A2472', marginBottom: 6, display: 'flex', alignItems: 'center', gap: 8 }}>
                 {leg.title}
-                {!inScope && <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted-foreground)', background: '#eef2f6', borderRadius: 999, padding: '1px 7px' }}>not billed for {incoterm}</span>}
+                {!inScope && <span style={{ fontSize: 10, fontWeight: 500, color: 'var(--muted-foreground)', background: '#eef2f6', borderRadius: 999, padding: '1px 7px' }}>not billed ({scopeLabel})</span>}
               </div>
               {leg.items.length === 0 ? (
                 <div style={{ fontSize: 12, color: inScope ? '#B4791F' : 'var(--muted-foreground)', padding: '4px 0' }}>No {leg.word} charges for {leg.port} on this lane.</div>
