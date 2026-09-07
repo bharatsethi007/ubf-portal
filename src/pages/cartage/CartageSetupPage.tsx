@@ -1,12 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import CartageZonesTab from './CartageZonesTab'
 import {
-  listCartageZones,
   listCartageBands,
   listCartageSurcharges,
   listCartageFaf,
-  type CartageZone,
   type CartageBand,
   type CartageSurcharge,
   type CartageFaf,
@@ -19,15 +18,14 @@ const TAB_TRIGGER_CLASS =
 
 export default function CartageSetupPage() {
   const [tab, setTab] = useState<Tab>('zones')
-  const [zones, setZones] = useState<CartageZone[]>([])
+  const [zonesCount, setZonesCount] = useState(0)
   const [bands, setBands] = useState<CartageBand[]>([])
   const [surcharges, setSurcharges] = useState<CartageSurcharge[]>([])
   const [faf, setFaf] = useState<CartageFaf[]>([])
 
   useEffect(() => {
-    Promise.all([listCartageZones(), listCartageBands(), listCartageSurcharges(), listCartageFaf()])
-      .then(([z, b, s, f]) => {
-        setZones(z)
+    Promise.all([listCartageBands(), listCartageSurcharges(), listCartageFaf()])
+      .then(([b, s, f]) => {
         setBands(b)
         setSurcharges(s)
         setFaf(f)
@@ -38,12 +36,12 @@ export default function CartageSetupPage() {
   const tabs = useMemo(
     () =>
       [
-        { id: 'zones' as const, label: `Zones (${zones.length})` },
+        { id: 'zones' as const, label: `Zones (${zonesCount})` },
         { id: 'bands' as const, label: `Weight Bands (${bands.length})` },
         { id: 'surcharges' as const, label: `Surcharges (${surcharges.length})` },
         { id: 'faf' as const, label: `Monthly FAF (${faf.length})` },
       ] satisfies { id: Tab; label: string }[],
-    [zones.length, bands.length, surcharges.length, faf.length],
+    [zonesCount, bands.length, surcharges.length, faf.length],
   )
 
   return (
@@ -75,40 +73,7 @@ export default function CartageSetupPage() {
             ))}
           </TabsList>
 
-          <TabsContent value="zones" className="mt-0">
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Name</th>
-                    <th>Type</th>
-                    <th>Island</th>
-                    <th>Region</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {zones.length === 0 ? (
-                    <tr>
-                      <td colSpan={5} className="text-muted-foreground pad-inline">
-                        No zones yet. Import via CSV.
-                      </td>
-                    </tr>
-                  ) : (
-                    zones.map((z) => (
-                      <tr key={z.id}>
-                        <td>{z.zone_code}</td>
-                        <td>{z.name}</td>
-                        <td>{z.zone_type}</td>
-                        <td>{z.island ?? '-'}</td>
-                        <td>{z.region ?? '-'}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
+          {tab === 'zones' && <CartageZonesTab onCount={(n) => setZonesCount(n)} />}
 
           <TabsContent value="bands" className="mt-0">
             <div className="table-wrap">

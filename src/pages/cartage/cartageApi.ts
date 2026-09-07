@@ -77,3 +77,47 @@ export async function listCartageFaf(): Promise<CartageFaf[]> {
   if (error) throw error
   return data ?? []
 }
+
+export type ZoneMember = {
+  id: string
+  zone_id: string
+  match_type: 'postcode' | 'postcode_range' | 'suburb' | 'city'
+  value: string
+  value_to: string | null
+}
+
+export async function createCartageZone(z: Partial<CartageZone>) {
+  const { data, error } = await supabase.from('cartage_zones').insert(z).select().single()
+  if (error) throw error
+  return data as CartageZone
+}
+
+export async function updateCartageZone(id: string, patch: Partial<CartageZone>) {
+  const { error } = await supabase.from('cartage_zones').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteCartageZone(id: string) {
+  const { error } = await supabase.from('cartage_zones').delete().eq('id', id)
+  if (error) throw error
+}
+
+export async function listZoneMembers(zoneId: string): Promise<ZoneMember[]> {
+  const { data, error } = await supabase
+    .from('cartage_zone_members')
+    .select('*')
+    .eq('zone_id', zoneId)
+    .order('match_type')
+  if (error) throw error
+  return data ?? []
+}
+
+export async function addZoneMember(m: Omit<ZoneMember, 'id'>) {
+  const { error } = await supabase.from('cartage_zone_members').insert(m)
+  if (error) throw error // unique (match_type, lower(value)) → dup value across zones is rejected
+}
+
+export async function deleteZoneMember(id: string) {
+  const { error } = await supabase.from('cartage_zone_members').delete().eq('id', id)
+  if (error) throw error
+}
