@@ -121,3 +121,55 @@ export async function deleteZoneMember(id: string) {
   const { error } = await supabase.from('cartage_zone_members').delete().eq('id', id)
   if (error) throw error
 }
+
+// bands
+export async function createCartageBand(b: Partial<CartageBand>) {
+  const { error } = await supabase.from('cartage_weight_bands').insert(b)
+  if (error) throw error
+}
+
+export async function updateCartageBand(id: string, patch: Partial<CartageBand>) {
+  const { error } = await supabase.from('cartage_weight_bands').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteCartageBand(id: string) {
+  const { error } = await supabase.from('cartage_weight_bands').delete().eq('id', id)
+  if (error) throw error
+}
+
+// surcharges (edit amount/active only; code/calc are fixed)
+export async function updateCartageSurcharge(
+  id: string,
+  patch: { default_amount?: number | null; active?: boolean },
+) {
+  const { error } = await supabase.from('cartage_surcharges').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+// heavy tiers
+export async function addSurchargeTier(t: { surcharge_id: string; threshold_kg: number; amount: number }) {
+  const { error } = await supabase.from('cartage_surcharge_tiers').insert(t)
+  if (error) throw error
+}
+
+export async function updateSurchargeTier(id: string, patch: { threshold_kg?: number; amount?: number }) {
+  const { error } = await supabase.from('cartage_surcharge_tiers').update(patch).eq('id', id)
+  if (error) throw error
+}
+
+export async function deleteSurchargeTier(id: string) {
+  const { error } = await supabase.from('cartage_surcharge_tiers').delete().eq('id', id)
+  if (error) throw error
+}
+
+// FAF (one row per month; upsert on effective_month)
+export async function upsertCartageFaf(f: { effective_month: string; percent: number; note?: string | null }) {
+  const { error } = await supabase.from('cartage_faf').upsert(f, { onConflict: 'effective_month' })
+  if (error) throw error
+}
+
+export async function deleteCartageFaf(id: string) {
+  const { error } = await supabase.from('cartage_faf').delete().eq('id', id)
+  if (error) throw error
+}

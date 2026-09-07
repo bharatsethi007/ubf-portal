@@ -1,15 +1,9 @@
-import { useEffect, useMemo, useState } from 'react'
-import { toast } from 'sonner'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
+import { useMemo, useState } from 'react'
+import { Tabs, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import CartageZonesTab from './CartageZonesTab'
-import {
-  listCartageBands,
-  listCartageSurcharges,
-  listCartageFaf,
-  type CartageBand,
-  type CartageSurcharge,
-  type CartageFaf,
-} from './cartageApi'
+import CartageBandsTab from './CartageBandsTab'
+import CartageSurchargesTab from './CartageSurchargesTab'
+import CartageFafTab from './CartageFafTab'
 
 type Tab = 'zones' | 'bands' | 'surcharges' | 'faf'
 
@@ -19,29 +13,19 @@ const TAB_TRIGGER_CLASS =
 export default function CartageSetupPage() {
   const [tab, setTab] = useState<Tab>('zones')
   const [zonesCount, setZonesCount] = useState(0)
-  const [bands, setBands] = useState<CartageBand[]>([])
-  const [surcharges, setSurcharges] = useState<CartageSurcharge[]>([])
-  const [faf, setFaf] = useState<CartageFaf[]>([])
-
-  useEffect(() => {
-    Promise.all([listCartageBands(), listCartageSurcharges(), listCartageFaf()])
-      .then(([b, s, f]) => {
-        setBands(b)
-        setSurcharges(s)
-        setFaf(f)
-      })
-      .catch((e) => toast.error(e instanceof Error ? e.message : 'Failed to load cartage setup'))
-  }, [])
+  const [bandsCount, setBandsCount] = useState(0)
+  const [surchargesCount, setSurchargesCount] = useState(0)
+  const [fafCount, setFafCount] = useState(0)
 
   const tabs = useMemo(
     () =>
       [
         { id: 'zones' as const, label: `Zones (${zonesCount})` },
-        { id: 'bands' as const, label: `Weight Bands (${bands.length})` },
-        { id: 'surcharges' as const, label: `Surcharges (${surcharges.length})` },
-        { id: 'faf' as const, label: `Monthly FAF (${faf.length})` },
+        { id: 'bands' as const, label: `Weight Bands (${bandsCount})` },
+        { id: 'surcharges' as const, label: `Surcharges (${surchargesCount})` },
+        { id: 'faf' as const, label: `Monthly FAF (${fafCount})` },
       ] satisfies { id: Tab; label: string }[],
-    [zonesCount, bands.length, surcharges.length, faf.length],
+    [zonesCount, bandsCount, surchargesCount, fafCount],
   )
 
   return (
@@ -73,84 +57,10 @@ export default function CartageSetupPage() {
             ))}
           </TabsList>
 
-          {tab === 'zones' && <CartageZonesTab onCount={(n) => setZonesCount(n)} />}
-
-          <TabsContent value="bands" className="mt-0">
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Label</th>
-                    <th>Min kg</th>
-                    <th>Max kg</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {bands.map((b) => (
-                    <tr key={b.id}>
-                      <td>{b.band_code}</td>
-                      <td>{b.label}</td>
-                      <td>{b.min_kg}</td>
-                      <td>{b.max_kg ?? '+'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="surcharges" className="mt-0">
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Code</th>
-                    <th>Label</th>
-                    <th>Applies</th>
-                    <th>Calc</th>
-                    <th>Tiers</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {surcharges.map((s) => (
-                    <tr key={s.id}>
-                      <td>{s.code}</td>
-                      <td>{s.label}</td>
-                      <td>{s.applies_to}</td>
-                      <td>{s.calc}</td>
-                      <td>
-                        {s.cartage_surcharge_tiers?.map((t) => `${t.threshold_kg / 1000}t`).join(', ') || '-'}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
-
-          <TabsContent value="faf" className="mt-0">
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead>
-                  <tr>
-                    <th>Month</th>
-                    <th>Percent</th>
-                    <th>Note</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {faf.map((f) => (
-                    <tr key={f.id}>
-                      <td>{f.effective_month}</td>
-                      <td>{f.percent}%</td>
-                      <td>{f.note ?? '-'}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </TabsContent>
+          {tab === 'zones' && <CartageZonesTab onCount={setZonesCount} />}
+          {tab === 'bands' && <CartageBandsTab onCount={setBandsCount} />}
+          {tab === 'surcharges' && <CartageSurchargesTab onCount={setSurchargesCount} />}
+          {tab === 'faf' && <CartageFafTab onCount={setFafCount} />}
         </Tabs>
       </div>
     </div>
