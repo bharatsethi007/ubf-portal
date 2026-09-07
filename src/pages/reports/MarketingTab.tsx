@@ -2,6 +2,7 @@
 import { Download, Send } from 'lucide-react'
 import Pagination from '@/components/Pagination'
 import { Card, Seg, Th, Td } from './reportsUi'
+import BrevoExportModal from './marketing/BrevoExportModal'
 import {
   fetchMarketingParties, dedupContacts, downloadContactsCsv, partyEmail,
   type MarketingPartyRow, type MktMode, type MktDirection, type MktParty,
@@ -30,6 +31,7 @@ export default function MarketingTab() {
   const [err, setErr] = useState<string | null>(null)
   const [q, setQ] = useState('')
   const [page, setPage] = useState(1)
+  const [showBrevo, setShowBrevo] = useState(false)
 
   const agentLabel = direction === 'export' ? 'Dest. Agent' : 'Origin Agent'
   const PARTIES = [
@@ -74,7 +76,9 @@ export default function MarketingTab() {
             onClick={() => downloadContactsCsv(contacts, csvName)}>
             <Download size={15} /> Export CSV
           </button>
-          <button disabled style={{ ...BTN_BASE, ...BTN_GREY }} title="Wired in next step">
+          <button disabled={!contacts.length}
+            style={{ ...BTN_BASE, ...(contacts.length ? BTN_NAVY : BTN_GREY) }}
+            onClick={() => setShowBrevo(true)}>
             <Send size={15} /> Export to Brevo
           </button>
         </div>
@@ -131,6 +135,8 @@ export default function MarketingTab() {
         </table>
       </div>
       <Pagination page={page} total={total} pageSize={PAGE_SIZE} onPageChange={setPage} />
+
+      {showBrevo ? <BrevoExportModal contacts={contacts} onClose={() => setShowBrevo(false)} /> : null}
     </Card>
   )
 }

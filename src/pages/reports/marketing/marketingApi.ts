@@ -78,3 +78,33 @@ export function downloadContactsCsv(contacts: MktContact[], filename: string) {
   a.click()
   URL.revokeObjectURL(url)
 }
+
+export type BrevoList = { id: number; name: string }
+
+export async function listBrevoLists(): Promise<{ lists: BrevoList[]; defaultFolderId: number | null }> {
+  const { data, error } = await supabase.functions.invoke('marketing-brevo-sync', { body: { action: 'lists' } })
+  if (error) throw new Error(error.message ?? 'Failed to load Brevo lists')
+  if (data?.error) throw new Error(data.error)
+  return { lists: data?.lists ?? [], defaultFolderId: data?.defaultFolderId ?? null }
+}
+
+export async function syncToBrevo(args: {
+  contacts: MktContact[]
+  listId?: number
+  newListName?: string
+  folderId?: number | null
+}): Promise<{ queued: number }> {
+  const payload: Record<string, unknown> = {
+    action: 'sync',
+    contacts: args.contacts.map((c) => ({ email: c.email, name: c.name })),
+  }
+  if (args.listId != null) payload.listId = args.listId
+  else if (args.newListName) {
+    payload.newListName = args.newListName
+    if (args.folderId != null) payload.folderId = args.folderId
+  }
+  const { data, error } = await supabase.functions.invoke('marketing-brevo-sync', { body: payload })
+  if (error) throw new Error(error.message ?? 'Brevo sync failed')
+  if (data?.error) throw new Error(data.error)
+  return { queued: data?.queued ?? 0 }
+}
