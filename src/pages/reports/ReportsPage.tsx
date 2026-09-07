@@ -1,12 +1,13 @@
-import { useState } from 'react'
-import { Handshake, Headset, Ship, TrendingUp, Users } from 'lucide-react'
+﻿import { useState } from 'react'
+import { Handshake, Headset, Megaphone, Ship, TrendingUp, Users } from 'lucide-react'
 import VolumesLanesTab from './VolumesLanesTab'
 import CustomerInsightsTab from './CustomerInsightsTab'
 import SalesAnalyticsTab from './SalesAnalyticsTab'
 import CustomerServiceTab from './cs/CustomerServiceTab'
 import AgentReciprocityTab from './AgentReciprocityTab'
+import MarketingTab from './MarketingTab'
 
-type Tab = 'volumes' | 'customers' | 'sales' | 'cs' | 'agents'
+type Tab = 'volumes' | 'customers' | 'sales' | 'cs' | 'agents' | 'marketing'
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>('volumes')
@@ -46,12 +47,19 @@ export default function ReportsPage() {
             Agents
           </span>
         </button>
+        <button className={`quotes-tabs__btn${tab === 'marketing' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('marketing')}>
+          <span className="inline-flex items-center gap-1.5">
+            <Megaphone size={16} aria-hidden />
+            Marketing
+          </span>
+        </button>
       </div>
       {tab === 'volumes' ? <VolumesLanesTab /> : null}
       {tab === 'customers' ? <CustomerInsightsTab /> : null}
       {tab === 'sales' ? <SalesAnalyticsTab /> : null}
       {tab === 'cs' ? <CustomerServiceTab /> : null}
       {tab === 'agents' ? <AgentReciprocityTab /> : null}
+      {tab === 'marketing' ? <MarketingTab /> : null}
     </div>
   )
 }
