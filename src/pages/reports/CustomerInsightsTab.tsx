@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+﻿import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { supabase } from '@/supabase'
 import Pagination from '@/components/Pagination'
@@ -8,6 +8,7 @@ import {
   NAVY, ORANGE, BLUE, C, FONT, glass, nf, cf,
   Card, Title, LegendDot, KpiRail, Th, Td, Seg, SearchSelect, type Opt,
 } from './reportsUi'
+import DateField from '@/components/DateField'
 
 const PAGE_SIZE = 12
 
@@ -62,9 +63,9 @@ function rangeFor(k: Preset): { from: string; to: string } {
 
 const AGING = [
   { key: 'not_due', name: 'Not due', color: C.green },
-  { key: 'd1_30', name: '1–30', color: BLUE },
-  { key: 'd31_60', name: '31–60', color: ORANGE },
-  { key: 'd61_90', name: '61–90', color: '#E8720C' },
+  { key: 'd1_30', name: '1â€“30', color: BLUE },
+  { key: 'd31_60', name: '31â€“60', color: ORANGE },
+  { key: 'd61_90', name: '61â€“90', color: '#E8720C' },
   { key: 'd90_plus', name: '90+', color: C.red },
 ] as const
 
@@ -103,7 +104,7 @@ export default function CustomerInsightsTab() {
     const r = rangeFor(k); setFrom(r.from); setTo(r.to); setPreset(k)
   }
 
-  // customer list (picker + all-view ranking) — depends on range + mode
+  // customer list (picker + all-view ranking) â€” depends on range + mode
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -114,7 +115,7 @@ export default function CustomerInsightsTab() {
     return () => { cancelled = true }
   }, [from, to, p_direction, p_mode])
 
-  // trend + summary + lanes — depends on all filters incl. account
+  // trend + summary + lanes â€” depends on all filters incl. account
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -138,7 +139,7 @@ export default function CustomerInsightsTab() {
     return () => { cancelled = true }
   }, [from, to, account, p_direction, p_mode])
 
-  // AR + open invoices — point-in-time, depends only on account
+  // AR + open invoices â€” point-in-time, depends only on account
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -162,7 +163,7 @@ export default function CustomerInsightsTab() {
   const pRev = num(summary?.prev_revenue), pGp = num(summary?.prev_gross_profit), pJobs = num(summary?.prev_jobs)
   const margin = rev ? (gp / rev) * 100 : 0
   const pct = (c: number, p: number) => (p ? ((c - p) / p) * 100 : null)
-  const deltaStr = (c: number, p: number) => { const x = pct(c, p); if (x === null) return undefined; return `${x >= 0 ? '▲' : '▼'} ${Math.abs(x).toFixed(0)}% vs prev` }
+  const deltaStr = (c: number, p: number) => { const x = pct(c, p); if (x === null) return undefined; return `${x >= 0 ? 'â–²' : 'â–¼'} ${Math.abs(x).toFixed(0)}% vs prev` }
 
   const overdue = ar ? num(ar.open_balance) - num(ar.not_due) : 0
 
@@ -239,11 +240,11 @@ export default function CustomerInsightsTab() {
               <Seg options={PRESETS as any} value={preset as any} onChange={(k) => pickPreset(k as Preset)} />
               <Seg options={MODES as any} value={modeKey} onChange={(k) => setModeKey(k as ModeKey)} />
             </div>
-            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loading…</span>}
+            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loadingâ€¦</span>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-            <Field label="From"><input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPreset('custom') }} style={dateInput} /></Field>
-            <Field label="To"><input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPreset('custom') }} style={dateInput} /></Field>
+            <Field label="From"><DateField value={from} onChange={(v) => { setFrom(v); setPreset('custom') }} /></Field>
+            <Field label="To"><DateField value={to} onChange={(v) => { setTo(v); setPreset('custom') }} /></Field>
             <Field label="Customer"><SearchSelect value={account} onChange={setAccount} options={custOpts} placeholder="All customers" width={300} /></Field>
           </div>
         </div>
@@ -258,13 +259,13 @@ export default function CustomerInsightsTab() {
           { label: 'Jobs', value: nf.format(jobs), delta: deltaStr(jobs, pJobs), accent: BLUE },
           { label: 'Pending', value: cf.format(num(ar?.open_balance)), sub: `${nf.format(num(ar?.open_count))} open invoices`, accent: overdue > 0 ? C.red : NAVY },
           { label: 'Overdue', value: cf.format(overdue), sub: `90+ : ${cf.format(num(ar?.d90_plus))}`, accent: C.red },
-          { label: 'Time to pay (DSO)', value: ar?.dso_days != null ? `${nf.format(num(ar?.dso_days))} days` : '—', sub: `${nf.format(num(ar?.avg_overdue_days))}d avg overdue`, accent: NAVY },
+          { label: 'Time to pay (DSO)', value: ar?.dso_days != null ? `${nf.format(num(ar?.dso_days))} days` : 'â€”', sub: `${nf.format(num(ar?.avg_overdue_days))}d avg overdue`, accent: NAVY },
         ]}
       />
 
       <Card>
         <Title right={<div style={{ display: 'flex', gap: 14 }}><LegendDot c={NAVY} t="Revenue" /><LegendDot c={ORANGE} t="Gross profit" /></div>}>
-          Revenue &amp; gross profit — {scopeName}
+          Revenue &amp; gross profit â€” {scopeName}
         </Title>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={trendData} margin={{ top: 6, right: 6, left: -8, bottom: 0 }} barGap={4} barCategoryGap="22%">
@@ -280,8 +281,8 @@ export default function CustomerInsightsTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <Title right={<span style={{ fontSize: 12, color: C.mut }}>{nf.format(num(ar?.open_count))} invoices · {cf.format(num(ar?.open_balance))}</span>}>
-            Invoice aging — {scopeName}
+          <Title right={<span style={{ fontSize: 12, color: C.mut }}>{nf.format(num(ar?.open_count))} invoices Â· {cf.format(num(ar?.open_balance))}</span>}>
+            Invoice aging â€” {scopeName}
           </Title>
           <ResponsiveContainer width="100%" height={230}>
             <BarChart data={agingData} margin={{ top: 6, right: 6, left: -8, bottom: 0 }}>
@@ -327,7 +328,7 @@ export default function CustomerInsightsTab() {
                     <Td right>{nf.format(num(r.jobs))}</Td>
                     <Td right strong>{cf.format(num(r.revenue))}</Td>
                     <Td right>{cf.format(num(r.gross_profit))}</Td>
-                    <Td right>{num(r.open_balance) > 0 ? <span style={{ color: C.red, fontWeight: 600 }}>{cf.format(num(r.open_balance))}</span> : '—'}</Td>
+                    <Td right>{num(r.open_balance) > 0 ? <span style={{ color: C.red, fontWeight: 600 }}>{cf.format(num(r.open_balance))}</span> : 'â€”'}</Td>
                   </tr>
                 ))}
                 {list.length === 0 && <tr><td colSpan={5} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No customers in range.</td></tr>}
@@ -346,7 +347,7 @@ export default function CustomerInsightsTab() {
                   <tr key={`${r.origin}-${r.destination}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
                     <Td strong>{flag(r.origin, r.mode)}{r.origin}</Td>
                     <Td>{flag(r.destination, r.mode)}{r.destination}</Td>
-                    <Td muted>{r.direction === 'import' ? 'I' : 'E'}·{r.mode === 'air' ? 'Air' : 'Sea'}</Td>
+                    <Td muted>{r.direction === 'import' ? 'I' : 'E'}Â·{r.mode === 'air' ? 'Air' : 'Sea'}</Td>
                     <Td right>{nf.format(num(r.jobs))}</Td>
                     <Td right strong>{cf.format(num(r.revenue))}</Td>
                     <Td right>{cf.format(num(r.gross_profit))}</Td>
@@ -370,7 +371,7 @@ export default function CustomerInsightsTab() {
             <tbody>
               {invSlice.map((r) => (
                 <tr key={r.invoice_no} style={{ borderTop: `1px solid ${C.line}` }}>
-                  <Td strong>{r.invoice_no}<span style={{ color: C.mut, fontWeight: 400 }}> · {docLabel[r.doctype] || r.doctype}</span></Td>
+                  <Td strong>{r.invoice_no}<span style={{ color: C.mut, fontWeight: 400 }}> Â· {docLabel[r.doctype] || r.doctype}</span></Td>
                   {account === null ? <Td muted trunc title={r.customer_name || undefined}>{r.customer_name || r.account_id}</Td> : null}
                   <Td muted>{r.date_due}</Td>
                   <Td right>{dayPill(num(r.days_overdue))}</Td>
@@ -386,3 +387,6 @@ export default function CustomerInsightsTab() {
     </div>
   )
 }
+
+
+

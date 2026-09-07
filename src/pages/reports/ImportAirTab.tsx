@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+﻿import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { supabase } from '@/supabase'
 import Pagination from '@/components/Pagination'
 import { usePorts } from '@/hooks/usePorts'
 import { resolvePortCountryCode } from '@/features/portal/dashboard/portalPortDisplay'
 import { NAVY, ORANGE, BLUE, C, FONT, glass, nf, cf, Card, Title, LegendDot, KpiRail, Td, Seg, SearchSelect, type Opt } from './reportsUi'
+import DateField from '@/components/DateField'
 
 const cfKg = new Intl.NumberFormat('en-NZ', { style: 'currency', currency: 'NZD', maximumFractionDigits: 2 })
 
@@ -68,7 +69,7 @@ const Field = ({ label, children }: { label: string; children: any }) => (
   </div>
 )
 
-/* ── sortable column header ── */
+/* â”€â”€ sortable column header â”€â”€ */
 type SortDir = 'asc' | 'desc'
 const NUMERIC = new Set(['masters', 'houses', 'gross_kg', 'chargeable_kg', 'revenue', 'gross_profit'])
 function sortRows<T>(rows: T[], key: keyof T, dir: SortDir): T[] {
@@ -87,7 +88,7 @@ function SortTh({ label, active, dir, right, onClick }: { label: string; active:
     <th onClick={onClick} style={{ textAlign: right ? 'right' : 'left', fontSize: 10.5, fontWeight: 600, letterSpacing: '.06em', textTransform: 'uppercase', color: active ? NAVY : C.mut, padding: '14px 12px 10px', whiteSpace: 'nowrap', cursor: 'pointer', userSelect: 'none' }}>
       <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, flexDirection: right ? 'row-reverse' : 'row' }}>
         {label}
-        <span style={{ fontSize: 8, lineHeight: 1, opacity: active ? 1 : 0.28 }}>{active && dir === 'asc' ? '▲' : '▼'}</span>
+        <span style={{ fontSize: 8, lineHeight: 1, opacity: active ? 1 : 0.28 }}>{active && dir === 'asc' ? 'â–²' : 'â–¼'}</span>
       </span>
     </th>
   )
@@ -223,11 +224,11 @@ export default function ImportAirTab() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <Seg options={PRESETS as any} value={preset as any} onChange={(k) => pickPreset(k as Preset)} />
-            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loading…</span>}
+            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loadingâ€¦</span>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
-            <Field label="From"><input type="date" value={from} onChange={(e) => { setFrom(e.target.value); setPreset('custom') }} style={dateInput} /></Field>
-            <Field label="To"><input type="date" value={to} onChange={(e) => { setTo(e.target.value); setPreset('custom') }} style={dateInput} /></Field>
+            <Field label="From"><DateField value={from} onChange={(v) => { setFrom(v); setPreset('custom') }} /></Field>
+            <Field label="To"><DateField value={to} onChange={(v) => { setTo(v); setPreset('custom') }} /></Field>
             <Field label="Destination"><SearchSelect value={destination} onChange={setDestination} options={destOpts} placeholder="All destinations" width={210} /></Field>
             <Field label="Customer"><SearchSelect value={customer} onChange={setCustomer} options={custOpts} placeholder="All customers" width={250} /></Field>
             <Field label="Consignee"><SearchSelect value={consignee} onChange={setConsignee} options={consOpts} placeholder="All consignees" width={250} /></Field>
@@ -245,7 +246,7 @@ export default function ImportAirTab() {
           { label: 'Revenue', value: cf.format(totals.rev) },
           { label: 'Gross profit', value: cf.format(totals.gp), delta: `${totals.margin.toFixed(1)}% margin`, accent: ORANGE },
           { label: 'Avg / house', value: cf.format(totals.avg), sub: `GP ${cf.format(totals.gpHouse)}` },
-          { label: 'Avg / kg', value: totals.kg ? cfKg.format(totals.rev / totals.kg) : '—', sub: totals.kg ? `GP ${cfKg.format(totals.gpKg)}` : undefined },
+          { label: 'Avg / kg', value: totals.kg ? cfKg.format(totals.rev / totals.kg) : 'â€”', sub: totals.kg ? `GP ${cfKg.format(totals.gpKg)}` : undefined },
         ]}
       />
 
@@ -310,8 +311,8 @@ export default function ImportAirTab() {
             <tbody>
               {partySlice.map((r, i) => (
                 <tr key={`${r.customer_account_id}-${r.consignee_name}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
-                  <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || '—'}</Td>
-                  <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || '—'}</Td>
+                  <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || 'â€”'}</Td>
+                  <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || 'â€”'}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
                   <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td><Td right>{cf.format(num(r.gross_profit))}</Td>
                 </tr>
@@ -329,3 +330,6 @@ export default function ImportAirTab() {
     </div>
   )
 }
+
+
+
