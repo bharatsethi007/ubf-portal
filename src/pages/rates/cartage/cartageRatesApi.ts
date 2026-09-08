@@ -295,3 +295,73 @@ export async function saveCartageLtlLanes(cardId: string, lanes: CartageLtlLaneD
     }
   }
 }
+
+// ---------- bulk insert (Excel/AI import path) + alias learning ----------
+export async function insertCartageFclLines(cardId: string, lines: CartageFclLineDraft[]): Promise<number> {
+  const valid = lines.filter((l) => l.origin_zone_id && l.dest_zone_id && (l.container_size === '20' || l.container_size === '40') && l.base_rate !== '' && !isNaN(Number(l.base_rate)))
+  if (!valid.length) return 0
+  const payload = valid.map((l) => ({
+    rate_card_id: cardId,
+    direction: l.direction,
+    origin_zone_id: l.origin_zone_id,
+    dest_zone_id: l.dest_zone_id,
+    container_size: l.container_size,
+    base_rate: Number(l.base_rate),
+    min_charge: l.min_charge === '' ? null : Number(l.min_charge),
+    confidence: l.confidence ?? 'green',
+    raw_origin: l.raw_origin || null,
+    raw_dest: l.raw_dest || null,
+  }))
+  const { error } = await supabase.from('rate_card_cartage_fcl_lines').insert(payload)
+  if (error) throw error
+  return payload.length
+}
+
+export async function insertCartageLtlLanes(cardId: string, lanes: CartageLtlLaneDraft[]): Promise<number> {
+  let n = 0
+  for (const l of lanes) {
+    const hasBand = Object.values(l.band_rates).some((v) => v !== '' && !isNaN(Number(v)))
+    const hasCbm = l.per_cbm !== '' && !isNaN(Number(l.per_cbm))
+    if (!l.origin_zone_id || !l.dest_zone_id || (!hasBand && !hasCbm)) continue
+    const { data, error } = await supabase.from('rate_card_cartage_ltl_lanes').insert({
+      rate_card_id: cardId,
+      direction: l.direction,
+      origin_zone_id: l.origin_zone_id,
+      dest_zone_id: l.dest_zone_id,
+      min_charge: l.min_charge === '' ? null : Number(l.min_charge),
+      per_cbm: l.per_cbm === '' ? null : Number(l.per_cbm),
+      confidence: l.confidence ?? 'green',
+      raw_origin: l.raw_origin || null,
+      raw_dest: l.raw_dest || null,
+    }).select('id').single()
+    if (error) throw error
+    const laneId = String(data.id)
+    const bandRows = Object.entries(l.band_rates)
+      .filter(([, v]) => v !== '' && !isNaN(Number(v)))
+      .map(([band_id, v]) => ({ lane_id: laneId, band_id, per_kg: Number(v) }))
+    if (bandRows.length) {
+      const { error: be } = await supabase.from('rate_card_cartage_ltl_band_rates').insert(bandRows)
+      if (be) throw be
+    }
+    n++
+  }
+  return n
+}
+
+export async function learnCartageAliases(pairs: { raw: string; zone_id: string }[]): Promise<number> {
+  const cand = new Map<string, { raw: string; zone_id: string }>()
+  for (const p of pairs) {
+    const raw = (p.raw || '').trim()
+    if (!raw || !p.zone_id) continue
+    cand.set(raw.toLowerCase(), { raw, zone_id: p.zone_id })
+  }
+  if (!cand.size) return 0
+  const { data: existing, error: exErr } = await supabase.from('cartage_aliases').select('raw')
+  if (exErr) throw exErr
+  const have = new Set(((existing as { raw: string }[]) ?? []).map((r) => r.raw.toLowerCase()))
+  const toInsert = [...cand.values()].filter((c) => !have.has(c.raw.toLowerCase())).map((c) => ({ raw: c.raw, zone_id: c.zone_id }))
+  if (!toInsert.length) return 0
+  const { error } = await supabase.from('cartage_aliases').insert(toInsert)
+  if (error) throw error
+  return toInsert.length
+}

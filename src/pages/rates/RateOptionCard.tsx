@@ -39,9 +39,10 @@ type Props = {
   containers?: { size: string; qty: number }[]
   incoterm?: string
   movement?: string
+  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string }
 }
 
-export default function RateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, containers, incoterm, movement }: Props) {
+export default function RateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, containers, incoterm, movement, cartage }: Props) {
   const [open, setOpen] = useState(false)
   const [sel, setSel] = useState<Record<string, boolean>>({})
   const rates: FxRates = fxRates ?? new Map()
@@ -68,6 +69,10 @@ export default function RateOptionCard({ option: o, fromCode, toCode, onUse, bus
     .map(({ c, i }) => mk(`l:${i}`, c.label, c.basis, c.buyAmount, c.sellAmount, c.sellCurrency || c.buyCurrency))
   const destItems: Item[] = o.localCharges.map((c, i) => ({ c, i })).filter((x) => x.c.group === 'dest')
     .map(({ c, i }) => mk(`l:${i}`, c.label, c.basis, c.buyAmount, c.sellAmount, c.sellCurrency || c.buyCurrency))
+  if (cartage && cartage.status === 'ok' && cartage.amount > 0) {
+    const it = mk('cartage', cartage.label, cartage.confidence && cartage.confidence !== 'green' ? `cartage · zone ${cartage.confidence}` : 'cartage', cartage.amount, cartage.amount, 'NZD')
+    if (cartage.leg === 'dest') destItems.push(it); else originItems.push(it)
+  }
   const freightItems: Item[] = [
     ...o.chips.map((c) => {
       const qty = qtyByCode.get(c.container_type) ?? null

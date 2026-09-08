@@ -11,9 +11,9 @@ function marginColor(m: number | null): string {
   return '#1F8A4C'
 }
 
-type Props = { option: LclRateOption; fromCode: string; toCode: string; onUse?: () => void; busy?: boolean }
+type Props = { option: LclRateOption; fromCode: string; toCode: string; onUse?: () => void; busy?: boolean; cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string } }
 
-export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, busy }: Props) {
+export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, busy, cartage }: Props) {
   const hasSell = o.sellTotal > 0 && o.sellTotal !== o.total
   const margin = o.sellTotal > 0 ? Math.round(((o.sellTotal - o.total) / o.sellTotal) * 1000) / 10 : null
   const sellPerWm = o.sellPerWm > 0 ? o.sellPerWm : o.ratePerWm
@@ -55,6 +55,12 @@ export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, 
           {surchargeCount > 0 ? ` (${surchargeCount} line${surchargeCount === 1 ? '' : 's'})` : ''}
           {o.validTo ? ` · valid to ${o.validTo}` : ''}
         </div>
+        {cartage && cartage.status === 'ok' && cartage.amount > 0 && (
+          <div style={{ fontSize: 12, marginTop: 4, color: '#0A2472' }}>
+            {cartage.leg === 'dest' ? 'Destination' : 'Origin'} cartage: <strong>NZD {cartage.amount.toLocaleString()}</strong>
+            {cartage.confidence && cartage.confidence !== 'green' ? <span style={{ color: '#B4791F' }}> · zone {cartage.confidence}</span> : null}
+          </div>
+        )}
       </div>
       <div style={{ textAlign: 'right', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', gap: 8 }}>
         {hasSell ? (

@@ -23,6 +23,8 @@ type Props = {
   onEntryModeChange: (m: CargoEntryMode) => void
   onLinesChange: (lines: QuoteCargoLine[]) => void
   onAddLine: () => void
+  residential?: boolean
+  onResidentialChange?: (v: boolean) => void
   mode?: 'air' | 'sea'
   agentMode?: boolean
   freightTerms?: string
@@ -47,7 +49,7 @@ export default function AirCargoPanel({
   incoterm, onIncotermChange, movement, onMovementChange,
   originAddress, onOriginAddressChange, deliveryAddress, onDeliveryAddressChange,
   lines, entryMode, onEntryModeChange, onLinesChange, onAddLine,
-  mode = 'air', agentMode, freightTerms, onFreightTermsChange,
+  mode = 'air', residential, onResidentialChange, agentMode, freightTerms, onFreightTermsChange,
 }: Props) {
   const addr = addressFieldsFor(incoterm, movement)
 
@@ -100,6 +102,12 @@ export default function AirCargoPanel({
               <span className="acp__label">Delivery address</span>
               <AddressAutocomplete label="" value={deliveryAddress}
                 onChange={(a, c) => onDeliveryAddressChange(a, c)} usePlaces={!deliveryAddress.trim()} />
+            </label>
+          )}
+          {addr.delivery && onResidentialChange && (
+            <label className="acp__field" style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <input type="checkbox" checked={!!residential} onChange={(e) => onResidentialChange(e.target.checked)} />
+              <span className="acp__label" style={{ margin: 0 }}>Residential delivery</span>
             </label>
           )}
         </div>

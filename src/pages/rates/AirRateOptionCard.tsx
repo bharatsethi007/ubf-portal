@@ -24,11 +24,12 @@ type Props = {
   fxRates?: FxRates
   incoterm?: string
   movement?: string
+  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string }
   isAgent?: boolean
   freightTerms?: string
 }
 
-export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, incoterm, movement, isAgent, freightTerms }: Props) {
+export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, incoterm, movement, isAgent, freightTerms, cartage }: Props) {
   const [open, setOpen] = useState(false)
   const [sel, setSel] = useState<Record<string, boolean>>({})
   const rates: FxRates = fxRates ?? new Map()
@@ -73,6 +74,10 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
 
   const originItems = [...localOrigin, ...surItems.filter((x) => x.scope === 'origin').map((x) => x.it)]
   const destItems = [...localDest, ...surItems.filter((x) => x.scope === 'dest').map((x) => x.it)]
+  if (cartage && cartage.status === 'ok' && cartage.amount > 0) {
+    const cit = mk('cartage', cartage.label, cartage.confidence && cartage.confidence !== 'green' ? `cartage · zone ${cartage.confidence}` : 'cartage', cartage.amount, cartage.amount, 'NZD')
+    if (cartage.leg === 'dest') destItems.push(cit); else originItems.push(cit)
+  }
   const freightItems = [...(freightItem ? [freightItem] : []), ...surItems.filter((x) => x.scope !== 'origin' && x.scope !== 'dest').map((x) => x.it)]
 
   const legs: { key: LegKey; title: string; word: string; port: string; items: Item[] }[] = [

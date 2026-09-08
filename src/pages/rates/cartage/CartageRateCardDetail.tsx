@@ -13,6 +13,7 @@ import {
 } from './cartageRatesApi'
 import CartageFclLinesGrid from './CartageFclLinesGrid'
 import CartageLtlLanesGrid from './CartageLtlLanesGrid'
+import CartageExcelImport from './CartageExcelImport'
 
 const STATUSES = ['draft', 'validated', 'active', 'expired'] as const
 
@@ -134,6 +135,16 @@ export default function CartageRateCardDetail() {
     }
   }
 
+  async function reloadAll() {
+    try {
+      const [ls, lanes] = await Promise.all([listCartageFclLines(id), listCartageLtlLanes(id)])
+      setLines(ls)
+      setOriginalIds(ls.map((l) => l.dbId as string))
+      setLtlLanes(lanes)
+      setLtlOriginalIds(lanes.map((l) => l.dbId as string))
+    } catch { /* ignore */ }
+  }
+
   if (loading) return <div className="quotes-page"><div className="card quotes-page__card">Loading…</div></div>
   if (notFound) return (
     <div className="quotes-page"><div className="card quotes-page__card">
@@ -211,6 +222,13 @@ export default function CartageRateCardDetail() {
           <div style={{ marginTop: 10 }}>
             <CartageLtlLanesGrid lanes={ltlLanes} zones={zones} bands={bands} onChange={setLtlLanes} onSave={saveLtl} saving={savingLtl} />
           </div>
+        </section>
+
+        <hr style={divider} />
+
+        <section>
+          <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>Import from Excel <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>(beta)</span></h2>
+          <CartageExcelImport cardId={id} zones={zones} bands={bands} onImported={reloadAll} />
         </section>
 
         {err && <p style={{ color: '#B23B3B', fontSize: 13, marginTop: 10 }}>{err}</p>}

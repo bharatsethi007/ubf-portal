@@ -44,6 +44,8 @@ type Props = {
   onOriginAddressChange: (v: string, c?: AddressComponents) => void
   deliveryAddress: string
   onDeliveryAddressChange: (v: string, c?: AddressComponents) => void
+  residential?: boolean
+  onResidentialChange?: (v: boolean) => void
   onApply: () => void
   onCancel: () => void
 }
@@ -59,6 +61,8 @@ export default function ContainerGroupsEditor({
   onOriginAddressChange,
   deliveryAddress,
   onDeliveryAddressChange,
+  residential,
+  onResidentialChange,
   onApply,
   onCancel,
 }: Props) {
@@ -122,6 +126,12 @@ export default function ContainerGroupsEditor({
                   onChange={(a, c) => onDeliveryAddressChange(a, c)}
                   usePlaces={!deliveryAddress.trim()}
                 />
+              </div>
+            )}
+            {addr.delivery && onResidentialChange && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, alignSelf: 'flex-end', paddingBottom: 4 }}>
+                <input type="checkbox" checked={!!residential} onChange={(e) => onResidentialChange(e.target.checked)} />
+                <span className="cg-label" style={{ margin: 0 }}>Residential delivery</span>
               </div>
             )}
           </div>

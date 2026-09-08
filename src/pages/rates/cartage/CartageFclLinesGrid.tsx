@@ -28,8 +28,8 @@ type Props = {
   lines: CartageFclLineDraft[]
   zones: CartageZone[]
   onChange: (lines: CartageFclLineDraft[]) => void
-  onSave: () => void
-  saving: boolean
+  onSave?: () => void
+  saving?: boolean
 }
 
 export default function CartageFclLinesGrid({ lines, zones, onChange, onSave, saving }: Props) {
@@ -101,13 +101,15 @@ export default function CartageFclLinesGrid({ lines, zones, onChange, onSave, sa
           </tbody>
         </table>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+      <div style={{ display: 'flex', justifyContent: onSave ? 'space-between' : 'flex-start', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
         <button type="button" className="btn btn--inline" title="Add line" aria-label="Add line" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={add}>
           <Plus size={16} strokeWidth={2} />
         </button>
-        <button type="button" className="btn btn--inline" title="Save FCL lines" aria-label="Save FCL lines" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={onSave} disabled={saving}>
-          <Save size={16} strokeWidth={2} />
-        </button>
+        {onSave && (
+          <button type="button" className="btn btn--inline" title="Save FCL lines" aria-label="Save FCL lines" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={onSave} disabled={saving}>
+            <Save size={16} strokeWidth={2} />
+          </button>
+        )}
       </div>
     </div>
   )

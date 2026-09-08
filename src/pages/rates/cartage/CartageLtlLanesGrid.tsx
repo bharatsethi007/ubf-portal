@@ -29,8 +29,8 @@ type Props = {
   zones: CartageZone[]
   bands: CartageBand[]
   onChange: (lanes: CartageLtlLaneDraft[]) => void
-  onSave: () => void
-  saving: boolean
+  onSave?: () => void
+  saving?: boolean
 }
 
 export default function CartageLtlLanesGrid({ lanes, zones, bands, onChange, onSave, saving }: Props) {
@@ -105,13 +105,15 @@ export default function CartageLtlLanesGrid({ lanes, zones, bands, onChange, onS
           </tbody>
         </table>
       </div>
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+      <div style={{ display: 'flex', justifyContent: onSave ? 'space-between' : 'flex-start', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
         <button type="button" className="btn btn--inline" title="Add lane" aria-label="Add lane" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={add}>
           <Plus size={16} strokeWidth={2} />
         </button>
-        <button type="button" className="btn btn--inline" title="Save LTL lanes" aria-label="Save LTL lanes" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={onSave} disabled={saving}>
-          <Save size={16} strokeWidth={2} />
-        </button>
+        {onSave && (
+          <button type="button" className="btn btn--inline" title="Save LTL lanes" aria-label="Save LTL lanes" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={onSave} disabled={saving}>
+            <Save size={16} strokeWidth={2} />
+          </button>
+        )}
       </div>
     </div>
   )

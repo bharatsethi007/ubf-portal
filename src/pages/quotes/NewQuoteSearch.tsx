@@ -6,8 +6,8 @@ import type { CustomerPickerValue } from '../../components/bookings/CustomerPick
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
-import CartageAutoQuote from './CartageAutoQuote'
 import { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
+import { runCartageRate, type CartageQuoteResult } from './cartageSearchApi'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
 import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
@@ -79,6 +79,8 @@ export default function NewQuoteSearch() {
   const [agent, setAgent] = useState<AgentPick | null>(null)
   const [freightTerms, setFreightTermsState] = useState<string | null>(null)
   const freightTouched = useRef(false)
+  const [residential, setResidential] = useState(false)
+  const [cartage, setCartage] = useState<{ leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string } | null>(null)
   const creating = busyId !== null
 
   function setFreightTerms(v: string | null) { freightTouched.current = true; setFreightTermsState(v) }
@@ -135,6 +137,41 @@ export default function NewQuoteSearch() {
     : 'Add cargo'
   const wmNum = lclSummary.wm
   const cbmNum = lclSummary.cbm > 0 ? lclSummary.cbm : wmNum
+
+  const cartKey = JSON.stringify({ mv: draft.movement_type, from: draft.from_port_code, to: draft.to_port_code,
+    pu: [draft.pickup_postal_code, draft.pickup_location, draft.pickup_address],
+    dr: [draft.drop_postal_code, draft.drop_location, draft.drop_address],
+    st: draft.shipment_type, g: groups.map((x) => [x.container_size, x.qty, x.weight_per_container_mt]),
+    lcl: [lclSummary.gross, lclSummary.cbm], air: [airSummary.gross, airSummary.cbm], residential })
+  useEffect(() => {
+    let cancelled = false
+    const rank: Record<string, number> = { green: 0, amber: 1, red: 2 }
+    const worse = (a: string, b: string) => (rank[b] > rank[a] ? b : a)
+    async function go() {
+      const mv = (draft.movement_type ?? '').toLowerCase()
+      const leg = mv === 'import'
+        ? { side: 'dest' as const, dir: 'import' as const, port: draft.to_port_code, door: { pc: draft.drop_postal_code, city: draft.drop_location, addr: draft.drop_address }, label: `Cartage · ${draft.to_port_code ?? '?'} → delivery` }
+        : mv === 'export'
+        ? { side: 'origin' as const, dir: 'export' as const, port: draft.from_port_code, door: { pc: draft.pickup_postal_code, city: draft.pickup_location, addr: draft.pickup_address }, label: `Cartage · pickup → ${draft.from_port_code ?? '?'}` }
+        : null
+      if (!leg || !leg.port || !(leg.door.pc || leg.door.city || leg.door.addr)) { if (!cancelled) setCartage(null); return }
+      const common = { door_postcode: leg.door.pc ?? null, door_city: leg.door.city ?? null, door_raw: leg.door.addr ?? null, port_code: leg.port, direction: leg.dir, residential, tail_lift: false }
+      try {
+        let amount = 0, conf = 'green', status = 'ok'
+        const take = (r: CartageQuoteResult, qty: number) => { if (r.status === 'ok') { amount += (r.total ?? 0) * qty; conf = worse(conf, r.door_confidence ?? 'green') } else status = r.status }
+        if (draft.shipment_type === 'Air') {
+          take(await runCartageRate({ ...common, mode: 'air', weight_kg: airSummary.gross, cbm: 0, volume_cm3: Math.round(airSummary.cbm * 1000000) }), 1)
+        } else if (draft.shipment_type === 'LCL') {
+          take(await runCartageRate({ ...common, mode: 'lcl', weight_kg: lclSummary.gross, cbm: lclSummary.cbm, volume_cm3: 0 }), 1)
+        } else {
+          for (const g of groups) { if (!g.qty) continue; take(await runCartageRate({ ...common, mode: g.container_size.startsWith('40') ? 'fcl40' : 'fcl20', weight_kg: (g.weight_per_container_mt ?? 0) * 1000, cbm: 0, volume_cm3: 0 }), g.qty) }
+        }
+        if (!cancelled) setCartage({ leg: leg.side, label: leg.label, amount, confidence: conf, status })
+      } catch { if (!cancelled) setCartage(null) }
+    }
+    const t = setTimeout(go, 300)
+    return () => { cancelled = true; clearTimeout(t) }
+  }, [cartKey]) // eslint-disable-line react-hooks/exhaustive-deps
 
 
   const canSearch = useMemo(() => {
@@ -411,6 +448,8 @@ export default function NewQuoteSearch() {
             onFreightTermsChange={(v) => { setFreightTerms(v); invalidate() }}
             onLinesChange={setAirLines}
             onAddLine={addAirLine}
+            residential={residential}
+            onResidentialChange={(v) => { setResidential(v); invalidate() }}
           />
         )}
 
@@ -433,7 +472,7 @@ export default function NewQuoteSearch() {
             originAddress={draft.pickup_address ?? ''} onOriginAddressChange={(v, c) => patch({ pickup_address: v || null, ...(c?.postcode ? { pickup_postal_code: c.postcode } : {}), ...(c?.city ? { pickup_location: c.city } : {}) })}
             deliveryAddress={draft.drop_address ?? ''} onDeliveryAddressChange={(v, c) => patch({ drop_address: v || null, ...(c?.postcode ? { drop_postal_code: c.postcode } : {}), ...(c?.city ? { drop_location: c.city } : {}) })}
             lines={lclLines} entryMode={lclMode} onEntryModeChange={setLclMode}
-            onLinesChange={(l) => { setLclLines(l); invalidate() }} onAddLine={addLclLine}
+            onLinesChange={(l) => { setLclLines(l); invalidate() }} onAddLine={addLclLine} residential={residential} onResidentialChange={(v) => { setResidential(v); invalidate() }}
             agentMode={agentMode} freightTerms={freightTerms ?? ''} onFreightTermsChange={(v) => { setFreightTerms(v); invalidate() }}
           />
         )}
@@ -450,25 +489,11 @@ export default function NewQuoteSearch() {
             onOriginAddressChange={(v, c) => patch({ pickup_address: v || null, ...(c?.postcode ? { pickup_postal_code: c.postcode } : {}), ...(c?.city ? { pickup_location: c.city } : {}) })}
             deliveryAddress={draft.drop_address ?? ''}
             onDeliveryAddressChange={(v, c) => patch({ drop_address: v || null, ...(c?.postcode ? { drop_postal_code: c.postcode } : {}), ...(c?.city ? { drop_location: c.city } : {}) })}
+            residential={residential}
+            onResidentialChange={(v) => { setResidential(v); invalidate() }}
             onApply={() => setLoadsOpen(false)}
             onCancel={() => setLoadsOpen(false)}
           />
-        )}
-
-        {draft.from_port_code && draft.to_port_code && draft.movement_type && (
-          <div className="nqs-results" style={{ marginTop: 8 }}>
-            <CartageAutoQuote
-              movement={draft.movement_type ?? null}
-              fromPort={draft.from_port_code ?? null}
-              toPort={draft.to_port_code ?? null}
-              pickup={{ postcode: draft.pickup_postal_code ?? null, city: draft.pickup_location ?? null, address: draft.pickup_address ?? null }}
-              drop={{ postcode: draft.drop_postal_code ?? null, city: draft.drop_location ?? null, address: draft.drop_address ?? null }}
-              shipmentType={draft.shipment_type ?? null}
-              containers={groups.map((g) => ({ size: g.container_size, qty: g.qty, weightMt: g.weight_per_container_mt }))}
-              lcl={{ weightKg: lclSummary.gross, cbm: lclSummary.cbm }}
-              air={{ weightKg: airSummary.gross, volumeCm3: Math.round(airSummary.cbm * 1000000) }}
-            />
-          </div>
         )}
 
         {searched && (
@@ -485,14 +510,14 @@ export default function NewQuoteSearch() {
                 </div>
                 {isAir
                   ? airOptions.map((o) => (
-                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} />
+                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} cartage={cartage} />
                     ))
                   : isLcl
                   ? lclOptions.map((o) => (
-                      <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} />
+                      <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} cartage={cartage} />
                     ))
                   : options.map((o) => (
-                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} />
+                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} cartage={cartage} />
                     ))}
                 {officeTips.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
