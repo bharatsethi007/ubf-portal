@@ -4,13 +4,15 @@ import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCurrencies } from '../../../hooks/useQuoteRefData'
 import DateField from '../../../components/DateField'
-import { listCartageZones, type CartageZone } from '../../cartage/cartageApi'
+import { listCartageZones, listCartageBands, type CartageZone, type CartageBand } from '../../cartage/cartageApi'
 import {
   fetchCartageRateCard, updateCartageRateCardHeader,
   listCartageFclLines, saveCartageFclLines,
-  type CartageRateCardDetail as CardDetail, type CartageFclLineDraft,
+  listCartageLtlLanes, saveCartageLtlLanes,
+  type CartageRateCardDetail as CardDetail, type CartageFclLineDraft, type CartageLtlLaneDraft,
 } from './cartageRatesApi'
 import CartageFclLinesGrid from './CartageFclLinesGrid'
+import CartageLtlLanesGrid from './CartageLtlLanesGrid'
 
 const STATUSES = ['draft', 'validated', 'active', 'expired'] as const
 
@@ -23,10 +25,14 @@ export default function CartageRateCardDetail() {
   const [notFound, setNotFound] = useState(false)
   const [card, setCard] = useState<CardDetail | null>(null)
   const [zones, setZones] = useState<CartageZone[]>([])
+  const [bands, setBands] = useState<CartageBand[]>([])
   const [lines, setLines] = useState<CartageFclLineDraft[]>([])
   const [originalIds, setOriginalIds] = useState<string[]>([])
+  const [ltlLanes, setLtlLanes] = useState<CartageLtlLaneDraft[]>([])
+  const [ltlOriginalIds, setLtlOriginalIds] = useState<string[]>([])
   const [savingHeader, setSavingHeader] = useState(false)
   const [savingLines, setSavingLines] = useState(false)
+  const [savingLtl, setSavingLtl] = useState(false)
   const [err, setErr] = useState('')
 
   useEffect(() => {
@@ -34,15 +40,18 @@ export default function CartageRateCardDetail() {
     setLoading(true)
     ;(async () => {
       try {
-        const [c, zs] = await Promise.all([fetchCartageRateCard(id), listCartageZones()])
+        const [c, zs, bs] = await Promise.all([fetchCartageRateCard(id), listCartageZones(), listCartageBands()])
         if (cancelled) return
         setZones(zs)
+        setBands(bs)
         if (!c) { setNotFound(true); setLoading(false); return }
         setCard(c)
-        const ls = await listCartageFclLines(id)
+        const [ls, lanes] = await Promise.all([listCartageFclLines(id), listCartageLtlLanes(id)])
         if (cancelled) return
         setLines(ls)
         setOriginalIds(ls.map((l) => l.dbId as string))
+        setLtlLanes(lanes)
+        setLtlOriginalIds(lanes.map((l) => l.dbId as string))
       } catch (e) {
         if (!cancelled) setErr(e instanceof Error ? e.message : 'Failed to load')
       } finally {
@@ -94,6 +103,34 @@ export default function CartageRateCardDetail() {
       toast.error(e instanceof Error ? e.message : 'Save failed')
     } finally {
       setSavingLines(false)
+    }
+  }
+
+  async function saveLtl() {
+    if (savingLtl) return
+    for (const l of ltlLanes) {
+      const hasBandRate = Object.values(l.band_rates).some((v) => v !== '' && !isNaN(Number(v)))
+      const hasPerCbm = l.per_cbm !== '' && !isNaN(Number(l.per_cbm))
+      if (!l.origin_zone_id || !l.dest_zone_id) {
+        toast.error('Each LTL lane needs an origin and destination zone')
+        return
+      }
+      if (!hasBandRate && !hasPerCbm) {
+        toast.error('Each LTL lane needs a per-CBM rate or at least one band $/kg')
+        return
+      }
+    }
+    setSavingLtl(true)
+    try {
+      await saveCartageLtlLanes(id, ltlLanes, ltlOriginalIds)
+      const lanes = await listCartageLtlLanes(id)
+      setLtlLanes(lanes)
+      setLtlOriginalIds(lanes.map((l) => l.dbId as string))
+      toast.success('LTL lanes saved')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Save failed')
+    } finally {
+      setSavingLtl(false)
     }
   }
 
@@ -172,8 +209,16 @@ export default function CartageRateCardDetail() {
         <hr style={divider} />
 
         <section>
-          <h2 style={{ fontSize: 16, margin: '0 0 8px' }}>LTL lanes &amp; band rates</h2>
-          <p className="text-muted-foreground pad-inline">Coming next (U4b-2): zone-to-zone LTL lanes with per-weight-band rates for LCL and Air.</p>
+          <h2 style={{ fontSize: 16, margin: '0 0 4px' }}>LTL lanes <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>· applies to LCL and Air; $/kg by weight band, or per-CBM (W/M for LCL)</span></h2>
+          {bands.length === 0 && <p className="text-muted-foreground pad-inline">No weight bands defined. Add bands in Setup → Cartage before entering band rates.</p>}
+          <div style={{ marginTop: 10 }}>
+            <CartageLtlLanesGrid lanes={ltlLanes} zones={zones} bands={bands} onChange={setLtlLanes} />
+          </div>
+          <div style={{ marginTop: 14 }}>
+            <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={saveLtl} disabled={savingLtl}>
+              {savingLtl ? 'Saving…' : 'Save LTL lanes'}
+            </button>
+          </div>
         </section>
 
         {err && <p style={{ color: '#B23B3B', fontSize: 13, marginTop: 10 }}>{err}</p>}

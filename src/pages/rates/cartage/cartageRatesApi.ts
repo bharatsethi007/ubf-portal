@@ -210,3 +210,88 @@ export async function saveCartageFclLines(cardId: string, lines: CartageFclLineD
     }
   }
 }
+
+// ---------- LTL cartage lanes + per-band rates ----------
+export type CartageLtlLaneDraft = {
+  key: string
+  dbId: string | null
+  direction: 'import' | 'export'
+  origin_zone_id: string
+  dest_zone_id: string
+  min_charge: string
+  per_cbm: string
+  band_rates: Record<string, string> // band_id -> per_kg
+  confidence?: 'green' | 'amber' | 'red'
+  raw_origin?: string
+  raw_dest?: string
+  note?: string
+}
+
+export async function listCartageLtlLanes(cardId: string): Promise<CartageLtlLaneDraft[]> {
+  const { data, error } = await supabase
+    .from('rate_card_cartage_ltl_lanes')
+    .select('id, direction, origin_zone_id, dest_zone_id, min_charge, per_cbm, confidence, raw_origin, raw_dest, rate_card_cartage_ltl_band_rates(band_id, per_kg)')
+    .eq('rate_card_id', cardId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return ((data as Record<string, any>[]) ?? []).map((r) => {
+    const br: Record<string, string> = {}
+    for (const row of (r.rate_card_cartage_ltl_band_rates ?? []) as Record<string, any>[]) {
+      if (row?.band_id != null) br[String(row.band_id)] = row.per_kg == null ? '' : String(row.per_kg)
+    }
+    return {
+      key: String(r.id),
+      dbId: String(r.id),
+      direction: (r.direction === 'export' ? 'export' : 'import') as 'import' | 'export',
+      origin_zone_id: r.origin_zone_id ? String(r.origin_zone_id) : '',
+      dest_zone_id: r.dest_zone_id ? String(r.dest_zone_id) : '',
+      min_charge: r.min_charge == null ? '' : String(r.min_charge),
+      per_cbm: r.per_cbm == null ? '' : String(r.per_cbm),
+      band_rates: br,
+      confidence: (r.confidence ?? 'green') as 'green' | 'amber' | 'red',
+      raw_origin: r.raw_origin ? String(r.raw_origin) : '',
+      raw_dest: r.raw_dest ? String(r.raw_dest) : '',
+    }
+  })
+}
+
+export async function saveCartageLtlLanes(cardId: string, lanes: CartageLtlLaneDraft[], originalIds: string[]): Promise<void> {
+  const keptIds = new Set(lanes.filter((l) => l.dbId).map((l) => l.dbId as string))
+  const toDelete = originalIds.filter((id) => !keptIds.has(id))
+  if (toDelete.length) {
+    const { error } = await supabase.from('rate_card_cartage_ltl_lanes').delete().in('id', toDelete)
+    if (error) throw error
+  }
+  for (const l of lanes) {
+    const lanePayload = {
+      rate_card_id: cardId,
+      direction: l.direction,
+      origin_zone_id: l.origin_zone_id,
+      dest_zone_id: l.dest_zone_id,
+      min_charge: l.min_charge === '' ? null : Number(l.min_charge),
+      per_cbm: l.per_cbm === '' ? null : Number(l.per_cbm),
+      confidence: l.confidence ?? 'green',
+      raw_origin: l.raw_origin || null,
+      raw_dest: l.raw_dest || null,
+    }
+    let laneId = l.dbId
+    if (laneId) {
+      const { error } = await supabase.from('rate_card_cartage_ltl_lanes').update(lanePayload).eq('id', laneId)
+      if (error) throw error
+    } else {
+      const { data, error } = await supabase.from('rate_card_cartage_ltl_lanes').insert(lanePayload).select('id').single()
+      if (error) throw error
+      laneId = String(data.id)
+    }
+    // replace this lane's band rates (small counts — delete + reinsert non-empty)
+    const { error: delErr } = await supabase.from('rate_card_cartage_ltl_band_rates').delete().eq('lane_id', laneId)
+    if (delErr) throw delErr
+    const bandRows = Object.entries(l.band_rates)
+      .filter(([, v]) => v !== '' && !isNaN(Number(v)))
+      .map(([band_id, v]) => ({ lane_id: laneId as string, band_id, per_kg: Number(v) }))
+    if (bandRows.length) {
+      const { error: insErr } = await supabase.from('rate_card_cartage_ltl_band_rates').insert(bandRows)
+      if (insErr) throw insErr
+    }
+  }
+}
