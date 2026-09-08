@@ -85,7 +85,7 @@ export default function CartageBandsTab({ onCount }: Props) {
 
   return (
     <div>
-      <div className="quotes-page__toolbar">
+      <div className="quotes-page__toolbar" style={{ justifyContent: 'flex-end' }}>
         <button type="button" className="btn quotes-page__new-btn" onClick={() => setEditing({ ...empty, sort_order: bands.length + 1 })}>
           <Plus size={16} strokeWidth={2} />
           New band
