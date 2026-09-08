@@ -2,12 +2,12 @@ import { useCallback, useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import DateField from '@/components/DateField'
-import { Button } from '@/components/ui/button'
 import { listCartageFaf, upsertCartageFaf, deleteCartageFaf, type CartageFaf } from './cartageApi'
 
 const firstOfMonth = (iso: string) => (iso ? `${iso.slice(0, 8)}01` : '')
 
 const labelStyle = { fontSize: 13, fontWeight: 500, color: 'var(--muted-foreground)', display: 'block', marginBottom: 6 }
+const addRow = { display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' as const, marginBottom: 14 }
 
 type Props = { onCount?: (n: number) => void }
 
@@ -59,7 +59,7 @@ export default function CartageFafTab({ onCount }: Props) {
 
   return (
     <div>
-      <div className="quotes-page__toolbar" style={{ display: 'flex', gap: 8, alignItems: 'end', flexWrap: 'wrap' }}>
+      <div style={addRow}>
         <div>
           <label style={labelStyle}>Month</label>
           <DateField
@@ -68,20 +68,28 @@ export default function CartageFafTab({ onCount }: Props) {
             width={150}
           />
         </div>
-        <input
-          className="input input--sm"
-          type="number"
-          placeholder="percent"
-          value={draft.percent}
-          onChange={(e) => setDraft({ ...draft, percent: e.target.value })}
-        />
-        <input
-          className="input input--sm"
-          placeholder="note"
-          value={draft.note}
-          onChange={(e) => setDraft({ ...draft, note: e.target.value })}
-        />
-        <Button type="button" onClick={save}>Save month</Button>
+        <div>
+          <label style={labelStyle}>Percent</label>
+          <input
+            className="input input--sm"
+            style={{ width: 110 }}
+            type="number"
+            placeholder="e.g. 12.5"
+            value={draft.percent}
+            onChange={(e) => setDraft({ ...draft, percent: e.target.value })}
+          />
+        </div>
+        <div>
+          <label style={labelStyle}>Note</label>
+          <input
+            className="input input--sm"
+            style={{ width: 220 }}
+            placeholder="optional"
+            value={draft.note}
+            onChange={(e) => setDraft({ ...draft, note: e.target.value })}
+          />
+        </div>
+        <button type="button" className="btn btn--inline" style={{ marginTop: 0, marginLeft: 'auto' }} onClick={save}>Save month</button>
       </div>
 
       <div className="table-wrap">
@@ -91,27 +99,35 @@ export default function CartageFafTab({ onCount }: Props) {
               <th>Month</th>
               <th>Percent</th>
               <th>Note</th>
-              <th />
+              <th aria-label="Actions" style={{ width: 60 }} />
             </tr>
           </thead>
           <tbody>
-            {rows.map((f) => (
-              <tr key={f.id}>
-                <td>{f.effective_month.slice(0, 7)}</td>
-                <td>{f.percent}%</td>
-                <td>{f.note ?? '-'}</td>
-                <td>
-                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete FAF row" onClick={() => remove(f.id)}>
-                    <Trash2 size={16} />
-                  </Button>
-                </td>
+            {rows.length === 0 ? (
+              <tr>
+                <td colSpan={4} className="text-muted-foreground pad-inline">No FAF set yet.</td>
               </tr>
-            ))}
+            ) : (
+              rows.map((f) => (
+                <tr key={f.id}>
+                  <td>{f.effective_month.slice(0, 7)}</td>
+                  <td>{f.percent}%</td>
+                  <td>{f.note ?? '-'}</td>
+                  <td>
+                    <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                      <button type="button" className="icon-btn" aria-label="Delete FAF row" onClick={() => remove(f.id)}>
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>
 
-      <p className="text-muted-foreground pad-inline">
+      <p className="text-muted-foreground pad-inline" style={{ marginTop: 10 }}>
         Re-saving an existing month overwrites its %. FAF applies to base LTL freight only.
       </p>
     </div>

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -32,6 +31,7 @@ const empty: Partial<CartageZone> = {
 const MATCH_TYPES = ['postcode', 'postcode_range', 'suburb', 'city'] as const
 const fieldStyle = { display: 'flex', flexDirection: 'column' as const, gap: 6 }
 const labelStyle = { fontSize: 13, fontWeight: 500, color: 'var(--muted-foreground)' }
+const addRow = { display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' as const, margin: '14px 0' }
 
 type Props = { onCount?: (n: number) => void }
 
@@ -125,10 +125,10 @@ export default function CartageZonesTab({ onCount }: Props) {
   return (
     <div>
       <div className="quotes-page__toolbar">
-        <Button type="button" className="quotes-page__new-btn" onClick={() => setEditing({ ...empty })}>
+        <button type="button" className="btn quotes-page__new-btn" onClick={() => setEditing({ ...empty })}>
           <Plus size={16} strokeWidth={2} />
           New zone
-        </Button>
+        </button>
       </div>
 
       <div className="table-wrap">
@@ -140,7 +140,7 @@ export default function CartageZonesTab({ onCount }: Props) {
               <th>Type</th>
               <th>Island</th>
               <th>Region</th>
-              <th />
+              <th aria-label="Actions" style={{ width: 90 }} />
             </tr>
           </thead>
           <tbody>
@@ -157,13 +157,13 @@ export default function CartageZonesTab({ onCount }: Props) {
                   <td>{z.island ?? '-'}</td>
                   <td>{z.region ?? '-'}</td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit zone" onClick={() => setEditing(z)}>
+                    <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                      <button type="button" className="icon-btn" aria-label="Edit zone" onClick={() => setEditing(z)}>
                         <Pencil size={16} />
-                      </Button>
-                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete zone" onClick={() => removeZone(z)}>
+                      </button>
+                      <button type="button" className="icon-btn" aria-label="Delete zone" onClick={() => removeZone(z)}>
                         <Trash2 size={16} />
-                      </Button>
+                      </button>
                     </div>
                   </td>
                 </tr>
@@ -178,13 +178,15 @@ export default function CartageZonesTab({ onCount }: Props) {
           <div className="quotes-page__head" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
             <h3 style={{ margin: 0 }}>
               Members — {selected.zone_code}{' '}
-              <span className="text-muted-foreground">(id: {selected.id})</span>
+              <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: 13 }}>· {selected.name}</span>
             </h3>
-            <Button type="button" variant="outline" size="sm" onClick={() => setSelected(null)}>Close</Button>
+            <button type="button" className="text-link" onClick={() => setSelected(null)}>Close</button>
           </div>
-          <div className="quotes-page__toolbar" style={{ gap: 8, display: 'flex', flexWrap: 'wrap' }}>
+
+          <div style={addRow}>
             <select
               className="input input--sm"
+              style={{ width: 150 }}
               value={mDraft.match_type}
               onChange={(e) => setMDraft({ ...mDraft, match_type: e.target.value as ZoneMember['match_type'] })}
             >
@@ -192,16 +194,17 @@ export default function CartageZonesTab({ onCount }: Props) {
                 <option key={t} value={t}>{t}</option>
               ))}
             </select>
-            <input className="input input--sm" placeholder="value" value={mDraft.value} onChange={(e) => setMDraft({ ...mDraft, value: e.target.value })} />
+            <input className="input input--sm" style={{ width: 180 }} placeholder="value" value={mDraft.value} onChange={(e) => setMDraft({ ...mDraft, value: e.target.value })} />
             {mDraft.match_type === 'postcode_range' && (
-              <input className="input input--sm" placeholder="to" value={mDraft.value_to} onChange={(e) => setMDraft({ ...mDraft, value_to: e.target.value })} />
+              <input className="input input--sm" style={{ width: 120 }} placeholder="to" value={mDraft.value_to} onChange={(e) => setMDraft({ ...mDraft, value_to: e.target.value })} />
             )}
-            <Button type="button" size="sm" onClick={addMember}>Add</Button>
+            <button type="button" className="btn btn--inline" style={{ marginTop: 0, marginLeft: 'auto' }} onClick={addMember}>Add</button>
           </div>
+
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr><th>Type</th><th>Value</th><th>To</th><th /></tr>
+                <tr><th>Type</th><th>Value</th><th>To</th><th aria-label="Actions" style={{ width: 60 }} /></tr>
               </thead>
               <tbody>
                 {members.length === 0 ? (
@@ -217,9 +220,11 @@ export default function CartageZonesTab({ onCount }: Props) {
                       <td>{m.value}</td>
                       <td>{m.value_to ?? '-'}</td>
                       <td>
-                        <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete member" onClick={() => removeMember(m.id)}>
-                          <Trash2 size={16} />
-                        </Button>
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                          <button type="button" className="icon-btn" aria-label="Delete member" onClick={() => removeMember(m.id)}>
+                            <Trash2 size={16} />
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   ))
@@ -270,8 +275,8 @@ export default function CartageZonesTab({ onCount }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button type="button" onClick={saveZone}>Save</Button>
+            <button type="button" className="text-link" onClick={() => setEditing(null)}>Cancel</button>
+            <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={saveZone}>Save</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

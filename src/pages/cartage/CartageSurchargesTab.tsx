@@ -1,7 +1,6 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import {
   listCartageSurcharges,
   updateCartageSurcharge,
@@ -10,6 +9,8 @@ import {
   deleteSurchargeTier,
   type CartageSurcharge,
 } from './cartageApi'
+
+const addRow = { display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' as const, marginBottom: 10 }
 
 type Props = { onCount?: (n: number) => void }
 
@@ -103,7 +104,7 @@ export default function CartageSurchargesTab({ onCount }: Props) {
             <th>Calc</th>
             <th>Default amount</th>
             <th>Active</th>
-            <th />
+            <th aria-label="Tiers" style={{ width: 90 }} />
           </tr>
         </thead>
         <tbody>
@@ -123,7 +124,7 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                       type="number"
                       defaultValue={s.default_amount ?? ''}
                       onBlur={(e) => saveAmount(s, e.target.value)}
-                      style={{ width: 100 }}
+                      style={{ width: 110 }}
                     />
                   )}
                 </td>
@@ -131,19 +132,22 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                   <input type="checkbox" checked={s.active} onChange={() => toggle(s)} />
                 </td>
                 <td>
-                  {s.calc === 'tiered_weight' && (
-                    <Button type="button" variant="outline" size="sm" onClick={() => toggleOpen(s)}>
-                      {open === s.id ? 'Hide' : 'Tiers'}
-                    </Button>
-                  )}
+                  <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                    {s.calc === 'tiered_weight' && (
+                      <button type="button" className="text-link" onClick={() => toggleOpen(s)}>
+                        {open === s.id ? 'Hide' : 'Tiers'}
+                      </button>
+                    )}
+                  </div>
                 </td>
               </tr>
               {open === s.id && (
                 <tr>
                   <td colSpan={7}>
-                    <div className="quotes-page__toolbar" style={{ gap: 8, display: 'flex', flexWrap: 'wrap', marginBottom: 8 }}>
+                    <div style={addRow}>
                       <input
                         className="input input--sm"
+                        style={{ width: 200 }}
                         type="number"
                         placeholder="threshold kg (e.g. 20000)"
                         value={tier.threshold_kg}
@@ -151,19 +155,20 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                       />
                       <input
                         className="input input--sm"
+                        style={{ width: 130 }}
                         type="number"
                         placeholder="amount"
                         value={tier.amount}
                         onChange={(e) => setTier({ ...tier, amount: e.target.value })}
                       />
-                      <Button type="button" size="sm" onClick={() => addTier(s)}>Add tier</Button>
+                      <button type="button" className="btn btn--inline" style={{ marginTop: 0, marginLeft: 'auto' }} onClick={() => addTier(s)}>Add tier</button>
                     </div>
                     <table className="data-table">
                       <thead>
                         <tr>
                           <th>Threshold kg</th>
                           <th>Amount</th>
-                          <th />
+                          <th aria-label="Actions" style={{ width: 60 }} />
                         </tr>
                       </thead>
                       <tbody>
@@ -177,7 +182,7 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                                   type="number"
                                   defaultValue={t.threshold_kg}
                                   onBlur={(e) => saveTierField(t.id, { threshold_kg: Number(e.target.value) })}
-                                  style={{ width: 110 }}
+                                  style={{ width: 120 }}
                                 />
                               </td>
                               <td>
@@ -186,13 +191,15 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                                   type="number"
                                   defaultValue={t.amount}
                                   onBlur={(e) => saveTierField(t.id, { amount: Number(e.target.value) })}
-                                  style={{ width: 100 }}
+                                  style={{ width: 110 }}
                                 />
                               </td>
                               <td>
-                                <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete tier" onClick={() => removeTier(t.id)}>
-                                  <Trash2 size={16} />
-                                </Button>
+                                <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                                  <button type="button" className="icon-btn" aria-label="Delete tier" onClick={() => removeTier(t.id)}>
+                                    <Trash2 size={16} />
+                                  </button>
+                                </div>
                               </td>
                             </tr>
                           ))}

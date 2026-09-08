@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { Button } from '@/components/ui/button'
 import {
   Dialog,
   DialogContent,
@@ -87,10 +86,10 @@ export default function CartageBandsTab({ onCount }: Props) {
   return (
     <div>
       <div className="quotes-page__toolbar">
-        <Button type="button" className="quotes-page__new-btn" onClick={() => setEditing({ ...empty, sort_order: bands.length + 1 })}>
+        <button type="button" className="btn quotes-page__new-btn" onClick={() => setEditing({ ...empty, sort_order: bands.length + 1 })}>
           <Plus size={16} strokeWidth={2} />
           New band
-        </Button>
+        </button>
       </div>
 
       <div className="table-wrap">
@@ -102,7 +101,7 @@ export default function CartageBandsTab({ onCount }: Props) {
               <th>Min kg</th>
               <th>Max kg</th>
               <th>Order</th>
-              <th />
+              <th aria-label="Actions" style={{ width: 90 }} />
             </tr>
           </thead>
           <tbody>
@@ -114,13 +113,13 @@ export default function CartageBandsTab({ onCount }: Props) {
                 <td>{b.max_kg ?? '+'}</td>
                 <td>{b.sort_order}</td>
                 <td>
-                  <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit band" onClick={() => setEditing(b)}>
+                  <div style={{ display: 'flex', gap: 2, justifyContent: 'flex-end' }}>
+                    <button type="button" className="icon-btn" aria-label="Edit band" onClick={() => setEditing(b)}>
                       <Pencil size={16} />
-                    </Button>
-                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete band" onClick={() => remove(b)}>
+                    </button>
+                    <button type="button" className="icon-btn" aria-label="Delete band" onClick={() => remove(b)}>
                       <Trash2 size={16} />
-                    </Button>
+                    </button>
                   </div>
                 </td>
               </tr>
@@ -162,8 +161,8 @@ export default function CartageBandsTab({ onCount }: Props) {
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
-            <Button type="button" onClick={save}>Save</Button>
+            <button type="button" className="text-link" onClick={() => setEditing(null)}>Cancel</button>
+            <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={save}>Save</button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
