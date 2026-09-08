@@ -1,5 +1,5 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   listCartageSurcharges,
@@ -145,6 +145,7 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                 <tr>
                   <td colSpan={7}>
                     <div style={addRow}>
+                      <button type="button" className="btn btn--inline" title="Add tier" aria-label="Add tier" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={() => addTier(s)}><Plus size={16} strokeWidth={2} /></button>
                       <input
                         className="input input--sm"
                         style={{ width: 200 }}
@@ -161,7 +162,6 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                         value={tier.amount}
                         onChange={(e) => setTier({ ...tier, amount: e.target.value })}
                       />
-                      <button type="button" className="btn btn--inline" style={{ marginTop: 0, marginLeft: 'auto' }} onClick={() => addTier(s)}>Add tier</button>
                     </div>
                     <table className="data-table">
                       <thead>

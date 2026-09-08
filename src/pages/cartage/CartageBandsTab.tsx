@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -85,10 +85,9 @@ export default function CartageBandsTab({ onCount }: Props) {
 
   return (
     <div>
-      <div className="quotes-page__toolbar" style={{ justifyContent: 'flex-end', margin: '16px 0' }}>
-        <button type="button" className="btn quotes-page__new-btn" onClick={() => setEditing({ ...empty, sort_order: bands.length + 1 })}>
+      <div className="quotes-page__toolbar" style={{ justifyContent: 'flex-start', margin: '16px 0' }}>
+        <button type="button" className="btn quotes-page__new-btn" title="New band" aria-label="New band" onClick={() => setEditing({ ...empty, sort_order: bands.length + 1 })}>
           <Plus size={16} strokeWidth={2} />
-          New band
         </button>
       </div>
 
@@ -162,7 +161,7 @@ export default function CartageBandsTab({ onCount }: Props) {
           </div>
           <DialogFooter>
             <button type="button" className="text-link" onClick={() => setEditing(null)}>Cancel</button>
-            <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={save}>Save</button>
+            <button type="button" className="btn btn--inline" title="Save" aria-label="Save" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={save}><Save size={16} strokeWidth={2} /></button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

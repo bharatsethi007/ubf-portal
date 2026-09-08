@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft } from 'lucide-react'
+import { ArrowLeft, Save } from 'lucide-react'
 import { toast } from 'sonner'
 import { useCurrencies } from '../../../hooks/useQuoteRefData'
 import DateField from '../../../components/DateField'
@@ -186,9 +186,11 @@ export default function CartageRateCardDetail() {
               <DateField value={card.valid_to ?? null} onChange={(v) => setField('valid_to', v || null)} />
             </div>
           </div>
-          <button type="button" className="btn btn--inline" style={{ marginTop: 16 }} onClick={saveHeader} disabled={savingHeader}>
-            {savingHeader ? 'Saving…' : 'Save details'}
-          </button>
+          <div style={{ display: 'flex', justifyContent: 'flex-end', marginTop: 16 }}>
+            <button type="button" className="btn btn--inline" title="Save details" aria-label="Save details" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={saveHeader} disabled={savingHeader}>
+              <Save size={16} strokeWidth={2} />
+            </button>
+          </div>
         </section>
 
         <hr style={divider} />
@@ -197,12 +199,7 @@ export default function CartageRateCardDetail() {
           <h2 style={{ fontSize: 16, margin: '0 0 4px' }}>FCL lines <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>· container 20/40, flat rate per zone-to-zone lane</span></h2>
           {zones.length === 0 && <p className="text-muted-foreground pad-inline">No zones defined yet. Add zones in Setup → Cartage before creating lines.</p>}
           <div style={{ marginTop: 10 }}>
-            <CartageFclLinesGrid lines={lines} zones={zones} onChange={setLines} />
-          </div>
-          <div style={{ marginTop: 14 }}>
-            <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={saveLines} disabled={savingLines}>
-              {savingLines ? 'Saving…' : 'Save FCL lines'}
-            </button>
+            <CartageFclLinesGrid lines={lines} zones={zones} onChange={setLines} onSave={saveLines} saving={savingLines} />
           </div>
         </section>
 
@@ -212,12 +209,7 @@ export default function CartageRateCardDetail() {
           <h2 style={{ fontSize: 16, margin: '0 0 4px' }}>LTL lanes <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>· applies to LCL and Air; $/kg by weight band, or per-CBM (W/M for LCL)</span></h2>
           {bands.length === 0 && <p className="text-muted-foreground pad-inline">No weight bands defined. Add bands in Setup → Cartage before entering band rates.</p>}
           <div style={{ marginTop: 10 }}>
-            <CartageLtlLanesGrid lanes={ltlLanes} zones={zones} bands={bands} onChange={setLtlLanes} />
-          </div>
-          <div style={{ marginTop: 14 }}>
-            <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={saveLtl} disabled={savingLtl}>
-              {savingLtl ? 'Saving…' : 'Save LTL lanes'}
-            </button>
+            <CartageLtlLanesGrid lanes={ltlLanes} zones={zones} bands={bands} onChange={setLtlLanes} onSave={saveLtl} saving={savingLtl} />
           </div>
         </section>
 

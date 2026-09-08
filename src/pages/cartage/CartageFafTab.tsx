@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Trash2 } from 'lucide-react'
+import { Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import DateField from '@/components/DateField'
 import { listCartageFaf, upsertCartageFaf, deleteCartageFaf, type CartageFaf } from './cartageApi'
@@ -89,7 +89,7 @@ export default function CartageFafTab({ onCount }: Props) {
             onChange={(e) => setDraft({ ...draft, note: e.target.value })}
           />
         </div>
-        <button type="button" className="btn btn--inline" style={{ marginTop: 0, marginLeft: 'auto' }} onClick={save}>Save month</button>
+        <button type="button" className="btn btn--inline" title="Save month" aria-label="Save month" style={{ marginTop: 0, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={save}><Save size={16} strokeWidth={2} /></button>
       </div>
 
       <div className="table-wrap">

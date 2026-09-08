@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Pencil, Plus, Trash2 } from 'lucide-react'
+import { Pencil, Plus, Save, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   Dialog,
@@ -124,10 +124,9 @@ export default function CartageZonesTab({ onCount }: Props) {
 
   return (
     <div>
-      <div className="quotes-page__toolbar" style={{ justifyContent: 'flex-end', margin: '16px 0' }}>
-        <button type="button" className="btn quotes-page__new-btn" onClick={() => setEditing({ ...empty })}>
+      <div className="quotes-page__toolbar" style={{ justifyContent: 'flex-start', margin: '16px 0' }}>
+        <button type="button" className="btn quotes-page__new-btn" title="New zone" aria-label="New zone" onClick={() => setEditing({ ...empty })}>
           <Plus size={16} strokeWidth={2} />
-          New zone
         </button>
       </div>
 
@@ -184,6 +183,7 @@ export default function CartageZonesTab({ onCount }: Props) {
           </div>
 
           <div style={addRow}>
+            <button type="button" className="btn btn--inline" title="Add member" aria-label="Add member" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={addMember}><Plus size={16} strokeWidth={2} /></button>
             <select
               className="input input--sm"
               style={{ width: 150 }}
@@ -198,7 +198,6 @@ export default function CartageZonesTab({ onCount }: Props) {
             {mDraft.match_type === 'postcode_range' && (
               <input className="input input--sm" style={{ width: 120 }} placeholder="to" value={mDraft.value_to} onChange={(e) => setMDraft({ ...mDraft, value_to: e.target.value })} />
             )}
-            <button type="button" className="btn btn--inline" style={{ marginTop: 0, marginLeft: 'auto' }} onClick={addMember}>Add</button>
           </div>
 
           <div className="table-wrap">
@@ -276,7 +275,7 @@ export default function CartageZonesTab({ onCount }: Props) {
           </div>
           <DialogFooter>
             <button type="button" className="text-link" onClick={() => setEditing(null)}>Cancel</button>
-            <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={saveZone}>Save</button>
+            <button type="button" className="btn btn--inline" title="Save" aria-label="Save" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={saveZone}><Save size={16} strokeWidth={2} /></button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

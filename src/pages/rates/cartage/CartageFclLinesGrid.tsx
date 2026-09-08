@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Save, Trash2 } from 'lucide-react'
 import type { CartageZone } from '../../cartage/cartageApi'
 import type { CartageFclLineDraft } from './cartageRatesApi'
 
@@ -28,9 +28,11 @@ type Props = {
   lines: CartageFclLineDraft[]
   zones: CartageZone[]
   onChange: (lines: CartageFclLineDraft[]) => void
+  onSave: () => void
+  saving: boolean
 }
 
-export default function CartageFclLinesGrid({ lines, zones, onChange }: Props) {
+export default function CartageFclLinesGrid({ lines, zones, onChange, onSave, saving }: Props) {
   function update(key: string, patch: Partial<CartageFclLineDraft>) {
     onChange(lines.map((l) => (l.key === key ? { ...l, ...patch } : l)))
   }
@@ -99,9 +101,12 @@ export default function CartageFclLinesGrid({ lines, zones, onChange }: Props) {
           </tbody>
         </table>
       </div>
-      <div style={{ marginTop: 10 }}>
-        <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={add}>
-          <Plus size={15} strokeWidth={2} /> Add line
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+        <button type="button" className="btn btn--inline" title="Add line" aria-label="Add line" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={add}>
+          <Plus size={16} strokeWidth={2} />
+        </button>
+        <button type="button" className="btn btn--inline" title="Save FCL lines" aria-label="Save FCL lines" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={onSave} disabled={saving}>
+          <Save size={16} strokeWidth={2} />
         </button>
       </div>
     </div>

@@ -1,5 +1,5 @@
 import type { CSSProperties } from 'react'
-import { Plus, Trash2 } from 'lucide-react'
+import { Plus, Save, Trash2 } from 'lucide-react'
 import type { CartageZone, CartageBand } from '../../cartage/cartageApi'
 import type { CartageLtlLaneDraft } from './cartageRatesApi'
 
@@ -29,9 +29,11 @@ type Props = {
   zones: CartageZone[]
   bands: CartageBand[]
   onChange: (lanes: CartageLtlLaneDraft[]) => void
+  onSave: () => void
+  saving: boolean
 }
 
-export default function CartageLtlLanesGrid({ lanes, zones, bands, onChange }: Props) {
+export default function CartageLtlLanesGrid({ lanes, zones, bands, onChange, onSave, saving }: Props) {
   function update(key: string, patch: Partial<CartageLtlLaneDraft>) {
     onChange(lanes.map((l) => (l.key === key ? { ...l, ...patch } : l)))
   }
@@ -103,9 +105,12 @@ export default function CartageLtlLanesGrid({ lanes, zones, bands, onChange }: P
           </tbody>
         </table>
       </div>
-      <div style={{ marginTop: 10 }}>
-        <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={add}>
-          <Plus size={15} strokeWidth={2} /> Add lane
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8, flexWrap: 'wrap', marginTop: 10 }}>
+        <button type="button" className="btn btn--inline" title="Add lane" aria-label="Add lane" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={add}>
+          <Plus size={16} strokeWidth={2} />
+        </button>
+        <button type="button" className="btn btn--inline" title="Save LTL lanes" aria-label="Save LTL lanes" style={{ marginTop: 0, display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={onSave} disabled={saving}>
+          <Save size={16} strokeWidth={2} />
         </button>
       </div>
     </div>
