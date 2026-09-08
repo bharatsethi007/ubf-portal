@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   listCartageBands,
   createCartageBand,
@@ -78,14 +87,10 @@ export default function CartageBandsTab({ onCount }: Props) {
   return (
     <div>
       <div className="quotes-page__toolbar">
-        <button
-          type="button"
-          style={{ width: 'auto' }}
-          className="quotes-page__new-btn"
-          onClick={() => setEditing({ ...empty, sort_order: bands.length + 1 })}
-        >
-          + New band
-        </button>
+        <Button type="button" className="quotes-page__new-btn" onClick={() => setEditing({ ...empty, sort_order: bands.length + 1 })}>
+          <Plus size={16} strokeWidth={2} />
+          New band
+        </Button>
       </div>
 
       <div className="table-wrap">
@@ -109,12 +114,14 @@ export default function CartageBandsTab({ onCount }: Props) {
                 <td>{b.max_kg ?? '+'}</td>
                 <td>{b.sort_order}</td>
                 <td>
-                  <button type="button" style={{ width: 'auto' }} onClick={() => setEditing(b)}>
-                    Edit
-                  </button>{' '}
-                  <button type="button" style={{ width: 'auto' }} onClick={() => remove(b)}>
-                    Del
-                  </button>
+                  <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit band" onClick={() => setEditing(b)}>
+                      <Pencil size={16} />
+                    </Button>
+                    <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete band" onClick={() => remove(b)}>
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -122,101 +129,44 @@ export default function CartageBandsTab({ onCount }: Props) {
         </table>
       </div>
 
-      {editing && (
-        <div
-          role="presentation"
-          onClick={() => setEditing(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(14,27,45,.35)',
-            display: 'grid',
-            placeItems: 'center',
-            zIndex: 60,
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="card"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: 'min(480px, calc(100% - 32px))',
-              padding: 24,
-              background: '#fff',
-              borderRadius: 12,
-            }}
-          >
-            <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
-              {editing.id ? 'Edit' : 'New'} band
-            </h3>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 16,
-              }}
-            >
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Code</label>
-                <input
-                  className="input"
-                  value={editing.band_code ?? ''}
-                  onChange={(e) => setEditing({ ...editing, band_code: e.target.value })}
-                />
-              </div>
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Label</label>
-                <input
-                  className="input"
-                  value={editing.label ?? ''}
-                  onChange={(e) => setEditing({ ...editing, label: e.target.value })}
-                />
-              </div>
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Min kg</label>
-                <input
-                  className="input"
-                  type="number"
-                  value={editing.min_kg ?? 0}
-                  onChange={(e) => setEditing({ ...editing, min_kg: Number(e.target.value) })}
-                />
-              </div>
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Max kg (blank = top)</label>
-                <input
-                  className="input"
-                  type="number"
-                  value={editing.max_kg ?? ''}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      max_kg: e.target.value === '' ? null : Number(e.target.value),
-                    })
-                  }
-                />
-              </div>
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Sort order</label>
-                <input
-                  className="input"
-                  type="number"
-                  value={editing.sort_order ?? 0}
-                  onChange={(e) => setEditing({ ...editing, sort_order: Number(e.target.value) })}
-                />
-              </div>
+      <Dialog open={Boolean(editing)} onOpenChange={(open) => { if (!open) setEditing(null) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing?.id ? 'Edit' : 'New'} band</DialogTitle>
+          </DialogHeader>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Code</label>
+              <input className="input" value={editing?.band_code ?? ''} onChange={(e) => setEditing({ ...editing!, band_code: e.target.value })} />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button type="button" style={{ width: 'auto' }} onClick={save}>
-                Save
-              </button>
-              <button type="button" style={{ width: 'auto' }} onClick={() => setEditing(null)}>
-                Cancel
-              </button>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Label</label>
+              <input className="input" value={editing?.label ?? ''} onChange={(e) => setEditing({ ...editing!, label: e.target.value })} />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Min kg</label>
+              <input className="input" type="number" value={editing?.min_kg ?? 0} onChange={(e) => setEditing({ ...editing!, min_kg: Number(e.target.value) })} />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Max kg (blank = top)</label>
+              <input
+                className="input"
+                type="number"
+                value={editing?.max_kg ?? ''}
+                onChange={(e) => setEditing({ ...editing!, max_kg: e.target.value === '' ? null : Number(e.target.value) })}
+              />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Sort order</label>
+              <input className="input" type="number" value={editing?.sort_order ?? 0} onChange={(e) => setEditing({ ...editing!, sort_order: Number(e.target.value) })} />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button type="button" onClick={save}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

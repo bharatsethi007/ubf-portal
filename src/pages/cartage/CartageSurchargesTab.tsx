@@ -1,5 +1,7 @@
 import { Fragment, useCallback, useEffect, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
 import {
   listCartageSurcharges,
   updateCartageSurcharge,
@@ -72,10 +74,7 @@ export default function CartageSurchargesTab({ onCount }: Props) {
     }
   }
 
-  async function saveTierField(
-    tierId: string,
-    patch: { threshold_kg?: number; amount?: number },
-  ) {
+  async function saveTierField(tierId: string, patch: { threshold_kg?: number; amount?: number }) {
     try {
       await updateSurchargeTier(tierId, patch)
       reload()
@@ -133,9 +132,9 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                 </td>
                 <td>
                   {s.calc === 'tiered_weight' && (
-                    <button type="button" style={{ width: 'auto' }} onClick={() => toggleOpen(s)}>
+                    <Button type="button" variant="outline" size="sm" onClick={() => toggleOpen(s)}>
                       {open === s.id ? 'Hide' : 'Tiers'}
-                    </button>
+                    </Button>
                   )}
                 </td>
               </tr>
@@ -157,9 +156,7 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                         value={tier.amount}
                         onChange={(e) => setTier({ ...tier, amount: e.target.value })}
                       />
-                      <button type="button" style={{ width: 'auto' }} onClick={() => addTier(s)}>
-                        Add tier
-                      </button>
+                      <Button type="button" size="sm" onClick={() => addTier(s)}>Add tier</Button>
                     </div>
                     <table className="data-table">
                       <thead>
@@ -179,9 +176,7 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                                   className="input input--sm"
                                   type="number"
                                   defaultValue={t.threshold_kg}
-                                  onBlur={(e) =>
-                                    saveTierField(t.id, { threshold_kg: Number(e.target.value) })
-                                  }
+                                  onBlur={(e) => saveTierField(t.id, { threshold_kg: Number(e.target.value) })}
                                   style={{ width: 110 }}
                                 />
                               </td>
@@ -195,9 +190,9 @@ export default function CartageSurchargesTab({ onCount }: Props) {
                                 />
                               </td>
                               <td>
-                                <button type="button" style={{ width: 'auto' }} onClick={() => removeTier(t.id)}>
-                                  Del
-                                </button>
+                                <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete tier" onClick={() => removeTier(t.id)}>
+                                  <Trash2 size={16} />
+                                </Button>
                               </td>
                             </tr>
                           ))}

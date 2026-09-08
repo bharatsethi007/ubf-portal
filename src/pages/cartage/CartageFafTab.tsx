@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import DateField from '@/components/DateField'
+import { Button } from '@/components/ui/button'
 import { listCartageFaf, upsertCartageFaf, deleteCartageFaf, type CartageFaf } from './cartageApi'
 
 const firstOfMonth = (iso: string) => (iso ? `${iso.slice(0, 8)}01` : '')
@@ -79,9 +81,7 @@ export default function CartageFafTab({ onCount }: Props) {
           value={draft.note}
           onChange={(e) => setDraft({ ...draft, note: e.target.value })}
         />
-        <button type="button" style={{ width: 'auto' }} onClick={save}>
-          Save month
-        </button>
+        <Button type="button" onClick={save}>Save month</Button>
       </div>
 
       <div className="table-wrap">
@@ -101,9 +101,9 @@ export default function CartageFafTab({ onCount }: Props) {
                 <td>{f.percent}%</td>
                 <td>{f.note ?? '-'}</td>
                 <td>
-                  <button type="button" style={{ width: 'auto' }} onClick={() => remove(f.id)}>
-                    Del
-                  </button>
+                  <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete FAF row" onClick={() => remove(f.id)}>
+                    <Trash2 size={16} />
+                  </Button>
                 </td>
               </tr>
             ))}

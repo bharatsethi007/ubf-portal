@@ -1,5 +1,14 @@
 import { useCallback, useEffect, useState } from 'react'
+import { Pencil, Plus, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { Button } from '@/components/ui/button'
+import {
+  Dialog,
+  DialogContent,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog'
 import {
   listCartageZones,
   createCartageZone,
@@ -21,7 +30,6 @@ const empty: Partial<CartageZone> = {
 }
 
 const MATCH_TYPES = ['postcode', 'postcode_range', 'suburb', 'city'] as const
-
 const fieldStyle = { display: 'flex', flexDirection: 'column' as const, gap: 6 }
 const labelStyle = { fontSize: 13, fontWeight: 500, color: 'var(--muted-foreground)' }
 
@@ -117,14 +125,10 @@ export default function CartageZonesTab({ onCount }: Props) {
   return (
     <div>
       <div className="quotes-page__toolbar">
-        <button
-          type="button"
-          style={{ width: 'auto' }}
-          className="quotes-page__new-btn"
-          onClick={() => setEditing({ ...empty })}
-        >
-          + New zone
-        </button>
+        <Button type="button" className="quotes-page__new-btn" onClick={() => setEditing({ ...empty })}>
+          <Plus size={16} strokeWidth={2} />
+          New zone
+        </Button>
       </div>
 
       <div className="table-wrap">
@@ -142,9 +146,7 @@ export default function CartageZonesTab({ onCount }: Props) {
           <tbody>
             {zones.length === 0 ? (
               <tr>
-                <td colSpan={6} className="text-muted-foreground pad-inline">
-                  No zones yet.
-                </td>
+                <td colSpan={6} className="text-muted-foreground pad-inline">No zones yet.</td>
               </tr>
             ) : (
               zones.map((z) => (
@@ -155,12 +157,14 @@ export default function CartageZonesTab({ onCount }: Props) {
                   <td>{z.island ?? '-'}</td>
                   <td>{z.region ?? '-'}</td>
                   <td onClick={(e) => e.stopPropagation()}>
-                    <button type="button" style={{ width: 'auto' }} onClick={() => setEditing(z)}>
-                      Edit
-                    </button>{' '}
-                    <button type="button" style={{ width: 'auto' }} onClick={() => removeZone(z)}>
-                      Del
-                    </button>
+                    <div style={{ display: 'flex', gap: 4, justifyContent: 'flex-end' }}>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Edit zone" onClick={() => setEditing(z)}>
+                        <Pencil size={16} />
+                      </Button>
+                      <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete zone" onClick={() => removeZone(z)}>
+                        <Trash2 size={16} />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -176,51 +180,28 @@ export default function CartageZonesTab({ onCount }: Props) {
               Members — {selected.zone_code}{' '}
               <span className="text-muted-foreground">(id: {selected.id})</span>
             </h3>
-            <button type="button" style={{ width: 'auto' }} onClick={() => setSelected(null)}>
-              Close
-            </button>
+            <Button type="button" variant="outline" size="sm" onClick={() => setSelected(null)}>Close</Button>
           </div>
           <div className="quotes-page__toolbar" style={{ gap: 8, display: 'flex', flexWrap: 'wrap' }}>
             <select
               className="input input--sm"
               value={mDraft.match_type}
-              onChange={(e) =>
-                setMDraft({ ...mDraft, match_type: e.target.value as ZoneMember['match_type'] })
-              }
+              onChange={(e) => setMDraft({ ...mDraft, match_type: e.target.value as ZoneMember['match_type'] })}
             >
               {MATCH_TYPES.map((t) => (
-                <option key={t} value={t}>
-                  {t}
-                </option>
+                <option key={t} value={t}>{t}</option>
               ))}
             </select>
-            <input
-              className="input input--sm"
-              placeholder="value"
-              value={mDraft.value}
-              onChange={(e) => setMDraft({ ...mDraft, value: e.target.value })}
-            />
+            <input className="input input--sm" placeholder="value" value={mDraft.value} onChange={(e) => setMDraft({ ...mDraft, value: e.target.value })} />
             {mDraft.match_type === 'postcode_range' && (
-              <input
-                className="input input--sm"
-                placeholder="to"
-                value={mDraft.value_to}
-                onChange={(e) => setMDraft({ ...mDraft, value_to: e.target.value })}
-              />
+              <input className="input input--sm" placeholder="to" value={mDraft.value_to} onChange={(e) => setMDraft({ ...mDraft, value_to: e.target.value })} />
             )}
-            <button type="button" style={{ width: 'auto' }} onClick={addMember}>
-              Add
-            </button>
+            <Button type="button" size="sm" onClick={addMember}>Add</Button>
           </div>
           <div className="table-wrap">
             <table className="data-table">
               <thead>
-                <tr>
-                  <th>Type</th>
-                  <th>Value</th>
-                  <th>To</th>
-                  <th />
-                </tr>
+                <tr><th>Type</th><th>Value</th><th>To</th><th /></tr>
               </thead>
               <tbody>
                 {members.length === 0 ? (
@@ -236,9 +217,9 @@ export default function CartageZonesTab({ onCount }: Props) {
                       <td>{m.value}</td>
                       <td>{m.value_to ?? '-'}</td>
                       <td>
-                        <button type="button" style={{ width: 'auto' }} onClick={() => removeMember(m.id)}>
-                          Del
-                        </button>
+                        <Button type="button" variant="ghost" size="icon-sm" aria-label="Delete member" onClick={() => removeMember(m.id)}>
+                          <Trash2 size={16} />
+                        </Button>
                       </td>
                     </tr>
                   ))
@@ -249,108 +230,51 @@ export default function CartageZonesTab({ onCount }: Props) {
         </div>
       )}
 
-      {editing && (
-        <div
-          role="presentation"
-          onClick={() => setEditing(null)}
-          style={{
-            position: 'fixed',
-            inset: 0,
-            background: 'rgba(14,27,45,.35)',
-            display: 'grid',
-            placeItems: 'center',
-            zIndex: 60,
-          }}
-        >
-          <div
-            role="dialog"
-            aria-modal="true"
-            className="card"
-            onClick={(e) => e.stopPropagation()}
-            style={{
-              width: 'min(480px, calc(100% - 32px))',
-              padding: 24,
-              background: '#fff',
-              borderRadius: 12,
-            }}
-          >
-            <h3 style={{ margin: '0 0 16px', fontSize: 18, fontWeight: 600 }}>
-              {editing.id ? 'Edit' : 'New'} zone
-            </h3>
-            <div
-              style={{
-                display: 'grid',
-                gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-                gap: 16,
-              }}
-            >
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Code</label>
-                <input
-                  className="input"
-                  value={editing.zone_code ?? ''}
-                  onChange={(e) => setEditing({ ...editing, zone_code: e.target.value })}
-                />
-              </div>
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Name</label>
-                <input
-                  className="input"
-                  value={editing.name ?? ''}
-                  onChange={(e) => setEditing({ ...editing, name: e.target.value })}
-                />
-              </div>
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Type</label>
-                <select
-                  className="input"
-                  value={editing.zone_type}
-                  onChange={(e) =>
-                    setEditing({ ...editing, zone_type: e.target.value as CartageZone['zone_type'] })
-                  }
-                >
-                  <option value="area">area</option>
-                  <option value="port">port</option>
-                  <option value="depot">depot</option>
-                </select>
-              </div>
-              <div style={fieldStyle}>
-                <label style={labelStyle}>Island</label>
-                <select
-                  className="input"
-                  value={editing.island ?? ''}
-                  onChange={(e) =>
-                    setEditing({
-                      ...editing,
-                      island: (e.target.value || null) as CartageZone['island'],
-                    })
-                  }
-                >
-                  <option value="">-</option>
-                  <option value="NI">NI</option>
-                  <option value="SI">SI</option>
-                </select>
-              </div>
-              <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
-                <label style={labelStyle}>Region</label>
-                <input
-                  className="input"
-                  value={editing.region ?? ''}
-                  onChange={(e) => setEditing({ ...editing, region: e.target.value })}
-                />
-              </div>
+      <Dialog open={Boolean(editing)} onOpenChange={(open) => { if (!open) setEditing(null) }}>
+        <DialogContent className="sm:max-w-lg">
+          <DialogHeader>
+            <DialogTitle>{editing?.id ? 'Edit' : 'New'} zone</DialogTitle>
+          </DialogHeader>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 16 }}>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Code</label>
+              <input className="input" value={editing?.zone_code ?? ''} onChange={(e) => setEditing({ ...editing!, zone_code: e.target.value })} />
             </div>
-            <div style={{ display: 'flex', gap: 8, marginTop: 16 }}>
-              <button type="button" style={{ width: 'auto' }} onClick={saveZone}>
-                Save
-              </button>
-              <button type="button" style={{ width: 'auto' }} onClick={() => setEditing(null)}>
-                Cancel
-              </button>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Name</label>
+              <input className="input" value={editing?.name ?? ''} onChange={(e) => setEditing({ ...editing!, name: e.target.value })} />
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Type</label>
+              <select className="input" value={editing?.zone_type} onChange={(e) => setEditing({ ...editing!, zone_type: e.target.value as CartageZone['zone_type'] })}>
+                <option value="area">area</option>
+                <option value="port">port</option>
+                <option value="depot">depot</option>
+              </select>
+            </div>
+            <div style={fieldStyle}>
+              <label style={labelStyle}>Island</label>
+              <select
+                className="input"
+                value={editing?.island ?? ''}
+                onChange={(e) => setEditing({ ...editing!, island: (e.target.value || null) as CartageZone['island'] })}
+              >
+                <option value="">-</option>
+                <option value="NI">NI</option>
+                <option value="SI">SI</option>
+              </select>
+            </div>
+            <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Region</label>
+              <input className="input" value={editing?.region ?? ''} onChange={(e) => setEditing({ ...editing!, region: e.target.value })} />
             </div>
           </div>
-        </div>
-      )}
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditing(null)}>Cancel</Button>
+            <Button type="button" onClick={saveZone}>Save</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
