@@ -124,7 +124,7 @@ export default function CartageZonesTab({ onCount }: Props) {
 
   return (
     <div>
-      <div className="quotes-page__toolbar" style={{ justifyContent: 'flex-end' }}>
+      <div className="quotes-page__toolbar" style={{ justifyContent: 'flex-end', margin: '16px 0' }}>
         <button type="button" className="btn quotes-page__new-btn" onClick={() => setEditing({ ...empty })}>
           <Plus size={16} strokeWidth={2} />
           New zone
