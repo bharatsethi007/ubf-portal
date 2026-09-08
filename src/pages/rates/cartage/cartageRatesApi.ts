@@ -89,3 +89,124 @@ export async function createCartageRateCard(input: NewCartageRateCard): Promise<
   if (error) throw error
   return { id: String(data.id) }
 }
+
+// ---------- detail header ----------
+export type CartageRateCardDetail = {
+  id: string
+  vendor_name: string | null
+  title: string | null
+  currency_code: string | null
+  valid_from: string | null
+  valid_to: string | null
+  status: string
+}
+
+export async function fetchCartageRateCard(id: string): Promise<CartageRateCardDetail | null> {
+  const { data, error } = await supabase
+    .from('rate_cards')
+    .select('id, vendor_name, title, currency_code, valid_from, valid_to, status')
+    .eq('id', id)
+    .eq('rate_type', 'cartage')
+    .maybeSingle()
+  if (error) throw error
+  if (!data) return null
+  const r = data as Record<string, any>
+  return {
+    id: String(r.id),
+    vendor_name: r.vendor_name ? String(r.vendor_name) : null,
+    title: r.title ? String(r.title) : null,
+    currency_code: r.currency_code ? String(r.currency_code) : null,
+    valid_from: r.valid_from ? String(r.valid_from) : null,
+    valid_to: r.valid_to ? String(r.valid_to) : null,
+    status: String(r.status),
+  }
+}
+
+export async function updateCartageRateCardHeader(
+  id: string,
+  patch: {
+    title: string | null
+    currency_code: string | null
+    valid_from: string | null
+    valid_to: string | null
+    status: string
+  },
+): Promise<void> {
+  const { error } = await supabase
+    .from('rate_cards')
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('id', id)
+  if (error) throw error
+}
+
+// ---------- FCL cartage lines ----------
+export type CartageFclLineDraft = {
+  key: string
+  dbId: string | null
+  direction: 'import' | 'export'
+  origin_zone_id: string
+  dest_zone_id: string
+  container_size: string
+  base_rate: string
+  min_charge: string
+  confidence?: 'green' | 'amber' | 'red'
+  raw_origin?: string
+  raw_dest?: string
+  note?: string
+}
+
+export async function listCartageFclLines(cardId: string): Promise<CartageFclLineDraft[]> {
+  const { data, error } = await supabase
+    .from('rate_card_cartage_fcl_lines')
+    .select('id, direction, origin_zone_id, dest_zone_id, container_size, base_rate, min_charge, confidence, raw_origin, raw_dest')
+    .eq('rate_card_id', cardId)
+    .order('created_at', { ascending: true })
+  if (error) throw error
+  return ((data as Record<string, any>[]) ?? []).map((r) => ({
+    key: String(r.id),
+    dbId: String(r.id),
+    direction: (r.direction === 'export' ? 'export' : 'import') as 'import' | 'export',
+    origin_zone_id: r.origin_zone_id ? String(r.origin_zone_id) : '',
+    dest_zone_id: r.dest_zone_id ? String(r.dest_zone_id) : '',
+    container_size: r.container_size ? String(r.container_size) : '',
+    base_rate: r.base_rate == null ? '' : String(r.base_rate),
+    min_charge: r.min_charge == null ? '' : String(r.min_charge),
+    confidence: (r.confidence ?? 'green') as 'green' | 'amber' | 'red',
+    raw_origin: r.raw_origin ? String(r.raw_origin) : '',
+    raw_dest: r.raw_dest ? String(r.raw_dest) : '',
+  }))
+}
+
+function fclLinePayload(cardId: string, l: CartageFclLineDraft) {
+  return {
+    rate_card_id: cardId,
+    direction: l.direction,
+    origin_zone_id: l.origin_zone_id,
+    dest_zone_id: l.dest_zone_id,
+    container_size: l.container_size,
+    base_rate: l.base_rate === '' ? null : Number(l.base_rate),
+    min_charge: l.min_charge === '' ? null : Number(l.min_charge),
+    confidence: l.confidence ?? 'green',
+    raw_origin: l.raw_origin || null,
+    raw_dest: l.raw_dest || null,
+  }
+}
+
+export async function saveCartageFclLines(cardId: string, lines: CartageFclLineDraft[], originalIds: string[]): Promise<void> {
+  const keptIds = new Set(lines.filter((l) => l.dbId).map((l) => l.dbId as string))
+  const toDelete = originalIds.filter((id) => !keptIds.has(id))
+  if (toDelete.length) {
+    const { error } = await supabase.from('rate_card_cartage_fcl_lines').delete().in('id', toDelete)
+    if (error) throw error
+  }
+  for (const l of lines) {
+    const payload = fclLinePayload(cardId, l)
+    if (l.dbId) {
+      const { error } = await supabase.from('rate_card_cartage_fcl_lines').update(payload).eq('id', l.dbId)
+      if (error) throw error
+    } else {
+      const { error } = await supabase.from('rate_card_cartage_fcl_lines').insert(payload)
+      if (error) throw error
+    }
+  }
+}

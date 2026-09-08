@@ -19,7 +19,7 @@ export default function CartageRateCardForm() {
   const [error, setError] = useState('')
 
   const datesOk = validFrom !== '' && validTo !== '' && validFrom <= validTo
-  const valid = currency !== '' && datesOk
+  const valid = vendor !== null && currency !== '' && datesOk
 
   async function onSubmit() {
     if (!valid || saving) return
@@ -59,8 +59,9 @@ export default function CartageRateCardForm() {
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: 16, marginTop: 16, maxWidth: 720 }}>
           <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
-            <label style={labelStyle}>Vendor</label>
-            <VendorSelect value={vendor} onChange={setVendor} placeholder="Search customer / contact… (optional)" />
+            <label style={labelStyle}>Vendor *</label>
+            <VendorSelect value={vendor} onChange={setVendor} placeholder="Search customer / contact…" />
+            <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Cartage cards must be linked to a vendor account.</span>
           </div>
 
           <div style={fieldStyle}>
