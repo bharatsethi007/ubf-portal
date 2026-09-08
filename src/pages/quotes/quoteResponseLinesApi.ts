@@ -154,6 +154,13 @@ export async function fetchQuoteResponseLines(responseId: string): Promise<Quote
   return (data ?? []).map((row) => mapRow(row as Record<string, unknown>))
 }
 
+function normalizeChargeGroup(g: string | null | undefined): string {
+  const v = (g || '').trim().toLowerCase()
+  if (v === 'dest' || v === 'destination') return 'destination'
+  if (v === 'origin') return 'origin'
+  return 'freight'
+}
+
 export async function saveQuoteResponseLines(
   responseId: string,
   lines: QuoteResponseLine[],
@@ -174,7 +181,7 @@ export async function saveQuoteResponseLines(
         ord: index,
         description: line.description.trim() || null,
         is_service_charge: line.is_service_charge,
-        charge_group: line.charge_group || 'freight',
+        charge_group: normalizeChargeGroup(line.charge_group),
         vendor: line.vendor.trim() || null,
         unit: line.unit.trim() || null,
         qty: parseNumField(line.qty),

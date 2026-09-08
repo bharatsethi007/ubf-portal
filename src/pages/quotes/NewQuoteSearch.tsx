@@ -220,7 +220,7 @@ export default function NewQuoteSearch() {
   }
 
   async function handleCreate(chosen?: RateOption) {
-    if (!customer) return
+    if (!customer) { toast.error('Enter a customer/agent first to create a quote'); return }
     setBusyId(chosen?.cardId ?? '__plain__')
     try {
       const payload: QuoteDraft = {
@@ -248,7 +248,8 @@ export default function NewQuoteSearch() {
 
 
   async function handleCreateLcl(o: LclRateOption) {
-    if (!customer || !draft.from_port_code || !draft.to_port_code) return
+    if (!customer) { toast.error('Enter a customer/agent first to create a quote'); return }
+    if (!draft.from_port_code || !draft.to_port_code) { toast.error('Origin and destination required'); return }
     setBusyId(o.cardId)
     try {
       const { quoteId } = await createQuoteWithLclBuyRates({
@@ -269,7 +270,8 @@ export default function NewQuoteSearch() {
   }
 
   async function handleCreateAir(o: AirRateOption, selectedKeys?: string[]) {
-    if (!customer || !draft.from_port_code || !draft.to_port_code) return
+    if (!customer) { toast.error('Enter a customer/agent first to create a quote'); return }
+    if (!draft.from_port_code || !draft.to_port_code) { toast.error('Origin and destination required'); return }
     setBusyId(o.cardId)
     try {
       const { quoteId } = await createQuoteWithAirBuyRates({
