@@ -138,6 +138,24 @@ export default function NewQuoteSearch() {
   const wmNum = lclSummary.wm
   const cbmNum = lclSummary.cbm > 0 ? lclSummary.cbm : wmNum
 
+
+
+  const canSearch = useMemo(() => {
+    if (!draft.from_port_code || !draft.to_port_code) return false
+    if (draft.shipment_type === 'LCL') return wmNum > 0
+    return true
+  }, [customer, draft.from_port_code, draft.to_port_code, draft.shipment_type, wmNum])
+
+  const airSummary = useMemo(() => {
+    let gross = 0, cbm = 0, pcs = 0
+    for (const l of airLines) { const c = computeCargoLine(l, 'air'); gross += c.grossTotal; cbm += c.totalCbm; pcs += Number(l.quantity) || 0 }
+    const chargeable = Math.ceil(Math.max(gross, cbm * 167) * 2) / 2
+    return { gross: Math.round(gross * 10) / 10, cbm: Math.round(cbm * 1000) / 1000, chargeable, pcs }
+  }, [airLines])
+  const airLoadsSummary = airSummary.chargeable > 0
+    ? `${airSummary.pcs || '—'} pc${airSummary.pcs === 1 ? '' : 's'} · ${airSummary.gross.toFixed(1)} kg · ${airSummary.chargeable.toFixed(1)} kg chargeable`
+    : 'Add cargo'
+
   const cartKey = JSON.stringify({ mv: draft.movement_type, from: draft.from_port_code, to: draft.to_port_code,
     pu: [draft.pickup_postal_code, draft.pickup_location, draft.pickup_address],
     dr: [draft.drop_postal_code, draft.drop_location, draft.drop_address],
@@ -172,23 +190,6 @@ export default function NewQuoteSearch() {
     const t = setTimeout(go, 300)
     return () => { cancelled = true; clearTimeout(t) }
   }, [cartKey]) // eslint-disable-line react-hooks/exhaustive-deps
-
-
-  const canSearch = useMemo(() => {
-    if (!draft.from_port_code || !draft.to_port_code) return false
-    if (draft.shipment_type === 'LCL') return wmNum > 0
-    return true
-  }, [customer, draft.from_port_code, draft.to_port_code, draft.shipment_type, wmNum])
-
-  const airSummary = useMemo(() => {
-    let gross = 0, cbm = 0, pcs = 0
-    for (const l of airLines) { const c = computeCargoLine(l, 'air'); gross += c.grossTotal; cbm += c.totalCbm; pcs += Number(l.quantity) || 0 }
-    const chargeable = Math.ceil(Math.max(gross, cbm * 167) * 2) / 2
-    return { gross: Math.round(gross * 10) / 10, cbm: Math.round(cbm * 1000) / 1000, chargeable, pcs }
-  }, [airLines])
-  const airLoadsSummary = airSummary.chargeable > 0
-    ? `${airSummary.pcs || '—'} pc${airSummary.pcs === 1 ? '' : 's'} · ${airSummary.gross.toFixed(1)} kg · ${airSummary.chargeable.toFixed(1)} kg chargeable`
-    : 'Add cargo'
 
   // Overseas-office legs whose local charges aren't in the system yet — surfaced as a
   // tip so the quoter can request them from that UBF office. Shown regardless of who
