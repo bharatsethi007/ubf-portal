@@ -5,7 +5,6 @@ import { listCartageZones, type CartageZone } from '../cartage/cartageApi'
 import { learnCartageAliases } from '../rates/cartage/cartageRatesApi'
 import { fetchQuoteCartageContext, runCartageRate, type CartageCtx, type CartageQuoteResult } from './cartageSearchApi'
 
-const DOOR_TYPES = ['Factory/Warehouse', 'Business address', 'Residential address']
 const MODE_OPTS = [
   { v: 'fcl20', label: 'FCL 20ft' }, { v: 'fcl40', label: 'FCL 40ft' },
   { v: 'lcl', label: 'LCL (per kg / CBM)' }, { v: 'air', label: 'Air (chargeable wt)' },
@@ -13,7 +12,7 @@ const MODE_OPTS = [
 
 type Leg = {
   key: 'origin' | 'dest'; title: string; direction: 'export' | 'import'
-  port: string | null; postcode: string | null; city: string | null; raw: string | null; residential: boolean
+  port: string | null; postcode: string | null; city: string | null; raw: string | null
 }
 
 function defaultMode(ctx: CartageCtx): string {
@@ -23,16 +22,19 @@ function defaultMode(ctx: CartageCtx): string {
   return 'fcl20'
 }
 
+// Cartage legs follow the incoterm/movement, not a manual door toggle (model B):
+// export -> NZ origin pickup (door -> from_port); import -> NZ destination delivery (to_port -> door).
+// If movement is unset, offer whichever end has a port so the user can pick.
 function legsFrom(ctx: CartageCtx): Leg[] {
   const out: Leg[] = []
-  const isDoor = (t: string | null) => !!t && DOOR_TYPES.includes(t)
-  if (isDoor(ctx.origin_type) && ctx.from_port) {
+  const mv = (ctx.movement_type ?? '').toLowerCase()
+  if ((mv === 'export' || mv === '') && ctx.from_port) {
     out.push({ key: 'origin', title: `Origin cartage · pickup → ${ctx.from_port}`, direction: 'export', port: ctx.from_port,
-      postcode: ctx.pickup_postal, city: ctx.pickup_location, raw: ctx.pickup_address, residential: ctx.origin_type === 'Residential address' })
+      postcode: ctx.pickup_postal, city: ctx.pickup_location, raw: ctx.pickup_address })
   }
-  if (isDoor(ctx.dest_type) && ctx.to_port) {
+  if ((mv === 'import' || mv === '') && ctx.to_port) {
     out.push({ key: 'dest', title: `Destination cartage · ${ctx.to_port} → delivery`, direction: 'import', port: ctx.to_port,
-      postcode: ctx.drop_postal, city: ctx.drop_location, raw: ctx.drop_address, residential: ctx.dest_type === 'Residential address' })
+      postcode: ctx.drop_postal, city: ctx.drop_location, raw: ctx.drop_address })
   }
   return out
 }
@@ -59,7 +61,7 @@ export default function CartageRateSearch({ quoteId }: { quoteId: string }) {
       </div>
       {legs.length === 0 ? (
         <p className="text-muted-foreground" style={{ fontSize: 13 }}>
-          No cartage leg on this quote — both ends are Port/Airport. Set an origin or destination to a door address (Factory/Business/Residential) to price cartage.
+          No cartage leg on this quote — set the movement (import/export) and both ports, then enter the door (pickup or delivery) address.
         </p>
       ) : legs.map((leg) => (
         <LegCard key={leg.key} leg={leg} mode0={defaultMode(ctx)} zones={zones} />
@@ -74,6 +76,7 @@ function LegCard({ leg, mode0, zones }: { leg: Leg; mode0: string; zones: Cartag
   const [cbm, setCbm] = useState('')
   const [vol, setVol] = useState('')
   const [tail, setTail] = useState(false)
+  const [resi, setResi] = useState(false)
   const [running, setRunning] = useState(false)
   const [res, setRes] = useState<CartageQuoteResult | null>(null)
   const [fixZone, setFixZone] = useState('')
@@ -90,7 +93,7 @@ function LegCard({ leg, mode0, zones }: { leg: Leg; mode0: string; zones: Cartag
         door_postcode: leg.postcode, door_city: leg.city, door_raw: leg.raw,
         port_code: leg.port, direction: leg.direction, mode,
         weight_kg: Number(weight) || 0, cbm: Number(cbm) || 0, volume_cm3: Number(vol) || 0,
-        residential: leg.residential, tail_lift: tail,
+        residential: resi, tail_lift: tail,
       })
       setRes(r)
     } catch (e) {
@@ -122,7 +125,6 @@ function LegCard({ leg, mode0, zones }: { leg: Leg; mode0: string; zones: Cartag
         <strong style={{ fontSize: 14 }}>{leg.title}</strong>
         {badge(leg.direction)}
         {badge(`door: ${leg.postcode || leg.city || '—'}`)}
-        {leg.residential && badge('residential')}
       </div>
 
       <div style={{ display: 'flex', gap: 8, alignItems: 'flex-end', flexWrap: 'wrap' }}>
@@ -140,6 +142,8 @@ function LegCard({ leg, mode0, zones }: { leg: Leg; mode0: string; zones: Cartag
           <input className="input input--sm" style={{ width: 110 }} type="number" value={weight} onChange={(e) => setWeight(e.target.value)} /></div>}
         {!isFcl && <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
           <input type="checkbox" checked={tail} onChange={(e) => setTail(e.target.checked)} /> Tail lift</label>}
+        {!isFcl && <label style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 13 }}>
+          <input type="checkbox" checked={resi} onChange={(e) => setResi(e.target.checked)} /> Residential</label>}
         <button type="button" className="btn btn--inline" title="Search rate" aria-label="Search rate" style={{ marginTop: 0, marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', justifyContent: 'center' }} onClick={run} disabled={running}>
           <Search size={16} strokeWidth={2} />
         </button>

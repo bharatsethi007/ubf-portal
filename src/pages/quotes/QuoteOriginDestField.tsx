@@ -2,26 +2,11 @@ import SeaPortSelect from '../../components/bookings/SeaPortSelect'
 import IataPortSelect from '../../components/bookings/IataPortSelect'
 import type { QuoteDraft } from './quotesApi'
 
-const TYPES = ['Port/Airport', 'Factory/Warehouse', 'Business address', 'Residential address'] as const
-
 type Side = 'origin' | 'destination'
 
-const KEYS: Record<Side, {
-  label: string
-  typeKey: keyof QuoteDraft
-  portKey: keyof QuoteDraft
-  locKey: keyof QuoteDraft
-  postalKey: keyof QuoteDraft
-  addrKey: keyof QuoteDraft
-}> = {
-  origin: {
-    label: 'Origin', typeKey: 'origin_location_type', portKey: 'from_port_code',
-    locKey: 'pickup_location', postalKey: 'pickup_postal_code', addrKey: 'pickup_address',
-  },
-  destination: {
-    label: 'Destination', typeKey: 'dest_location_type', portKey: 'to_port_code',
-    locKey: 'drop_location', postalKey: 'drop_postal_code', addrKey: 'drop_address',
-  },
+const KEYS: Record<Side, { label: string; portKey: keyof QuoteDraft }> = {
+  origin: { label: 'Origin', portKey: 'from_port_code' },
+  destination: { label: 'Destination', portKey: 'to_port_code' },
 }
 
 type Props = {
@@ -29,58 +14,22 @@ type Props = {
   draft: QuoteDraft
   onPatch: (p: Partial<QuoteDraft>) => void
   mode?: 'sea' | 'air'
-  /** When true, hide the location-type dropdown and show only the port/airport picker. */
+  /** kept for call-site compatibility; the field is always port/airport now */
   hideType?: boolean
 }
 
-export default function QuoteOriginDestField({ side, draft, onPatch, mode = 'sea', hideType = false }: Props) {
+// Origin/Destination are ALWAYS the port/airport. Whether a door pickup or delivery
+// applies is decided by the incoterm (see addressFieldsFor), not a manual toggle.
+export default function QuoteOriginDestField({ side, draft, onPatch, mode = 'sea' }: Props) {
   const k = KEYS[side]
-  const type = (draft[k.typeKey] as string | null) ?? 'Port/Airport'
-  const isPort = hideType ? true : type === 'Port/Airport'
-  const str = (key: keyof QuoteDraft) => (draft[key] as string | null) ?? ''
-
+  const val = (draft[k.portKey] as string | null) ?? ''
   return (
-    <div className={hideType ? 'nqs-od nqs-od--inline' : 'nqs-od'}>
-      {hideType ? (
-        <div className="nqs-od__label">{k.label}</div>
+    <div className="nqs-od nqs-od--inline">
+      <div className="nqs-od__label">{k.label}</div>
+      {mode === 'air' ? (
+        <IataPortSelect value={val} onChange={(v) => onPatch({ [k.portKey]: v || null })} />
       ) : (
-        <div className="nqs-od__label">
-          {k.label} —{' '}
-          <select
-            className="nqs-od__type"
-            style={{ display: 'inline', width: 'auto' }}
-            value={type}
-            onChange={(e) => onPatch({ [k.typeKey]: e.target.value })}
-          >
-            {TYPES.map((t) => (
-              <option key={t} value={t}>{t.toLowerCase()}</option>
-            ))}
-          </select>
-        </div>
-      )}
-
-      {isPort ? (
-        mode === 'air' ? (
-          <IataPortSelect
-            value={str(k.portKey)}
-            onChange={(v) => onPatch({ [k.portKey]: v || null })}
-          />
-        ) : (
-          <SeaPortSelect
-            value={str(k.portKey)}
-            onChange={(v) => onPatch({ [k.portKey]: v || null })}
-            placeholder={side === 'origin' ? 'From port' : 'To port'}
-          />
-        )
-      ) : (
-        <div className="nqs-od__addr">
-          <input type="text" placeholder="City / location" value={str(k.locKey)}
-            onChange={(e) => onPatch({ [k.locKey]: e.target.value || null })} />
-          <input type="text" placeholder="Postal code" value={str(k.postalKey)}
-            onChange={(e) => onPatch({ [k.postalKey]: e.target.value || null })} />
-          <textarea rows={2} placeholder="Address" value={str(k.addrKey)}
-            onChange={(e) => onPatch({ [k.addrKey]: e.target.value || null })} />
-        </div>
+        <SeaPortSelect value={val} onChange={(v) => onPatch({ [k.portKey]: v || null })} placeholder={side === 'origin' ? 'From port' : 'To port'} />
       )}
     </div>
   )

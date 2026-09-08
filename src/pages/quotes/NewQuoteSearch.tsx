@@ -67,10 +67,10 @@ export default function NewQuoteSearch() {
   const [options, setOptions] = useState<RateOption[]>([])
   const [lclOptions, setLclOptions] = useState<LclRateOption[]>([])
   const [airOptions, setAirOptions] = useState<AirRateOption[]>([])
-  const [lclWm, setLclWm] = useState('')
-  const [lclCbm, setLclCbm] = useState('')
   const [airLines, setAirLines] = useState<QuoteCargoLine[]>([newQuoteCargoLine(0)])
   const [airMode, setAirMode] = useState<CargoEntryMode>('total')
+  const [lclLines, setLclLines] = useState<QuoteCargoLine[]>([newQuoteCargoLine(0)])
+  const [lclMode, setLclMode] = useState<CargoEntryMode>('total')
   const [busyId, setBusyId] = useState<string | null>(null)
   const [party, setParty] = useState<Party | null>(null)
   const [agentMode, setAgentMode] = useState(false)
@@ -117,12 +117,22 @@ export default function NewQuoteSearch() {
     invalidate()
   }
   function addAirLine() { setAirLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
+  function addLclLine() { setLclLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
 
   const isLcl = draft.shipment_type === 'LCL'
   const isAir = draft.shipment_type === 'Air'
-  useEffect(() => { if (isAir && draft.from_port_code && draft.to_port_code) setLoadsOpen(true) }, [isAir, draft.from_port_code, draft.to_port_code])
-  const wmNum = Math.max(0, Number(lclWm) || 0)
-  const cbmNum = (Number(lclCbm) || 0) > 0 ? Number(lclCbm) : wmNum
+  useEffect(() => { if ((isAir || isLcl) && draft.from_port_code && draft.to_port_code) setLoadsOpen(true) }, [isAir, isLcl, draft.from_port_code, draft.to_port_code])
+  const lclSummary = useMemo(() => {
+    let gross = 0, cbm = 0, pcs = 0
+    for (const l of lclLines) { const c = computeCargoLine(l, 'sea'); gross += c.grossTotal; cbm += c.totalCbm; pcs += Number(l.quantity) || 0 }
+    const wm = Math.max(gross / 1000, cbm)
+    return { gross: Math.round(gross * 10) / 10, cbm: Math.round(cbm * 1000) / 1000, wm: Math.round(wm * 1000) / 1000, pcs }
+  }, [lclLines])
+  const lclLoadsSummary = lclSummary.wm > 0
+    ? `${lclSummary.pcs || '—'} pc${lclSummary.pcs === 1 ? '' : 's'} · ${lclSummary.gross.toFixed(1)} kg · ${lclSummary.wm.toFixed(3)} W/M`
+    : 'Add cargo'
+  const wmNum = lclSummary.wm
+  const cbmNum = lclSummary.cbm > 0 ? lclSummary.cbm : wmNum
 
   const canSearch = useMemo(() => {
     if (!draft.from_port_code || !draft.to_port_code) return false
@@ -232,6 +242,7 @@ export default function NewQuoteSearch() {
       const { id } = await createQuote(payload)
       if (draft.shipment_type === 'FCL') await replaceQuoteContainers(id, groups)
       if (isAir) { await updateQuote(id, { cargo_entry_mode: airMode }); await saveQuoteCargo(id, airLines, 'air') }
+      if (isLcl) { await updateQuote(id, { cargo_entry_mode: lclMode }); await saveQuoteCargo(id, lclLines, 'sea') }
       if (chosen) {
         const { id: responseId } = await createQuoteResponse(id)
         await saveQuoteResponseLines(responseId, buildBuyLines(chosen))
@@ -261,6 +272,8 @@ export default function NewQuoteSearch() {
         movement: draft.movement_type ?? null,
         incoterm: draft.incoterms ?? null,
       })
+      await updateQuote(quoteId, { cargo_entry_mode: lclMode, pickup_address: draft.pickup_address ?? null, drop_address: draft.drop_address ?? null })
+      await saveQuoteCargo(quoteId, lclLines, 'sea')
       toast.success('Quote created with LCL buy rates')
       navigate(`/quotes/${quoteId}`)
     } catch (e) {
@@ -334,29 +347,15 @@ export default function NewQuoteSearch() {
         </div>
 
         <div className="nqs-bar">
-          <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} hideType={isAir} />
-          <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} hideType={isAir} />
+          <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
+          <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
 
-          {isLcl ? (
-            <div className="nqs-loads-btn" style={{ cursor: 'default', gap: 12 }}>
-              <ContainerIcon size={16} color="#64748b" />
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11, color: 'var(--muted-foreground)' }}>
-                Chargeable W/M
-                <input type="number" min={0} inputMode="decimal" value={lclWm} onChange={(e) => { setLclWm(e.target.value); invalidate() }}
-                  placeholder="e.g. 3.5" style={{ width: 84, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }} />
-              </label>
-              <label style={{ display: 'flex', flexDirection: 'column', gap: 2, fontSize: 11, color: 'var(--muted-foreground)' }}>
-                CBM (opt.)
-                <input type="number" min={0} inputMode="decimal" value={lclCbm} onChange={(e) => { setLclCbm(e.target.value); invalidate() }}
-                  placeholder="= W/M" style={{ width: 72, border: 'none', outline: 'none', fontSize: 14, background: 'transparent' }} />
-              </label>
-            </div>
-          ) : isAir ? (
+          {(isLcl || isAir) ? (
             <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
               <Boxes size={16} color="#64748b" />
               <span>
                 <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
-                <span className="nqs-loads-btn__val">{airLoadsSummary}</span>
+                <span className="nqs-loads-btn__val">{isAir ? airLoadsSummary : lclLoadsSummary}</span>
               </span>
               <span style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
                 {draft.movement_type && <span style={termChip}>{draft.movement_type === 'import' ? 'Import' : 'Export'}</span>}
@@ -392,6 +391,7 @@ export default function NewQuoteSearch() {
 
         {loadsOpen && isAir && (
           <AirCargoPanel
+            mode="air"
             incoterm={draft.incoterms ?? ''}
             onIncotermChange={(v) => patch({ incoterms: v || null })}
             movement={draft.movement_type ?? ''}
@@ -411,7 +411,7 @@ export default function NewQuoteSearch() {
           />
         )}
 
-        {isAir && (
+        {(isAir || isLcl) && (
           <div className="nqs-air-actions">
             <button type="button" className="nqs-air-plain" disabled={creating} onClick={() => handleCreate()}>
               {busyId === '__plain__' ? 'Creating…' : 'Create without a rate'}
@@ -420,6 +420,19 @@ export default function NewQuoteSearch() {
               <Search size={16} /> Get rates
             </button>
           </div>
+        )}
+
+        {loadsOpen && isLcl && (
+          <AirCargoPanel
+            mode="sea"
+            incoterm={draft.incoterms ?? ''} onIncotermChange={(v) => patch({ incoterms: v || null })}
+            movement={draft.movement_type ?? ''} onMovementChange={(v) => patch({ movement_type: v || null })}
+            originAddress={draft.pickup_address ?? ''} onOriginAddressChange={(v) => patch({ pickup_address: v || null })}
+            deliveryAddress={draft.drop_address ?? ''} onDeliveryAddressChange={(v) => patch({ drop_address: v || null })}
+            lines={lclLines} entryMode={lclMode} onEntryModeChange={setLclMode}
+            onLinesChange={(l) => { setLclLines(l); invalidate() }} onAddLine={addLclLine}
+            agentMode={agentMode} freightTerms={freightTerms ?? ''} onFreightTermsChange={(v) => { setFreightTerms(v); invalidate() }}
+          />
         )}
 
         {loadsOpen && !isLcl && !isAir && (

@@ -62,7 +62,7 @@ export default function ContainerGroupsEditor({
   onApply,
   onCancel,
 }: Props) {
-  const addr = addressFieldsFor(incoterm)
+  const addr = addressFieldsFor(incoterm, movement)
 
   function patchGroup(idx: number, p: Partial<QuoteContainerDraft>) {
     onChange(groups.map((g, i) => (i === idx ? { ...g, ...p } : g)))

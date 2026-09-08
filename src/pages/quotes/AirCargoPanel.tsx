@@ -23,6 +23,7 @@ type Props = {
   onEntryModeChange: (m: CargoEntryMode) => void
   onLinesChange: (lines: QuoteCargoLine[]) => void
   onAddLine: () => void
+  mode?: 'air' | 'sea'
   agentMode?: boolean
   freightTerms?: string
   onFreightTermsChange?: (v: string) => void
@@ -30,20 +31,25 @@ type Props = {
 
 // Address fields by incoterm.
 // EXW/FCA -> origin + delivery; FAS/FOB/CPT/CIP/DAP/DPU/DDP -> delivery only; CFR/CIF -> none.
-export function addressFieldsFor(incoterm: string): { origin: boolean; delivery: boolean } {
+export function addressFieldsFor(incoterm: string, movement?: string): { origin: boolean; delivery: boolean } {
   const c = (incoterm || '').toUpperCase()
-  if (c === 'EXW' || c === 'FCA') return { origin: true, delivery: true }
-  if (['FAS', 'FOB', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'].includes(c)) return { origin: false, delivery: true }
-  return { origin: false, delivery: false }
+  let origin = false, delivery = false
+  if (c === 'EXW' || c === 'FCA') { origin = true; delivery = true }
+  else if (['FAS', 'FOB', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'].includes(c)) { delivery = true }
+  // model B: the NZ door leg is always available by direction
+  const mv = (movement || '').toLowerCase()
+  if (mv === 'export') origin = true
+  if (mv === 'import') delivery = true
+  return { origin, delivery }
 }
 
 export default function AirCargoPanel({
   incoterm, onIncotermChange, movement, onMovementChange,
   originAddress, onOriginAddressChange, deliveryAddress, onDeliveryAddressChange,
   lines, entryMode, onEntryModeChange, onLinesChange, onAddLine,
-  agentMode, freightTerms, onFreightTermsChange,
+  mode = 'air', agentMode, freightTerms, onFreightTermsChange,
 }: Props) {
-  const addr = addressFieldsFor(incoterm)
+  const addr = addressFieldsFor(incoterm, movement)
 
   return (
     <div className="acp">
@@ -62,7 +68,7 @@ export default function AirCargoPanel({
         </div>
         <label className="acp__field">
           <span className="acp__label">Incoterm</span>
-          <IncotermSelect value={incoterm} onChange={onIncotermChange} airOnly />
+          <IncotermSelect value={incoterm} onChange={onIncotermChange} airOnly={mode === 'air'} />
         </label>
         {agentMode && (
           <div className="acp__field">
@@ -100,7 +106,7 @@ export default function AirCargoPanel({
       )}
 
       <QuoteCargoEntry
-        mode="air" entryMode={entryMode} onEntryModeChange={onEntryModeChange}
+        mode={mode} entryMode={entryMode} onEntryModeChange={onEntryModeChange}
         lines={lines} onChange={onLinesChange} onAddLine={onAddLine}
       />
     </div>
