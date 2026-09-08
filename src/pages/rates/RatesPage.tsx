@@ -23,6 +23,7 @@ const GROUPS: ModuleGroup[] = [
       { label: 'Sea FCL Local/Port Charges', to: '/setup/rates/fcl-local' },
       { label: 'Sea LCL Local/Port Charges', to: '/setup/rates/lcl-local' },
       { label: 'Air Local/Port Charges', to: '/setup/rates/air-local' },
+      { label: 'Domestic Cartage', to: '/setup/rates/cartage' },
     ],
   },
   {

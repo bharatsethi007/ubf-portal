@@ -34,11 +34,14 @@ import RatePage from './pages/public/RatePage'
 import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
 import SetupPage from './pages/setup/SetupPage'
 import RatesPage from './pages/rates/RatesPage'
+import CartageSetupPage from './pages/cartage/CartageSetupPage'
 import RateModulePage from './pages/rates/RateModulePage'
 import RateRulesPage from './pages/rates/RateRulesPage'
 import FclRateCardsList from './pages/rates/fcl/FclRateCardsList'
 import FclRateCardForm from './pages/rates/fcl/FclRateCardForm'
 import FclRateCardDetail from './pages/rates/fcl/FclRateCardDetail'
+import CartageRateCardsList from './pages/rates/cartage/CartageRateCardsList'
+import CartageRateCardForm from './pages/rates/cartage/CartageRateCardForm'
 import FclLocalChargesList from './pages/rates/fcl-local/FclLocalChargesList'
 import FclLocalChargeSheetForm from './pages/rates/fcl-local/FclLocalChargeSheetForm'
 import FclLocalChargeSheetDetail from './pages/rates/fcl-local/FclLocalChargeSheetDetail'
@@ -210,6 +213,7 @@ export default function App() {
             <Route path="/reports" element={<ReportsPage />} />
             <Route path="/users" element={<UsersArea />} />
             <Route path="/setup/rates" element={<StaffRoute><RatesPage /></StaffRoute>} />
+            <Route path="/setup/cartage" element={<StaffRoute><CartageSetupPage /></StaffRoute>} />
             <Route path="/setup/rates/fcl" element={<StaffRoute><FclRateCardsList /></StaffRoute>} />
             <Route path="/setup/rates/fcl/new" element={<StaffRoute><FclRateCardForm /></StaffRoute>} />
             <Route path="/setup/rates/fcl/:id" element={<StaffRoute><FclRateCardDetail /></StaffRoute>} />
@@ -222,6 +226,9 @@ export default function App() {
             <Route path="/setup/rates/fcl-local" element={<StaffRoute><FclLocalChargesList /></StaffRoute>} />
             <Route path="/setup/rates/fcl-local/new" element={<StaffRoute><FclLocalChargeSheetForm /></StaffRoute>} />
             <Route path="/setup/rates/fcl-local/:id" element={<StaffRoute><FclLocalChargeSheetDetail /></StaffRoute>} />
+            <Route path="/setup/rates/cartage" element={<StaffRoute><CartageRateCardsList /></StaffRoute>} />
+            <Route path="/setup/rates/cartage/new" element={<StaffRoute><CartageRateCardForm /></StaffRoute>} />
+            <Route path="/setup/rates/cartage/:id" element={<StaffRoute><RateModulePage title="Domestic Cartage" /></StaffRoute>} />
             <Route path="/setup/rates/lcl-local" element={<StaffRoute><RateModulePage title="Sea LCL Local/Port Charges" /></StaffRoute>} />
             <Route path="/setup/rates/air-local" element={<StaffRoute><AirLocalChargesList /></StaffRoute>} />
             <Route path="/setup/rates/air-local/new" element={<StaffRoute><AirLocalChargeSheetForm /></StaffRoute>} />
