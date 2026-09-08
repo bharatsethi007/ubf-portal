@@ -6,6 +6,9 @@ import type { CustomerPickerValue } from '../../components/bookings/CustomerPick
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
+import CartageRateSearch from './CartageRateSearch'
+import { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
+import { type CartageCtx } from './cartageSearchApi'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
 import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
@@ -133,6 +136,14 @@ export default function NewQuoteSearch() {
     : 'Add cargo'
   const wmNum = lclSummary.wm
   const cbmNum = lclSummary.cbm > 0 ? lclSummary.cbm : wmNum
+
+  const cartageCtx: CartageCtx = useMemo(() => ({
+    from_port: draft.from_port_code ?? null, to_port: draft.to_port_code ?? null,
+    origin_type: null, dest_type: null,
+    pickup_postal: draft.pickup_postal_code ?? null, pickup_location: draft.pickup_location ?? null, pickup_address: draft.pickup_address ?? null,
+    drop_postal: draft.drop_postal_code ?? null, drop_location: draft.drop_location ?? null, drop_address: draft.drop_address ?? null,
+    shipment_mode: draft.shipment_mode ?? null, shipment_type: draft.shipment_type ?? null, movement_type: draft.movement_type ?? null,
+  }), [draft.from_port_code, draft.to_port_code, draft.pickup_postal_code, draft.pickup_location, draft.pickup_address, draft.drop_postal_code, draft.drop_location, draft.drop_address, draft.shipment_mode, draft.shipment_type, draft.movement_type])
 
   const canSearch = useMemo(() => {
     if (!draft.from_port_code || !draft.to_port_code) return false
@@ -397,9 +408,9 @@ export default function NewQuoteSearch() {
             movement={draft.movement_type ?? ''}
             onMovementChange={(v) => patch({ movement_type: v || null })}
             originAddress={draft.pickup_address ?? ''}
-            onOriginAddressChange={(v) => patch({ pickup_address: v || null })}
+            onOriginAddressChange={(v, c) => patch({ pickup_address: v || null, ...(c?.postcode ? { pickup_postal_code: c.postcode } : {}), ...(c?.city ? { pickup_location: c.city } : {}) })}
             deliveryAddress={draft.drop_address ?? ''}
-            onDeliveryAddressChange={(v) => patch({ drop_address: v || null })}
+            onDeliveryAddressChange={(v, c) => patch({ drop_address: v || null, ...(c?.postcode ? { drop_postal_code: c.postcode } : {}), ...(c?.city ? { drop_location: c.city } : {}) })}
             lines={airLines}
             entryMode={airMode}
             onEntryModeChange={setAirMode}
@@ -427,8 +438,8 @@ export default function NewQuoteSearch() {
             mode="sea"
             incoterm={draft.incoterms ?? ''} onIncotermChange={(v) => patch({ incoterms: v || null })}
             movement={draft.movement_type ?? ''} onMovementChange={(v) => patch({ movement_type: v || null })}
-            originAddress={draft.pickup_address ?? ''} onOriginAddressChange={(v) => patch({ pickup_address: v || null })}
-            deliveryAddress={draft.drop_address ?? ''} onDeliveryAddressChange={(v) => patch({ drop_address: v || null })}
+            originAddress={draft.pickup_address ?? ''} onOriginAddressChange={(v, c) => patch({ pickup_address: v || null, ...(c?.postcode ? { pickup_postal_code: c.postcode } : {}), ...(c?.city ? { pickup_location: c.city } : {}) })}
+            deliveryAddress={draft.drop_address ?? ''} onDeliveryAddressChange={(v, c) => patch({ drop_address: v || null, ...(c?.postcode ? { drop_postal_code: c.postcode } : {}), ...(c?.city ? { drop_location: c.city } : {}) })}
             lines={lclLines} entryMode={lclMode} onEntryModeChange={setLclMode}
             onLinesChange={(l) => { setLclLines(l); invalidate() }} onAddLine={addLclLine}
             agentMode={agentMode} freightTerms={freightTerms ?? ''} onFreightTermsChange={(v) => { setFreightTerms(v); invalidate() }}
@@ -444,12 +455,18 @@ export default function NewQuoteSearch() {
             incoterm={draft.incoterms ?? ''}
             onIncotermChange={(v) => patch({ incoterms: v || null })}
             originAddress={draft.pickup_address ?? ''}
-            onOriginAddressChange={(v) => patch({ pickup_address: v || null })}
+            onOriginAddressChange={(v, c) => patch({ pickup_address: v || null, ...(c?.postcode ? { pickup_postal_code: c.postcode } : {}), ...(c?.city ? { pickup_location: c.city } : {}) })}
             deliveryAddress={draft.drop_address ?? ''}
-            onDeliveryAddressChange={(v) => patch({ drop_address: v || null })}
+            onDeliveryAddressChange={(v, c) => patch({ drop_address: v || null, ...(c?.postcode ? { drop_postal_code: c.postcode } : {}), ...(c?.city ? { drop_location: c.city } : {}) })}
             onApply={() => setLoadsOpen(false)}
             onCancel={() => setLoadsOpen(false)}
           />
+        )}
+
+        {draft.from_port_code && draft.to_port_code && draft.movement_type && (
+          <div className="nqs-results" style={{ marginTop: 8 }}>
+            <CartageRateSearch ctx={cartageCtx} />
+          </div>
         )}
 
         {searched && (

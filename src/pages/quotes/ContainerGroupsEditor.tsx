@@ -1,6 +1,6 @@
 import { Plus, X } from 'lucide-react'
 import IncotermSelect from '../../components/bookings/IncotermSelect'
-import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
+import AddressAutocomplete, { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
 import { addressFieldsFor } from './AirCargoPanel'
 import {
   emptyContainerGroup,
@@ -41,9 +41,9 @@ type Props = {
   incoterm: string
   onIncotermChange: (v: string) => void
   originAddress: string
-  onOriginAddressChange: (v: string) => void
+  onOriginAddressChange: (v: string, c?: AddressComponents) => void
   deliveryAddress: string
-  onDeliveryAddressChange: (v: string) => void
+  onDeliveryAddressChange: (v: string, c?: AddressComponents) => void
   onApply: () => void
   onCancel: () => void
 }
@@ -108,7 +108,7 @@ export default function ContainerGroupsEditor({
                 <AddressAutocomplete
                   label=""
                   value={originAddress}
-                  onChange={(a) => onOriginAddressChange(a)}
+                  onChange={(a, c) => onOriginAddressChange(a, c)}
                   usePlaces={!originAddress.trim()}
                 />
               </div>
@@ -119,7 +119,7 @@ export default function ContainerGroupsEditor({
                 <AddressAutocomplete
                   label=""
                   value={deliveryAddress}
-                  onChange={(a) => onDeliveryAddressChange(a)}
+                  onChange={(a, c) => onDeliveryAddressChange(a, c)}
                   usePlaces={!deliveryAddress.trim()}
                 />
               </div>

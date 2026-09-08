@@ -39,15 +39,19 @@ function legsFrom(ctx: CartageCtx): Leg[] {
   return out
 }
 
-export default function CartageRateSearch({ quoteId }: { quoteId: string }) {
+export default function CartageRateSearch({ quoteId, ctx: ctxProp }: { quoteId?: string; ctx?: CartageCtx }) {
   const [ctx, setCtx] = useState<CartageCtx | null>(null)
   const [zones, setZones] = useState<CartageZone[]>([])
   const [err, setErr] = useState('')
 
   useEffect(() => {
-    fetchQuoteCartageContext(quoteId).then(setCtx).catch((e) => setErr(e instanceof Error ? e.message : 'Failed to load'))
     listCartageZones().then(setZones).catch(() => {})
-  }, [quoteId])
+  }, [])
+
+  useEffect(() => {
+    if (ctxProp) { setCtx(ctxProp); return }
+    if (quoteId) fetchQuoteCartageContext(quoteId).then(setCtx).catch((e) => setErr(e instanceof Error ? e.message : 'Failed to load'))
+  }, [ctxProp, quoteId])
 
   const legs = useMemo(() => (ctx ? legsFrom(ctx) : []), [ctx])
 

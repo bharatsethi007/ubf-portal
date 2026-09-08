@@ -1,4 +1,4 @@
-import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
+import AddressAutocomplete, { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
 import IncotermSelect from '../../components/bookings/IncotermSelect'
 import QuoteCargoEntry, { type CargoEntryMode } from './QuoteCargoEntry'
 import { type QuoteCargoLine } from './quoteCargoApi'
@@ -15,9 +15,9 @@ type Props = {
   movement: string
   onMovementChange: (v: string) => void
   originAddress: string
-  onOriginAddressChange: (v: string) => void
+  onOriginAddressChange: (v: string, c?: AddressComponents) => void
   deliveryAddress: string
-  onDeliveryAddressChange: (v: string) => void
+  onDeliveryAddressChange: (v: string, c?: AddressComponents) => void
   lines: QuoteCargoLine[]
   entryMode: CargoEntryMode
   onEntryModeChange: (m: CargoEntryMode) => void
@@ -92,14 +92,14 @@ export default function AirCargoPanel({
             <label className="acp__field">
               <span className="acp__label">Origin address</span>
               <AddressAutocomplete label="" value={originAddress}
-                onChange={(a) => onOriginAddressChange(a)} usePlaces={!originAddress.trim()} />
+                onChange={(a, c) => onOriginAddressChange(a, c)} usePlaces={!originAddress.trim()} />
             </label>
           )}
           {addr.delivery && (
             <label className="acp__field">
               <span className="acp__label">Delivery address</span>
               <AddressAutocomplete label="" value={deliveryAddress}
-                onChange={(a) => onDeliveryAddressChange(a)} usePlaces={!deliveryAddress.trim()} />
+                onChange={(a, c) => onDeliveryAddressChange(a, c)} usePlaces={!deliveryAddress.trim()} />
             </label>
           )}
         </div>
