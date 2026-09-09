@@ -58,6 +58,12 @@ const PORT_CITY: Record<string, string> = {
   NZNSN: 'Nelson', NZDUD: 'Dunedin', NZBLU: 'Invercargill',
 }
 
+// UBF depot/receipt address per port (real street address so couriers rate properly). Add more as needed.
+const DEPOT_ADDR: Record<string, { street: string; suburb: string; city: string; postcode: string }> = {
+  AKL: { street: '173 Montgomerie Road', suburb: 'Mangere', city: 'Auckland', postcode: '2022' },
+  NZAKL: { street: '173 Montgomerie Road', suburb: 'Mangere', city: 'Auckland', postcode: '2022' },
+}
+
 export default function NewQuoteSearch() {
   const navigate = useNavigate()
   const { rates: fxRates } = useEffectiveRates('NZD')
@@ -205,7 +211,8 @@ export default function NewQuoteSearch() {
             const wKg = isAir ? airSummary.gross : lclSummary.gross
             const volM3 = isAir ? airSummary.cbm : lclSummary.cbm
             const pcs = Math.max(1, (isAir ? airSummary.pcs : lclSummary.pcs) || 1)
-            const portAddr = { suburb: portCity, city: portCity }
+            const depot = DEPOT_ADDR[(leg.port ?? '').toUpperCase()]
+            const portAddr = depot ?? { suburb: portCity, city: portCity }
             const door = { suburb: leg.door.city ?? undefined, city: leg.door.city ?? undefined, postcode: leg.door.pc ?? undefined, street: leg.door.addr ?? undefined }
             const [gOrigin, gDest] = leg.dir === 'import' ? [portAddr, door] : [door, portAddr]
             const [fromS, toS] = leg.dir === 'import' ? [portCity, doorCity] : [doorCity, portCity]
