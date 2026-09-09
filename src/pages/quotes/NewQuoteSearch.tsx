@@ -6,8 +6,9 @@ import type { CustomerPickerValue } from '../../components/bookings/CustomerPick
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
+import CartageCourierSelector from './CartageCourierSelector'
 import { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
-import { runCartageRate, runBascikCartage, type CartageQuoteResult } from './cartageSearchApi'
+import { runCartageRate, runBascikCartage, runGssCartage, type CartageQuoteResult, type GssOption } from './cartageSearchApi'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
 import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
@@ -88,6 +89,8 @@ export default function NewQuoteSearch() {
   const freightTouched = useRef(false)
   const [residential, setResidential] = useState(false)
   const [cartage, setCartage] = useState<{ leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string } | null>(null)
+  const [courier, setCourier] = useState<{ leg: 'origin' | 'dest'; options: GssOption[] } | null>(null)
+  const [courierIdx, setCourierIdx] = useState(0)
   const creating = busyId !== null
 
   function setFreightTerms(v: string | null) { freightTouched.current = true; setFreightTermsState(v) }
@@ -182,6 +185,7 @@ export default function NewQuoteSearch() {
       if (!leg || !leg.port || !(leg.door.pc || leg.door.city || leg.door.addr)) { if (!cancelled) setCartage(null); return }
       const common = { door_postcode: leg.door.pc ?? null, door_city: leg.door.city ?? null, door_raw: leg.door.addr ?? null, port_code: leg.port, direction: leg.dir, residential, tail_lift: false }
       try {
+        if (!cancelled) setCourier(null)
         let amount = 0, conf = 'green', status = 'ok'
         const take = (r: CartageQuoteResult, qty: number) => { if (r.status === 'ok') { amount += (r.total ?? 0) * qty; conf = worse(conf, r.door_confidence ?? 'green') } else status = r.status }
         if (draft.shipment_type === 'Air') {
@@ -191,7 +195,7 @@ export default function NewQuoteSearch() {
         } else {
           for (const g of groups) { if (!g.qty) continue; take(await runCartageRate({ ...common, mode: g.container_size.startsWith('40') ? 'fcl40' : 'fcl20', weight_kg: (g.weight_per_container_mt ?? 0) * 1000, cbm: 0, volume_cm3: 0 }), g.qty) }
         }
-        // Out-of-Auckland LTL fallback: if our own card has no zone/lane, ask Bascik (LCL/Air only)
+        // Out-of-Auckland LTL fallback (LCL/Air): GoSweetSpot couriers first, Bascik second
         if (status !== 'ok' && (draft.shipment_type === 'Air' || draft.shipment_type === 'LCL')) {
           const portCity = PORT_CITY[(leg.port ?? '').toUpperCase()]
           const doorCity = leg.door.city || leg.door.addr
@@ -200,6 +204,19 @@ export default function NewQuoteSearch() {
             const wKg = isAir ? airSummary.gross : lclSummary.gross
             const volM3 = isAir ? airSummary.cbm : lclSummary.cbm
             const pcs = Math.max(1, (isAir ? airSummary.pcs : lclSummary.pcs) || 1)
+            const portAddr = { suburb: portCity, city: portCity }
+            const door = { suburb: leg.door.city ?? undefined, city: leg.door.city ?? undefined, postcode: leg.door.pc ?? undefined, street: leg.door.addr ?? undefined }
+            const [gOrigin, gDest] = leg.dir === 'import' ? [portAddr, door] : [door, portAddr]
+            const gss = await runGssCartage({ origin: gOrigin, destination: gDest, pieces: pcs, weight_kg: wKg, volume_m3: volM3 })
+            if (gss.ok && gss.options && gss.options.length) {
+              if (!cancelled) {
+                setCourier({ leg: leg.side, options: gss.options })
+                setCourierIdx(0)
+                const o = gss.options[0]
+                setCartage({ leg: leg.side, label: `Cartage \u00b7 ${o.carrier}${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok' })
+              }
+              return
+            }
             const [fromS, toS] = leg.dir === 'import' ? [portCity, doorCity] : [doorCity, portCity]
             const bas = await runBascikCartage({ from_suburb: fromS, to_suburb: toS, pieces: pcs, weight_kg: wKg, volume_m3: volM3 })
             if (!cancelled) {
@@ -376,6 +393,13 @@ export default function NewQuoteSearch() {
     }
   }
 
+  function selectCourier(i: number) {
+    if (!courier) return
+    setCourierIdx(i)
+    const o = courier.options[i]
+    setCartage({ leg: courier.leg, label: `Cartage \u00b7 ${o.carrier}${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok' })
+  }
+
   return (
     <div className="nqs-page">
       <div className="nqs-card">
@@ -524,6 +548,9 @@ export default function NewQuoteSearch() {
 
         {searched && (
           <div className="nqs-results">
+            {courier && courier.options.length > 0 && (
+              <CartageCourierSelector title={`Cartage couriers \u00b7 ${courier.leg === 'dest' ? 'delivery' : 'pickup'}`} options={courier.options} selected={courierIdx} onSelect={selectCourier} />
+            )}
             {searching ? (
               <div className="nqs-results__empty"><div className="nqs-results__title">Searching your rate cards…</div></div>
             ) : (isAir ? airOptions.length : isLcl ? lclOptions.length : options.length) > 0 ? (

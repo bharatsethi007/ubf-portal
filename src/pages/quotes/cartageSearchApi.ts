@@ -60,3 +60,23 @@ export async function runBascikCartage(p: { from_suburb: string; to_suburb: stri
     return { ok: false, reason: e instanceof Error ? e.message : 'Bascik call failed' }
   }
 }
+
+
+export type GssOption = { carrier: string; service: string; cost: number; charge: number; rural: boolean; quoteId: string | null }
+export type GssQuote = { ok: boolean; best?: GssOption; options?: GssOption[]; reason?: string }
+
+export async function runGssCartage(p: {
+  origin?: { suburb?: string; city?: string; postcode?: string; street?: string } | null
+  destination: { suburb?: string; city?: string; postcode?: string; street?: string }
+  pieces: number; weight_kg: number; volume_m3: number
+}): Promise<GssQuote> {
+  try {
+    const { data, error } = await supabase.functions.invoke('cartage-gss-quote', {
+      body: { origin: p.origin ?? null, destination: p.destination, pieces: p.pieces, weight_kg: p.weight_kg, volume_m3: p.volume_m3 },
+    })
+    if (error) return { ok: false, reason: error.message }
+    return (data ?? { ok: false, reason: 'no response' }) as GssQuote
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'GSS call failed' }
+  }
+}
