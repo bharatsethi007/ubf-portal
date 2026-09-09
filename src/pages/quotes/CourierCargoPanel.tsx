@@ -2,14 +2,13 @@
 import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
 import CourierPieceRows from './CourierPieceRows'
 import CourierCourierSelector, { type CourierCourierOption } from './CourierCourierSelector'
-import { runDhlCourier, type DhlCourierOption, type DhlCourierSearchBody } from './courierSearchApi'
+import { runDhlCourier, runFedexCourier, type DhlCourierSearchBody } from './courierSearchApi'
 import './airCargoPanel.css'
 import './quoteCargoEntry.css'
 
 export type CourierLocation = {
   countryCode: string
   city: string
-  state?: string
   postcode: string
 }
 
@@ -55,12 +54,26 @@ function toSearchPieces(pieces: CourierPiece[]) {
   }))
 }
 
-function dhlToSelectorOption(o: DhlCourierOption): CourierCourierOption {
+type AnyOption = {
+  carrier?: string
+  service?: string
+  product?: string
+  productCode?: string
+  charge?: number
+  total?: number
+  amount?: number
+  currency?: string
+  eta?: string
+  transitDays?: number
+}
+
+function toSelectorOption(o: AnyOption, fallbackCarrier: string): CourierCourierOption {
   return {
-    carrier: 'DHL',
+    carrier: o.carrier ?? fallbackCarrier,
     service: o.service ?? o.product ?? o.productCode ?? 'Courier',
     charge: o.charge ?? o.total ?? o.amount ?? 0,
-    eta: (o as { eta?: string }).eta ?? (o.transitDays != null ? `${o.transitDays} days` : undefined),
+    currency: o.currency,
+    eta: o.eta ?? (o.transitDays != null ? `${o.transitDays} days` : undefined),
   }
 }
 
@@ -83,15 +96,12 @@ export default function CourierCargoPanel({
   const [courierOptions, setCourierOptions] = useState<CourierCourierOption[]>([])
   const [selectedCourier, setSelectedCourier] = useState(0)
 
-  // Locally captured location fields from the last real place selection.
-  // Google only supplies components on place_changed; blur/typing re-fires
-  // onChange with no components, so we must not let those wipe the country.
   const [capFrom, setCapFrom] = useState<CourierLocation>(from)
   const [capTo, setCapTo] = useState<CourierLocation>(to)
 
-  function handleFrom(address: string, c?: Partial<CourierLocation>) {
-    if (c && (c.countryCode || c.city || c.postcode)) {
-      const next = { countryCode: c.countryCode ?? '', city: (c.city || (c as { state?: string }).state) ?? '', postcode: c.postcode ?? '' }
+  function handleFrom(address: string, c?: Partial<CourierLocation> & { state?: string }) {
+    if (c && (c.countryCode || c.city || c.postcode || c.state)) {
+      const next = { countryCode: c.countryCode ?? '', city: (c.city || c.state) ?? '', postcode: c.postcode ?? '' }
       setCapFrom(next)
       onFromChange(address, next)
     } else {
@@ -99,9 +109,9 @@ export default function CourierCargoPanel({
     }
   }
 
-  function handleTo(address: string, c?: Partial<CourierLocation>) {
-    if (c && (c.countryCode || c.city || c.postcode)) {
-      const next = { countryCode: c.countryCode ?? '', city: (c.city || (c as { state?: string }).state) ?? '', postcode: c.postcode ?? '' }
+  function handleTo(address: string, c?: Partial<CourierLocation> & { state?: string }) {
+    if (c && (c.countryCode || c.city || c.postcode || c.state)) {
+      const next = { countryCode: c.countryCode ?? '', city: (c.city || c.state) ?? '', postcode: c.postcode ?? '' }
       setCapTo(next)
       onToChange(address, next)
     } else {
@@ -123,13 +133,27 @@ export default function CourierCargoPanel({
       pieces: toSearchPieces(pieces),
     }
     try {
-      const res = await runDhlCourier(body)
-      if (!res.ok) {
-        setSearchError([res.reason, res.detail].filter(Boolean).join(' - '))
-        return
+      const [dhl, fedex] = await Promise.allSettled([runDhlCourier(body), runFedexCourier(body)])
+      const merged: CourierCourierOption[] = []
+      const errors: string[] = []
+
+      if (dhl.status === 'fulfilled' && dhl.value.ok) {
+        const raw = dhl.value.options?.length ? dhl.value.options : dhl.value.best ? [dhl.value.best] : []
+        merged.push(...raw.map((o: AnyOption) => toSelectorOption(o, 'DHL')))
+      } else if (dhl.status === 'fulfilled') {
+        errors.push(`DHL: ${[dhl.value.reason, dhl.value.detail].filter(Boolean).join(' - ')}`)
       }
-      const raw = res.options?.length ? res.options : res.best ? [res.best] : []
-      setCourierOptions(raw.map(dhlToSelectorOption))
+
+      if (fedex.status === 'fulfilled' && fedex.value.ok) {
+        const raw = fedex.value.options?.length ? fedex.value.options : fedex.value.best ? [fedex.value.best] : []
+        merged.push(...raw.map((o: AnyOption) => toSelectorOption(o, 'FedEx')))
+      } else if (fedex.status === 'fulfilled') {
+        errors.push(`FedEx: ${[fedex.value.reason, fedex.value.detail].filter(Boolean).join(' - ')}`)
+      }
+
+      merged.sort((a, b) => a.charge - b.charge)
+      setCourierOptions(merged)
+      if (merged.length === 0) setSearchError(errors.join(' | ') || 'No rates returned')
     } finally {
       setSearching(false)
     }
@@ -161,24 +185,14 @@ export default function CourierCargoPanel({
       <div className="acp__addrs">
         <label className="acp__field">
           <span className="acp__label">Origin</span>
-          <AddressAutocomplete
-            label=""
-            value={fromAddress}
-            usePlaces
-            onChange={(address, c) => handleFrom(address, c)}
-          />
+          <AddressAutocomplete label="" value={fromAddress} usePlaces onChange={(address, c) => handleFrom(address, c)} />
         </label>
 
         <div className="acp__field">
           <span className="acp__label">Destination</span>
           <div style={{ display: 'flex', gap: 12, alignItems: 'flex-end', flexWrap: 'wrap' }}>
             <div style={{ flex: '1 1 240px', minWidth: 0 }}>
-              <AddressAutocomplete
-                label=""
-                value={toAddress}
-                usePlaces
-                onChange={(address, c) => handleTo(address, c)}
-              />
+              <AddressAutocomplete label="" value={toAddress} usePlaces onChange={(address, c) => handleTo(address, c)} />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingBottom: 8 }}>
               <input type="checkbox" checked={to.residential} onChange={(e) => onToResidentialChange(e.target.checked)} />
@@ -193,13 +207,7 @@ export default function CourierCargoPanel({
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button
-          type="button"
-          className="btn btn--inline"
-          style={{ marginTop: 0, whiteSpace: 'nowrap' }}
-          onClick={() => void searchRates()}
-          disabled={searching}
-        >
+        <button type="button" className="btn btn--inline" style={{ marginTop: 0, whiteSpace: 'nowrap' }} onClick={() => void searchRates()} disabled={searching}>
           {searching ? 'Searching...' : 'Search'}
         </button>
       </div>
@@ -214,6 +222,3 @@ export default function CourierCargoPanel({
     </div>
   )
 }
-
-
-

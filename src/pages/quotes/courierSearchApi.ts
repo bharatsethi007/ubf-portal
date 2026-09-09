@@ -49,3 +49,13 @@ export async function runDhlCourier(body: DhlCourierSearchBody): Promise<DhlCour
     return { ok: false, reason: e instanceof Error ? e.message : 'DHL courier call failed' }
   }
 }
+
+export async function runFedexCourier(body: DhlCourierSearchBody): Promise<DhlCourierQuote> {
+  try {
+    const { data, error } = await supabase.functions.invoke('courier-fedex-quote', { body })
+    if (error) return { ok: false, reason: error.message }
+    return (data ?? { ok: false, reason: 'no response' }) as DhlCourierQuote
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'FedEx courier call failed' }
+  }
+}
