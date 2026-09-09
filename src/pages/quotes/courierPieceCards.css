@@ -62,17 +62,16 @@
   flex-shrink: 0;
 }
 
-.cpc__totals {
+.cpc__footer {
   display: flex;
-  gap: 16px;
-  padding: 9px 12px;
-  background: rgba(10, 36, 114, 0.04);
-  border-radius: 10px;
-  font-size: 13px;
-  color: var(--color-muted, #64748b);
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
 }
 
-.cpc__totals strong {
-  color: var(--color-ink, #0A2472);
-  font-weight: 600;
+.cpc__footer-totals {
+  font-size: 12px;
+  color: var(--color-muted, #64748b);
+  text-align: right;
+  margin-left: auto;
 }

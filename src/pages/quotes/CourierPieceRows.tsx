@@ -1,4 +1,4 @@
-import { Copy, X } from 'lucide-react'
+import { Copy, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CourierPiece } from './CourierCargoPanel'
 import './courierPieceCards.css'
@@ -7,26 +7,24 @@ function patchPiece(pieces: CourierPiece[], id: string, patch: Partial<CourierPi
   return pieces.map((row) => (row.id === id ? { ...row, ...patch } : row))
 }
 
-function fmt(n: number, d = 1): string {
-  if (!n) return '0'
-  return n.toFixed(d)
-}
-
 type Props = {
   pieces: CourierPiece[]
   onChange: (pieces: CourierPiece[]) => void
   onAddPiece: () => void
 }
 
+function fmt(n: number, d = 1): string {
+  if (!n) return '0'
+  return n.toFixed(d)
+}
+
 export default function CourierPieceRows({ pieces, onChange, onAddPiece }: Props) {
   let totalQty = 0
   let totalWeight = 0
-
   for (const row of pieces) {
     const qty = Number(row.qty) || 0
-    const w = Number(row.weightKg) || 0
     totalQty += qty
-    totalWeight += qty * w
+    totalWeight += qty * (Number(row.weightKg) || 0)
   }
 
   function update(id: string, patch: Partial<CourierPiece>) {
@@ -79,14 +77,14 @@ export default function CourierPieceRows({ pieces, onChange, onAddPiece }: Props
         ))}
       </div>
 
-      <div className="cpc__totals">
-        <span>Total pieces: <strong>{fmt(totalQty, 0)}</strong></span>
-        <span>Total weight: <strong>{fmt(totalWeight, 2)} kg</strong></span>
+      <div className="cpc__footer">
+        <Button type="button" variant="ghost" size="icon-sm" onClick={onAddPiece} aria-label="Add piece" title="Add piece">
+          <Plus size={16} />
+        </Button>
+        <span className="cpc__footer-totals">
+          Total pieces: {fmt(totalQty, 0)} · Total weight: {fmt(totalWeight, 2)} kg
+        </span>
       </div>
-
-      <Button type="button" variant="outline" size="sm" onClick={onAddPiece}>
-        Add piece
-      </Button>
     </div>
   )
 }

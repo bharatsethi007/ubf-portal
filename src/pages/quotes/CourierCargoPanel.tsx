@@ -1,5 +1,9 @@
+import { useState } from 'react'
+import { Search } from 'lucide-react'
 import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
 import CourierPieceRows from './CourierPieceRows'
+import CourierCourierSelector, { type CourierCourierOption } from './CourierCourierSelector'
+import { runDhlCourier, type DhlCourierOption, type DhlCourierSearchBody } from './courierSearchApi'
 import './airCargoPanel.css'
 import './quoteCargoEntry.css'
 
@@ -41,11 +45,30 @@ export type CourierCargoPanelProps = {
   onAddPiece: () => void
 }
 
+function toSearchPieces(pieces: CourierPiece[]) {
+  return pieces.map((p) => ({
+    qty: Number(p.qty) || 0,
+    weightKg: Number(p.weightKg) || 0,
+    lengthCm: Number(p.lengthCm) || 0,
+    widthCm: Number(p.widthCm) || 0,
+    heightCm: Number(p.heightCm) || 0,
+  }))
+}
+
+function dhlToSelectorOption(o: DhlCourierOption): CourierCourierOption {
+  return {
+    carrier: 'DHL',
+    service: o.service ?? o.product ?? o.productCode ?? 'Courier',
+    charge: o.charge ?? o.total ?? o.amount ?? 0,
+    eta: o.transitDays != null ? `${o.transitDays} days` : undefined,
+  }
+}
+
 export default function CourierCargoPanel({
   isDocuments,
   onIsDocumentsChange,
   fromAddress,
-  from: _from,
+  from,
   onFromChange,
   toAddress,
   to,
@@ -55,6 +78,35 @@ export default function CourierCargoPanel({
   onPiecesChange,
   onAddPiece,
 }: CourierCargoPanelProps) {
+  const [searching, setSearching] = useState(false)
+  const [searchError, setSearchError] = useState<string | null>(null)
+  const [courierOptions, setCourierOptions] = useState<CourierCourierOption[]>([])
+  const [selectedCourier, setSelectedCourier] = useState(0)
+
+  async function searchRates() {
+    setSearching(true)
+    setSearchError(null)
+    setCourierOptions([])
+    setSelectedCourier(0)
+    const body: DhlCourierSearchBody = {
+      origin: { countryCode: from.countryCode, city: from.city, postcode: from.postcode },
+      destination: { countryCode: to.countryCode, city: to.city, postcode: to.postcode, residential: to.residential },
+      isDocuments,
+      pieces: toSearchPieces(pieces),
+    }
+    try {
+      const res = await runDhlCourier(body)
+      if (!res.ok) {
+        setSearchError([res.reason, res.detail].filter(Boolean).join(' — '))
+        return
+      }
+      const raw = res.options?.length ? res.options : res.best ? [res.best] : []
+      setCourierOptions(raw.map(dhlToSelectorOption))
+    } finally {
+      setSearching(false)
+    }
+  }
+
   return (
     <div className="acp">
       <div className="qce__toggle" role="tablist" aria-label="Shipment type">
@@ -118,6 +170,21 @@ export default function CourierCargoPanel({
 
       {!isDocuments && (
         <CourierPieceRows pieces={pieces} onChange={onPiecesChange} onAddPiece={onAddPiece} />
+      )}
+
+      <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+        <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={() => void searchRates()} disabled={searching}>
+          <Search size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
+          {searching ? 'Searching…' : 'Search rates'}
+        </button>
+      </div>
+
+      {searchError && (
+        <p className="text-muted-foreground" style={{ fontSize: 12, margin: 0 }}>{searchError}</p>
+      )}
+
+      {courierOptions.length > 0 && (
+        <CourierCourierSelector options={courierOptions} value={selectedCourier} onChange={setSelectedCourier} />
       )}
     </div>
   )
