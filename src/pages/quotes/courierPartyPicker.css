@@ -1,0 +1,100 @@
+.cpp { display: flex; flex-direction: column; gap: 6px; position: relative; }
+
+.cpp__label {
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--muted-foreground, #64748b);
+}
+
+.cpp__row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.cpp__input-wrap {
+  flex: 1;
+  min-width: 0;
+  position: relative;
+}
+
+.cpp__input { width: 100%; }
+
+.cpp__mode {
+  display: inline-flex;
+  gap: 4px;
+  padding: 3px;
+  background: rgba(10, 36, 114, 0.06);
+  border-radius: 9px;
+  flex-shrink: 0;
+  align-self: center;
+}
+
+.cpp__mode-btn {
+  border: none;
+  background: transparent;
+  padding: 5px 12px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted-foreground, #64748b);
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.cpp__mode-btn--on {
+  background: #fff;
+  color: #0A2472;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.cpp__menu {
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  margin: 0;
+  padding: 4px 0;
+  list-style: none;
+  background: #fff;
+  border: 1px solid var(--color-line, #e2e8f0);
+  border-radius: 8px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+  max-height: 280px;
+  overflow-y: auto;
+}
+
+.cpp__option {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  font: inherit;
+  cursor: pointer;
+}
+
+.cpp__option:hover { background: rgba(10, 36, 114, 0.04); }
+
+.cpp__option-name { font-weight: 600; font-size: 14px; }
+
+.cpp__option-meta {
+  font-size: 12px;
+  color: var(--muted-foreground, #64748b);
+}
+
+.cpp__empty {
+  padding: 8px 12px;
+  font-size: 13px;
+  color: var(--muted-foreground, #64748b);
+}
+
+.cpp__note {
+  font-size: 12px;
+  color: var(--muted-foreground, #64748b);
+  margin: 0;
+}

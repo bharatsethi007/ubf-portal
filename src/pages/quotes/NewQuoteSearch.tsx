@@ -508,6 +508,7 @@ export default function NewQuoteSearch() {
             pieces={courierPieces}
             onPiecesChange={(ps) => { setCourierPieces(ps); invalidate() }}
             onAddPiece={addCourierPiece}
+            incoterm={draft.incoterms}
           />
         ) : (
           <div className="nqs-bar">

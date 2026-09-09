@@ -4,6 +4,7 @@ import { ChevronDown, ChevronUp } from 'lucide-react'
 export type CourierCourierOption = {
   carrier: string
   service: string
+  serviceCode?: string
   charge: number
   currency?: string
   eta?: string

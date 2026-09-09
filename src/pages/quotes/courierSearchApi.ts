@@ -1,4 +1,7 @@
 import { supabase } from '../../supabase'
+import type { DhlCourierBookBody } from './courierBookingTypes'
+
+export type { DhlCourierBookBody } from './courierBookingTypes'
 
 export type CourierSearchLocation = {
   countryCode: string
@@ -57,5 +60,19 @@ export async function runFedexCourier(body: DhlCourierSearchBody): Promise<DhlCo
     return (data ?? { ok: false, reason: 'no response' }) as DhlCourierQuote
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? e.message : 'FedEx courier call failed' }
+  }
+}
+
+export type DhlCourierBookResult =
+  | { ok: true; bookingRef: string; bookingId?: string; labelBase64?: string }
+  | { ok: false; reason: string; detail?: string }
+
+export async function bookDhlCourier(body: DhlCourierBookBody): Promise<DhlCourierBookResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('courier-dhl-book', { body })
+    if (error) return { ok: false, reason: error.message }
+    return (data ?? { ok: false, reason: 'no response' }) as DhlCourierBookResult
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'DHL booking failed' }
   }
 }

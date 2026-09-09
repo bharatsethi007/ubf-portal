@@ -1,7 +1,9 @@
 ﻿import { useState } from 'react'
+import { Button } from '@/components/ui/button'
 import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
 import CourierPieceRows from './CourierPieceRows'
 import CourierCourierSelector, { type CourierCourierOption } from './CourierCourierSelector'
+import CourierBookingForm from './CourierBookingForm'
 import { runDhlCourier, runFedexCourier, type DhlCourierSearchBody } from './courierSearchApi'
 import './airCargoPanel.css'
 import './quoteCargoEntry.css'
@@ -42,6 +44,8 @@ export type CourierCargoPanelProps = {
   pieces: CourierPiece[]
   onPiecesChange: (pieces: CourierPiece[]) => void
   onAddPiece: () => void
+  quoteId?: string | null
+  incoterm?: string | null
 }
 
 function toSearchPieces(pieces: CourierPiece[]) {
@@ -71,6 +75,7 @@ function toSelectorOption(o: AnyOption, fallbackCarrier: string): CourierCourier
   return {
     carrier: o.carrier ?? fallbackCarrier,
     service: o.service ?? o.product ?? o.productCode ?? 'Courier',
+    serviceCode: o.productCode,
     charge: o.charge ?? o.total ?? o.amount ?? 0,
     currency: o.currency,
     eta: o.eta ?? (o.transitDays != null ? `${o.transitDays} days` : undefined),
@@ -90,11 +95,14 @@ export default function CourierCargoPanel({
   pieces,
   onPiecesChange,
   onAddPiece,
+  quoteId,
+  incoterm,
 }: CourierCargoPanelProps) {
   const [searching, setSearching] = useState(false)
   const [searchError, setSearchError] = useState<string | null>(null)
   const [courierOptions, setCourierOptions] = useState<CourierCourierOption[]>([])
   const [selectedCourier, setSelectedCourier] = useState(0)
+  const [bookOpen, setBookOpen] = useState(false)
 
   const [capFrom, setCapFrom] = useState<CourierLocation>(from)
   const [capTo, setCapTo] = useState<CourierLocation>(to)
@@ -140,14 +148,14 @@ export default function CourierCargoPanel({
       if (dhl.status === 'fulfilled' && dhl.value.ok) {
         const raw = dhl.value.options?.length ? dhl.value.options : dhl.value.best ? [dhl.value.best] : []
         merged.push(...raw.map((o: AnyOption) => toSelectorOption(o, 'DHL')))
-      } else if (dhl.status === 'fulfilled') {
+      } else if (dhl.status === 'fulfilled' && !dhl.value.ok) {
         errors.push(`DHL: ${[dhl.value.reason, dhl.value.detail].filter(Boolean).join(' - ')}`)
       }
 
       if (fedex.status === 'fulfilled' && fedex.value.ok) {
         const raw = fedex.value.options?.length ? fedex.value.options : fedex.value.best ? [fedex.value.best] : []
         merged.push(...raw.map((o: AnyOption) => toSelectorOption(o, 'FedEx')))
-      } else if (fedex.status === 'fulfilled') {
+      } else if (fedex.status === 'fulfilled' && !fedex.value.ok) {
         errors.push(`FedEx: ${[fedex.value.reason, fedex.value.detail].filter(Boolean).join(' - ')}`)
       }
 
@@ -217,7 +225,32 @@ export default function CourierCargoPanel({
       )}
 
       {courierOptions.length > 0 && (
-        <CourierCourierSelector options={courierOptions} value={selectedCourier} onChange={setSelectedCourier} />
+        <>
+          <CourierCourierSelector options={courierOptions} value={selectedCourier} onChange={setSelectedCourier} />
+          {courierOptions[selectedCourier]?.carrier.toUpperCase() === 'DHL' && (
+            <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+              <Button type="button" onClick={() => setBookOpen(true)}>Book</Button>
+            </div>
+          )}
+        </>
+      )}
+
+      {bookOpen && courierOptions[selectedCourier] && (
+        <CourierBookingForm
+          open={bookOpen}
+          onOpenChange={setBookOpen}
+          quoteId={quoteId}
+          selectedRate={courierOptions[selectedCourier]}
+          prefill={{
+            isDocuments,
+            fromAddress,
+            from: capFrom.countryCode ? capFrom : from,
+            toAddress,
+            to,
+            pieces,
+            incoterm,
+          }}
+        />
       )}
     </div>
   )
