@@ -1,4 +1,5 @@
 import { Truck } from 'lucide-react'
+import { carrierLogo } from './cartageSearchApi'
 
 type Opt = { carrier: string; service: string; charge: number; cost: number; rural: boolean }
 
@@ -16,7 +17,9 @@ export default function CartageCourierSelector({ title, options, selected, onSel
         {options.map((o, i) => (
           <label key={i} style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '6px 10px', borderRadius: 8, cursor: 'pointer', background: selected === i ? '#EEF2FF' : 'transparent', border: '1px solid ' + (selected === i ? '#2563eb' : 'var(--color-line)') }}>
             <input type="radio" checked={selected === i} onChange={() => onSelect(i)} />
-            <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#0A2472', color: '#fff', whiteSpace: 'nowrap' }}>{o.carrier}</span>
+            {carrierLogo(o.carrier)
+              ? <img src={carrierLogo(o.carrier) as string} alt={o.carrier} title={o.carrier} style={{ height: 20, width: 64, objectFit: 'contain' }} />
+              : <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 8px', borderRadius: 999, background: '#0A2472', color: '#fff', whiteSpace: 'nowrap' }}>{o.carrier}</span>}
             <span style={{ fontSize: 13 }}>{o.service}{o.rural ? ' · rural' : ''}</span>
             <strong style={{ marginLeft: 'auto', fontSize: 14 }}>NZD {o.charge.toLocaleString()}</strong>
           </label>

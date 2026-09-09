@@ -39,7 +39,7 @@ type Props = {
   containers?: { size: string; qty: number }[]
   incoterm?: string
   movement?: string
-  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; carrierShort?: string; canChange?: boolean; onChange?: () => void }
+  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; carrierShort?: string; carrierLogo?: string; canChange?: boolean; onChange?: () => void }
 }
 
 export default function RateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, containers, incoterm, movement, cartage }: Props) {
@@ -217,11 +217,10 @@ export default function RateOptionCard({ option: o, fromCode, toCode, onUse, bus
                       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, cursor: it.unpriced ? 'default' : 'pointer' }}>
                         <input type="checkbox" disabled={it.unpriced} checked={on} onChange={() => toggle(it.key, legDefault(leg.key))} style={{ marginTop: 3 }} />
                         <span style={{ minWidth: 0 }}>
-                          <span style={{ fontSize: 13, display: 'block' }}>{it.key === 'cartage' && cartage?.carrierShort ? <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#0A2472', color: '#fff', marginRight: 6, verticalAlign: 'middle' }}>{cartage.carrierShort}</span> : null}{it.label}</span>
+                          <span style={{ fontSize: 13, display: 'block' }}>{it.key === 'cartage' && cartage ? (cartage.carrierLogo ? <img src={cartage.carrierLogo} alt={cartage.carrierShort} title={cartage.carrierShort} style={{ height: 18, width: 56, objectFit: 'contain', verticalAlign: 'middle', marginRight: 6 }} /> : cartage.carrierShort ? <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#0A2472', color: '#fff', marginRight: 6, verticalAlign: 'middle' }}>{cartage.carrierShort}</span> : null) : null}{it.label}{it.key === 'cartage' && cartage?.canChange ? <button type="button" onClick={(e) => { e.preventDefault(); e.stopPropagation(); cartage.onChange?.() }} style={{ fontSize: 12, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '0 0 0 8px' }}>Change</button> : null}</span>
                           <span className="text-muted-foreground" style={{ fontSize: 11 }}>{it.meta}</span>
                         </span>
                       </label>
-                      {it.key === 'cartage' && cartage?.canChange ? <button type="button" onClick={cartage.onChange} style={{ fontSize: 12, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '0 8px', whiteSpace: 'nowrap' }}>Change</button> : null}
                       <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         {it.unpriced ? (
                           <div style={{ fontSize: 12, color: '#B4791F', fontWeight: 600 }}>Not rated</div>

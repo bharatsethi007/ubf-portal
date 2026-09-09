@@ -8,7 +8,7 @@ import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
 import CartageCourierSelector from './CartageCourierSelector'
 import { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
-import { runCartageRate, runBascikCartage, runGssCartage, type CartageQuoteResult, type GssOption } from './cartageSearchApi'
+import { runCartageRate, runBascikCartage, runGssCartage, carrierLogo, type CartageQuoteResult, type GssOption } from './cartageSearchApi'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
 import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
@@ -414,7 +414,7 @@ export default function NewQuoteSearch() {
     setCourierPopup(false)
   }
   const cardCartage = cartage && cartage.status === 'ok'
-    ? { ...cartage, carrierShort: cartage.source === 'bascik' ? 'Bascik' : cartage.source === 'gss' ? shortCarrier(cartage.carrier) : 'UBF', canChange: !!courier && courier.options.length > 1, onChange: () => setCourierPopup(true) }
+    ? { ...cartage, carrierShort: cartage.source === 'bascik' ? 'Bascik' : cartage.source === 'gss' ? shortCarrier(cartage.carrier) : 'UBF', carrierLogo: cartage.source === 'bascik' ? carrierLogo('bascik') ?? undefined : cartage.source === 'gss' ? carrierLogo(cartage.carrier) ?? undefined : undefined, canChange: !!courier && courier.options.length > 1, onChange: () => setCourierPopup(true) }
     : cartage
 
   return (

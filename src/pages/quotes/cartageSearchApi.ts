@@ -80,3 +80,14 @@ export async function runGssCartage(p: {
     return { ok: false, reason: e instanceof Error ? e.message : 'GSS call failed' }
   }
 }
+
+
+export function carrierLogo(name?: string): string | null {
+  const n = (name || '').toLowerCase()
+  if (n.includes('sub60') || n.includes('sub 60')) return '/carriers/sub60.png'
+  if (n.includes('nz couriers') || n === 'nzc') return '/carriers/nzcouriers.png'
+  if (n.includes('kiwi')) return '/carriers/kiwiexpress.png'
+  if (n.includes('bascik')) return '/carriers/bascik.png'
+  if (n.includes('post haste')) return '/carriers/posthaste.png'
+  return null
+}
