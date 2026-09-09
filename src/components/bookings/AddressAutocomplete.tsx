@@ -7,6 +7,8 @@ export type AddressComponents = {
   state?: string
   postcode?: string
   country?: string
+  countryCode?: string
+  street?: string
 }
 
 type Props = {
@@ -16,10 +18,18 @@ type Props = {
   required?: boolean
   /** When false, plain text input only (no Google Places). */
   usePlaces?: boolean
+  /** ISO 3166-1 alpha-2 — restricts Google Places results to this country. */
+  countryCode?: string
 }
 
 type PlaceComponent = { long_name: string; short_name?: string; types: string[] }
-type PlaceResult = { formatted_address?: string; address_components?: PlaceComponent[] }
+type LatLngLike = { lat: () => number; lng: () => number }
+type PlaceResult = {
+  formatted_address?: string
+  address_components?: PlaceComponent[]
+  geometry?: { location?: LatLngLike }
+}
+type GeocodeResult = { address_components?: PlaceComponent[] }
 
 let loadPromise: Promise<boolean> | null = null
 
@@ -43,18 +53,56 @@ function loadGooglePlaces(): Promise<boolean> {
   return loadPromise
 }
 
+function postcodeFromComponents(components: PlaceComponent[] | undefined): string | undefined {
+  for (const c of components ?? []) {
+    if (c.types.includes('postal_code')) return c.long_name
+  }
+  return undefined
+}
+
+function streetFromComponents(components: PlaceComponent[] | undefined): string | undefined {
+  let streetNumber: string | undefined
+  let route: string | undefined
+  for (const c of components ?? []) {
+    if (c.types.includes('street_number')) streetNumber = c.long_name
+    if (c.types.includes('route')) route = c.long_name
+  }
+  const street = [streetNumber, route].filter(Boolean).join(' ').trim()
+  return street || undefined
+}
+
 function parsePlace(place: PlaceResult): { address: string } & AddressComponents {
   let city: string | undefined
   let state: string | undefined
-  let postcode: string | undefined
   let country: string | undefined
+  let countryCode: string | undefined
   for (const c of place.address_components ?? []) {
     if (!city && (c.types.includes('locality') || c.types.includes('postal_town'))) city = c.long_name
     if (!state && c.types.includes('administrative_area_level_1')) state = c.short_name ?? c.long_name
-    if (!postcode && c.types.includes('postal_code')) postcode = c.long_name
-    if (c.types.includes('country')) country = c.long_name
+    if (c.types.includes('country')) {
+      country = c.long_name
+      countryCode = (c.short_name ?? c.long_name)?.toUpperCase()
+    }
   }
-  return { address: place.formatted_address ?? '', city, state, postcode, country }
+  const postcode = postcodeFromComponents(place.address_components)
+  const street = streetFromComponents(place.address_components)
+  return { address: place.formatted_address ?? '', city, state, postcode, country, countryCode, street }
+}
+
+async function reverseGeocodePostcode(location: LatLngLike): Promise<string | undefined> {
+  const Geocoder = window.google?.maps?.Geocoder
+  if (!Geocoder) return undefined
+  try {
+    const geocoder = new Geocoder()
+    const { results } = await geocoder.geocode({ location })
+    for (const result of results ?? []) {
+      const postcode = postcodeFromComponents(result.address_components)
+      if (postcode) return postcode
+    }
+  } catch {
+    /* fall through — resolver uses suburb/alias without postcode */
+  }
+  return undefined
 }
 
 declare global {
@@ -62,6 +110,9 @@ declare global {
     google?: {
       maps: {
         places: { Autocomplete: new (el: HTMLInputElement, opts?: object) => GoogleAutocomplete }
+        Geocoder: new () => {
+          geocode: (req: { location: LatLngLike }) => Promise<{ results: GeocodeResult[] }>
+        }
         event: { clearInstanceListeners: (inst: GoogleAutocomplete) => void }
       }
     }
@@ -73,7 +124,7 @@ type GoogleAutocomplete = {
   addListener: (event: string, fn: () => void) => unknown
 }
 
-export default function AddressAutocomplete({ label, value, onChange, required, usePlaces = true }: Props) {
+export default function AddressAutocomplete({ label, value, onChange, required, usePlaces = true, countryCode }: Props) {
   const inputRef = useRef<HTMLInputElement>(null)
   const onChangeRef = useRef(onChange)
   const [text, setText] = useState(value)
@@ -109,21 +160,29 @@ export default function AddressAutocomplete({ label, value, onChange, required, 
     if (!el || !window.google?.maps?.places) return
 
     const ac = new window.google.maps.places.Autocomplete(el, {
-      fields: ['formatted_address', 'address_components'],
+      fields: ['formatted_address', 'address_components', 'geometry'],
+      ...(countryCode ? { componentRestrictions: { country: countryCode.toLowerCase() } } : {}),
     })
 
     const listener = ac.addListener('place_changed', () => {
-      const parsed = parsePlace(ac.getPlace())
-      const { address, ...components } = parsed
-      if (inputRef.current) inputRef.current.value = address
-      setText(address)
-      onChangeRef.current(address, components)
+      void (async () => {
+        const place = ac.getPlace()
+        const parsed = parsePlace(place)
+        const { address, city, state, country, countryCode: cc, street } = parsed
+        let { postcode } = parsed
+        if (!postcode && place.geometry?.location) {
+          postcode = await reverseGeocodePostcode(place.geometry.location)
+        }
+        if (inputRef.current) inputRef.current.value = address
+        setText(address)
+        onChangeRef.current(address, { city, state, postcode, country, countryCode: cc, street })
+      })()
     })
 
     return () => {
       if (listener) window.google?.maps.event.clearInstanceListeners(ac)
     }
-  }, [placesReady, usePlaces])
+  }, [placesReady, usePlaces, countryCode])
 
   const placesActive = usePlaces && placesReady
 

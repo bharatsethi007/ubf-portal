@@ -32,6 +32,8 @@ import StaffRoute from './components/StaffRoute'
 import SliPage from './features/sli/SliPage'
 import RatePage from './pages/public/RatePage'
 import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
+import CourierBookingsList from './pages/courier/CourierBookingsList'
+import CourierBookingDetail from './pages/courier/CourierBookingDetail'
 import SetupPage from './pages/setup/SetupPage'
 import RatesPage from './pages/rates/RatesPage'
 import CartageSetupPage from './pages/cartage/CartageSetupPage'
@@ -180,6 +182,14 @@ export default function App() {
               element={<StaffRoute><ImportSeaBoardPage /></StaffRoute>}
             />
             <Route
+              path="/bookings/courier"
+              element={<StaffRoute><CourierBookingsList /></StaffRoute>}
+            />
+            <Route
+              path="/bookings/courier/:id"
+              element={<StaffRoute><CourierBookingDetail /></StaffRoute>}
+            />
+            <Route
               path="/bookings/:module/new"
               element={<StaffRoute><BookingFormPage /></StaffRoute>}
             />
@@ -222,6 +232,7 @@ export default function App() {
             <Route path="/setup/rates/lcl/new" element={<StaffRoute><LclRateCardForm /></StaffRoute>} />
             <Route path="/setup/rates/lcl/:id" element={<StaffRoute><LclRateCardDetail /></StaffRoute>} />
             <Route path="/setup/rates/air" element={<StaffRoute><AirRateCardsList /></StaffRoute>} />
+            <Route path="/setup/rates/courier" element={<StaffRoute><RateModulePage title="Courier" /></StaffRoute>} />
             <Route path="/setup/rates/air/new" element={<StaffRoute><AirRateCardForm /></StaffRoute>} />
             <Route path="/setup/rates/air/:id" element={<StaffRoute><AirRateCardDetail /></StaffRoute>} />
             <Route path="/setup/rates/fcl-local" element={<StaffRoute><FclLocalChargesList /></StaffRoute>} />

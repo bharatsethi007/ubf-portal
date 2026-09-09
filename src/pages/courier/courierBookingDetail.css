@@ -1,0 +1,71 @@
+.cbd-page { display: flex; flex-direction: column; gap: 16px; }
+
+.cbd-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px 24px;
+}
+
+.cbd-header__main { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; min-width: 0; }
+
+.cbd-header__waybill { font-size: 22px; font-weight: 500; letter-spacing: -0.02em; margin: 0; }
+
+.cbd-header__meta { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 16px; font-size: 13px; color: var(--color-muted, var(--muted-foreground)); }
+
+.cbd-header__ref { font-weight: 500; color: var(--color-ink, inherit); }
+
+.cbd-parties { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+
+.cbd-party__body { gap: 10px !important; }
+
+.cbd-field { display: flex; flex-direction: column; gap: 2px; }
+
+.cbd-field__label {
+  font-size: 10px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted, var(--muted-foreground));
+}
+
+.cbd-field__value { font-size: 13px; color: var(--color-ink, inherit); line-height: 1.45; }
+
+.cbd-field__value--stack { display: flex; flex-direction: column; gap: 2px; }
+
+.cbd-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px 20px;
+}
+
+.cbd-pieces { display: flex; flex-direction: column; gap: 8px; margin-top: 4px; }
+
+.cbd-piece-row {
+  padding: 10px 12px;
+  border: 1px solid var(--color-line, var(--border));
+  border-radius: var(--radius, 10px);
+  font-size: 13px;
+  color: var(--color-ink, inherit);
+  background: var(--color-canvas, #f4f5f7);
+}
+
+.cbd-carrier-logo { display: inline-flex; align-items: center; height: 32px; }
+
+.cbd-carrier-logo img { max-height: 28px; max-width: 88px; object-fit: contain; }
+
+.cbd-carrier-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 999px;
+  font-size: 11px;
+  font-weight: 600;
+  background: var(--color-accent-soft, #eef1f5);
+  color: var(--color-ink, inherit);
+}
+
+@media (max-width: 900px) {
+  .cbd-parties,
+  .cbd-grid { grid-template-columns: 1fr; }
+}
