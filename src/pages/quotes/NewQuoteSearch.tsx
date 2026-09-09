@@ -208,21 +208,24 @@ export default function NewQuoteSearch() {
             const portAddr = { suburb: portCity, city: portCity }
             const door = { suburb: leg.door.city ?? undefined, city: leg.door.city ?? undefined, postcode: leg.door.pc ?? undefined, street: leg.door.addr ?? undefined }
             const [gOrigin, gDest] = leg.dir === 'import' ? [portAddr, door] : [door, portAddr]
-            const gss = await runGssCartage({ origin: gOrigin, destination: gDest, pieces: pcs, weight_kg: wKg, volume_m3: volM3 })
-            if (gss.ok && gss.options && gss.options.length) {
-              if (!cancelled) {
-                setCourier({ leg: leg.side, options: gss.options })
-                setCourierIdx(0)
-                const o = gss.options[0]
-                setCartage({ leg: leg.side, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok', source: 'gss', carrier: o.carrier })
-              }
-              return
-            }
             const [fromS, toS] = leg.dir === 'import' ? [portCity, doorCity] : [doorCity, portCity]
-            const bas = await runBascikCartage({ from_suburb: fromS, to_suburb: toS, pieces: pcs, weight_kg: wKg, volume_m3: volM3 })
+            // Query GoSweetSpot (all carriers) AND Bascik in parallel, merge into one list
+            const [gss, bas] = await Promise.all([
+              runGssCartage({ origin: gOrigin, destination: gDest, pieces: pcs, weight_kg: wKg, volume_m3: volM3 }),
+              runBascikCartage({ from_suburb: fromS, to_suburb: toS, pieces: pcs, weight_kg: wKg, volume_m3: volM3 }),
+            ])
+            const gssOpts: GssOption[] = gss.ok && gss.options ? gss.options : []
+            const basOpts: GssOption[] = bas.ok && bas.options ? bas.options.map((o) => ({ carrier: 'Bascik', service: o.service, cost: o.cost, charge: o.cost, rural: false, quoteId: null })) : []
+            const merged = [...gssOpts, ...basOpts].sort((a, b) => (a.charge || a.cost) - (b.charge || b.cost))
             if (!cancelled) {
-              if (bas.ok && bas.best) setCartage({ leg: leg.side, label: `Cartage${bas.best.service ? ' \u00b7 ' + bas.best.service : ''}`, amount: bas.best.cost, confidence: 'green', status: 'ok', source: 'bascik' })
-              else setCartage({ leg: leg.side, label: leg.label, amount: 0, confidence: conf, status: bas.reason === 'not_ratable' ? 'no_lane' : status })
+              if (merged.length) {
+                setCourier({ leg: leg.side, options: merged })
+                setCourierIdx(0)
+                const o = merged[0]
+                setCartage({ leg: leg.side, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
+              } else {
+                setCartage({ leg: leg.side, label: leg.label, amount: 0, confidence: conf, status })
+              }
             }
             return
           }
@@ -410,7 +413,7 @@ export default function NewQuoteSearch() {
     if (!courier) return
     setCourierIdx(i)
     const o = courier.options[i]
-    setCartage({ leg: courier.leg, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok', source: 'gss', carrier: o.carrier })
+    setCartage({ leg: courier.leg, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
     setCourierPopup(false)
   }
   const cardCartage = cartage && cartage.status === 'ok'
