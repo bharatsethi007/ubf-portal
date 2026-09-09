@@ -7,7 +7,7 @@ import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
 import { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
-import { runCartageRate, type CartageQuoteResult } from './cartageSearchApi'
+import { runCartageRate, runBascikCartage, type CartageQuoteResult } from './cartageSearchApi'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
 import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
@@ -48,6 +48,13 @@ function formatCustomerAddress(c: CustomerPickerValue): string {
     .map((x) => (x ?? '').trim())
     .filter(Boolean)
     .join(', ')
+}
+
+// UN/LOCODE + airport IATA -> city/town, for Bascik fromSuburbName (goods clear at the port city)
+const PORT_CITY: Record<string, string> = {
+  NZAKL: 'Auckland', AKL: 'Auckland', NZTRG: 'Tauranga', NZWLG: 'Wellington', WLG: 'Wellington',
+  NZLYT: 'Christchurch', CHC: 'Christchurch', NZNPE: 'Napier', NZNPL: 'New Plymouth',
+  NZNSN: 'Nelson', NZDUD: 'Dunedin', NZBLU: 'Invercargill',
 }
 
 export default function NewQuoteSearch() {
@@ -183,6 +190,24 @@ export default function NewQuoteSearch() {
           take(await runCartageRate({ ...common, mode: 'lcl', weight_kg: lclSummary.gross, cbm: lclSummary.cbm, volume_cm3: 0 }), 1)
         } else {
           for (const g of groups) { if (!g.qty) continue; take(await runCartageRate({ ...common, mode: g.container_size.startsWith('40') ? 'fcl40' : 'fcl20', weight_kg: (g.weight_per_container_mt ?? 0) * 1000, cbm: 0, volume_cm3: 0 }), g.qty) }
+        }
+        // Out-of-Auckland LTL fallback: if our own card has no zone/lane, ask Bascik (LCL/Air only)
+        if (status !== 'ok' && (draft.shipment_type === 'Air' || draft.shipment_type === 'LCL')) {
+          const portCity = PORT_CITY[(leg.port ?? '').toUpperCase()]
+          const doorCity = leg.door.city || leg.door.addr
+          if (portCity && doorCity) {
+            const isAir = draft.shipment_type === 'Air'
+            const wKg = isAir ? airSummary.gross : lclSummary.gross
+            const volM3 = isAir ? airSummary.cbm : lclSummary.cbm
+            const pcs = Math.max(1, (isAir ? airSummary.pcs : lclSummary.pcs) || 1)
+            const [fromS, toS] = leg.dir === 'import' ? [portCity, doorCity] : [doorCity, portCity]
+            const bas = await runBascikCartage({ from_suburb: fromS, to_suburb: toS, pieces: pcs, weight_kg: wKg, volume_m3: volM3 })
+            if (!cancelled) {
+              if (bas.ok && bas.best) setCartage({ leg: leg.side, label: `Cartage (Bascik${bas.best.service ? ' \u00b7 ' + bas.best.service : ''})`, amount: bas.best.cost, confidence: 'green', status: 'ok' })
+              else setCartage({ leg: leg.side, label: leg.label, amount: 0, confidence: conf, status: bas.reason === 'not_ratable' ? 'no_lane' : status })
+            }
+            return
+          }
         }
         if (!cancelled) setCartage({ leg: leg.side, label: leg.label, amount, confidence: conf, status })
       } catch { if (!cancelled) setCartage(null) }

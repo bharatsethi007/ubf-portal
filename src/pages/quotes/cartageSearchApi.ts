@@ -45,3 +45,18 @@ export async function runCartageRate(p: {
   if (error) throw error
   return (data ?? { status: 'error' }) as CartageQuoteResult
 }
+
+
+export type BascikQuote = { ok: boolean; best?: { service: string; cost: number }; options?: { service: string; cost: number }[]; reason?: string; from?: string; to?: string }
+
+export async function runBascikCartage(p: { from_suburb: string; to_suburb: string; pieces: number; weight_kg: number; volume_m3: number }): Promise<BascikQuote> {
+  try {
+    const { data, error } = await supabase.functions.invoke('cartage-bascik-quote', {
+      body: { from_suburb: p.from_suburb, to_suburb: p.to_suburb, pieces: p.pieces, weight_kg: p.weight_kg, volume_m3: p.volume_m3 },
+    })
+    if (error) return { ok: false, reason: error.message }
+    return (data ?? { ok: false, reason: 'no response' }) as BascikQuote
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'Bascik call failed' }
+  }
+}
