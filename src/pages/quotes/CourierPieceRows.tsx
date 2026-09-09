@@ -1,4 +1,4 @@
-import { Copy, Plus, X } from 'lucide-react'
+﻿import { Copy, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CourierPiece } from './CourierCargoPanel'
 import './courierPieceCards.css'
@@ -77,14 +77,44 @@ export default function CourierPieceRows({ pieces, onChange, onAddPiece }: Props
         ))}
       </div>
 
-      <div className="cpc__footer">
-        <Button type="button" variant="ghost" size="icon-sm" onClick={onAddPiece} aria-label="Add piece" title="Add piece">
-          <Plus size={16} />
-        </Button>
-        <span className="cpc__footer-totals">
-          Total pieces: {fmt(totalQty, 0)} · Total weight: {fmt(totalWeight, 2)} kg
-        </span>
+      <div
+        style={{
+          display: 'flex',
+          gap: 24,
+          padding: '10px 14px',
+          borderRadius: 8,
+          background: 'var(--muted, #f3f4f6)',
+          fontSize: 13,
+          color: 'var(--muted-foreground, #6b7280)',
+        }}
+      >
+        <span>Total pieces: <strong style={{ color: 'inherit' }}>{fmt(totalQty, 0)}</strong></span>
+        <span>Total weight: <strong style={{ color: 'inherit' }}>{fmt(totalWeight, 2)} kg</strong></span>
       </div>
+
+      <button
+        type="button"
+        onClick={onAddPiece}
+        aria-label="Add piece"
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          gap: 6,
+          alignSelf: 'flex-start',
+          padding: '7px 12px',
+          border: '1px solid #bfdbfe',
+          background: '#eff6ff',
+          color: '#2563eb',
+          borderRadius: 8,
+          cursor: 'pointer',
+          fontSize: 13,
+          fontWeight: 500,
+        }}
+      >
+        <Plus size={15} />
+        Add piece
+      </button>
     </div>
   )
 }
+

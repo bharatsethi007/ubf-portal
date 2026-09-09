@@ -1,5 +1,4 @@
-import { useState } from 'react'
-import { Search } from 'lucide-react'
+﻿import { useState } from 'react'
 import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
 import CourierPieceRows from './CourierPieceRows'
 import CourierCourierSelector, { type CourierCourierOption } from './CourierCourierSelector'
@@ -10,6 +9,7 @@ import './quoteCargoEntry.css'
 export type CourierLocation = {
   countryCode: string
   city: string
+  state?: string
   postcode: string
 }
 
@@ -60,7 +60,7 @@ function dhlToSelectorOption(o: DhlCourierOption): CourierCourierOption {
     carrier: 'DHL',
     service: o.service ?? o.product ?? o.productCode ?? 'Courier',
     charge: o.charge ?? o.total ?? o.amount ?? 0,
-    eta: o.transitDays != null ? `${o.transitDays} days` : undefined,
+    eta: (o as { eta?: string }).eta ?? (o.transitDays != null ? `${o.transitDays} days` : undefined),
   }
 }
 
@@ -83,21 +83,49 @@ export default function CourierCargoPanel({
   const [courierOptions, setCourierOptions] = useState<CourierCourierOption[]>([])
   const [selectedCourier, setSelectedCourier] = useState(0)
 
+  // Locally captured location fields from the last real place selection.
+  // Google only supplies components on place_changed; blur/typing re-fires
+  // onChange with no components, so we must not let those wipe the country.
+  const [capFrom, setCapFrom] = useState<CourierLocation>(from)
+  const [capTo, setCapTo] = useState<CourierLocation>(to)
+
+  function handleFrom(address: string, c?: Partial<CourierLocation>) {
+    if (c && (c.countryCode || c.city || c.postcode)) {
+      const next = { countryCode: c.countryCode ?? '', city: (c.city || (c as { state?: string }).state) ?? '', postcode: c.postcode ?? '' }
+      setCapFrom(next)
+      onFromChange(address, next)
+    } else {
+      onFromChange(address, {})
+    }
+  }
+
+  function handleTo(address: string, c?: Partial<CourierLocation>) {
+    if (c && (c.countryCode || c.city || c.postcode)) {
+      const next = { countryCode: c.countryCode ?? '', city: (c.city || (c as { state?: string }).state) ?? '', postcode: c.postcode ?? '' }
+      setCapTo(next)
+      onToChange(address, next)
+    } else {
+      onToChange(address, {})
+    }
+  }
+
   async function searchRates() {
     setSearching(true)
     setSearchError(null)
     setCourierOptions([])
     setSelectedCourier(0)
+    const f = capFrom.countryCode ? capFrom : from
+    const t = capTo.countryCode ? capTo : to
     const body: DhlCourierSearchBody = {
-      origin: { countryCode: from.countryCode, city: from.city, postcode: from.postcode },
-      destination: { countryCode: to.countryCode, city: to.city, postcode: to.postcode, residential: to.residential },
+      origin: { countryCode: f.countryCode, city: f.city, postcode: f.postcode },
+      destination: { countryCode: t.countryCode, city: t.city, postcode: t.postcode, residential: to.residential },
       isDocuments,
       pieces: toSearchPieces(pieces),
     }
     try {
       const res = await runDhlCourier(body)
       if (!res.ok) {
-        setSearchError([res.reason, res.detail].filter(Boolean).join(' — '))
+        setSearchError([res.reason, res.detail].filter(Boolean).join(' - '))
         return
       }
       const raw = res.options?.length ? res.options : res.best ? [res.best] : []
@@ -136,12 +164,8 @@ export default function CourierCargoPanel({
           <AddressAutocomplete
             label=""
             value={fromAddress}
-            usePlaces={!fromAddress.trim()}
-            onChange={(address, c) => onFromChange(address, {
-              countryCode: c?.countryCode ?? '',
-              city: c?.city ?? '',
-              postcode: c?.postcode ?? '',
-            })}
+            usePlaces
+            onChange={(address, c) => handleFrom(address, c)}
           />
         </label>
 
@@ -152,12 +176,8 @@ export default function CourierCargoPanel({
               <AddressAutocomplete
                 label=""
                 value={toAddress}
-                usePlaces={!toAddress.trim()}
-                onChange={(address, c) => onToChange(address, {
-                  countryCode: c?.countryCode ?? '',
-                  city: c?.city ?? '',
-                  postcode: c?.postcode ?? '',
-                })}
+                usePlaces
+                onChange={(address, c) => handleTo(address, c)}
               />
             </div>
             <label style={{ display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0, paddingBottom: 8 }}>
@@ -173,9 +193,14 @@ export default function CourierCargoPanel({
       )}
 
       <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
-        <button type="button" className="btn btn--inline" style={{ marginTop: 0 }} onClick={() => void searchRates()} disabled={searching}>
-          <Search size={16} style={{ marginRight: 6, verticalAlign: 'middle' }} />
-          {searching ? 'Searching…' : 'Search rates'}
+        <button
+          type="button"
+          className="btn btn--inline"
+          style={{ marginTop: 0, whiteSpace: 'nowrap' }}
+          onClick={() => void searchRates()}
+          disabled={searching}
+        >
+          {searching ? 'Searching...' : 'Search'}
         </button>
       </div>
 
@@ -189,3 +214,6 @@ export default function CourierCargoPanel({
     </div>
   )
 }
+
+
+
