@@ -1,4 +1,4 @@
-﻿import type { CourierTrackEvent } from './courierBookingsApi'
+import type { CourierTrackEvent } from './courierBookingsApi'
 
 type Props = {
   events: CourierTrackEvent[]
@@ -17,14 +17,15 @@ function fmtWhen(ts: string): string {
   if (!ts) return ''
   const d = new Date(ts)
   if (Number.isNaN(d.getTime())) return ts
-  return d.toLocaleString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+  return d.toLocaleString('en-NZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
 export default function CourierTrackingPanel({ events, busy }: Props) {
+  // oldest -> newest, left to right
   const rows = [...(events ?? [])].sort((a, b) => {
     const ta = new Date(val(a, 'timestamp', 'date')).getTime() || 0
     const tb = new Date(val(b, 'timestamp', 'date')).getTime() || 0
-    return tb - ta
+    return ta - tb
   })
 
   return (
@@ -33,30 +34,35 @@ export default function CourierTrackingPanel({ events, busy }: Props) {
       <div className="booking-form-card__body">
         {rows.length === 0 ? (
           <p className="muted" style={{ margin: 0, fontSize: 13 }}>
-            {busy ? 'Fetching tracking…' : 'No tracking events yet.'}
+            {busy ? 'Fetching tracking...' : 'No tracking events yet.'}
           </p>
         ) : (
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {rows.map((e, i) => {
-              const when = fmtWhen(val(e, 'timestamp', 'date'))
-              const desc = val(e, 'description', 'status', 'statusCode') || 'Update'
-              const loc = val(e, 'location')
-              const last = i === rows.length - 1
-              return (
-                <div key={i} style={{ display: 'flex', gap: 14 }}>
-                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                    <span style={{ width: 12, height: 12, borderRadius: '50%', background: i === 0 ? '#2563eb' : '#cbd5e1', marginTop: 4, flexShrink: 0 }} />
-                    {!last && <span style={{ width: 2, flex: 1, background: '#e5e7eb', minHeight: 22 }} />}
-                  </div>
-                  <div style={{ paddingBottom: last ? 0 : 16 }}>
-                    <div style={{ fontWeight: 600, fontSize: 14, color: '#0f172a' }}>{desc}</div>
-                    <div style={{ fontSize: 12, color: '#64748b' }}>
-                      {when}{loc ? ` · ${loc}` : ''}
+          <div style={{ overflowX: 'auto', paddingBottom: 4 }}>
+            <div style={{ display: 'flex', alignItems: 'flex-start', minWidth: 'min-content' }}>
+              {rows.map((e, i) => {
+                const when = fmtWhen(val(e, 'timestamp', 'date'))
+                const desc = val(e, 'description', 'status', 'statusCode') || 'Update'
+                const loc = val(e, 'location')
+                const isLast = i === rows.length - 1
+                const isLatest = i === rows.length - 1
+                return (
+                  <div key={i} style={{ flex: '1 1 0', minWidth: 150, position: 'relative' }}>
+                    {/* connector line to the next node */}
+                    {!isLast && (
+                      <span style={{ position: 'absolute', top: 6, left: '50%', right: '-50%', height: 2, background: '#e5e7eb' }} />
+                    )}
+                    {/* dot */}
+                    <span style={{ position: 'relative', display: 'block', width: 14, height: 14, borderRadius: '50%', background: isLatest ? '#2563eb' : '#cbd5e1', margin: '0 auto', zIndex: 1 }} />
+                    {/* label */}
+                    <div style={{ textAlign: 'center', padding: '10px 8px 0' }}>
+                      <div style={{ fontWeight: 600, fontSize: 13, color: '#0f172a' }}>{desc}</div>
+                      <div style={{ fontSize: 11, color: '#64748b', marginTop: 2 }}>{when}</div>
+                      {loc ? <div style={{ fontSize: 11, color: '#94a3b8' }}>{loc}</div> : null}
                     </div>
                   </div>
-                </div>
-              )
-            })}
+                )
+              })}
+            </div>
           </div>
         )}
       </div>

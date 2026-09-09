@@ -127,7 +127,7 @@ export default function CourierBookingsList() {
               {loading ? (
                 <tr>
                   <td colSpan={colSpan} className="text-muted-foreground pad-inline">
-                    Loading courier shipments…
+                    Loading courier shipments...
                   </td>
                 </tr>
               ) : table.getRowModel().rows.length === 0 ? (

@@ -1,10 +1,4 @@
-export type CourierPieceRow = {
-  qty: number
-  weightKg: number
-  lengthCm: number
-  widthCm: number
-  heightCm: number
-}
+export type CourierPieceRow = { qty: number; weightKg: number; lengthCm: number; widthCm: number; heightCm: number }
 
 export type CourierCommodityRow = {
   description: string
@@ -79,13 +73,7 @@ export function parsePieces(raw: unknown): CourierPieceRow[] {
   if (!Array.isArray(raw)) return []
   return raw.map((p) => {
     const row = p as Record<string, unknown>
-    return {
-      qty: Number(row.qty) || 0,
-      weightKg: Number(row.weightKg) || 0,
-      lengthCm: Number(row.lengthCm) || 0,
-      widthCm: Number(row.widthCm) || 0,
-      heightCm: Number(row.heightCm) || 0,
-    }
+    return { qty: Number(row.qty) || 0, weightKg: Number(row.weightKg) || 0, lengthCm: Number(row.lengthCm) || 0, widthCm: Number(row.widthCm) || 0, heightCm: Number(row.heightCm) || 0 }
   })
 }
 
@@ -93,25 +81,18 @@ export function parseCommodities(raw: unknown): CourierCommodityRow[] {
   if (!Array.isArray(raw)) return []
   return raw.map((c) => {
     const row = c as Record<string, unknown>
-    return {
-      description: String(row.description ?? ''),
-      hsCode: String(row.hsCode ?? ''),
-      qty: Number(row.qty) || 0,
-      value: Number(row.value) || 0,
-      currency: String(row.currency ?? ''),
-      countryOfManufacture: row.countryOfManufacture ? String(row.countryOfManufacture) : undefined,
-    }
+    return { description: String(row.description ?? ''), hsCode: String(row.hsCode ?? ''), qty: Number(row.qty) || 0, value: Number(row.value) || 0, currency: String(row.currency ?? ''), countryOfManufacture: row.countryOfManufacture ? String(row.countryOfManufacture) : undefined }
   })
 }
 
 export function fmtDate(iso: string | null | undefined): string {
-  if (!iso) return '—'
+  if (!iso) return '-'
   const d = new Date(iso)
   return Number.isNaN(d.getTime()) ? iso : d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })
 }
 
 export function fmtMoney(amount: number | null | undefined, currency: string | null | undefined): string {
-  if (amount == null) return '—'
+  if (amount == null) return '-'
   const cur = currency ?? 'NZD'
   const n = new Intl.NumberFormat('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(amount)
   return `${cur} ${n}`

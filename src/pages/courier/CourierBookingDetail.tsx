@@ -3,24 +3,13 @@ import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, Download, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import {
-  getCourierLabelUrl,
-  getCourierShipment,
-  trackCourierShipment,
-  type CourierTrackEvent,
-} from './courierBookingsApi'
+import { getCourierLabelUrl, getCourierShipment, trackCourierShipment, type CourierTrackEvent } from './courierBookingsApi'
 import { courierStatusPill } from './courierBookingsColumns'
 import CourierPartyBlock from './CourierPartyBlock'
 import CourierTrackingPanel from './CourierTrackingPanel'
 import { parseStoredTrackingEvents } from './courierTrackingUtils'
 import { CarrierLogo, GridField, shipmentTypeLabel } from './courierBookingDetailParts'
-import {
-  fmtDate,
-  fmtMoney,
-  parseCommodities,
-  parsePieces,
-  type CourierShipment,
-} from './courierShipmentTypes'
+import { fmtDate, fmtMoney, parseCommodities, parsePieces, type CourierShipment } from './courierShipmentTypes'
 import './courierBookingDetail.css'
 
 export default function CourierBookingDetail() {
@@ -57,9 +46,7 @@ export default function CourierBookingDetail() {
         if (!cancelled) setLoading(false)
       }
     })()
-    return () => {
-      cancelled = true
-    }
+    return () => { cancelled = true }
   }, [id])
 
   const refreshTracking = useCallback(async () => {
@@ -72,7 +59,7 @@ export default function CourierBookingDetail() {
         setTrackEvents(res.events)
         if (res.status) setDisplayStatus(res.status)
       } else {
-        setTrackError([res.reason, res.detail].filter(Boolean).join(' — '))
+        setTrackError([res.reason, res.detail].filter(Boolean).join(' - '))
       }
     } finally {
       setTrackingBusy(false)
@@ -106,7 +93,7 @@ export default function CourierBookingDetail() {
         </header>
 
         {loading ? (
-          <p className="muted">Loading shipment…</p>
+          <p className="muted">Loading shipment...</p>
         ) : error ? (
           <p style={{ color: '#B23B3B', fontSize: 13 }}>{error}</p>
         ) : row ? (
@@ -116,36 +103,23 @@ export default function CourierBookingDetail() {
                 <CarrierLogo carrier={row.carrier} />
                 <div>
                   {row.waybill_no ? (
-                    <button
-                      type="button"
-                      className="cbd-waybill-link"
-                      disabled={trackingBusy}
-                      onClick={() => void refreshTracking()}
-                    >
-                      {trackingBusy ? 'Tracking…' : row.waybill_no}
+                    <button type="button" className="cbd-waybill-link" disabled={trackingBusy} onClick={() => void refreshTracking()}>
+                      {trackingBusy ? 'Tracking...' : row.waybill_no}
                     </button>
                   ) : (
                     <h1 className="cbd-header__waybill">No waybill</h1>
                   )}
                   <div className="cbd-header__meta">
-                    <span>
-                      Ref <span className="cbd-header__ref">{row.booking_ref ?? '—'}</span>
-                    </span>
+                    <span>Ref <span className="cbd-header__ref">{row.booking_ref ?? '-'}</span></span>
                     {courierStatusPill(displayStatus ?? row.status)}
                     <span>Ship date {fmtDate(row.ship_date)}</span>
                   </div>
                 </div>
               </div>
               <div className="cbd-header__actions">
-                <Button
-                  type="button"
-                  variant="outline"
-                  disabled={trackingBusy || !row.waybill_no}
-                  onClick={() => void refreshTracking()}
-                >
-                  <RefreshCw size={16} />
-                  {trackingBusy ? 'Tracking…' : 'Refresh tracking'}
-                </Button>
+                <button type="button" className="icon-btn" title="Refresh tracking" aria-label="Refresh tracking" disabled={trackingBusy || !row.waybill_no} onClick={() => void refreshTracking()}>
+                  <RefreshCw size={16} className={trackingBusy ? 'cbd-spin' : undefined} />
+                </button>
                 {row.label_url ? (
                   <Button type="button" disabled={labelBusy} onClick={() => void downloadLabel()}>
                     <Download size={16} />
@@ -160,56 +134,23 @@ export default function CourierBookingDetail() {
             <CourierTrackingPanel events={trackEvents} busy={trackingBusy} />
 
             <div className="cbd-parties">
-              <CourierPartyBlock
-                title="Ship From"
-                party={{
-                  name: row.shipper_name,
-                  company: row.shipper_company,
-                  address1: row.shipper_address1,
-                  address2: row.shipper_address2,
-                  address3: row.shipper_address3,
-                  city: row.shipper_city,
-                  state: row.shipper_state,
-                  postcode: row.shipper_postcode,
-                  country: row.shipper_country,
-                  phone: row.shipper_phone,
-                  email: row.shipper_email,
-                }}
-              />
-              <CourierPartyBlock
-                title="Ship To"
-                party={{
-                  name: row.receiver_name,
-                  company: row.receiver_company,
-                  address1: row.receiver_address1,
-                  address2: row.receiver_address2,
-                  address3: row.receiver_address3,
-                  city: row.receiver_city,
-                  state: row.receiver_state,
-                  postcode: row.receiver_postcode,
-                  country: row.receiver_country,
-                  phone: row.receiver_phone,
-                  email: row.receiver_email,
-                }}
-              />
+              <CourierPartyBlock title="Ship From" party={{ name: row.shipper_name, company: row.shipper_company, address1: row.shipper_address1, address2: row.shipper_address2, address3: row.shipper_address3, city: row.shipper_city, state: row.shipper_state, postcode: row.shipper_postcode, country: row.shipper_country, phone: row.shipper_phone, email: row.shipper_email }} />
+              <CourierPartyBlock title="Ship To" party={{ name: row.receiver_name, company: row.receiver_company, address1: row.receiver_address1, address2: row.receiver_address2, address3: row.receiver_address3, city: row.receiver_city, state: row.receiver_state, postcode: row.receiver_postcode, country: row.receiver_country, phone: row.receiver_phone, email: row.receiver_email }} />
             </div>
 
             <section className="card booking-form-card">
               <h3 className="booking-form-card__title">Shipment details</h3>
               <div className="booking-form-card__body">
                 <div className="cbd-grid">
-                  <GridField label="Service" value={row.service ?? '—'} />
+                  <GridField label="Service" value={row.service ?? '-'} />
                   <GridField label="Shipment type" value={shipmentTypeLabel(row.shipment_type)} />
-                  <GridField
-                    label="Chargeable weight"
-                    value={row.chargeable_weight != null ? `${row.chargeable_weight} kg` : '—'}
-                  />
+                  <GridField label="Chargeable weight" value={row.chargeable_weight != null ? `${row.chargeable_weight} kg` : '-'} />
                 </div>
                 {pieces.length > 0 ? (
                   <div className="cbd-pieces">
                     {pieces.map((p, i) => (
                       <div key={i} className="cbd-piece-row">
-                        Piece {i + 1}: {p.qty} × {p.weightKg} kg — {p.lengthCm} × {p.widthCm} × {p.heightCm} cm
+                        Piece {i + 1}: {p.qty} x {p.weightKg} kg - {p.lengthCm} x {p.widthCm} x {p.heightCm} cm
                       </div>
                     ))}
                   </div>
@@ -222,25 +163,20 @@ export default function CourierBookingDetail() {
               <div className="booking-form-card__body">
                 <div className="cbd-grid">
                   <GridField label="Declared value" value={fmtMoney(row.declared_value, row.declared_currency)} />
-                  <GridField label="Incoterm" value={row.incoterm ?? '—'} />
-                  <GridField label="Duties paid by" value={row.duties_paid_by ?? '—'} />
+                  <GridField label="Incoterm" value={row.incoterm ?? '-'} />
+                  <GridField label="Duties paid by" value={row.duties_paid_by ?? '-'} />
                 </div>
                 {isPackages && commodities.length > 0 ? (
                   <div className="table-wrap" style={{ marginTop: 12 }}>
                     <table className="data-table">
                       <thead>
-                        <tr>
-                          <th>Description</th>
-                          <th>HS code</th>
-                          <th>Qty</th>
-                          <th>Value</th>
-                        </tr>
+                        <tr><th>Description</th><th>HS code</th><th>Qty</th><th>Value</th></tr>
                       </thead>
                       <tbody>
                         {commodities.map((c, i) => (
                           <tr key={i}>
-                            <td>{c.description || '—'}</td>
-                            <td>{c.hsCode || '—'}</td>
+                            <td>{c.description || '-'}</td>
+                            <td>{c.hsCode || '-'}</td>
                             <td>{c.qty}</td>
                             <td>{fmtMoney(c.value, c.currency)}</td>
                           </tr>
@@ -255,7 +191,7 @@ export default function CourierBookingDetail() {
             <section className="card booking-form-card">
               <h3 className="booking-form-card__title">Billing</h3>
               <div className="booking-form-card__body cbd-grid">
-                <GridField label="Payer account" value={row.payer_account ?? '—'} />
+                <GridField label="Payer account" value={row.payer_account ?? '-'} />
                 <GridField label="Rate" value={fmtMoney(row.rate_charge, row.rate_currency)} />
               </div>
             </section>
