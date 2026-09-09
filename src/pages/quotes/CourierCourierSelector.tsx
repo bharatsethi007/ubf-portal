@@ -1,5 +1,5 @@
 ﻿import { useState } from 'react'
-import { ChevronDown } from 'lucide-react'
+import { ChevronDown, ChevronUp } from 'lucide-react'
 
 export type CourierCourierOption = {
   carrier: string
@@ -24,22 +24,15 @@ function CarrierBadge({ carrier }: { carrier: string }) {
   const c = carrier.toUpperCase()
   const [broken, setBroken] = useState(false)
   const logo = LOGOS[c]
-
   if (logo && !broken) {
     return (
       <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 120, height: 68, flexShrink: 0 }}>
-        <img
-          src={logo}
-          alt={carrier}
-          onError={() => setBroken(true)}
-          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
-        />
+        <img src={logo} alt={carrier} onError={() => setBroken(true)} style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }} />
       </span>
     )
   }
-
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 56, height: 24, padding: '0 8px', background: '#0A2472', color: '#fff', fontWeight: 700, fontSize: 12, borderRadius: 4, flexShrink: 0 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 120, height: 24, padding: '0 8px', background: '#0A2472', color: '#fff', fontWeight: 700, fontSize: 12, borderRadius: 4, flexShrink: 0 }}>
       {carrier}
     </span>
   )
@@ -48,9 +41,7 @@ function CarrierBadge({ carrier }: { carrier: string }) {
 function fmtEta(eta?: string): string | null {
   if (!eta) return null
   const d = new Date(eta)
-  if (!Number.isNaN(d.getTime())) {
-    return d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })
-  }
+  if (!Number.isNaN(d.getTime())) return d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })
   return eta
 }
 
@@ -59,79 +50,82 @@ function fmtMoney(n: number, currency = 'NZD'): string {
   return `${currency} ${amount}`
 }
 
-function Row({ o, selected, onClick }: { o: CourierCourierOption; selected: boolean; onClick: () => void }) {
+function Row({ o, selected, onClick, showLogo }: { o: CourierCourierOption; selected: boolean; onClick: () => void; showLogo: boolean }) {
   const eta = fmtEta(o.eta)
   return (
     <button
       type="button"
       onClick={onClick}
       style={{
-        display: 'flex',
-        alignItems: 'center',
-        gap: 12,
-        width: '100%',
-        textAlign: 'left',
-        padding: '10px 14px',
-        borderRadius: 10,
+        display: 'flex', alignItems: 'center', gap: 12, width: '100%', textAlign: 'left',
+        padding: '10px 14px', borderRadius: 10,
         border: `1px solid ${selected ? '#2563eb' : '#e5e7eb'}`,
         background: selected ? '#eff6ff' : '#fff',
-        boxShadow: selected ? '0 0 0 1px #2563eb inset' : 'none',
-        cursor: 'pointer',
+        boxShadow: selected ? '0 0 0 1px #2563eb inset' : 'none', cursor: 'pointer',
       }}
     >
-      <span
-        aria-hidden
-        style={{
-          width: 16, height: 16, flexShrink: 0, borderRadius: '50%',
-          border: `2px solid ${selected ? '#2563eb' : '#cbd5e1'}`,
-          background: selected ? '#2563eb' : '#fff',
-          boxShadow: selected ? 'inset 0 0 0 3px #fff' : 'none',
-        }}
-      />
-      <CarrierBadge carrier={o.carrier} />
+      <span aria-hidden style={{ width: 16, height: 16, flexShrink: 0, borderRadius: '50%', border: `2px solid ${selected ? '#2563eb' : '#cbd5e1'}`, background: selected ? '#2563eb' : '#fff', boxShadow: selected ? 'inset 0 0 0 3px #fff' : 'none' }} />
+      {showLogo ? <CarrierBadge carrier={o.carrier} /> : <span style={{ width: 120, flexShrink: 0 }} />}
       <span style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1 }}>
-        <span style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-          {o.service}
-        </span>
+        <span style={{ fontWeight: 600, fontSize: 14, color: '#0f172a', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{o.service}</span>
         {eta && <span style={{ fontSize: 12, color: '#64748b' }}>Est. delivery {eta}</span>}
       </span>
-      <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', whiteSpace: 'nowrap' }}>
-        {fmtMoney(o.charge, o.currency)}
-      </span>
+      <span style={{ fontWeight: 700, fontSize: 14, color: '#0f172a', whiteSpace: 'nowrap' }}>{fmtMoney(o.charge, o.currency)}</span>
     </button>
   )
 }
 
+const linkBtn: React.CSSProperties = {
+  display: 'inline-flex', alignItems: 'center', gap: 6, marginLeft: 132,
+  padding: '4px 8px', border: 'none', background: 'transparent',
+  color: '#2563eb', fontSize: 13, fontWeight: 500, cursor: 'pointer',
+}
+
 export default function CourierCourierSelector({ options, value, onChange }: Props) {
-  const [expanded, setExpanded] = useState(false)
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({})
   if (!options.length) return null
 
-  const rest = options.length - 1
-  const showAll = expanded || value !== 0
+  const groupsMap = new Map<string, { idx: number; o: CourierCourierOption }[]>()
+  options.forEach((o, idx) => {
+    const key = o.carrier || 'Courier'
+    if (!groupsMap.has(key)) groupsMap.set(key, [])
+    groupsMap.get(key)!.push({ idx, o })
+  })
+  const groups = [...groupsMap.entries()].map(([carrier, items]) => ({
+    carrier,
+    items: [...items].sort((a, b) => a.o.charge - b.o.charge),
+  }))
+  groups.sort((a, b) => a.items[0].o.charge - b.items[0].o.charge)
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: 8, marginTop: 4 }}>
-      {(showAll ? options : options.slice(0, 1)).map((o, i) => (
-        <Row key={`${o.carrier}-${o.service}-${i}`} o={o} selected={i === value} onClick={() => onChange(i)} />
-      ))}
-
-      {!showAll && rest > 0 && (
-        <button
-          type="button"
-          onClick={() => setExpanded(true)}
-          style={{
-            display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 6,
-            alignSelf: 'center', padding: '6px 12px', border: 'none', background: 'transparent',
-            color: '#2563eb', fontSize: 13, fontWeight: 500, cursor: 'pointer',
-          }}
-        >
-          Show {rest} more option{rest > 1 ? 's' : ''}
-          <ChevronDown size={15} />
-        </button>
-      )}
+    <div style={{ display: 'flex', flexDirection: 'column', gap: 16, marginTop: 4 }}>
+      {groups.map(({ carrier, items }) => {
+        const open = !!expanded[carrier]
+        const cheapest = items[0]
+        const selectedInGroup = items.find((it) => it.idx === value && it.idx !== cheapest.idx)
+        const visible = open ? items : selectedInGroup ? [cheapest, selectedInGroup] : [cheapest]
+        const hiddenCount = items.length - visible.length
+        return (
+          <div key={carrier} style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+            {visible.map((it, i) => (
+              <Row key={it.idx} o={it.o} selected={it.idx === value} onClick={() => onChange(it.idx)} showLogo />
+            ))}
+            {!open && hiddenCount > 0 && (
+              <button type="button" onClick={() => setExpanded((s) => ({ ...s, [carrier]: true }))} style={linkBtn}>
+                Show {hiddenCount} more {carrier} option{hiddenCount > 1 ? 's' : ''}
+                <ChevronDown size={15} />
+              </button>
+            )}
+            {open && items.length > 1 && (
+              <button type="button" onClick={() => setExpanded((s) => ({ ...s, [carrier]: false }))} style={linkBtn}>
+                Collapse {carrier} options
+                <ChevronUp size={15} />
+              </button>
+            )}
+          </div>
+        )
+      })}
     </div>
   )
 }
-
-
 
