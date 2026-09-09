@@ -1,0 +1,79 @@
+.cpc { display: flex; flex-direction: column; gap: 10px; }
+
+.cpc__list { display: flex; flex-direction: column; gap: 8px; }
+
+.cpc__card {
+  border: 1px solid var(--color-line, rgba(10, 36, 114, 0.12));
+  border-radius: var(--radius, 10px);
+  background: var(--color-surface, #fff);
+  padding: 10px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.cpc__card-head {
+  display: flex;
+  justify-content: flex-end;
+  gap: 4px;
+}
+
+.cpc__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 10px;
+}
+
+.cpc__field {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 0;
+}
+
+.cpc__label {
+  font-size: 12px;
+  color: var(--color-muted, #64748b);
+}
+
+.cpc__input {
+  width: 72px;
+  padding: 6px 8px;
+  font-size: 13px;
+  border: 1px solid var(--color-line, rgba(10, 36, 114, 0.12));
+  border-radius: 8px;
+  background: #fff;
+}
+
+.cpc__input--weight { width: 88px; }
+
+.cpc__dims {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.cpc__dims .cpc__input { width: 56px; }
+
+.cpc__sep {
+  font-size: 13px;
+  color: var(--color-muted, #64748b);
+  padding-bottom: 6px;
+}
+
+.cpc__totals {
+  display: flex;
+  gap: 16px;
+  padding: 9px 12px;
+  background: rgba(10, 36, 114, 0.04);
+  border-radius: 10px;
+  font-size: 13px;
+  color: var(--color-muted, #64748b);
+}
+
+.cpc__totals strong {
+  color: var(--color-ink, #0A2472);
+  font-weight: 600;
+}

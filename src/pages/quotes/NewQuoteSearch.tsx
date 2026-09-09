@@ -1,14 +1,16 @@
 import { type CSSProperties, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Info, Boxes, Handshake } from 'lucide-react'
+import { Box, Package, Plane, Container as ContainerIcon, ChevronDown, Search, Zap, Info, Boxes, Handshake, Truck } from 'lucide-react'
 import type { CustomerPickerValue } from '../../components/bookings/CustomerPicker'
 import ContainerGroupsEditor from './ContainerGroupsEditor'
 import QuoteOriginDestField from './QuoteOriginDestField'
 import AirCargoPanel from './AirCargoPanel'
+import CourierCargoPanel, { newCourierPiece, type CourierPiece } from './CourierCargoPanel'
 import CartageCourierSelector from './CartageCourierSelector'
 import { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
 import { runCartageRate, runBascikCartage, runGssCartage, carrierLogo, type CartageQuoteResult, type GssOption } from './cartageSearchApi'
+import type { RateOptionCartage } from './rateOptionCartage'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
 import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
@@ -87,6 +89,17 @@ export default function NewQuoteSearch() {
   const [airMode, setAirMode] = useState<CargoEntryMode>('total')
   const [lclLines, setLclLines] = useState<QuoteCargoLine[]>([newQuoteCargoLine(0)])
   const [lclMode, setLclMode] = useState<CargoEntryMode>('total')
+  const [isDocuments, setIsDocuments] = useState(false)
+  const [fromAddress, setFromAddress] = useState('')
+  const [fromCountryCode, setFromCountryCode] = useState('NZ')
+  const [fromCity, setFromCity] = useState('')
+  const [fromPostcode, setFromPostcode] = useState('')
+  const [toAddress, setToAddress] = useState('')
+  const [toCountryCode, setToCountryCode] = useState('')
+  const [toCity, setToCity] = useState('')
+  const [toPostcode, setToPostcode] = useState('')
+  const [toResidential, setToResidential] = useState(false)
+  const [courierPieces, setCourierPieces] = useState<CourierPiece[]>([newCourierPiece()])
   const [busyId, setBusyId] = useState<string | null>(null)
   const [party, setParty] = useState<Party | null>(null)
   const [agentMode, setAgentMode] = useState(false)
@@ -94,7 +107,7 @@ export default function NewQuoteSearch() {
   const [freightTerms, setFreightTermsState] = useState<string | null>(null)
   const freightTouched = useRef(false)
   const [residential, setResidential] = useState(false)
-  const [cartage, setCartage] = useState<{ leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; source?: 'ubf' | 'gss' | 'bascik'; carrier?: string } | null>(null)
+  const [cartage, setCartage] = useState<RateOptionCartage | null>(null)
   const [courierPopup, setCourierPopup] = useState(false)
   const [courier, setCourier] = useState<{ leg: 'origin' | 'dest'; options: GssOption[] } | null>(null)
   const [courierIdx, setCourierIdx] = useState(0)
@@ -139,9 +152,11 @@ export default function NewQuoteSearch() {
   }
   function addAirLine() { setAirLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
   function addLclLine() { setLclLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
+  function addCourierPiece() { setCourierPieces((ps) => [...ps, newCourierPiece()]) }
 
   const isLcl = draft.shipment_type === 'LCL'
   const isAir = draft.shipment_type === 'Air'
+  const isCourier = draft.shipment_mode === 'courier'
   useEffect(() => { if ((isAir || isLcl) && draft.from_port_code && draft.to_port_code) setLoadsOpen(true) }, [isAir, isLcl, draft.from_port_code, draft.to_port_code])
   const lclSummary = useMemo(() => {
     let gross = 0, cbm = 0, pcs = 0
@@ -424,9 +439,9 @@ export default function NewQuoteSearch() {
     setCartage({ leg: courier.leg, label: o.carrier === 'UBF' ? 'Cartage' : `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'UBF' ? 'ubf' : o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
     setCourierPopup(false)
   }
-  const cardCartage = cartage && cartage.status === 'ok'
+  const cardCartage: RateOptionCartage | undefined = cartage && cartage.status === 'ok'
     ? { ...cartage, carrierShort: cartage.source === 'bascik' ? 'Bascik' : cartage.source === 'gss' ? shortCarrier(cartage.carrier) : 'UBF', carrierLogo: cartage.source === 'bascik' ? carrierLogo('bascik') ?? undefined : cartage.source === 'gss' ? carrierLogo(cartage.carrier) ?? undefined : carrierLogo('ubf') ?? undefined, canChange: !!courier && courier.options.length > 1, onChange: () => setCourierPopup(true) }
-    : cartage
+    : cartage ?? undefined
 
   return (
     <div className="nqs-page">
@@ -453,7 +468,7 @@ export default function NewQuoteSearch() {
         )}
 
         <div className="nqs-modes">
-          <button type="button" className={`nqs-mode${!isLcl && !isAir ? ' nqs-mode--active' : ''}`} onClick={() => setMode('FCL')}>
+          <button type="button" className={`nqs-mode${!isLcl && !isAir && !isCourier ? ' nqs-mode--active' : ''}`} onClick={() => setMode('FCL')}>
             <Box size={15} /> FCL
           </button>
           <button type="button" className={`nqs-mode${isLcl ? ' nqs-mode--active' : ''}`} onClick={() => setMode('LCL')}>
@@ -462,50 +477,82 @@ export default function NewQuoteSearch() {
           <button type="button" className={`nqs-mode${isAir ? ' nqs-mode--active' : ''}`} onClick={() => setMode('Air')}>
             <Plane size={15} /> Air
           </button>
-        </div>
-
-        <div className="nqs-bar">
-          <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
-          <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
-
-          {(isLcl || isAir) ? (
-            <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
-              <Boxes size={16} color="#64748b" />
-              <span>
-                <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
-                <span className="nqs-loads-btn__val">{isAir ? airLoadsSummary : lclLoadsSummary}</span>
-              </span>
-              <span style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                {draft.movement_type && <span style={termChip}>{draft.movement_type === 'import' ? 'Import' : 'Export'}</span>}
-                {draft.incoterms && <span style={termChip}>{draft.incoterms}</span>}
-              </span>
-              <ChevronDown size={15} color="#94a3b8" style={{ transform: loadsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
-            </button>
-          ) : (
-            <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
-              <ContainerIcon size={16} color="#64748b" />
-              <span>
-                <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
-                <span className="nqs-loads-btn__val">{loadsSummary(groups)}</span>
-              </span>
-              <span style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
-                {draft.movement_type && <span style={termChip}>{draft.movement_type === 'import' ? 'Import' : 'Export'}</span>}
-                {draft.incoterms && <span style={termChip}>{draft.incoterms}</span>}
-              </span>
-              <ChevronDown size={15} color="#94a3b8" />
-            </button>
-          )}
-
-          <button
-            type="button"
-            className="nqs-search-btn"
-            disabled={!canSearch}
-            title={canSearch ? '' : (isLcl ? 'Pick a customer, both ports and W/M' : isAir ? 'Pick a customer and both airports' : 'Pick a customer and both ports')}
-            onClick={runSearch}
-          >
-            <Search size={16} /> Search
+          <button type="button" className={`nqs-mode${isCourier ? ' nqs-mode--active' : ''}`} onClick={() => { if (draft.shipment_mode !== 'courier') patch({ shipment_type: 'Courier', shipment_mode: 'courier' }) }}>
+            <Truck size={15} /> Courier
           </button>
         </div>
+
+        {isCourier ? (
+          <CourierCargoPanel
+            isDocuments={isDocuments}
+            onIsDocumentsChange={(v) => { setIsDocuments(v); invalidate() }}
+            fromAddress={fromAddress}
+            from={{ countryCode: fromCountryCode, city: fromCity, postcode: fromPostcode }}
+            onFromChange={(address, fields) => {
+              setFromAddress(address)
+              if (fields.countryCode !== undefined) setFromCountryCode(fields.countryCode)
+              if (fields.city !== undefined) setFromCity(fields.city)
+              if (fields.postcode !== undefined) setFromPostcode(fields.postcode)
+              invalidate()
+            }}
+            toAddress={toAddress}
+            to={{ countryCode: toCountryCode, city: toCity, postcode: toPostcode, residential: toResidential }}
+            onToChange={(address, fields) => {
+              setToAddress(address)
+              if (fields.countryCode !== undefined) setToCountryCode(fields.countryCode)
+              if (fields.city !== undefined) setToCity(fields.city)
+              if (fields.postcode !== undefined) setToPostcode(fields.postcode)
+              invalidate()
+            }}
+            onToResidentialChange={(v) => { setToResidential(v); invalidate() }}
+            pieces={courierPieces}
+            onPiecesChange={(ps) => { setCourierPieces(ps); invalidate() }}
+            onAddPiece={addCourierPiece}
+          />
+        ) : (
+          <div className="nqs-bar">
+            <QuoteOriginDestField side="origin" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
+            <QuoteOriginDestField side="destination" draft={draft} onPatch={patch} mode={isAir ? 'air' : 'sea'} />
+
+            {(isLcl || isAir) ? (
+              <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
+                <Boxes size={16} color="#64748b" />
+                <span>
+                  <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
+                  <span className="nqs-loads-btn__val">{isAir ? airLoadsSummary : lclLoadsSummary}</span>
+                </span>
+                <span style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {draft.movement_type && <span style={termChip}>{draft.movement_type === 'import' ? 'Import' : 'Export'}</span>}
+                  {draft.incoterms && <span style={termChip}>{draft.incoterms}</span>}
+                </span>
+                <ChevronDown size={15} color="#94a3b8" style={{ transform: loadsOpen ? 'rotate(180deg)' : 'none', transition: 'transform .15s' }} />
+              </button>
+            ) : (
+              <button type="button" className="nqs-loads-btn" onClick={() => setLoadsOpen((v) => !v)}>
+                <ContainerIcon size={16} color="#64748b" />
+                <span>
+                  <span className="nqs-loads-btn__label" style={{ display: 'block' }}>Loads</span>
+                  <span className="nqs-loads-btn__val">{loadsSummary(groups)}</span>
+                </span>
+                <span style={{ flex: 1, display: 'flex', flexWrap: 'wrap', gap: 6, alignItems: 'center' }}>
+                  {draft.movement_type && <span style={termChip}>{draft.movement_type === 'import' ? 'Import' : 'Export'}</span>}
+                  {draft.incoterms && <span style={termChip}>{draft.incoterms}</span>}
+                </span>
+                <ChevronDown size={15} color="#94a3b8" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              className="nqs-search-btn"
+              disabled={!canSearch}
+              title={canSearch ? '' : (isLcl ? 'Pick a customer, both ports and W/M' : isAir ? 'Pick a customer and both airports' : 'Pick a customer and both ports')}
+              onClick={runSearch}
+            >
+              <Search size={16} /> Search
+            </button>
+          </div>
+        )}
 
         {loadsOpen && isAir && (
           <AirCargoPanel
@@ -555,7 +602,7 @@ export default function NewQuoteSearch() {
           />
         )}
 
-        {loadsOpen && !isLcl && !isAir && (
+        {loadsOpen && !isLcl && !isAir && !isCourier && (
           <ContainerGroupsEditor
             groups={groups}
             onChange={onGroupsChange}
@@ -585,14 +632,14 @@ export default function NewQuoteSearch() {
                 </div>
                 {isAir
                   ? airOptions.map((o) => (
-                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} cartage={cardCartage} />
+                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} cartage={cardCartage ?? undefined} />
                     ))
                   : isLcl
                   ? lclOptions.map((o) => (
-                      <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} cartage={cardCartage} />
+                      <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} cartage={cardCartage ?? undefined} />
                     ))
                   : options.map((o) => (
-                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} cartage={cardCartage} />
+                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} cartage={cardCartage ?? undefined} />
                     ))}
                 {officeTips.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
