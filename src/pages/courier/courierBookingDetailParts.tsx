@@ -1,10 +1,10 @@
-import { useState } from 'react'
+﻿import { useState } from 'react'
 
 export function GridField({ label, value }: { label: string; value: string }) {
   return (
     <div className="cbd-field">
       <span className="cbd-field__label">{label}</span>
-      <span className="cbd-field__value">{value || '—'}</span>
+      <span className="cbd-field__value">{value || 'â€”'}</span>
     </div>
   )
 }
@@ -24,6 +24,7 @@ export function CarrierLogo({ carrier }: { carrier: string | null }) {
 }
 
 export function shipmentTypeLabel(type: string | null): string {
-  if (!type) return '—'
+  if (!type) return 'â€”'
   return type.charAt(0).toUpperCase() + type.slice(1)
 }
+

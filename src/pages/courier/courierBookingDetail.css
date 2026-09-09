@@ -130,3 +130,10 @@
   .cbd-parties,
   .cbd-grid { grid-template-columns: 1fr; }
 }
+
+/* Billing: payer + rate side by side */
+.booking-form-card__body.cbd-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px 32px;
+}
