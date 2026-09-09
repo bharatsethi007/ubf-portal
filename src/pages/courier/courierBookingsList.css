@@ -1,0 +1,9 @@
+.courier-list__tracking-link {
+  color: var(--primary, #3b5bfe);
+  font-weight: 500;
+  text-decoration: none;
+}
+
+.courier-list__tracking-link:hover {
+  text-decoration: underline;
+}

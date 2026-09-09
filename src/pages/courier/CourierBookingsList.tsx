@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { Search } from 'lucide-react'
@@ -6,6 +6,7 @@ import Pagination from '../../components/Pagination'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { listCourierShipments, type CourierShipmentListRow } from './courierBookingsApi'
 import { courierBookingsColumns, COURIER_STATUS_TABS } from './courierBookingsColumns'
+import './courierBookingsList.css'
 
 const PAGE_SIZE = 50
 
@@ -19,7 +20,8 @@ export default function CourierBookingsList() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const debouncedSearch = useDebouncedValue(search, 300)
-  const columns = useMemo(() => courierBookingsColumns(), [])
+  const openDetail = useCallback((id: string) => navigate(`/bookings/courier/${id}`), [navigate])
+  const columns = useMemo(() => courierBookingsColumns(openDetail), [openDetail])
 
   useEffect(() => {
     setPage(1)

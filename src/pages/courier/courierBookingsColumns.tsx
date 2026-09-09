@@ -83,12 +83,23 @@ function CarrierCell({ carrier }: { carrier: string | null }) {
   const logo = `/couriers/${carrier.toLowerCase()}.png`
   if (!broken) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', height: 28 }}>
+      <span
+        style={{
+          display: 'inline-flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          height: 40,
+          lineHeight: 0,
+          overflow: 'hidden',
+        }}
+      >
         <img
           src={logo}
           alt={carrier}
+          width={72}
+          height={40}
           onError={() => setBroken(true)}
-          style={{ maxHeight: 24, maxWidth: 72, objectFit: 'contain' }}
+          style={{ objectFit: 'contain', display: 'block' }}
         />
       </span>
     )
@@ -98,7 +109,9 @@ function CarrierCell({ carrier }: { carrier: string | null }) {
       style={{
         display: 'inline-flex',
         alignItems: 'center',
-        padding: '2px 10px',
+        height: 40,
+        lineHeight: 0,
+        padding: '0 10px',
         borderRadius: 999,
         fontSize: 11,
         fontWeight: 600,
@@ -111,7 +124,32 @@ function CarrierCell({ carrier }: { carrier: string | null }) {
   )
 }
 
-export function courierBookingsColumns(): ColumnDef<CourierShipmentListRow>[] {
+function TrackingLink({
+  id,
+  waybill,
+  onOpen,
+}: {
+  id: string
+  waybill: string | null
+  onOpen: (id: string) => void
+}) {
+  if (!waybill) return <span className="muted">—</span>
+  return (
+    <a
+      href={`/bookings/courier/${id}`}
+      className="courier-list__tracking-link"
+      onClick={(e) => {
+        e.preventDefault()
+        e.stopPropagation()
+        onOpen(id)
+      }}
+    >
+      {waybill}
+    </a>
+  )
+}
+
+export function courierBookingsColumns(onOpenDetail: (id: string) => void): ColumnDef<CourierShipmentListRow>[] {
   return [
     {
       header: 'Carrier',
@@ -121,7 +159,9 @@ export function courierBookingsColumns(): ColumnDef<CourierShipmentListRow>[] {
     {
       header: 'Tracking',
       accessorKey: 'waybill_no',
-      cell: ({ row }) => row.original.waybill_no ?? <span className="muted">—</span>,
+      cell: ({ row }) => (
+        <TrackingLink id={row.original.id} waybill={row.original.waybill_no} onOpen={onOpenDetail} />
+      ),
     },
     {
       header: 'Ref',

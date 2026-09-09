@@ -66,3 +66,26 @@ export async function getCourierLabelUrl(labelPath: string): Promise<string> {
   if (!data?.signedUrl) throw new Error('No signed URL returned')
   return data.signedUrl
 }
+
+export type CourierTrackEvent = Record<string, unknown>
+
+export type CourierTrackResult =
+  | { ok: true; status: string; statusText: string; events: CourierTrackEvent[] }
+  | { ok: false; reason: string; detail?: string }
+
+export type TrackCourierShipmentArgs = {
+  waybill: string
+  id?: string
+}
+
+export async function trackCourierShipment(args: TrackCourierShipmentArgs): Promise<CourierTrackResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('courier-dhl-track', {
+      body: { waybill: args.waybill, id: args.id },
+    })
+    if (error) return { ok: false, reason: error.message }
+    return (data ?? { ok: false, reason: 'no response' }) as CourierTrackResult
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'DHL tracking failed' }
+  }
+}
