@@ -71,6 +71,7 @@ export type CourierShipment = {
   rate_currency: string | null
   label_url: string | null
   label_format: string | null
+  tracking_events: unknown
   created_at: string
 }
 

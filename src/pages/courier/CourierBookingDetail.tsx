@@ -1,11 +1,19 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, Download } from 'lucide-react'
+import { ArrowLeft, Download, RefreshCw } from 'lucide-react'
 import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
-import { getCourierLabelUrl, getCourierShipment } from './courierBookingsApi'
+import {
+  getCourierLabelUrl,
+  getCourierShipment,
+  trackCourierShipment,
+  type CourierTrackEvent,
+} from './courierBookingsApi'
 import { courierStatusPill } from './courierBookingsColumns'
 import CourierPartyBlock from './CourierPartyBlock'
+import CourierTrackingPanel from './CourierTrackingPanel'
+import { parseStoredTrackingEvents } from './courierTrackingUtils'
+import { CarrierLogo, GridField, shipmentTypeLabel } from './courierBookingDetailParts'
 import {
   fmtDate,
   fmtMoney,
@@ -15,50 +23,31 @@ import {
 } from './courierShipmentTypes'
 import './courierBookingDetail.css'
 
-function GridField({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="cbd-field">
-      <span className="cbd-field__label">{label}</span>
-      <span className="cbd-field__value">{value || '—'}</span>
-    </div>
-  )
-}
-
-function CarrierLogo({ carrier }: { carrier: string | null }) {
-  const [broken, setBroken] = useState(false)
-  if (!carrier) return null
-  const logo = `/couriers/${carrier.toLowerCase()}.png`
-  if (!broken) {
-    return (
-      <span className="cbd-carrier-logo">
-        <img src={logo} alt={carrier} onError={() => setBroken(true)} />
-      </span>
-    )
-  }
-  return <span className="cbd-carrier-chip">{carrier}</span>
-}
-
-function shipmentTypeLabel(type: string | null): string {
-  if (!type) return '—'
-  return type.charAt(0).toUpperCase() + type.slice(1)
-}
-
 export default function CourierBookingDetail() {
   const { id } = useParams()
   const [row, setRow] = useState<CourierShipment | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [labelBusy, setLabelBusy] = useState(false)
+  const [displayStatus, setDisplayStatus] = useState<string | null>(null)
+  const [trackEvents, setTrackEvents] = useState<CourierTrackEvent[]>([])
+  const [trackError, setTrackError] = useState<string | null>(null)
+  const [trackingBusy, setTrackingBusy] = useState(false)
 
   useEffect(() => {
     if (!id) return
     let cancelled = false
     setLoading(true)
+    setTrackEvents([])
+    setTrackError(null)
+    setDisplayStatus(null)
     ;(async () => {
       try {
         const data = await getCourierShipment(id)
         if (cancelled) return
-        setRow(data as CourierShipment)
+        setRow(data)
+        setDisplayStatus(data.status)
+        setTrackEvents(parseStoredTrackingEvents(data.tracking_events))
         setError('')
       } catch (e) {
         if (cancelled) return
@@ -72,6 +61,23 @@ export default function CourierBookingDetail() {
       cancelled = true
     }
   }, [id])
+
+  const refreshTracking = useCallback(async () => {
+    if (!row?.waybill_no) return
+    setTrackingBusy(true)
+    setTrackError(null)
+    try {
+      const res = await trackCourierShipment({ waybill: row.waybill_no, id: row.id })
+      if (res.ok) {
+        setTrackEvents(res.events)
+        if (res.status) setDisplayStatus(res.status)
+      } else {
+        setTrackError([res.reason, res.detail].filter(Boolean).join(' — '))
+      }
+    } finally {
+      setTrackingBusy(false)
+    }
+  }, [row?.id, row?.waybill_no])
 
   async function downloadLabel() {
     if (!row?.label_url) return
@@ -94,18 +100,7 @@ export default function CourierBookingDetail() {
     <div className="quotes-page">
       <div className="card quotes-page__card cbd-page">
         <header className="quotes-page__head">
-          <Link
-            to="/bookings/courier"
-            style={{
-              display: 'inline-flex',
-              alignItems: 'center',
-              gap: 6,
-              fontSize: 13,
-              color: 'var(--muted-foreground)',
-              textDecoration: 'none',
-              marginBottom: 8,
-            }}
-          >
+          <Link to="/bookings/courier" className="cbd-back-link">
             <ArrowLeft size={15} /> Courier bookings
           </Link>
         </header>
@@ -120,23 +115,49 @@ export default function CourierBookingDetail() {
               <div className="cbd-header__main">
                 <CarrierLogo carrier={row.carrier} />
                 <div>
-                  <h1 className="cbd-header__waybill">{row.waybill_no ?? 'No waybill'}</h1>
+                  {row.waybill_no ? (
+                    <button
+                      type="button"
+                      className="cbd-waybill-link"
+                      disabled={trackingBusy}
+                      onClick={() => void refreshTracking()}
+                    >
+                      {trackingBusy ? 'Tracking…' : row.waybill_no}
+                    </button>
+                  ) : (
+                    <h1 className="cbd-header__waybill">No waybill</h1>
+                  )}
                   <div className="cbd-header__meta">
                     <span>
                       Ref <span className="cbd-header__ref">{row.booking_ref ?? '—'}</span>
                     </span>
-                    {courierStatusPill(row.status)}
+                    {courierStatusPill(displayStatus ?? row.status)}
                     <span>Ship date {fmtDate(row.ship_date)}</span>
                   </div>
                 </div>
               </div>
-              {row.label_url ? (
-                <Button type="button" disabled={labelBusy} onClick={() => void downloadLabel()}>
-                  <Download size={16} />
-                  Download label
+              <div className="cbd-header__actions">
+                <Button
+                  type="button"
+                  variant="outline"
+                  disabled={trackingBusy || !row.waybill_no}
+                  onClick={() => void refreshTracking()}
+                >
+                  <RefreshCw size={16} />
+                  {trackingBusy ? 'Tracking…' : 'Refresh tracking'}
                 </Button>
-              ) : null}
+                {row.label_url ? (
+                  <Button type="button" disabled={labelBusy} onClick={() => void downloadLabel()}>
+                    <Download size={16} />
+                    Download label
+                  </Button>
+                ) : null}
+              </div>
             </div>
+
+            {trackError ? <p className="muted cbd-track-error">{trackError}</p> : null}
+
+            <CourierTrackingPanel events={trackEvents} busy={trackingBusy} />
 
             <div className="cbd-parties">
               <CourierPartyBlock

@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import type { ColumnDef } from '@tanstack/react-table'
 import type { CourierShipmentListRow } from './courierBookingsApi'
+import { fmtDate } from './courierShipmentTypes'
 
 export const COURIER_STATUS_TABS = [
   { key: 'all', label: 'All' },
@@ -167,6 +168,11 @@ export function courierBookingsColumns(onOpenDetail: (id: string) => void): Colu
       header: 'Ref',
       accessorKey: 'booking_ref',
       cell: ({ row }) => row.original.booking_ref ?? <span className="muted">—</span>,
+    },
+    {
+      header: 'Date',
+      accessorKey: 'created_at',
+      cell: ({ row }) => fmtDate(row.original.created_at),
     },
     {
       header: 'Shipper',

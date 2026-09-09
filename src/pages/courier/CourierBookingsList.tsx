@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { flexRender, getCoreRowModel, useReactTable } from '@tanstack/react-table'
 import { Search } from 'lucide-react'
+import DateField from '@/components/DateField'
 import Pagination from '../../components/Pagination'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { listCourierShipments, type CourierShipmentListRow } from './courierBookingsApi'
@@ -13,6 +14,8 @@ const PAGE_SIZE = 50
 export default function CourierBookingsList() {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
+  const [createdFrom, setCreatedFrom] = useState<string | null>(null)
+  const [createdTo, setCreatedTo] = useState<string | null>(null)
   const [statusTab, setStatusTab] = useState<string>('all')
   const [page, setPage] = useState(1)
   const [rows, setRows] = useState<CourierShipmentListRow[]>([])
@@ -25,7 +28,7 @@ export default function CourierBookingsList() {
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, statusTab])
+  }, [debouncedSearch, statusTab, createdFrom, createdTo])
 
   useEffect(() => {
     let cancelled = false
@@ -37,6 +40,8 @@ export default function CourierBookingsList() {
           pageSize: PAGE_SIZE,
           q: debouncedSearch,
           status: statusTab === 'all' ? undefined : statusTab,
+          createdFrom: createdFrom ?? undefined,
+          createdTo: createdTo ?? undefined,
         })
         if (cancelled) return
         setRows(res.rows)
@@ -54,7 +59,7 @@ export default function CourierBookingsList() {
     return () => {
       cancelled = true
     }
-  }, [page, debouncedSearch, statusTab])
+  }, [page, debouncedSearch, statusTab, createdFrom, createdTo])
 
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() })
   const colSpan = columns.length
@@ -81,7 +86,7 @@ export default function CourierBookingsList() {
           ))}
         </div>
 
-        <div className="quotes-page__toolbar">
+        <div className="quotes-page__toolbar courier-list__toolbar">
           <label className="quotes-page__search">
             <Search size={16} strokeWidth={2} />
             <input
@@ -91,6 +96,16 @@ export default function CourierBookingsList() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
+          <div className="courier-list__dates">
+            <div className="courier-list__date-field">
+              <span className="courier-list__date-label">From</span>
+              <DateField value={createdFrom} onChange={setCreatedFrom} width={140} placeholder="From" />
+            </div>
+            <div className="courier-list__date-field">
+              <span className="courier-list__date-label">To</span>
+              <DateField value={createdTo} onChange={setCreatedTo} width={140} placeholder="To" />
+            </div>
+          </div>
         </div>
 
         {error ? <p style={{ color: '#B23B3B', fontSize: 13, margin: '8px 0' }}>{error}</p> : null}

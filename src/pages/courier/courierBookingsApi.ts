@@ -25,8 +25,17 @@ export type CourierShipmentListRow = {
 export type ListCourierShipmentsArgs = {
   q?: string
   status?: string
+  createdFrom?: string
+  createdTo?: string
   page: number
   pageSize?: number
+}
+
+function dayAfter(isoDate: string): string {
+  const [y, m, d] = isoDate.split('-').map(Number)
+  const dt = new Date(y, m - 1, d + 1)
+  const pad = (n: number) => String(n).padStart(2, '0')
+  return `${dt.getFullYear()}-${pad(dt.getMonth() + 1)}-${pad(dt.getDate())}`
 }
 
 export async function listCourierShipments(args: ListCourierShipmentsArgs): Promise<{ rows: CourierShipmentListRow[]; total: number }> {
@@ -47,6 +56,9 @@ export async function listCourierShipments(args: ListCourierShipmentsArgs): Prom
   }
 
   if (args.status) query = query.eq('status', args.status)
+
+  if (args.createdFrom) query = query.gte('created_at', `${args.createdFrom}T00:00:00`)
+  if (args.createdTo) query = query.lt('created_at', `${dayAfter(args.createdTo)}T00:00:00`)
 
   const { data, error, count } = await query.range(from, to)
   if (error) throw error
