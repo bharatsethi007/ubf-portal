@@ -88,7 +88,8 @@ export default function NewQuoteSearch() {
   const [freightTerms, setFreightTermsState] = useState<string | null>(null)
   const freightTouched = useRef(false)
   const [residential, setResidential] = useState(false)
-  const [cartage, setCartage] = useState<{ leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string } | null>(null)
+  const [cartage, setCartage] = useState<{ leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; source?: 'ubf' | 'gss' | 'bascik'; carrier?: string } | null>(null)
+  const [courierPopup, setCourierPopup] = useState(false)
   const [courier, setCourier] = useState<{ leg: 'origin' | 'dest'; options: GssOption[] } | null>(null)
   const [courierIdx, setCourierIdx] = useState(0)
   const creating = busyId !== null
@@ -213,20 +214,20 @@ export default function NewQuoteSearch() {
                 setCourier({ leg: leg.side, options: gss.options })
                 setCourierIdx(0)
                 const o = gss.options[0]
-                setCartage({ leg: leg.side, label: `Cartage \u00b7 ${o.carrier}${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok' })
+                setCartage({ leg: leg.side, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok', source: 'gss', carrier: o.carrier })
               }
               return
             }
             const [fromS, toS] = leg.dir === 'import' ? [portCity, doorCity] : [doorCity, portCity]
             const bas = await runBascikCartage({ from_suburb: fromS, to_suburb: toS, pieces: pcs, weight_kg: wKg, volume_m3: volM3 })
             if (!cancelled) {
-              if (bas.ok && bas.best) setCartage({ leg: leg.side, label: `Cartage (Bascik${bas.best.service ? ' \u00b7 ' + bas.best.service : ''})`, amount: bas.best.cost, confidence: 'green', status: 'ok' })
+              if (bas.ok && bas.best) setCartage({ leg: leg.side, label: `Cartage${bas.best.service ? ' \u00b7 ' + bas.best.service : ''}`, amount: bas.best.cost, confidence: 'green', status: 'ok', source: 'bascik' })
               else setCartage({ leg: leg.side, label: leg.label, amount: 0, confidence: conf, status: bas.reason === 'not_ratable' ? 'no_lane' : status })
             }
             return
           }
         }
-        if (!cancelled) setCartage({ leg: leg.side, label: leg.label, amount, confidence: conf, status })
+        if (!cancelled) setCartage({ leg: leg.side, label: status === 'ok' ? 'Cartage' : leg.label, amount, confidence: conf, status, source: status === 'ok' ? 'ubf' : undefined })
       } catch { if (!cancelled) setCartage(null) }
     }
     const t = setTimeout(go, 300)
@@ -393,12 +394,28 @@ export default function NewQuoteSearch() {
     }
   }
 
+  function shortCarrier(name?: string): string {
+    const n = (name || '').toLowerCase()
+    if (!n) return 'UBF'
+    if (n.includes('nz couriers')) return 'NZC'
+    if (n.includes('sub60') || n.includes('sub 60')) return 'SUB60'
+    if (n.includes('bascik')) return 'Bascik'
+    if (n.includes('kiwi')) return 'Kiwi'
+    if (n.includes('post haste')) return 'Post Haste'
+    if (n.includes('pbt')) return 'PBT'
+    if (n.includes('mainstream') || n.includes('mainfreight')) return 'Mainfreight'
+    return (name || '').split(/[\s\-]+/)[0]
+  }
   function selectCourier(i: number) {
     if (!courier) return
     setCourierIdx(i)
     const o = courier.options[i]
-    setCartage({ leg: courier.leg, label: `Cartage \u00b7 ${o.carrier}${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok' })
+    setCartage({ leg: courier.leg, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge, confidence: 'green', status: 'ok', source: 'gss', carrier: o.carrier })
+    setCourierPopup(false)
   }
+  const cardCartage = cartage && cartage.status === 'ok'
+    ? { ...cartage, carrierShort: cartage.source === 'bascik' ? 'Bascik' : cartage.source === 'gss' ? shortCarrier(cartage.carrier) : 'UBF', canChange: !!courier && courier.options.length > 1, onChange: () => setCourierPopup(true) }
+    : cartage
 
   return (
     <div className="nqs-page">
@@ -548,29 +565,23 @@ export default function NewQuoteSearch() {
 
         {searched && (
           <div className="nqs-results">
-            {courier && courier.options.length > 0 && (
-              <CartageCourierSelector title={`Cartage couriers \u00b7 ${courier.leg === 'dest' ? 'delivery' : 'pickup'}`} options={courier.options} selected={courierIdx} onSelect={selectCourier} />
-            )}
             {searching ? (
               <div className="nqs-results__empty"><div className="nqs-results__title">Searching your rate cards…</div></div>
             ) : (isAir ? airOptions.length : isLcl ? lclOptions.length : options.length) > 0 ? (
               <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <div style={{ display: 'flex', alignItems: 'center' }}>
                   <span className="text-muted-foreground" style={{ fontSize: 12 }}>{(isAir ? airOptions.length : isLcl ? lclOptions.length : options.length)} rate{(isAir ? airOptions.length : isLcl ? lclOptions.length : options.length) === 1 ? '' : 's'} for {draft.from_port_code} → {draft.to_port_code}</span>
-                  <button type="button" className="btn btn--inline" style={{ marginTop: 0, background: 'transparent', color: 'var(--color-ink)', border: '1px solid var(--color-line)' }} disabled={creating} onClick={() => handleCreate()}>
-                    {busyId === '__plain__' ? 'Creating…' : 'Create without a rate'}
-                  </button>
                 </div>
                 {isAir
                   ? airOptions.map((o) => (
-                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} cartage={cartage} />
+                      <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} cartage={cardCartage} />
                     ))
                   : isLcl
                   ? lclOptions.map((o) => (
-                      <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} cartage={cartage} />
+                      <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} cartage={cardCartage} />
                     ))
                   : options.map((o) => (
-                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} cartage={cartage} />
+                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} cartage={cardCartage} />
                     ))}
                 {officeTips.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>
@@ -606,6 +617,19 @@ export default function NewQuoteSearch() {
           </div>
         )}
       </div>
+      {courierPopup && courier && (
+        <div role="dialog" aria-modal="true" onMouseDown={(e) => { if (e.target === e.currentTarget) setCourierPopup(false) }}
+          style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 24 }}>
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ width: 'min(560px, 95vw)', maxHeight: '80vh', overflow: 'auto', background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+              <strong style={{ fontSize: 15 }}>Choose courier · {courier.leg === 'dest' ? 'delivery' : 'pickup'}</strong>
+              <button type="button" className="text-link" onClick={() => setCourierPopup(false)}>Close</button>
+            </div>
+            <CartageCourierSelector title={`${courier.options.length} carriers`} options={courier.options} selected={courierIdx} onSelect={selectCourier} />
+          </div>
+        </div>
+      )}
+
     </div>
   )
 }

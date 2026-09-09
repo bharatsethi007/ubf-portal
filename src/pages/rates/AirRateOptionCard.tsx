@@ -24,7 +24,7 @@ type Props = {
   fxRates?: FxRates
   incoterm?: string
   movement?: string
-  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string }
+  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; carrierShort?: string; canChange?: boolean; onChange?: () => void }
   isAgent?: boolean
   freightTerms?: string
 }
@@ -210,10 +210,11 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
                       <label style={{ display: 'flex', alignItems: 'flex-start', gap: 8, minWidth: 0, cursor: 'pointer' }}>
                         <input type="checkbox" checked={on} onChange={() => toggle(it.key, legDefault(leg.key))} style={{ marginTop: 3 }} />
                         <span style={{ minWidth: 0 }}>
-                          <span style={{ fontSize: 13, display: 'block' }}>{it.label}</span>
+                          <span style={{ fontSize: 13, display: 'block' }}>{it.key === 'cartage' && cartage?.carrierShort ? <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#0A2472', color: '#fff', marginRight: 6, verticalAlign: 'middle' }}>{cartage.carrierShort}</span> : null}{it.label}</span>
                           <span className="text-muted-foreground" style={{ fontSize: 11 }}>{it.meta}</span>
                         </span>
                       </label>
+                      {it.key === 'cartage' && cartage?.canChange ? <button type="button" onClick={cartage.onChange} style={{ fontSize: 12, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: '0 8px', whiteSpace: 'nowrap' }}>Change</button> : null}
                       <div style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                         <div style={{ fontSize: 13 }}>{fmtMoney(it.sell, it.currency)}</div>
                         <div className="text-muted-foreground" style={{ fontSize: 11 }}>{it.sellNzd != null ? `≈ ${fmtNzd(it.sellNzd)}` : 'no FX rate'}</div>

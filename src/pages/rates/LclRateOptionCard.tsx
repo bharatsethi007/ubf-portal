@@ -11,7 +11,7 @@ function marginColor(m: number | null): string {
   return '#1F8A4C'
 }
 
-type Props = { option: LclRateOption; fromCode: string; toCode: string; onUse?: () => void; busy?: boolean; cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string } }
+type Props = { option: LclRateOption; fromCode: string; toCode: string; onUse?: () => void; busy?: boolean; cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; carrierShort?: string; canChange?: boolean; onChange?: () => void } }
 
 export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, busy, cartage }: Props) {
   const hasSell = o.sellTotal > 0 && o.sellTotal !== o.total
@@ -56,9 +56,11 @@ export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, 
           {o.validTo ? ` · valid to ${o.validTo}` : ''}
         </div>
         {cartage && cartage.status === 'ok' && cartage.amount > 0 && (
-          <div style={{ fontSize: 12, marginTop: 4, color: '#0A2472' }}>
-            {cartage.leg === 'dest' ? 'Destination' : 'Origin'} cartage: <strong>NZD {cartage.amount.toLocaleString()}</strong>
-            {cartage.confidence && cartage.confidence !== 'green' ? <span style={{ color: '#B4791F' }}> · zone {cartage.confidence}</span> : null}
+          <div style={{ fontSize: 12, marginTop: 4, color: '#0A2472', display: 'flex', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+            {cartage.carrierShort ? <span style={{ fontSize: 10, fontWeight: 700, padding: '1px 6px', borderRadius: 999, background: '#0A2472', color: '#fff' }}>{cartage.carrierShort}</span> : null}
+            <span>{cartage.leg === 'dest' ? 'Destination' : 'Origin'} cartage: <strong>NZD {cartage.amount.toLocaleString()}</strong></span>
+            {cartage.canChange ? <button type="button" onClick={cartage.onChange} style={{ fontSize: 12, color: '#2563eb', background: 'none', border: 'none', cursor: 'pointer', textDecoration: 'underline', padding: 0 }}>Change</button> : null}
+            {cartage.confidence && cartage.confidence !== 'green' ? <span style={{ color: '#B4791F' }}>· zone {cartage.confidence}</span> : null}
           </div>
         )}
       </div>
