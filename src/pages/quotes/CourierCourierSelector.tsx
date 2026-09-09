@@ -15,24 +15,31 @@ type Props = {
   onChange: (index: number) => void
 }
 
+const LOGOS: Record<string, string> = {
+  DHL: '/couriers/dhl.png',
+  FEDEX: '/couriers/fedex.png',
+}
+
 function CarrierBadge({ carrier }: { carrier: string }) {
   const c = carrier.toUpperCase()
-  if (c === 'DHL') {
+  const [broken, setBroken] = useState(false)
+  const logo = LOGOS[c]
+
+  if (logo && !broken) {
     return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 54, height: 24, padding: '0 8px', background: '#FFCC00', color: '#D40511', fontWeight: 800, fontStyle: 'italic', fontSize: 13, borderRadius: 4, letterSpacing: 0.5 }}>
-        DHL
+      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 120, height: 68, flexShrink: 0 }}>
+        <img
+          src={logo}
+          alt={carrier}
+          onError={() => setBroken(true)}
+          style={{ maxWidth: '100%', maxHeight: '100%', objectFit: 'contain' }}
+        />
       </span>
     )
   }
-  if (c === 'FEDEX') {
-    return (
-      <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 54, height: 24, padding: '0 8px', background: '#fff', border: '1px solid #eee', fontWeight: 800, fontSize: 13, borderRadius: 4 }}>
-        <span style={{ color: '#4D148C' }}>Fed</span><span style={{ color: '#FF6600' }}>Ex</span>
-      </span>
-    )
-  }
+
   return (
-    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 54, height: 24, padding: '0 8px', background: '#0A2472', color: '#fff', fontWeight: 700, fontSize: 12, borderRadius: 4 }}>
+    <span style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', minWidth: 56, height: 24, padding: '0 8px', background: '#0A2472', color: '#fff', fontWeight: 700, fontSize: 12, borderRadius: 4, flexShrink: 0 }}>
       {carrier}
     </span>
   )
@@ -48,11 +55,8 @@ function fmtEta(eta?: string): string | null {
 }
 
 function fmtMoney(n: number, currency = 'NZD'): string {
-  try {
-    return new Intl.NumberFormat('en-NZ', { style: 'currency', currency }).format(n)
-  } catch {
-    return `${currency} ${n.toFixed(2)}`
-  }
+  const amount = new Intl.NumberFormat('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(n)
+  return `${currency} ${amount}`
 }
 
 function Row({ o, selected, onClick }: { o: CourierCourierOption; selected: boolean; onClick: () => void }) {
@@ -128,3 +132,6 @@ export default function CourierCourierSelector({ options, value, onChange }: Pro
     </div>
   )
 }
+
+
+
