@@ -3,6 +3,7 @@ import { Ship, Clock, ArrowRight, ChevronDown } from 'lucide-react'
 import type { RateOption } from './rateSearchApi'
 import { toNzd, fmtMoney, fmtNzd, type FxRates } from './fx'
 import { chargeLegsFor, legPayersFor, type LegPayer } from './incotermLegs'
+import type { RateOptionCartage } from '../quotes/rateOptionCartage'
 
 const SIZE_TO_CANONICAL: Record<string, string> = {
   '20': '20GP', '40': '40GP', '20HC': '20HC', '40HC': '40HQ', '40HQ': '40HQ', '20GP': '20GP', '40GP': '40GP',
@@ -39,7 +40,7 @@ type Props = {
   containers?: { size: string; qty: number }[]
   incoterm?: string
   movement?: string
-  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; carrierShort?: string; carrierLogo?: string; canChange?: boolean; onChange?: () => void }
+  cartage?: RateOptionCartage
 }
 
 export default function RateOptionCard({ option: o, fromCode, toCode, onUse, busy, fxRates, containers, incoterm, movement, cartage }: Props) {

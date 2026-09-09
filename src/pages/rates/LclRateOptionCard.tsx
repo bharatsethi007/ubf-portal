@@ -1,5 +1,6 @@
 import { Package, Clock, ArrowRight, CalendarClock } from 'lucide-react'
 import type { LclRateOption } from './lclRateSearchApi'
+import type { RateOptionCartage } from '../quotes/rateOptionCartage'
 
 const money = (n: number, cur: string) => `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}`
 const wmRate = (n: number, cur: string) => `${cur} ${n.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 2 })}/wm`
@@ -11,7 +12,7 @@ function marginColor(m: number | null): string {
   return '#1F8A4C'
 }
 
-type Props = { option: LclRateOption; fromCode: string; toCode: string; onUse?: () => void; busy?: boolean; cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; carrierShort?: string; carrierLogo?: string; canChange?: boolean; onChange?: () => void } }
+type Props = { option: LclRateOption; fromCode: string; toCode: string; onUse?: () => void; busy?: boolean; cartage?: RateOptionCartage }
 
 export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, busy, cartage }: Props) {
   const hasSell = o.sellTotal > 0 && o.sellTotal !== o.total

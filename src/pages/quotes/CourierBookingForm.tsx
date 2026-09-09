@@ -75,48 +75,52 @@ export default function CourierBookingForm({ open, onOpenChange, prefill, select
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-4xl max-h-[92vh] overflow-hidden">
-        <DialogHeader>
-          <DialogTitle>Book DHL shipment · {selectedRate.service}</DialogTitle>
-        </DialogHeader>
+      <DialogContent className="cbf-dialog">
+        <div className="cbf-dialog-shell">
+          <DialogHeader className="cbf-dialog-header">
+            <DialogTitle>Book DHL shipment · {selectedRate.service}</DialogTitle>
+          </DialogHeader>
 
-        {success ? (
-          <div className="cbf-success">
-            <p style={{ margin: 0, fontSize: 14 }}>Booking created: <strong>{success.bookingRef}</strong></p>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {success.labelBase64 && (
-                <Button type="button" variant="outline" size="sm" onClick={() => downloadLabelBase64(success.labelBase64!)}>
-                  Download label
+          <div className="cbf-dialog-body">
+            {success ? (
+              <div className="cbf-success">
+                <p style={{ margin: 0, fontSize: 14 }}>Booking created: <strong>{success.bookingRef}</strong></p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                  {success.labelBase64 && (
+                    <Button type="button" variant="outline" size="sm" onClick={() => downloadLabelBase64(success.labelBase64!)}>
+                      Download label
+                    </Button>
+                  )}
+                  {success.bookingId && (
+                    <Link to={`/bookings/${success.bookingId}`} className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">
+                      View booking
+                    </Link>
+                  )}
+                </div>
+              </div>
+            ) : (
+              <div className="cbf-scroll">
+                <div className="cbf-grid-2">
+                  <CourierBookingAddressBlock title="From (shipper)" value={form.shipper} onChange={(shipper) => setForm({ ...form, shipper })} />
+                  <CourierBookingAddressBlock title="To (receiver)" value={form.receiver} onChange={(receiver) => setForm({ ...form, receiver })} defaultResidential={prefill.to.residential} />
+                </div>
+                <CourierBookingFormSections form={form} onChange={setForm} />
+                {error && <p className="cbf-error">{error}</p>}
+              </div>
+            )}
+          </div>
+
+          <DialogFooter className="cbf-dialog-footer">
+            {!success && (
+              <>
+                <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
+                <Button type="button" onClick={() => void submit()} disabled={submitting}>
+                  {submitting ? 'Submitting…' : 'Submit booking'}
                 </Button>
-              )}
-              {success.bookingId && (
-                <Link to={`/bookings/${success.bookingId}`} className="inline-flex h-8 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground">
-                  View booking
-                </Link>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="cbf-scroll">
-            <div className="cbf-grid-2">
-              <CourierBookingAddressBlock title="From (shipper)" value={form.shipper} onChange={(shipper) => setForm({ ...form, shipper })} />
-              <CourierBookingAddressBlock title="To (receiver)" value={form.receiver} onChange={(receiver) => setForm({ ...form, receiver })} defaultResidential={prefill.to.residential} />
-            </div>
-            <CourierBookingFormSections form={form} onChange={setForm} />
-            {error && <p className="cbf-error">{error}</p>}
-          </div>
-        )}
-
-        <DialogFooter>
-          {!success && (
-            <>
-              <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>Cancel</Button>
-              <Button type="button" onClick={() => void submit()} disabled={submitting}>
-                {submitting ? 'Submitting…' : 'Submit booking'}
-              </Button>
-            </>
-          )}
-        </DialogFooter>
+              </>
+            )}
+          </DialogFooter>
+        </div>
       </DialogContent>
     </Dialog>
   )

@@ -1,6 +1,6 @@
 ﻿import { useState } from 'react'
 import { Button } from '@/components/ui/button'
-import AddressAutocomplete from '../../components/bookings/AddressAutocomplete'
+import AddressAutocomplete, { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
 import CourierPieceRows from './CourierPieceRows'
 import CourierCourierSelector, { type CourierCourierOption } from './CourierCourierSelector'
 import CourierBookingForm from './CourierBookingForm'
@@ -12,6 +12,8 @@ export type CourierLocation = {
   countryCode: string
   city: string
   postcode: string
+  street?: string
+  state?: string
 }
 
 export type CourierDestination = CourierLocation & {
@@ -107,9 +109,27 @@ export default function CourierCargoPanel({
   const [capFrom, setCapFrom] = useState<CourierLocation>(from)
   const [capTo, setCapTo] = useState<CourierLocation>(to)
 
-  function handleFrom(address: string, c?: Partial<CourierLocation> & { state?: string }) {
-    if (c && (c.countryCode || c.city || c.postcode || c.state)) {
-      const next = { countryCode: c.countryCode ?? '', city: (c.city || c.state) ?? '', postcode: c.postcode ?? '' }
+  function placeFields(c?: AddressComponents): Partial<CourierLocation> {
+    if (!c) return {}
+    return {
+      countryCode: c.countryCode ?? '',
+      city: c.city ?? '',
+      postcode: c.postcode ?? '',
+      street: c.street ?? '',
+      state: c.state ?? '',
+    }
+  }
+
+  function handleFrom(address: string, c?: AddressComponents) {
+    const fields = placeFields(c)
+    if (c && (fields.countryCode || fields.city || fields.postcode || fields.state || fields.street)) {
+      const next: CourierLocation = {
+        countryCode: fields.countryCode ?? '',
+        city: fields.city || fields.state || '',
+        postcode: fields.postcode ?? '',
+        street: fields.street,
+        state: fields.state,
+      }
       setCapFrom(next)
       onFromChange(address, next)
     } else {
@@ -117,9 +137,16 @@ export default function CourierCargoPanel({
     }
   }
 
-  function handleTo(address: string, c?: Partial<CourierLocation> & { state?: string }) {
-    if (c && (c.countryCode || c.city || c.postcode || c.state)) {
-      const next = { countryCode: c.countryCode ?? '', city: (c.city || c.state) ?? '', postcode: c.postcode ?? '' }
+  function handleTo(address: string, c?: AddressComponents) {
+    const fields = placeFields(c)
+    if (c && (fields.countryCode || fields.city || fields.postcode || fields.state || fields.street)) {
+      const next: CourierLocation = {
+        countryCode: fields.countryCode ?? '',
+        city: fields.city || fields.state || '',
+        postcode: fields.postcode ?? '',
+        street: fields.street,
+        state: fields.state,
+      }
       setCapTo(next)
       onToChange(address, next)
     } else {

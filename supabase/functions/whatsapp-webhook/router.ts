@@ -5,7 +5,7 @@
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const GRAPH = "https://graph.facebook.com/v25.0";
-const PORTAL_WHATSAPP_URL = "https://ubf-portal.netlify.app/settings/whatsapp";
+const PORTAL_WHATSAPP_URL = `${(Deno.env.get("PORTAL_PUBLIC_BASE_URL") ?? "https://console.ubfreight.com").replace(/\/$/, "")}/settings/whatsapp`;
 
 type Booking = {
   id: string; booking_ref: string | null;

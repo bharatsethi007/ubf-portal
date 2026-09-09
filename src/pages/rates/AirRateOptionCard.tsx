@@ -4,6 +4,7 @@ import type { AirRateOption, AirRateSurcharge } from './airRateSearchApi'
 import { resolveLegs, completenessFor, serviceTypeForIncoterm, type FoundSources } from './incotermLegs'
 import { toNzd, fmtMoney, fmtNzd, type FxRates } from './fx'
 import AirlineLogo from './AirlineLogo.tsx'
+import type { RateOptionCartage } from '../quotes/rateOptionCartage'
 
 function marginColor(m: number | null): string {
   if (m == null) return 'var(--muted-foreground)'
@@ -24,7 +25,7 @@ type Props = {
   fxRates?: FxRates
   incoterm?: string
   movement?: string
-  cartage?: { leg: 'origin' | 'dest'; label: string; amount: number; confidence?: string; status: string; carrierShort?: string; carrierLogo?: string; canChange?: boolean; onChange?: () => void }
+  cartage?: RateOptionCartage
   isAgent?: boolean
   freightTerms?: string
 }

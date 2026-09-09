@@ -1,4 +1,52 @@
-.cbf-scroll { max-height: min(78vh, 820px); overflow-y: auto; display: flex; flex-direction: column; gap: 20px; padding-right: 4px; }
+.cbf-dialog {
+  width: 80vw !important;
+  max-width: 80vw !important;
+  height: 80vh !important;
+  max-height: 80vh !important;
+  margin: auto !important;
+  padding: 24px !important;
+  display: flex !important;
+  flex-direction: column !important;
+  overflow: hidden !important;
+  box-sizing: border-box !important;
+}
+
+.cbf-dialog-shell {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+  min-height: 0;
+  height: 100%;
+}
+
+.cbf-dialog-header {
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+  background: var(--popover, #fff);
+  padding-bottom: 12px;
+}
+
+.cbf-dialog-body {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 2px 8px;
+}
+
+.cbf-dialog-footer {
+  flex-shrink: 0;
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: var(--popover, #fff);
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line, rgba(10, 36, 114, 0.1));
+}
+
+.cbf-scroll { display: flex; flex-direction: column; gap: 20px; }
 
 .cbf-section { display: flex; flex-direction: column; gap: 10px; }
 
