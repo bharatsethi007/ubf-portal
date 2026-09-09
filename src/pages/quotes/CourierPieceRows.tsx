@@ -49,33 +49,31 @@ export default function CourierPieceRows({ pieces, onChange, onAddPiece }: Props
       <div className="cpc__list">
         {pieces.map((row) => (
           <div key={row.id} className="cpc__card">
-            <div className="cpc__card-head">
+            <label className="cpc__field">
+              <span className="cpc__label">Qty</span>
+              <input className="cpc__input" inputMode="numeric" value={row.qty} onChange={(e) => update(row.id, { qty: e.target.value })} />
+            </label>
+            <label className="cpc__field">
+              <span className="cpc__label">Weight (kg)</span>
+              <input className="cpc__input cpc__input--weight" inputMode="decimal" value={row.weightKg} onChange={(e) => update(row.id, { weightKg: e.target.value })} />
+            </label>
+            <div className="cpc__field">
+              <span className="cpc__label">L × W × H (cm)</span>
+              <div className="cpc__dims">
+                <input className="cpc__input cpc__input--dim" inputMode="decimal" value={row.lengthCm} onChange={(e) => update(row.id, { lengthCm: e.target.value })} aria-label="Length cm" />
+                <span className="cpc__sep">×</span>
+                <input className="cpc__input cpc__input--dim" inputMode="decimal" value={row.widthCm} onChange={(e) => update(row.id, { widthCm: e.target.value })} aria-label="Width cm" />
+                <span className="cpc__sep">×</span>
+                <input className="cpc__input cpc__input--dim" inputMode="decimal" value={row.heightCm} onChange={(e) => update(row.id, { heightCm: e.target.value })} aria-label="Height cm" />
+              </div>
+            </div>
+            <div className="cpc__actions">
               <Button type="button" variant="ghost" size="icon-sm" onClick={() => duplicate(row.id)} aria-label="Duplicate piece">
                 <Copy size={14} />
               </Button>
               <Button type="button" variant="ghost" size="icon-sm" onClick={() => remove(row.id)} aria-label="Remove piece">
                 <X size={14} />
               </Button>
-            </div>
-            <div className="cpc__row">
-              <label className="cpc__field">
-                <span className="cpc__label">Qty</span>
-                <input className="cpc__input" inputMode="numeric" value={row.qty} onChange={(e) => update(row.id, { qty: e.target.value })} />
-              </label>
-              <label className="cpc__field">
-                <span className="cpc__label">Weight (kg)</span>
-                <input className="cpc__input cpc__input--weight" inputMode="decimal" value={row.weightKg} onChange={(e) => update(row.id, { weightKg: e.target.value })} />
-              </label>
-            </div>
-            <div className="cpc__field">
-              <span className="cpc__label">L × W × H (cm)</span>
-              <div className="cpc__dims">
-                <input className="cpc__input" inputMode="decimal" value={row.lengthCm} onChange={(e) => update(row.id, { lengthCm: e.target.value })} aria-label="Length cm" />
-                <span className="cpc__sep">×</span>
-                <input className="cpc__input" inputMode="decimal" value={row.widthCm} onChange={(e) => update(row.id, { widthCm: e.target.value })} aria-label="Width cm" />
-                <span className="cpc__sep">×</span>
-                <input className="cpc__input" inputMode="decimal" value={row.heightCm} onChange={(e) => update(row.id, { heightCm: e.target.value })} aria-label="Height cm" />
-              </div>
             </div>
           </div>
         ))}

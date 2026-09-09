@@ -8,19 +8,7 @@
   background: var(--color-surface, #fff);
   padding: 10px 12px;
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.cpc__card-head {
-  display: flex;
-  justify-content: flex-end;
-  gap: 4px;
-}
-
-.cpc__row {
-  display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   align-items: flex-end;
   gap: 10px;
 }
@@ -29,16 +17,17 @@
   display: flex;
   flex-direction: column;
   gap: 4px;
-  min-width: 0;
+  flex-shrink: 0;
 }
 
 .cpc__label {
   font-size: 12px;
   color: var(--color-muted, #64748b);
+  white-space: nowrap;
 }
 
 .cpc__input {
-  width: 72px;
+  width: 64px;
   padding: 6px 8px;
   font-size: 13px;
   border: 1px solid var(--color-line, rgba(10, 36, 114, 0.12));
@@ -46,21 +35,31 @@
   background: #fff;
 }
 
-.cpc__input--weight { width: 88px; }
+.cpc__input--weight { width: 80px; }
+
+.cpc__input--dim { width: 52px; }
 
 .cpc__dims {
   display: flex;
-  align-items: center;
-  gap: 6px;
-  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 4px;
+  flex-wrap: nowrap;
 }
-
-.cpc__dims .cpc__input { width: 56px; }
 
 .cpc__sep {
   font-size: 13px;
   color: var(--color-muted, #64748b);
-  padding-bottom: 6px;
+  line-height: 1;
+  padding-bottom: 7px;
+  flex-shrink: 0;
+}
+
+.cpc__actions {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  margin-left: auto;
+  flex-shrink: 0;
 }
 
 .cpc__totals {
