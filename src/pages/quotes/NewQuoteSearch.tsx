@@ -424,7 +424,7 @@ export default function NewQuoteSearch() {
     setCourierPopup(false)
   }
   const cardCartage = cartage && cartage.status === 'ok'
-    ? { ...cartage, carrierShort: cartage.source === 'bascik' ? 'Bascik' : cartage.source === 'gss' ? shortCarrier(cartage.carrier) : 'UBF', carrierLogo: cartage.source === 'bascik' ? carrierLogo('bascik') ?? undefined : cartage.source === 'gss' ? carrierLogo(cartage.carrier) ?? undefined : undefined, canChange: !!courier && courier.options.length > 1, onChange: () => setCourierPopup(true) }
+    ? { ...cartage, carrierShort: cartage.source === 'bascik' ? 'Bascik' : cartage.source === 'gss' ? shortCarrier(cartage.carrier) : 'UBF', carrierLogo: cartage.source === 'bascik' ? carrierLogo('bascik') ?? undefined : cartage.source === 'gss' ? carrierLogo(cartage.carrier) ?? undefined : carrierLogo('ubf') ?? undefined, canChange: !!courier && courier.options.length > 1, onChange: () => setCourierPopup(true) }
     : cartage
 
   return (

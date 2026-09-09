@@ -11,7 +11,7 @@ export default function CartageCourierSelector({ title, options, selected, onSel
       <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 8 }}>
         <Truck size={16} />
         <strong style={{ fontSize: 14 }}>{title}</strong>
-        <span className="text-muted-foreground" style={{ fontSize: 12 }}>· {options.length} carrier{options.length === 1 ? '' : 's'} · pick one</span>
+        <span className="text-muted-foreground" style={{ fontSize: 12 }}>· {options.length} option{options.length === 1 ? '' : 's'} · {options.filter((o) => o.carrier === 'Bascik').length} Bascik · pick one</span>
       </div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 6 }}>
         {options.map((o, i) => (

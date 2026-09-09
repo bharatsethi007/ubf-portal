@@ -88,6 +88,7 @@ export function carrierLogo(name?: string): string | null {
   if (n.includes('nz couriers') || n === 'nzc') return '/carriers/nzcouriers.png'
   if (n.includes('kiwi')) return '/carriers/kiwiexpress.png'
   if (n.includes('bascik')) return '/carriers/bascik.png'
-  if (n.includes('post haste')) return '/carriers/posthaste.png'
+  if (n.includes('post haste') || n.includes('posthaste')) return '/carriers/posthaste.png'
+  if (n === 'ubf' || n.includes('ub freight')) return '/ub-freight-logo.png'
   return null
 }
