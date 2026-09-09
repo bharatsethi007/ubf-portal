@@ -202,8 +202,8 @@ export default function NewQuoteSearch() {
         } else {
           for (const g of groups) { if (!g.qty) continue; take(await runCartageRate({ ...common, mode: g.container_size.startsWith('40') ? 'fcl40' : 'fcl20', weight_kg: (g.weight_per_container_mt ?? 0) * 1000, cbm: 0, volume_cm3: 0 }), g.qty) }
         }
-        // Out-of-Auckland LTL fallback (LCL/Air): GoSweetSpot couriers first, Bascik second
-        if (status !== 'ok' && (draft.shipment_type === 'Air' || draft.shipment_type === 'LCL')) {
+        // LCL/Air: merge UBF own-card rate (if any) + GoSweetSpot carriers + Bascik into one list
+        if (draft.shipment_type === 'Air' || draft.shipment_type === 'LCL') {
           const portCity = PORT_CITY[(leg.port ?? '').toUpperCase()]
           const doorCity = leg.door.city || leg.door.addr
           if (portCity && doorCity) {
@@ -223,13 +223,14 @@ export default function NewQuoteSearch() {
             ])
             const gssOpts: GssOption[] = gss.ok && gss.options ? gss.options : []
             const basOpts: GssOption[] = bas.ok && bas.options ? bas.options.map((o) => ({ carrier: 'Bascik', service: o.service, cost: o.cost, charge: o.cost, rural: false, quoteId: null })) : []
-            const merged = [...gssOpts, ...basOpts].sort((a, b) => (a.charge || a.cost) - (b.charge || b.cost))
+            const ubfOpts: GssOption[] = status === 'ok' && amount > 0 ? [{ carrier: 'UBF', service: '', cost: amount, charge: amount, rural: false, quoteId: null }] : []
+            const merged = [...ubfOpts, ...gssOpts, ...basOpts].sort((a, b) => (a.charge || a.cost) - (b.charge || b.cost))
             if (!cancelled) {
               if (merged.length) {
                 setCourier({ leg: leg.side, options: merged })
                 setCourierIdx(0)
                 const o = merged[0]
-                setCartage({ leg: leg.side, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
+                setCartage({ leg: leg.side, label: o.carrier === 'UBF' ? 'Cartage' : `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'UBF' ? 'ubf' : o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
               } else {
                 setCartage({ leg: leg.side, label: leg.label, amount: 0, confidence: conf, status })
               }
@@ -420,7 +421,7 @@ export default function NewQuoteSearch() {
     if (!courier) return
     setCourierIdx(i)
     const o = courier.options[i]
-    setCartage({ leg: courier.leg, label: `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
+    setCartage({ leg: courier.leg, label: o.carrier === 'UBF' ? 'Cartage' : `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'UBF' ? 'ubf' : o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
     setCourierPopup(false)
   }
   const cardCartage = cartage && cartage.status === 'ok'
