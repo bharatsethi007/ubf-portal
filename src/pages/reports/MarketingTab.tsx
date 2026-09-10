@@ -1,10 +1,10 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Download, Send } from 'lucide-react'
 import Pagination from '@/components/Pagination'
-import { Card, Seg, Th, Td } from './reportsUi'
+import { Card, Seg, Th, Td, C } from './reportsUi'
 import BrevoExportModal from './marketing/BrevoExportModal'
 import {
-  fetchMarketingParties, dedupContacts, downloadContactsCsv, partyEmail,
+  fetchMarketingParties, dedupContacts, downloadContactsCsv, partyEmail, partyPhone, partyContactName,
   type MarketingPartyRow, type MktMode, type MktDirection, type MktParty,
 } from './marketing/marketingApi'
 
@@ -20,6 +20,18 @@ const BTN_BASE: React.CSSProperties = {
 }
 const BTN_NAVY: React.CSSProperties = { background: '#0A2472', color: '#fff', border: '1px solid #0A2472', cursor: 'pointer' }
 const BTN_GREY: React.CSSProperties = { background: '#e5e7eb', color: '#9ca3af', border: '1px solid #e5e7eb', cursor: 'not-allowed' }
+
+function Pill({ value, kind }: { value: string | null; kind: 'email' | 'phone' }) {
+  if (!value) return <span style={{ color: C.mut }}>—</span>
+  const bg = kind === 'email' ? C.navySoft : C.chip
+  const fg = kind === 'email' ? '#0A2472' : C.ink2
+  return (
+    <span style={{
+      display: 'inline-block', maxWidth: 220, overflow: 'hidden', textOverflow: 'ellipsis', verticalAlign: 'middle',
+      background: bg, color: fg, borderRadius: 999, padding: '3px 10px', fontSize: 11.5, fontWeight: 500,
+    }} title={value}>{value}</span>
+  )
+}
 
 export default function MarketingTab() {
   const [mode, setMode] = useState<MktMode>('sea')
@@ -61,6 +73,7 @@ export default function MarketingTab() {
 
   const contacts = useMemo(() => dedupContacts(filtered, party), [filtered, party])
   const withEmail = useMemo(() => filtered.filter((r) => partyEmail(r, party)).length, [filtered, party])
+  const withPhone = useMemo(() => filtered.filter((r) => partyPhone(r, party)).length, [filtered, party])
   const partyLabel = PARTIES.find((p) => p.k === party)?.label ?? ''
 
   const total = filtered.length
@@ -96,7 +109,7 @@ export default function MarketingTab() {
         <input className="input input--sm quotes-page__search" placeholder="Search name, port, HBL…"
           value={q} onChange={(e) => { setQ(e.target.value); setPage(1) }} />
         <span className="text-muted-foreground">
-          {loading ? 'Loading…' : `${total} shipments · ${withEmail} with ${partyLabel} email · ${contacts.length} unique contacts`}
+          {loading ? 'Loading…' : `${total} shipments · ${withEmail} with ${partyLabel} email · ${withPhone} with phone · ${contacts.length} unique contacts`}
         </span>
       </div>
 
@@ -108,12 +121,14 @@ export default function MarketingTab() {
             <tr>
               <Th>Date</Th><Th>HBL</Th><Th>Origin</Th><Th>Dest</Th>
               <Th>Shipper</Th><Th>Consignee</Th><Th>{agentLabel}</Th><Th>Customer</Th>
-              <Th>Selected email</Th>
+              <Th>Contact name</Th><Th>Selected email</Th><Th>Selected phone</Th>
             </tr>
           </thead>
           <tbody>
             {pageRows.map((r, i) => {
               const em = partyEmail(r, party)
+              const ph = partyPhone(r, party)
+              const cn = partyContactName(r, party)
               return (
                 <tr key={`${r.house_bill ?? 'x'}-${i}`}>
                   <Td>{r.shipment_date ?? ''}</Td>
@@ -124,7 +139,9 @@ export default function MarketingTab() {
                   <Td trunc title={r.consignee_name ?? ''}>{r.consignee_name ?? ''}</Td>
                   <Td trunc title={r.agent_name ?? ''}>{r.agent_name ?? ''}</Td>
                   <Td trunc title={r.customer_name ?? ''}>{r.customer_name ?? ''}</Td>
-                  <Td muted={!em}>{em ?? '—'}</Td>
+                  <Td trunc muted={!cn} title={cn ?? ''}>{cn ?? '—'}</Td>
+                  <Td><Pill value={em} kind="email" /></Td>
+                  <Td><Pill value={ph} kind="phone" /></Td>
                 </tr>
               )
             })}

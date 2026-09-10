@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { bookDhlCourier } from './courierSearchApi'
+import { bookDhlCourier, bookFedexCourier } from './courierSearchApi'
 import type { DhlCourierBookBody } from './courierBookingTypes'
 import { buildCourierBookingFormState, type CourierBookingPrefill } from './courierBookingPrefill'
 import { commoditiesToPayload, piecesToSearch, type CourierBookingFormState } from './courierBookingTypes'
@@ -62,7 +62,9 @@ export default function CourierBookingForm({ open, onOpenChange, prefill, select
     setSubmitting(true)
     setError(null)
     try {
-      const res = await bookDhlCourier(buildBody())
+      const body = buildBody()
+      const book = selectedRate.carrier.toUpperCase() === 'FEDEX' ? bookFedexCourier : bookDhlCourier
+      const res = await book(body)
       if (!res.ok) {
         setError([res.reason, res.detail].filter(Boolean).join(' — '))
         return
@@ -78,7 +80,7 @@ export default function CourierBookingForm({ open, onOpenChange, prefill, select
       <DialogContent className="cbf-dialog">
         <div className="cbf-dialog-shell">
           <DialogHeader className="cbf-dialog-header">
-            <DialogTitle>Book DHL shipment · {selectedRate.service}</DialogTitle>
+            <DialogTitle>Book {selectedRate.carrier} shipment - {selectedRate.service}</DialogTitle>
           </DialogHeader>
 
           <div className="cbf-dialog-body">

@@ -1,4 +1,4 @@
-﻿import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -61,13 +61,23 @@ Deno.serve(async (req) => {
     if (action === "sync") {
       const raw = Array.isArray(body?.contacts) ? body.contacts : [];
       const clean = raw
-        .map((c: { email?: string; name?: string | null }) => ({ email: String(c?.email ?? "").trim().toLowerCase(), name: c?.name ?? null }))
+        .map((c: { email?: string; name?: string | null; phone?: string | null; contact_name?: string | null }) => ({
+          email: String(c?.email ?? "").trim().toLowerCase(),
+          name: c?.name ?? null,
+          phone: c?.phone ? String(c.phone).trim() : null,
+          contact_name: c?.contact_name ? String(c.contact_name).trim() : null,
+        }))
         .filter((c: { email: string }) => c.email.includes("@"));
       if (!clean.length) return json({ error: "no valid contacts" }, 400);
       if (clean.length > 5000) return json({ error: "too many contacts (max 5000)" }, 400);
 
-      const jsonBody = clean.map((c: { email: string; name: string | null }) =>
-        c.name ? { email: c.email, attributes: { FNAME: c.name } } : { email: c.email });
+      const jsonBody = clean.map((c: { email: string; name: string | null; phone: string | null; contact_name: string | null }) => {
+        const attributes: Record<string, string> = {};
+        if (c.name) attributes.FNAME = c.name;
+        if (c.phone) attributes.PHONE = c.phone;
+        if (c.contact_name) attributes.CONTACT = c.contact_name;
+        return Object.keys(attributes).length ? { email: c.email, attributes } : { email: c.email };
+      });
 
       const payload: Record<string, unknown> = { jsonBody, updateExistingContacts: true, emptyContactsAttributes: false };
 

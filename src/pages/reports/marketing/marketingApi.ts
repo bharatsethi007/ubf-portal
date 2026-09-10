@@ -1,4 +1,4 @@
-﻿import { supabase } from '@/supabase'
+import { supabase } from '@/supabase'
 
 export type MktMode = 'sea' | 'air'
 export type MktDirection = 'export' | 'import'
@@ -11,15 +11,23 @@ export type MarketingPartyRow = {
   origin: string | null
   destination: string | null
   shipper_name: string | null
+  shipper_contact_name: string | null
   consignee_name: string | null
+  consignee_contact_name: string | null
   customer_account_id: string | null
   customer_name: string | null
+  customer_contact_name: string | null
   customer_email: string | null
+  customer_phone: string | null
   shipper_email: string | null
+  shipper_phone: string | null
   consignee_email: string | null
+  consignee_phone: string | null
   os_agent_code: string | null
   agent_name: string | null
+  agent_contact_name: string | null
   agent_email: string | null
+  agent_phone: string | null
 }
 
 export async function fetchMarketingParties(
@@ -41,6 +49,24 @@ export function partyEmail(r: MarketingPartyRow, party: MktParty): string | null
   }
 }
 
+export function partyPhone(r: MarketingPartyRow, party: MktParty): string | null {
+  switch (party) {
+    case 'customer': return r.customer_phone
+    case 'agent': return r.agent_phone
+    case 'shipper': return r.shipper_phone
+    case 'consignee': return r.consignee_phone
+  }
+}
+
+export function partyContactName(r: MarketingPartyRow, party: MktParty): string | null {
+  switch (party) {
+    case 'customer': return r.customer_contact_name
+    case 'agent': return r.agent_contact_name
+    case 'shipper': return r.shipper_contact_name
+    case 'consignee': return r.consignee_contact_name
+  }
+}
+
 export function partyName(r: MarketingPartyRow, party: MktParty): string | null {
   switch (party) {
     case 'customer': return r.customer_name
@@ -50,7 +76,7 @@ export function partyName(r: MarketingPartyRow, party: MktParty): string | null 
   }
 }
 
-export type MktContact = { email: string; name: string | null; account_code: string | null }
+export type MktContact = { email: string; phone: string | null; contact_name: string | null; name: string | null; account_code: string | null }
 
 export function dedupContacts(rows: MarketingPartyRow[], party: MktParty): MktContact[] {
   const map = new Map<string, MktContact>()
@@ -60,7 +86,9 @@ export function dedupContacts(rows: MarketingPartyRow[], party: MktParty): MktCo
     if (!email) continue
     if (!map.has(email)) {
       const code = party === 'agent' ? r.os_agent_code : party === 'customer' ? r.customer_account_id : null
-      map.set(email, { email, name: partyName(r, party), account_code: code })
+      const ph = partyPhone(r, party)
+      const cn = partyContactName(r, party)
+      map.set(email, { email, phone: ph ? ph.trim() : null, contact_name: cn, name: partyName(r, party), account_code: code })
     }
   }
   return [...map.values()]
@@ -68,8 +96,8 @@ export function dedupContacts(rows: MarketingPartyRow[], party: MktParty): MktCo
 
 export function downloadContactsCsv(contacts: MktContact[], filename: string) {
   const esc = (v: string | null) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const lines = contacts.map((c) => [c.email, c.name, c.account_code].map(esc).join(','))
-  const csv = ['email,name,account_code', ...lines].join('\n')
+  const lines = contacts.map((c) => [c.email, c.phone, c.contact_name, c.name, c.account_code].map(esc).join(','))
+  const csv = ['email,phone,contact_name,name,account_code', ...lines].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -96,7 +124,7 @@ export async function syncToBrevo(args: {
 }): Promise<{ queued: number }> {
   const payload: Record<string, unknown> = {
     action: 'sync',
-    contacts: args.contacts.map((c) => ({ email: c.email, name: c.name })),
+    contacts: args.contacts.map((c) => ({ email: c.email, name: c.name, phone: c.phone, contact_name: c.contact_name })),
   }
   if (args.listId != null) payload.listId = args.listId
   else if (args.newListName) {

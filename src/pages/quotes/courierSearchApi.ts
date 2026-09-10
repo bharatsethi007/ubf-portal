@@ -76,3 +76,13 @@ export async function bookDhlCourier(body: DhlCourierBookBody): Promise<DhlCouri
     return { ok: false, reason: e instanceof Error ? e.message : 'DHL booking failed' }
   }
 }
+
+export async function bookFedexCourier(body: DhlCourierBookBody): Promise<DhlCourierBookResult> {
+  try {
+    const { data, error } = await supabase.functions.invoke('courier-fedex-book', { body })
+    if (error) return { ok: false, reason: error.message }
+    return (data ?? { ok: false, reason: 'no response' }) as DhlCourierBookResult
+  } catch (e) {
+    return { ok: false, reason: e instanceof Error ? e.message : 'FedEx booking failed' }
+  }
+}
