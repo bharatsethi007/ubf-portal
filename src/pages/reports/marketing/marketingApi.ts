@@ -76,10 +76,11 @@ export function partyName(r: MarketingPartyRow, party: MktParty): string | null 
   }
 }
 
-export type MktContact = { email: string; phone: string | null; contact_name: string | null; name: string | null; account_code: string | null }
+export type MktContact = { email: string; phone: string | null; contact_name: string | null; name: string | null; account_code: string | null; shipment_count: number; last_shipment: string | null }
 
 export function dedupContacts(rows: MarketingPartyRow[], party: MktParty): MktContact[] {
   const map = new Map<string, MktContact>()
+  const hbls = new Map<string, Set<string>>()
   for (const r of rows) {
     const raw = partyEmail(r, party)
     const email = raw ? raw.trim().toLowerCase() : ''
@@ -88,16 +89,21 @@ export function dedupContacts(rows: MarketingPartyRow[], party: MktParty): MktCo
       const code = party === 'agent' ? r.os_agent_code : party === 'customer' ? r.customer_account_id : null
       const ph = partyPhone(r, party)
       const cn = partyContactName(r, party)
-      map.set(email, { email, phone: ph ? ph.trim() : null, contact_name: cn, name: partyName(r, party), account_code: code })
+      map.set(email, { email, phone: ph ? ph.trim() : null, contact_name: cn, name: partyName(r, party), account_code: code, shipment_count: 0, last_shipment: null })
+      hbls.set(email, new Set())
     }
+    const c = map.get(email)!
+    hbls.get(email)!.add(r.house_bill ?? `row-${r.job_no ?? Math.random()}`)
+    if (r.shipment_date && (!c.last_shipment || r.shipment_date > c.last_shipment)) c.last_shipment = r.shipment_date
   }
+  for (const [email, c] of map) c.shipment_count = hbls.get(email)!.size
   return [...map.values()]
 }
 
 export function downloadContactsCsv(contacts: MktContact[], filename: string) {
   const esc = (v: string | null) => `"${String(v ?? '').replace(/"/g, '""')}"`
-  const lines = contacts.map((c) => [c.email, c.phone, c.contact_name, c.name, c.account_code].map(esc).join(','))
-  const csv = ['email,phone,contact_name,name,account_code', ...lines].join('\n')
+  const lines = contacts.map((c) => [c.email, c.phone, c.contact_name, c.name, c.account_code, String(c.shipment_count), c.last_shipment].map(esc).join(','))
+  const csv = ['email,phone,contact_name,name,account_code,shipments,last_shipment', ...lines].join('\n')
   const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
   const a = document.createElement('a')
@@ -124,7 +130,7 @@ export async function syncToBrevo(args: {
 }): Promise<{ queued: number }> {
   const payload: Record<string, unknown> = {
     action: 'sync',
-    contacts: args.contacts.map((c) => ({ email: c.email, name: c.name, phone: c.phone, contact_name: c.contact_name })),
+    contacts: args.contacts.map((c) => ({ email: c.email, name: c.name, phone: c.phone, contact_name: c.contact_name, shipment_count: c.shipment_count, last_shipment: c.last_shipment })),
   }
   if (args.listId != null) payload.listId = args.listId
   else if (args.newListName) {

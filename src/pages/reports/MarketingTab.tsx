@@ -72,6 +72,28 @@ export default function MarketingTab() {
   }, [rows, q])
 
   const contacts = useMemo(() => dedupContacts(filtered, party), [filtered, party])
+
+  const partyKey = (r: MarketingPartyRow): string => {
+    switch (party) {
+      case 'customer': return r.customer_account_id || r.customer_name || ''
+      case 'agent': return r.os_agent_code || r.agent_name || ''
+      case 'shipper': return (r.shipper_name ?? '').trim().toUpperCase()
+      case 'consignee': return (r.consignee_name ?? '').trim().toUpperCase()
+    }
+  }
+  const stats = useMemo(() => {
+    const m = new Map<string, { hbls: Set<string>; rows: number; last: string | null }>()
+    for (const r of filtered) {
+      const k = partyKey(r)
+      if (!k) continue
+      let e = m.get(k)
+      if (!e) { e = { hbls: new Set(), rows: 0, last: null }; m.set(k, e) }
+      e.rows += 1
+      if (r.house_bill) e.hbls.add(r.house_bill)
+      if (r.shipment_date && (!e.last || r.shipment_date > e.last)) e.last = r.shipment_date
+    }
+    return m
+  }, [filtered, party])
   const withEmail = useMemo(() => filtered.filter((r) => partyEmail(r, party)).length, [filtered, party])
   const withPhone = useMemo(() => filtered.filter((r) => partyPhone(r, party)).length, [filtered, party])
   const partyLabel = PARTIES.find((p) => p.k === party)?.label ?? ''
@@ -121,7 +143,7 @@ export default function MarketingTab() {
             <tr>
               <Th>Date</Th><Th>HBL</Th><Th>Origin</Th><Th>Dest</Th>
               <Th>Shipper</Th><Th>Consignee</Th><Th>{agentLabel}</Th><Th>Customer</Th>
-              <Th>Contact name</Th><Th>Selected email</Th><Th>Selected phone</Th>
+              <Th>Contact name</Th><Th>Selected email</Th><Th>Selected phone</Th><Th right>Shipments</Th><Th>Last shipment</Th>
             </tr>
           </thead>
           <tbody>
@@ -129,6 +151,8 @@ export default function MarketingTab() {
               const em = partyEmail(r, party)
               const ph = partyPhone(r, party)
               const cn = partyContactName(r, party)
+              const st = stats.get(partyKey(r))
+              const shipCount = st ? (st.hbls.size || st.rows) : 0
               return (
                 <tr key={`${r.house_bill ?? 'x'}-${i}`}>
                   <Td>{r.shipment_date ?? ''}</Td>
@@ -142,6 +166,8 @@ export default function MarketingTab() {
                   <Td trunc muted={!cn} title={cn ?? ''}>{cn ?? '—'}</Td>
                   <Td><Pill value={em} kind="email" /></Td>
                   <Td><Pill value={ph} kind="phone" /></Td>
+                  <Td right>{shipCount || ''}</Td>
+                  <Td muted={!st?.last}>{st?.last ?? '—'}</Td>
                 </tr>
               )
             })}
