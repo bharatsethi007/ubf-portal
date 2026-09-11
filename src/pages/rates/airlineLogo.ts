@@ -1,6 +1,6 @@
-// Resolves an airline to a bundled logo at /public/airline-logos/{ICAO}.png.
-// Air rate options carry the IATA code (from vendor_account_id) and the vendor name.
-// Resolve IATA -> ICAO first, then fall back to a name match.
+// Airline logo resolution.
+// Primary: IATA-keyed CDN (covers any carrier, no per-airline bundling).
+// Fallback: bundled /airline-logos/{ICAO}.png for the core Pacific carriers (offline-safe).
 const IATA_TO_ICAO: Record<string, string> = {
   FJ: 'FJI', NZ: 'ANZ', QF: 'QFA', VA: 'VOZ', SB: 'ACI',
   ON: 'RON', SQ: 'SIA', CX: 'CPA', EK: 'UAE', QR: 'QTR',
@@ -14,7 +14,7 @@ const NAME_TO_ICAO: Record<string, string> = {
 function norm(s: string): string {
   return s.toLowerCase().replace(/[^a-z0-9 ]/g, '').replace(/\s+/g, ' ').trim()
 }
-export function resolveAirlineIcao(code?: string | null, name?: string | null): string | null {
+function resolveAirlineIcao(code?: string | null, name?: string | null): string | null {
   const c = (code ?? '').trim().toUpperCase()
   if (c && IATA_TO_ICAO[c]) return IATA_TO_ICAO[c]
   const n = norm(name ?? '')
@@ -22,7 +22,14 @@ export function resolveAirlineIcao(code?: string | null, name?: string | null): 
   if (n) for (const [key, icao] of Object.entries(NAME_TO_ICAO)) if (n.includes(key)) return icao
   return null
 }
-export function airlineLogoUrl(code?: string | null, name?: string | null): string | null {
+// Ordered list of URLs to try. AirlineLogo advances on each onError.
+export function airlineLogoSources(code?: string | null, name?: string | null): string[] {
+  const out: string[] = []
+  const iata = (code ?? '').trim().toUpperCase()
+  if (/^[A-Z0-9]{2}$/.test(iata)) {
+    out.push(`https://content.airhex.com/content/logos/airlines_${iata}_50_50_s.png`)
+  }
   const icao = resolveAirlineIcao(code, name)
-  return icao ? `/airline-logos/${icao}.png` : null
+  if (icao) out.push(`/airline-logos/${icao}.png`)
+  return out
 }

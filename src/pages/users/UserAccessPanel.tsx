@@ -1,10 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Save, KeyRound, Trash2 } from 'lucide-react'
+import { Save, KeyRound, ShieldOff, Trash2 } from 'lucide-react'
 import { usePerm } from '../../access/PermissionsProvider'
 import {
   assignRole, deleteStaffUser, deleteUserOverride, getUserOverrides, getUserRoleIds, listModules,
-  listRoles, sendStaffReset, unassignRole, upsertUserOverride, type AppModule, type Role,
+  listRoles, resetUserMfa, sendStaffReset, unassignRole, upsertUserOverride, type AppModule, type Role,
 } from './usersApi'
 
 const NAVY = '#2563EB'
@@ -108,6 +108,15 @@ export default function UserAccessPanel(
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to delete user') }
     finally { setActing(false) }
   }
+  async function resetMfa() {
+    if (!confirm(`Reset MFA for ${email ?? 'this user'}? They'll set up their authenticator again on next login.`)) return
+    setActing(true)
+    try {
+      const res = await resetUserMfa(userId)
+      toast.success(res.factors_removed ? 'MFA reset - user re-enrolls next login' : 'No MFA factors to reset')
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to reset MFA') }
+    finally { setActing(false) }
+  }
 
   if (loading) return <div className="muted pad">Loading...</div>
 
@@ -123,6 +132,12 @@ export default function UserAccessPanel(
             <button type="button" onClick={resetPassword} disabled={acting} title="Send password reset link"
               style={{ display: 'inline-grid', placeItems: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid var(--line)', background: '#fff', color: '#334155', cursor: acting ? 'default' : 'pointer', opacity: acting ? 0.5 : 1 }}>
               <KeyRound size={16} />
+            </button>
+          )}
+          {canEdit && (
+            <button type="button" onClick={resetMfa} disabled={acting} title="Reset MFA (force re-enrollment)"
+              style={{ display: 'inline-grid', placeItems: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid var(--line)', background: '#fff', color: '#334155', cursor: acting ? 'default' : 'pointer', opacity: acting ? 0.5 : 1 }}>
+              <ShieldOff size={16} />
             </button>
           )}
           {canDelete && !isAdmin && (

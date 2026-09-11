@@ -29,7 +29,7 @@ type PlaceResult = {
   address_components?: PlaceComponent[]
   geometry?: { location?: LatLngLike }
 }
-type GeocodeResult = { address_components?: PlaceComponent[] }
+type GeocodeResult = { formatted_address?: string; address_components?: PlaceComponent[] }
 
 let loadPromise: Promise<boolean> | null = null
 
@@ -105,13 +105,30 @@ async function reverseGeocodePostcode(location: LatLngLike): Promise<string | un
   return undefined
 }
 
+async function geocodeAddress(address: string, countryCode?: string): Promise<({ address: string } & AddressComponents) | undefined> {
+  const Geocoder = window.google?.maps?.Geocoder
+  if (!Geocoder || !address.trim()) return undefined
+  try {
+    const geocoder = new Geocoder()
+    const { results } = await geocoder.geocode({
+      address,
+      ...(countryCode ? { componentRestrictions: { country: countryCode.toLowerCase() } } : {}),
+    })
+    const r = results?.[0]
+    if (!r) return undefined
+    return parsePlace({ formatted_address: r.formatted_address ?? address, address_components: r.address_components })
+  } catch {
+    return undefined
+  }
+}
+
 declare global {
   interface Window {
     google?: {
       maps: {
         places: { Autocomplete: new (el: HTMLInputElement, opts?: object) => GoogleAutocomplete }
         Geocoder: new () => {
-          geocode: (req: { location: LatLngLike }) => Promise<{ results: GeocodeResult[] }>
+          geocode: (req: { location?: LatLngLike; address?: string; componentRestrictions?: { country?: string } }) => Promise<{ results: GeocodeResult[] }>
         }
         event: { clearInstanceListeners: (inst: GoogleAutocomplete) => void }
       }
@@ -129,6 +146,7 @@ export default function AddressAutocomplete({ label, value, onChange, required, 
   const onChangeRef = useRef(onChange)
   const [text, setText] = useState(value)
   const [placesReady, setPlacesReady] = useState(false)
+  const selectedRef = useRef('')
 
   onChangeRef.current = onChange
 
@@ -175,6 +193,7 @@ export default function AddressAutocomplete({ label, value, onChange, required, 
         }
         if (inputRef.current) inputRef.current.value = address
         setText(address)
+        selectedRef.current = address
         onChangeRef.current(address, { city, state, postcode, country, countryCode: cc, street })
       })()
     })
@@ -202,7 +221,15 @@ export default function AddressAutocomplete({ label, value, onChange, required, 
         {...(placesActive
           ? {
               defaultValue: value,
-              onBlur: (e) => onChangeRef.current(e.currentTarget.value),
+              onBlur: (e) => {
+                const v = e.currentTarget.value
+                if (!v.trim() || v === selectedRef.current) { onChangeRef.current(v); return }
+                void (async () => {
+                  const g = await geocodeAddress(v, countryCode)
+                  if (g) onChangeRef.current(v, { city: g.city, state: g.state, postcode: g.postcode, country: g.country, countryCode: g.countryCode, street: g.street })
+                  else onChangeRef.current(v)
+                })()
+              },
             }
           : {
               value: text,

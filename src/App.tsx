@@ -29,6 +29,7 @@ import BookingsPage from './pages/BookingsPage'
 import { BookingRecordRoute } from './pages/BookingsRoute'
 import BookingFormPage from './pages/bookings/BookingFormPage'
 import StaffRoute from './components/StaffRoute'
+import StaffMfaGate from './components/StaffMfaGate'
 import SliPage from './features/sli/SliPage'
 import RatePage from './pages/public/RatePage'
 import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
@@ -91,7 +92,7 @@ function AuthGate({
   if (!staffReady) return <div className="center muted">Loading…</div>
   if (!isStaff && isPortalUser) return <Navigate to="/portal" replace />
   if (!isStaff) return <StaffDenied />
-  return <Outlet />
+  return <StaffMfaGate><Outlet /></StaffMfaGate>
 }
 
 export default function App() {

@@ -170,3 +170,16 @@ export async function deleteStaffUser(userId: string): Promise<{ ok: boolean; au
   }
   return data as { ok: boolean; auth_deleted?: boolean; kept_for_portal?: boolean }
 }
+
+export async function resetUserMfa(userId: string): Promise<{ ok: boolean; factors_removed?: number }> {
+  const { data, error } = await supabase.functions.invoke('reset-user-mfa', { body: { user_id: userId } })
+  if (error) {
+    let msg = error.message
+    const resp = (error as unknown as { context?: Response }).context
+    if (resp && typeof resp.json === 'function') {
+      try { const b = await resp.json(); if (b?.message || b?.error) msg = b.message ?? b.error } catch { /* ignore */ }
+    }
+    throw new Error(msg)
+  }
+  return data as { ok: boolean; factors_removed?: number }
+}
