@@ -53,7 +53,7 @@ export default function UsersTab() {
               ))}
             </div>
             {selected ? (
-              <UserAccessPanel key={selected.user_id} userId={selected.user_id} email={selected.email} isAdmin={selected.is_admin} onChanged={load} />
+              <UserAccessPanel key={selected.user_id} userId={selected.user_id} email={selected.email} isAdmin={selected.is_admin} onChanged={load} onDeleted={() => { setSelectedId(null); void load() }} />
             ) : (
               <div className="muted pad">Select a user to manage their roles and access.</div>
             )}

@@ -1,10 +1,10 @@
 ﻿import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
-import { Save } from 'lucide-react'
+import { Save, KeyRound, Trash2 } from 'lucide-react'
 import { usePerm } from '../../access/PermissionsProvider'
 import {
-  assignRole, deleteUserOverride, getUserOverrides, getUserRoleIds, listModules,
-  listRoles, unassignRole, upsertUserOverride, type AppModule, type Role,
+  assignRole, deleteStaffUser, deleteUserOverride, getUserOverrides, getUserRoleIds, listModules,
+  listRoles, sendStaffReset, unassignRole, upsertUserOverride, type AppModule, type Role,
 } from './usersApi'
 
 const NAVY = '#2563EB'
@@ -20,10 +20,12 @@ const toTri = (v: boolean | null): Tri => (v === null ? '' : v ? 'allow' : 'deny
 const fromTri = (t: Tri): boolean | null => (t === '' ? null : t === 'allow')
 
 export default function UserAccessPanel(
-  { userId, email, isAdmin, onChanged }:
-  { userId: string; email: string | null; isAdmin: boolean; onChanged: () => void },
+  { userId, email, isAdmin, onChanged, onDeleted }:
+  { userId: string; email: string | null; isAdmin: boolean; onChanged: () => void; onDeleted: () => void },
 ) {
   const canEdit = usePerm('users', 'edit')
+  const canDelete = usePerm('users', 'delete')
+  const [acting, setActing] = useState(false)
   const [roles, setRoles] = useState<Role[]>([])
   const [modules, setModules] = useState<AppModule[]>([])
   const [roleIds, setRoleIds] = useState<Set<string>>(new Set())
@@ -86,13 +88,50 @@ export default function UserAccessPanel(
     finally { setSaving(false) }
   }
 
+  async function resetPassword() {
+    setActing(true)
+    try {
+      const res = await sendStaffReset(userId)
+      if (res.email_sent) toast.success('Reset link emailed')
+      else if (res.link) { await navigator.clipboard.writeText(res.link).catch(() => {}); toast.message('Email not sent - reset link copied to clipboard') }
+      else toast.error('Could not send reset link')
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to send reset link') }
+    finally { setActing(false) }
+  }
+  async function removeUser() {
+    if (!confirm(`Delete ${email ?? 'this user'}? This removes their staff access and cannot be undone.`)) return
+    setActing(true)
+    try {
+      const res = await deleteStaffUser(userId)
+      toast.success(res.kept_for_portal ? 'Staff access removed (customer portal login kept)' : 'User deleted')
+      onDeleted()
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to delete user') }
+    finally { setActing(false) }
+  }
+
   if (loading) return <div className="muted pad">Loading...</div>
 
   return (
     <div>
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 4 }}>
-        <h2 style={{ fontSize: 16, margin: 0 }}>{email ?? 'User'}</h2>
-        {isAdmin && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', color: NAVY, background: '#eef1f8', padding: '2px 8px', borderRadius: 999 }}>ADMIN</span>}
+      <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 4 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+          <h2 style={{ fontSize: 16, margin: 0 }}>{email ?? 'User'}</h2>
+          {isAdmin && <span style={{ fontSize: 10, fontWeight: 700, letterSpacing: '.04em', color: NAVY, background: '#eef1f8', padding: '2px 8px', borderRadius: 999 }}>ADMIN</span>}
+        </div>
+        <div style={{ display: 'flex', gap: 8 }}>
+          {canEdit && (
+            <button type="button" onClick={resetPassword} disabled={acting} title="Send password reset link"
+              style={{ display: 'inline-grid', placeItems: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid var(--line)', background: '#fff', color: '#334155', cursor: acting ? 'default' : 'pointer', opacity: acting ? 0.5 : 1 }}>
+              <KeyRound size={16} />
+            </button>
+          )}
+          {canDelete && !isAdmin && (
+            <button type="button" onClick={removeUser} disabled={acting} title="Delete user"
+              style={{ display: 'inline-grid', placeItems: 'center', width: 34, height: 34, borderRadius: 8, border: '1px solid #fecaca', background: '#fff', color: '#dc2626', cursor: acting ? 'default' : 'pointer', opacity: acting ? 0.5 : 1 }}>
+              <Trash2 size={16} />
+            </button>
+          )}
+        </div>
       </div>
 
       <h3 style={{ fontSize: 13, fontWeight: 600, margin: '16px 0 8px' }}>Roles</h3>

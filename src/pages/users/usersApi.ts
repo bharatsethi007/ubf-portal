@@ -144,3 +144,29 @@ export async function createStaffUser(email: string, roleIds: string[]): Promise
   }
   return data as CreateStaffUserResult
 }
+
+export async function sendStaffReset(userId: string): Promise<{ ok: boolean; link?: string; email_sent?: boolean }> {
+  const { data, error } = await supabase.functions.invoke('staff-send-reset', { body: { user_id: userId } })
+  if (error) {
+    let msg = error.message
+    const resp = (error as unknown as { context?: Response }).context
+    if (resp && typeof resp.json === 'function') {
+      try { const b = await resp.json(); if (b?.message || b?.error) msg = b.message ?? b.error } catch { /* ignore */ }
+    }
+    throw new Error(msg)
+  }
+  return data as { ok: boolean; link?: string; email_sent?: boolean }
+}
+
+export async function deleteStaffUser(userId: string): Promise<{ ok: boolean; auth_deleted?: boolean; kept_for_portal?: boolean }> {
+  const { data, error } = await supabase.functions.invoke('delete-staff-user', { body: { user_id: userId } })
+  if (error) {
+    let msg = error.message
+    const resp = (error as unknown as { context?: Response }).context
+    if (resp && typeof resp.json === 'function') {
+      try { const b = await resp.json(); if (b?.message || b?.error) msg = b.message ?? b.error } catch { /* ignore */ }
+    }
+    throw new Error(msg)
+  }
+  return data as { ok: boolean; auth_deleted?: boolean; kept_for_portal?: boolean }
+}
