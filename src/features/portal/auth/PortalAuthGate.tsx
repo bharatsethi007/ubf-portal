@@ -19,7 +19,7 @@ function PortalDenied() {
           Your account is not linked to a customer portal profile. Contact UB Freight if you need access.
         </p>
         <button type="button" className="portal-btn-primary" style={{ marginTop: 20 }}
-          onClick={() => supabase.auth.signOut()}>
+          onClick={() => supabase.auth.signOut({ scope: 'local' })}>
           Sign out
         </button>
       </div>
@@ -43,7 +43,7 @@ export default function PortalAuthGate({ session, isStaff, staffReady }: Props) 
             Your portal access has been revoked. Contact UB Freight if you need access restored.
           </p>
           <button type="button" className="portal-btn-primary" style={{ marginTop: 20 }}
-            onClick={() => supabase.auth.signOut()}>
+            onClick={() => supabase.auth.signOut({ scope: 'local' })}>
             Sign out
           </button>
         </div>

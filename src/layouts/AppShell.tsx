@@ -219,7 +219,7 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
               {menuOpen && (
                 <div className="user-dropdown">
                   <span className="muted user-email">{session.user.email}</span>
-                  <button type="button" className="dropdown-item" onClick={() => { setMenuOpen(false); supabase.auth.signOut() }}>Sign out</button>
+                  <button type="button" className="dropdown-item" onClick={() => { setMenuOpen(false); supabase.auth.signOut({ scope: 'local' }) }}>Sign out</button>
                 </div>
               )}
             </div>

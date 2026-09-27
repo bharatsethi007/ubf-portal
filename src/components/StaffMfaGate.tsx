@@ -71,7 +71,7 @@ export default function StaffMfaGate({ children }: { children: ReactNode }) {
     await check()
   }
 
-  async function signOut() { resetEnrollment(); await supabase.auth.signOut() }
+  async function signOut() { resetEnrollment(); await supabase.auth.signOut({ scope: 'local' }) }
 
   if (mode === 'ok') return <>{children}</>
   if (mode === 'checking') return <div className="center muted">Loading…</div>

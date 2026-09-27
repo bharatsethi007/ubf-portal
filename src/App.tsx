@@ -74,7 +74,7 @@ function StaffDenied() {
         <div className="brand"><span className="brand-mark">UB</span> Freight</div>
         <h1>Staff access only</h1>
         <p className="muted">Your account is not registered as UB Freight staff. Contact your administrator if you need access.</p>
-        <button className="btn" type="button" onClick={() => supabase.auth.signOut()}>Sign out</button>
+        <button className="btn" type="button" onClick={() => supabase.auth.signOut({ scope: 'local' })}>Sign out</button>
       </div>
     </div>
   )

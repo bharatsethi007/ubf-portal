@@ -88,12 +88,13 @@ export type AirRateCardDetail = {
   valid_to: string | null
   status: string
   default_markup_pct: number | null
+  terms: string | null
 }
 
 export async function fetchAirRateCard(id: string): Promise<AirRateCardDetail | null> {
   const { data, error } = await supabase
     .from('rate_cards')
-    .select('id, vendor_account_id, vendor_name, title, currency_code, valid_from, valid_to, status, default_markup_pct')
+    .select('id, vendor_account_id, vendor_name, title, currency_code, valid_from, valid_to, status, default_markup_pct, terms')
     .eq('id', id).eq('rate_type', 'air').maybeSingle()
   if (error) throw error
   if (!data) return null
@@ -108,12 +109,13 @@ export async function fetchAirRateCard(id: string): Promise<AirRateCardDetail | 
     valid_to: r.valid_to ? String(r.valid_to) : null,
     status: String(r.status),
     default_markup_pct: r.default_markup_pct == null ? null : Number(r.default_markup_pct),
+    terms: r.terms ? String(r.terms) : null,
   }
 }
 
 export async function updateAirRateCardHeader(
   id: string,
-  patch: { airline_code: string; airline_name: string | null; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string; default_markup_pct: number | null },
+  patch: { airline_code: string; airline_name: string | null; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string; default_markup_pct: number | null; terms: string | null },
 ): Promise<void> {
   const { error } = await supabase
     .from('rate_cards')
@@ -126,6 +128,7 @@ export async function updateAirRateCardHeader(
       valid_to: patch.valid_to,
       status: patch.status,
       default_markup_pct: patch.default_markup_pct,
+      terms: patch.terms,
       updated_at: new Date().toISOString(),
     })
     .eq('id', id)

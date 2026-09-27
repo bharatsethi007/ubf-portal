@@ -73,7 +73,7 @@ export default function AirRateCardDetail() {
     try {
       await updateAirRateCardHeader(card.id, {
         airline_code: card.airline_code, airline_name: card.airline_name, title: card.title, currency_code: card.currency_code,
-        valid_from: card.valid_from, valid_to: card.valid_to, status: card.status,
+        valid_from: card.valid_from, valid_to: card.valid_to, status: card.status, terms: card.terms,
         default_markup_pct: card.default_markup_pct,
       })
       toast.success('Card details saved')
@@ -170,6 +170,10 @@ export default function AirRateCardDetail() {
             <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Title</label>
               <input className="input" value={card.title ?? ''} onChange={(e) => setField('title', e.target.value)} />
+            </div>
+            <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+              <label style={labelStyle}>Terms &amp; conditions (popup on expand in rate search)</label>
+              <textarea className="input" rows={4} value={card.terms ?? ''} placeholder="e.g. Rates subject to space & GSA confirmation. General cargo only. DG on request." onChange={(e) => setField('terms', e.target.value || null)} style={{ resize: 'vertical', minHeight: 90 }} />
             </div>
             <div style={fieldStyle}>
               <label style={labelStyle}>Valid from</label>
