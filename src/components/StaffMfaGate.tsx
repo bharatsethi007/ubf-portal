@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../supabase'
+import Login from '../Login'
+import MfaDialog from './MfaDialog'
 
-const NAVY = '#0A2472'
 type Mode = 'checking' | 'enroll' | 'challenge' | 'ok'
 type Enrollment = { factorId: string; qr: string; secret: string }
 
@@ -59,11 +60,11 @@ export default function StaffMfaGate({ children }: { children: ReactNode }) {
 
   useEffect(() => { void check() }, [check])
 
-  async function submit() {
-    if (!factorId || code.trim().length < 6) return
+  async function submit(value = code) {
+    if (!factorId || value.length < 6 || busy) return
     setBusy(true)
     setError('')
-    const { error: e } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: code.trim() })
+    const { error: e } = await supabase.auth.mfa.challengeAndVerify({ factorId, code: value })
     setBusy(false)
     if (e) { setError('That code was not accepted. Use the current code from your app.'); setCode(''); return }
     resetEnrollment()
@@ -71,63 +72,31 @@ export default function StaffMfaGate({ children }: { children: ReactNode }) {
     await check()
   }
 
+  function onCodeChange(v: string) {
+    setCode(v)
+    if (v.length === 6) void submit(v)
+  }
+
   async function signOut() { resetEnrollment(); await supabase.auth.signOut({ scope: 'local' }) }
 
   if (mode === 'ok') return <>{children}</>
-  if (mode === 'checking') return <div className="center muted">Loading…</div>
 
-  const isEnroll = mode === 'enroll'
+  // Keep the login screen as the backdrop; MFA step shows as a popup on top.
   return (
-    <div className="center" style={{ minHeight: '100vh' }}>
-      <div className="auth-card" style={{ maxWidth: 400, width: '100%', textAlign: 'left' }}>
-        <div className="brand" style={{ marginBottom: 12 }}><span className="brand-mark">UB</span> Freight</div>
-        <h1 style={{ fontSize: 20, color: NAVY, margin: '0 0 6px' }}>
-          {isEnroll ? 'Set up two-factor authentication' : 'Two-factor authentication'}
-        </h1>
-        <p className="muted" style={{ fontSize: 13, margin: '0 0 18px' }}>
-          {isEnroll
-            ? 'Staff accounts require an authenticator app. Scan the QR code with Google Authenticator, Authy, or 1Password, then enter the 6-digit code to finish.'
-            : 'Enter the current 6-digit code from your authenticator app.'}
-        </p>
-
-        {isEnroll && qr && (
-          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', marginBottom: 16 }}>
-            <img src={qr} alt="MFA QR code" style={{ width: 200, height: 200 }} />
-            {secret && (
-              <div style={{ marginTop: 8, fontSize: 12, color: '#64748b', textAlign: 'center' }}>
-                Can’t scan? Enter this key:
-                <code style={{ display: 'block', marginTop: 4, fontSize: 13, color: '#334155', wordBreak: 'break-all' }}>{secret}</code>
-              </div>
-            )}
-          </div>
-        )}
-
-        <input
-          inputMode="numeric"
-          autoComplete="one-time-code"
-          value={code}
-          onChange={(e) => setCode(e.target.value.replace(/\D/g, '').slice(0, 6))}
-          onKeyDown={(e) => e.key === 'Enter' && submit()}
-          placeholder="123456"
-          autoFocus
-          style={{ width: '100%', height: 44, padding: '0 12px', letterSpacing: 4, fontSize: 18,
-            border: '1px solid #cbd5e1', borderRadius: 8, boxSizing: 'border-box', textAlign: 'center' }}
+    <Login
+      overlay={mode === 'checking' ? null : (
+        <MfaDialog
+          mode={mode}
+          qr={qr}
+          secret={secret}
+          code={code}
+          busy={busy}
+          error={error}
+          onCodeChange={onCodeChange}
+          onSubmit={() => void submit()}
+          onSignOut={signOut}
         />
-
-        {error && <div style={{ color: '#dc2626', fontSize: 13, marginTop: 10 }}>{error}</div>}
-
-        <button type="button" onClick={submit} disabled={busy || code.length < 6}
-          style={{ width: '100%', height: 44, marginTop: 14, border: 'none', borderRadius: 8,
-            background: busy || code.length < 6 ? '#94a3b8' : NAVY, color: '#fff', fontSize: 15, fontWeight: 500,
-            cursor: busy || code.length < 6 ? 'default' : 'pointer' }}>
-          {busy ? 'Verifying…' : isEnroll ? 'Verify & finish' : 'Verify'}
-        </button>
-
-        <button type="button" onClick={signOut}
-          style={{ width: '100%', marginTop: 10, background: 'none', border: 'none', color: '#64748b', fontSize: 13, cursor: 'pointer' }}>
-          Sign out
-        </button>
-      </div>
-    </div>
+      )}
+    />
   )
 }

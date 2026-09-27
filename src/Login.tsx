@@ -1,10 +1,10 @@
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import loginArt from './assets/login-illustration.png';
 import ubLogo from './assets/ub-logo.jpg';
 import { supabase } from './supabase';
 import './pages/loginPage.css';
 
-export default function Login() {
+export default function Login({ overlay }: { overlay?: ReactNode } = {}) {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [busy, setBusy] = useState(false);
@@ -25,8 +25,8 @@ export default function Login() {
 
   return (
     <div className="login-page">
-      {/* LEFT: login form */}
-      <div className="login-page__left">
+      {/* LEFT: login form (inert while the MFA popup is open) */}
+      <div className="login-page__left" {...(overlay ? { inert: '' } : {})}>
         <div style={{ width: '100%', maxWidth: 360, padding: '0 24px' }}>
           <img
             src={ubLogo}
@@ -92,6 +92,8 @@ export default function Login() {
           <img src={loginArt} className="login-art-panel__img" alt="" />
         </div>
       </div>
+
+      {overlay}
     </div>
   );
 }
