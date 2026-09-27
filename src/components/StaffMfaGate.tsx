@@ -16,7 +16,12 @@ async function doEnroll(): Promise<Enrollment> {
   for (const f of all) {
     if (f.status !== 'verified') await supabase.auth.mfa.unenroll({ factorId: f.id })
   }
-  const { data, error } = await supabase.auth.mfa.enroll({ factorType: 'totp' })
+  const { data: { user } } = await supabase.auth.getUser()
+  const { data, error } = await supabase.auth.mfa.enroll({
+    factorType: 'totp',
+    issuer: 'UB Freight Console',
+    friendlyName: user?.email ?? 'staff',
+  })
   if (error) throw error
   return { factorId: data.id, qr: data.totp.qr_code, secret: data.totp.secret }
 }
