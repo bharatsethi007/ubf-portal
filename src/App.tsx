@@ -92,7 +92,14 @@ function AuthGate({
 }) {
   if (!session) return <Login />
   if (!staffReady) return <div className="center muted">Loading…</div>
-  if (!isStaff && isPortalUser) return <Navigate to="/portal" replace />
+  if (!isStaff && isPortalUser) {
+    const portalUrl = (import.meta.env.VITE_PORTAL_URL || '').replace(/\/+$/, '')
+    if (portalUrl) {
+      window.location.replace(`${portalUrl}/portal`)
+      return <div className="center muted">Loading…</div>
+    }
+    return <Navigate to="/portal" replace />
+  }
   if (!isStaff) return <StaffDenied />
   return <StaffMfaGate><Outlet /></StaffMfaGate>
 }

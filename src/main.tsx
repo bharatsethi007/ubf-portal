@@ -12,6 +12,13 @@ if (window.location.hostname.startsWith('tracking.') && !window.location.pathnam
   window.location.replace('https://ubfreight.com')
 }
 
+// Customer portal lives on its own domain. Forward /portal/* (incl. set-password tokens) there.
+const PORTAL_URL = (import.meta.env.VITE_PORTAL_URL || '').replace(/\/+$/, '')
+if (PORTAL_URL && window.location.pathname.startsWith('/portal') && !PORTAL_URL.includes(window.location.hostname)) {
+  const { pathname, search, hash } = window.location
+  window.location.replace(`${PORTAL_URL}${pathname}${search}${hash}`)
+}
+
 ReactDOM.createRoot(document.getElementById('root')!).render(
   <React.StrictMode>
     <App />
