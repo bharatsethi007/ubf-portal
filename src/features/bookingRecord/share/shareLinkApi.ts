@@ -10,7 +10,8 @@ export type ShareLink = {
   view_count: number
 }
 
-export const shareUrl = (token: string) => `${window.location.origin}/t/${token}`
+const TRACKING_BASE = (import.meta.env.VITE_TRACKING_BASE_URL || window.location.origin).replace(/\/+$/, '')
+export const shareUrl = (token: string) => `${TRACKING_BASE}/t/${token}`
 
 export async function listShareLinks(bookingId: string): Promise<ShareLink[]> {
   const { data, error } = await supabase

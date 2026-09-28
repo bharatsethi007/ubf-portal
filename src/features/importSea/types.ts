@@ -23,6 +23,7 @@ export type ImportSeaRow = {
   atf_source?: string | null
   m_atf: string | null
   ubf_devanner: string | null
+  load_type: 'FCL' | 'LCL' | null
   shipping_line: string | null
   shipping_line_source?: string | null
   discharge_port: string | null

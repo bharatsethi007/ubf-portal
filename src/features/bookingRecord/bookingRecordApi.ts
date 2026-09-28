@@ -11,7 +11,7 @@ import type {
 } from './bookingRecordTypes'
 
 const BOOKING_SELECT = `
-  id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, os_agent_account_id, mode, incoterm, shipment_id,
+  id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, os_agent_account_id, mode, load_type, incoterm, shipment_id,
   m_eta, m_atf, m_shipping_line, shipping_line_code, mbl_no, m_discharge_port,
   swb_released, tlx_release_on_hand, doc_handover_at,
       bacc_sent, cleared, truck_booked, inv_approved, inv_sent,

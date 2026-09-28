@@ -126,13 +126,13 @@ export default function BookingLeftColumn({ booking, staff, containerRows, onPat
           />
         </label>
         <label className="filter-field booking-form-field">
-          <span className="filter-field__label">Mode</span>
+          <span className="filter-field__label">Load type</span>
           <select
             className="input input--xs"
-            value={booking.mode ?? ''}
+            value={booking.load_type ?? ''}
             onChange={(e) => {
-              const next = e.target.value || null
-              onPatch({ mode: next }, { mode: next })
+              const next = (e.target.value || null) as 'FCL' | 'LCL' | null
+              onPatch({ load_type: next }, { load_type: next })
             }}
           >
             <option value="">Select…</option>

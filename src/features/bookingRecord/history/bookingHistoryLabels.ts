@@ -7,6 +7,7 @@ export const BOOKING_FIELD_LABELS: Record<string, string> = {
   booking_ref: 'Booking ref',
   job_no: 'Job #',
   mode: 'Mode',
+  load_type: 'Load type',
   hold_reason: 'Hold notes',
   hold_code: 'Hold',
   handled_by: 'Handled by',

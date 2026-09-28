@@ -30,6 +30,7 @@ type Props = {
   open: boolean
   onOpenChange: (open: boolean) => void
   onCreated?: () => void
+  defaultLoadType?: 'FCL' | 'LCL' | null
 }
 
 function sameCustomer(
@@ -41,7 +42,7 @@ function sameCustomer(
   return a.account_id === b.account_id
 }
 
-export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCreated }: Props) {
+export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCreated, defaultLoadType = null }: Props) {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [staff, setStaff] = useState<StaffUser[]>([])
@@ -122,6 +123,7 @@ export default function CreateImportSeaBookingDialog({ open, onOpenChange, onCre
         mbl_no: mbl.trim() || null,
         m_eta: eta.trim() || null,
         handled_by: handledBy,
+        load_type: defaultLoadType,
         created_by: auth.user?.id ?? null,
         containers: draftContainersForSave(containers),
       })

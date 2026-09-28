@@ -16,6 +16,7 @@ export type BookingRecord = {
   account_credit_limit: number | null
   customs_payment_type: string | null
   mode: string | null
+  load_type: 'FCL' | 'LCL' | null
   incoterm: string | null
   shipment_id: number | null
   m_eta: string | null
@@ -115,6 +116,7 @@ export type BookingRecordPatch = {
   importer_account_id?: string | null
   os_agent_account_id?: string | null
   mode?: string | null
+  load_type?: 'FCL' | 'LCL' | null
   incoterm?: string | null
   job_no?: string | null
   hold_reason?: string | null

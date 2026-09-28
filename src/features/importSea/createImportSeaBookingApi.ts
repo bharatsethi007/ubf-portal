@@ -9,6 +9,7 @@ export type CreateImportSeaBookingInput = {
   mbl_no: string | null
   m_eta: string | null
   handled_by: string | null
+  load_type?: 'FCL' | 'LCL' | null
   created_by: string | null
   containers: Array<{
     container_no: string
@@ -39,6 +40,7 @@ export async function createImportSeaBooking(
       mbl_no: input.mbl_no,
       m_eta: input.m_eta,
       handled_by: input.handled_by,
+      load_type: input.load_type ?? null,
       created_by: input.created_by,
       is_consolidation: false,
       is_dg: false,
