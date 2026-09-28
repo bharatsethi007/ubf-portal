@@ -3,6 +3,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { cors, json, normalizeEmail, resolveAuthUserId, issueStaffInviteToken } from "../_shared/portalCommon.ts";
+import { sendStaffEmail } from "../_shared/staffEmail.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -44,22 +45,20 @@ Deno.serve(async (req) => {
 
     const invite = await issueStaffInviteToken(db, { userId: resolved.userId, staffId: ures.user.id });
 
-    let emailSent = false;
-    const key = Deno.env.get("BREVO_API_KEY");
-    const from = Deno.env.get("STAFF_INVITE_FROM_EMAIL") ?? "no-reply@ubfreight.com";
-    if (key) {
-      const html = `<p>You have been invited to the UB Freight staff portal.</p>
-<p><a href="${invite.link}">Click here to set your password</a> and sign in. This link expires in 7 days.</p>
-<p>If you did not expect this, you can ignore this email.</p>`;
-      try {
-        const r = await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ sender: { email: from, name: "UB Freight" }, to: [{ email: cleanEmail }], subject: "Set up your UB Freight staff account", htmlContent: html }),
-        });
-        emailSent = r.ok;
-      } catch { emailSent = false; }
-    }
+    const { data: inviter } = await db.from("staff_users").select("full_name, email").eq("user_id", ures.user.id).maybeSingle();
+    const who = inviter?.full_name?.trim() || "Your UB Freight administrator";
+    const emailSent = await sendStaffEmail(cleanEmail, "You're invited to UBF Console", {
+      preheader: `${who} added you to UBF Console. Set your password to get started.`,
+      eyebrow: "Staff invitation",
+      title: "You're invited to UBF Console",
+      paragraphs: [
+        `${who} has created a UBF Console account for you (<strong style="color:#1E293B;">${cleanEmail}</strong>). UBF Console is where the team manages bookings, shipments, quotes and customers.`,
+        "Set your password to activate the account. On first sign-in you will link an authenticator app, such as Microsoft Authenticator or Google Authenticator, for two-factor sign-in.",
+      ],
+      button: { label: "Set up your account", url: invite.link },
+      expiry: "This link works once and expires in 7 days.",
+      note: "Not expecting this? Ignore this email, or let your manager know.",
+    });
 
     return json({ ok: true, user_id: resolved.userId, link: invite.link, expires_at: invite.expiresAt, email_sent: emailSent });
   } catch (e) {

@@ -4,6 +4,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { cors, json, issueStaffInviteToken } from "../_shared/portalCommon.ts";
+import { sendStaffEmail } from "../_shared/staffEmail.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -27,27 +28,27 @@ Deno.serve(async (req) => {
     if (!userId) return json({ error: "user_id is required" }, 400);
 
     const db = createClient(url, service);
-    const { data: target } = await db.from("staff_users").select("email").eq("user_id", userId).maybeSingle();
+    const { data: target } = await db.from("staff_users").select("email, first_name, is_active").eq("user_id", userId).maybeSingle();
     if (!target?.email) return json({ error: "not_staff", message: "That user is not a staff user." }, 404);
+    if (target.is_active === false) return json({ error: "inactive", message: "Re-enable this account before sending a reset link." }, 400);
 
     const invite = await issueStaffInviteToken(db, { userId, staffId: ures.user.id });
 
-    let emailSent = false;
-    const key = Deno.env.get("BREVO_API_KEY");
-    const from = Deno.env.get("STAFF_INVITE_FROM_EMAIL") ?? "no-reply@ubfreight.com";
-    if (key) {
-      const html = `<p>A password reset was requested for your UB Freight staff account.</p>
-<p><a href="${invite.link}">Click here to set a new password</a> and sign in. This link expires in 7 days.</p>
-<p>If you did not request this, you can ignore this email and your password will stay unchanged.</p>`;
-      try {
-        const r = await fetch("https://api.brevo.com/v3/smtp/email", {
-          method: "POST",
-          headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
-          body: JSON.stringify({ sender: { email: from, name: "UB Freight" }, to: [{ email: target.email }], subject: "Reset your UB Freight staff password", htmlContent: html }),
-        });
-        emailSent = r.ok;
-      } catch { emailSent = false; }
-    }
+    const { data: admin } = await db.from("staff_users").select("full_name").eq("user_id", ures.user.id).maybeSingle();
+    const who = admin?.full_name?.trim() || "An administrator";
+    const emailSent = await sendStaffEmail(target.email, "Reset your UBF Console password", {
+      preheader: `${who} sent you a link to set a new password.`,
+      eyebrow: "Password reset",
+      title: "Reset your password",
+      name: target.first_name,
+      paragraphs: [
+        `${who} has sent you a link to reset the password for your UBF Console account (<strong style="color:#1E293B;">${target.email}</strong>).`,
+        "Choose a new password using the button below. After that you sign in as usual, with your authenticator code.",
+      ],
+      button: { label: "Set a new password", url: invite.link },
+      expiry: "This link works once and expires in 7 days.",
+      note: `Not expecting this? Check with ${who === "An administrator" ? "your manager" : who} before using the link.`,
+    });
 
     return json({ ok: true, user_id: userId, email: target.email, link: invite.link, expires_at: invite.expiresAt, email_sent: emailSent });
   } catch (e) {
