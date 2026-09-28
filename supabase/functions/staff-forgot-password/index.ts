@@ -32,7 +32,7 @@ Deno.serve(async (req) => {
     if (!email) return ok;
 
     const db = serviceClient();
-    const { data: staff } = await db.from("staff_users").select("user_id, email").eq("email", email).maybeSingle();
+    const { data: staff } = await db.from("staff_users").select("user_id, email").eq("email", email).eq("is_active", true).maybeSingle();
     if (!staff?.user_id || !staff.email) return ok;
 
     // Cooldown: skip if a token was issued for this user very recently.

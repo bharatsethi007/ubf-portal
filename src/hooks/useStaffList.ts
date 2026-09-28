@@ -3,7 +3,8 @@ import { supabase } from '../supabase'
 
 export type StaffOption = { user_id: string; name: string }
 
-function staffDisplayName(row: { email: string | null; initials: string | null }): string {
+function staffDisplayName(row: { email: string | null; initials: string | null; full_name: string | null }): string {
+  if (row.full_name?.trim()) return row.full_name.trim()
   if (row.email) return row.email.split('@')[0] ?? row.email
   return row.initials?.trim() || 'Staff'
 }
@@ -17,7 +18,8 @@ export function useStaffList(): { staff: StaffOption[]; loading: boolean } {
     ;(async () => {
       const { data, error } = await supabase
         .from('staff_users')
-        .select('user_id, email, initials')
+        .select('user_id, email, initials, full_name')
+        .eq('is_active', true)
 
       if (cancelled) return
 

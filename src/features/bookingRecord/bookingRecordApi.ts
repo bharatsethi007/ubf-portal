@@ -80,6 +80,7 @@ export async function fetchStaffUsers(): Promise<StaffUser[]> {
   const { data, error } = await supabase
     .from('staff_users')
     .select('user_id, email, initials')
+    .eq('is_active', true)
     .order('email')
   if (error) throw error
   return (data ?? []) as StaffUser[]

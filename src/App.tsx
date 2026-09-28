@@ -102,7 +102,6 @@ export default function App() {
   const [isStaff, setIsStaff] = useState(false)
   const [isPortalUser, setIsPortalUser] = useState(false)
   const [staffReady, setStaffReady] = useState(false)
-  const [staffName, setStaffName] = useState('')
   const [search, setSearch] = useState('')
 
   useEffect(() => {
@@ -118,31 +117,19 @@ export default function App() {
     if (!session) {
       setIsStaff(false)
       setIsPortalUser(false)
-      setStaffName('')
       setStaffReady(true)
       return
     }
     setStaffReady(false)
     ;(async () => {
       const [{ data: staff }, { data: portal }] = await Promise.all([
-        supabase.from('staff_users').select('user_id').eq('user_id', session.user.id).maybeSingle(),
+        supabase.from('staff_users').select('user_id, is_active').eq('user_id', session.user.id).maybeSingle(),
         supabase.from('portal_users').select('account_id, status').eq('user_id', session.user.id).maybeSingle(),
       ])
 
-      setIsStaff(!!staff)
+      // Disabled staff are treated as non-staff (RLS already blocks them via is_staff()).
+      setIsStaff(!!staff && staff.is_active !== false)
       setIsPortalUser(!!portal?.account_id && portal.status === 'active')
-
-      const { data: contact } = await supabase
-        .from('contacts')
-        .select('first_name, last_name')
-        .eq('email', session.user.email ?? '')
-        .maybeSingle()
-
-      if (contact?.first_name) {
-        setStaffName([contact.first_name, contact.last_name].filter(Boolean).join(' '))
-      } else {
-        setStaffName(session.user.email?.split('@')[0] ?? 'Staff')
-      }
       setStaffReady(true)
     })()
   }, [session?.user?.id])
@@ -163,7 +150,7 @@ export default function App() {
           <Route
             element={
               <PermissionsProvider>
-                <AppShell session={session!} staffName={staffName} search={search} onSearch={setSearch} />
+                <AppShell session={session!} search={search} onSearch={setSearch} />
               </PermissionsProvider>
             }
           >

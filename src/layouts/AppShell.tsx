@@ -3,11 +3,12 @@ import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronDown, ChevronsLeft, ChevronsRight, ClipboardList,
   FileText, Handshake, Menu, MessageCircle, Package, Plane, Search, Settings, Ship,
-  TowerControl, Truck, User, Users, X,
+  TowerControl, Truck, Users, X,
 } from 'lucide-react'
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 import Logo from '../components/Logo'
 import SyncButton from '../components/SyncButton'
+import UserMenu from '../components/staff/UserMenu'
 import { needsActionTotal } from '../pages/whatsapp/whatsappInboxApi'
 import { supabase } from '../supabase'
 import { ModuleGuard, usePermissions } from '../access/PermissionsProvider'
@@ -49,11 +50,10 @@ const orangeBar: React.CSSProperties = { position: 'absolute', left: -8, top: 9,
 const collapsedLink: React.CSSProperties = { justifyContent: 'center', gap: 0, padding: '10px 0' }
 const ActiveBar = ({ on }: { on: boolean }) => (on ? <span style={orangeBar} /> : null)
 
-type Props = { session: Session; staffName: string; search: string; onSearch: (q: string) => void }
+type Props = { session: Session; search: string; onSearch: (q: string) => void }
 
-export default function AppShell({ session, staffName, search, onSearch }: Props) {
+export default function AppShell({ session, search, onSearch }: Props) {
   const navigate = useNavigate()
-  const [menuOpen, setMenuOpen] = useState(false)
   const [navOpen, setNavOpen] = useState(false)
   const [bkOpen, setBkOpen] = useState(true)
   const [waNeedsAction, setWaNeedsAction] = useState(0)
@@ -62,7 +62,6 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
   })
   const [isDesktop, setIsDesktop] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 901px)').matches : true)
-  const menuRef = useRef<HTMLDivElement>(null)
   const location = useLocation()
   const bkActive = location.pathname.startsWith('/bookings')
   const shrink = collapsed && isDesktop
@@ -81,15 +80,6 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
   useEffect(() => {
     try { localStorage.setItem(COLLAPSE_KEY, collapsed ? '1' : '0') } catch { /* ignore */ }
   }, [collapsed])
-
-  useEffect(() => {
-    if (!menuOpen) return
-    function onClick(e: MouseEvent) {
-      if (menuRef.current && !menuRef.current.contains(e.target as Node)) setMenuOpen(false)
-    }
-    document.addEventListener('mousedown', onClick)
-    return () => document.removeEventListener('mousedown', onClick)
-  }, [menuOpen])
 
   useEffect(() => { setNavOpen(false) }, [location.pathname])
 
@@ -210,19 +200,7 @@ export default function AppShell({ session, staffName, search, onSearch }: Props
               ) : null}
             </button>
             <SyncButton userEmail={session.user.email ?? ''} />
-            <div className="user-menu" ref={menuRef}>
-              <button type="button" className="user-btn" aria-expanded={menuOpen} aria-haspopup="true" onClick={() => setMenuOpen((v) => !v)}>
-                <span className="user-avatar"><User size={16} strokeWidth={2} /></span>
-                <span className="user-name">{staffName}</span>
-                <ChevronDown size={16} className={`user-chevron${menuOpen ? ' open' : ''}`} />
-              </button>
-              {menuOpen && (
-                <div className="user-dropdown">
-                  <span className="muted user-email">{session.user.email}</span>
-                  <button type="button" className="dropdown-item" onClick={() => { setMenuOpen(false); supabase.auth.signOut({ scope: 'local' }) }}>Sign out</button>
-                </div>
-              )}
-            </div>
+            <UserMenu session={session} />
           </div>
         </header>
         <main className="content"><ModuleGuard><Outlet /></ModuleGuard></main>
