@@ -6,6 +6,7 @@ import AppShell from './layouts/AppShell'
 import { PermissionsProvider } from './access/PermissionsProvider'
 import Login from './Login'
 import StaffSetPasswordPage from './StaffSetPasswordPage'
+import ForgotPasswordPage from './ForgotPasswordPage'
 import { portalRoutes } from './routes/portalRoutes'
 import { EstimatesPage, NewBookingPage, SchedulesPage } from './pages/stubs/StubPages'
 import UsersArea from './pages/users/UsersArea'
@@ -154,6 +155,7 @@ export default function App() {
         <Route path="/sli/:token" element={<SliPage />} />
         <Route path="/rate" element={<RatePage />} />
         <Route path="/set-password" element={<StaffSetPasswordPage />} />
+        <Route path="/forgot-password" element={session ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />
 
         {portalRoutes({ session, authReady: ready, isStaff, staffReady })}
 

@@ -1,99 +1,60 @@
-import { useState, type ReactNode } from 'react';
-import loginArt from './assets/login-illustration.png';
-import ubLogo from './assets/ub-logo.jpg';
-import { supabase } from './supabase';
-import './pages/loginPage.css';
+import { useState, type ReactNode } from 'react'
+import { Link } from 'react-router-dom'
+import { supabase } from './supabase'
+import AuthLayout, { authStyles as s, primaryButton } from './auth/AuthLayout'
 
 export default function Login({ overlay }: { overlay?: ReactNode } = {}) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   async function signIn() {
-    setBusy(true);
-    setError(null);
-    const { error } = await supabase.auth.signInWithPassword({ email, password });
-    setBusy(false);
-    if (error) {
-      setError('Invalid email or password');
-      return;
-    }
-    // Session is set; your app's auth listener / route guard will redirect.
-    // If you redirect manually elsewhere, do it here instead.
+    setBusy(true)
+    setError(null)
+    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    setBusy(false)
+    if (error) setError('Invalid email or password')
+    // On success the auth listener in App swaps this screen out.
   }
 
+  const disabled = busy || !email || !password
+
   return (
-    <div className="login-page">
-      {/* LEFT: login form (inert while the MFA popup is open) */}
-      <div className="login-page__left" {...(overlay ? { inert: '' } : {})}>
-        <div style={{ width: '100%', maxWidth: 360, padding: '0 24px' }}>
-          <img
-            src={ubLogo}
-            alt="UB Freight"
-            style={{ height: 44, marginBottom: 28 }}
-          />
-          <h1 style={{ fontSize: 24, fontWeight: 500, color: '#0A2472', margin: '0 0 24px' }}>
-            Login to your account
-          </h1>
+    <AuthLayout overlay={overlay}>
+      <h1 style={{ ...s.title, margin: '0 0 24px' }}>Login to your account</h1>
 
-          <label style={{ display: 'block', fontSize: 13, color: '#334155', marginBottom: 6 }}>
-            Email address
-          </label>
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && document.getElementById('pw')?.focus()}
-            style={{
-              width: '100%', height: 44, padding: '0 12px', marginBottom: 16,
-              border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 15, boxSizing: 'border-box',
-            }}
-          />
+      <label style={s.label}>Email address</label>
+      <input
+        type="email"
+        autoComplete="username"
+        value={email}
+        onChange={(e) => setEmail(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && document.getElementById('pw')?.focus()}
+        style={s.input}
+      />
 
-          <label style={{ display: 'block', fontSize: 13, color: '#334155', marginBottom: 6 }}>
-            Password
-          </label>
-          <input
-            id="pw"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && email && password && signIn()}
-            style={{
-              width: '100%', height: 44, padding: '0 12px', marginBottom: 8,
-              border: '1px solid #cbd5e1', borderRadius: 8, fontSize: 15, boxSizing: 'border-box',
-            }}
-          />
-
-          {error && (
-            <div style={{ color: '#dc2626', fontSize: 13, marginBottom: 12 }}>{error}</div>
-          )}
-
-          <button
-            type="button"
-            onClick={signIn}
-            disabled={busy || !email || !password}
-            style={{
-              width: '100%', height: 44, marginTop: 8, border: 'none', borderRadius: 8,
-              background: busy || !email || !password ? '#94a3b8' : '#0A2472',
-              color: '#fff', fontSize: 15, fontWeight: 500,
-              cursor: busy || !email || !password ? 'default' : 'pointer',
-            }}
-          >
-            {busy ? 'Signing in…' : 'Sign in'}
-          </button>
-        </div>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+        <label style={s.label}>Password</label>
+        <Link to={`/forgot-password${email ? `?email=${encodeURIComponent(email)}` : ''}`} style={s.link}>
+          Forgot password?
+        </Link>
       </div>
+      <input
+        id="pw"
+        type="password"
+        autoComplete="current-password"
+        value={password}
+        onChange={(e) => setPassword(e.target.value)}
+        onKeyDown={(e) => e.key === 'Enter' && !disabled && signIn()}
+        style={{ ...s.input, marginBottom: 8 }}
+      />
 
-      {/* RIGHT: brand panel */}
-      <div className="login-art-panel">
-        <div className="login-art-panel__card">
-          <img src={loginArt} className="login-art-panel__img" alt="" />
-        </div>
-      </div>
+      {error && <div style={s.error}>{error}</div>}
 
-      {overlay}
-    </div>
-  );
+      <button type="button" onClick={signIn} disabled={disabled} style={primaryButton(disabled)}>
+        {busy ? 'Signing in…' : 'Sign in'}
+      </button>
+    </AuthLayout>
+  )
 }

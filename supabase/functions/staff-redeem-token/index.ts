@@ -1,7 +1,8 @@
 ﻿// PUBLIC (verify_jwt = false). Single-use token in body authorises staff set-password.
 // Body: { token: string, password: string }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { cors, json, serviceClient, validatePassword } from "../_shared/portalCommon.ts";
+import { cors, json, serviceClient } from "../_shared/portalCommon.ts";
+import { validateStaffPassword } from "../_shared/passwordPolicy.ts";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });
@@ -11,8 +12,8 @@ Deno.serve(async (req) => {
     const token = typeof body?.token === "string" ? body.token.trim() : "";
     const password = typeof body?.password === "string" ? body.password : "";
     if (!token || !password) return json({ error: "token and password are required" }, 400);
-    const pwError = validatePassword(password);
-    if (pwError) return json({ error: pwError }, 400);
+    const pwError = validateStaffPassword(password);
+    if (pwError) return json({ error: "weak_password", message: pwError }, 400);
 
     const db = serviceClient();
     const now = new Date().toISOString();
