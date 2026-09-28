@@ -18,6 +18,7 @@ import { deleteBookingRecord, setBookingArchived } from './bookingRecordApi'
 import CreditUsagePill from './CreditUsagePill'
 import BookingCommsButton from './comms/BookingCommsButton'
 import BookingTasksBell from './tasks/BookingTasksBell'
+import ShareTrackingButton from './share/ShareTrackingButton'
 import type { PortConnectRouteContext } from './tracking/portConnectRouteContext'
 import type { BookingRecord } from './bookingRecordTypes'
 
@@ -193,6 +194,7 @@ export default function BookingRecordHeader({
         ) : null}
 
         <div style={{ marginLeft: 'auto', display: 'flex', gap: 4, alignItems: 'center' }}>
+          {booking.mode === 'sea_import' ? <ShareTrackingButton bookingId={booking.id} bookingRef={ref} /> : null}
           <BookingCommsButton bookingId={booking.id} bookingRef={ref} />
           <BookingTasksBell bookingId={booking.id} />
           <button
