@@ -4,22 +4,15 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../supabase'
 import StaffAvatar from './StaffAvatar'
 import MyProfileModal from './MyProfileModal'
-import { PROFILE_CHANGED, displayName, getStaffProfile, type StaffProfile } from '../../pages/users/staffProfileApi'
+import { displayName } from '../../pages/users/staffProfileApi'
+import { useMyProfile } from './useMyProfile'
 
 // Top-right user button: photo + name, dropdown with My profile and Sign out.
 export default function UserMenu({ session }: { session: Session }) {
-  const [profile, setProfile] = useState<StaffProfile | null>(null)
+  const profile = useMyProfile()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
   const ref = useRef<HTMLDivElement>(null)
-  const uid = session.user.id
-
-  useEffect(() => {
-    const load = () => { void getStaffProfile(uid).then(setProfile).catch(() => {}) }
-    load()
-    window.addEventListener(PROFILE_CHANGED, load)
-    return () => window.removeEventListener(PROFILE_CHANGED, load)
-  }, [uid])
 
   useEffect(() => {
     if (!open) return

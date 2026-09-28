@@ -10,6 +10,8 @@ import {
   type Range, type Dir, type Mode,
 } from "./useDashboard";
 import { ShipmentMap } from "./ShipmentMap";
+import { useMyProfile } from "../components/staff/useMyProfile";
+import { displayName } from "./users/staffProfileApi";
 
 /* ══════ UB FREIGHT · CONTROL TOWER — content only (no shell) ══════ */
 const NAVY = "#0A2472", ORANGE = "#F7941D";
@@ -278,6 +280,9 @@ export default function DashboardPage() {
     { code: "IS", label: "Import Sea", k: kpis?.jobs?.IS, icon: Ship, accent: ORANGE },
   ];
 
+  const me = useMyProfile();
+  const greetName = me ? (me.first_name?.trim() || displayName(me)) : "";
+
   return (
     <div style={{ fontFamily: FONT, color: C.ink, position: "relative", padding: "4px 4px 28px" }}>
       <style>{`@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&display=swap');`}</style>
@@ -288,7 +293,7 @@ export default function DashboardPage() {
       <div style={{ position: "relative" }}>
         {/* header row */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 18 }}>
-          <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0, letterSpacing: "-.02em" }}>Hello, Bharat <span style={{ fontWeight: 300 }}>!</span></h1>
+          <h1 style={{ fontSize: 22, fontWeight: 600, margin: 0, letterSpacing: "-.02em" }}>Hello{greetName ? `, ${greetName}` : ""} <span style={{ fontWeight: 300 }}>!</span></h1>
           <div style={{ display: "flex", gap: 10, alignItems: "center" }}>
             <Seg value={range} onChange={setRange} options={[{ k: "week" as Range, label: "Week" }, { k: "month" as Range, label: "Month" }, { k: "year" as Range, label: "Year" }]} />
             <button style={{ display: "inline-flex", alignItems: "center", gap: 7, border: `1px solid ${C.border}`, background: "rgba(255,255,255,.7)", borderRadius: 10, padding: "9px 14px", fontSize: 13, fontWeight: 500, cursor: "pointer" }}><Download size={15} /> Export</button>
