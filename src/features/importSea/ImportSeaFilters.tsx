@@ -1,5 +1,6 @@
 import { Archive, ChevronDown, Download, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import ImportSeaDigestToggle from './ImportSeaDigestToggle'
 import {
   collectFilterOptions,
   type ImportSeaFilterState,
@@ -185,6 +186,7 @@ export default function ImportSeaFilters({
         </div>
 
         <div className="import-sea-toolbar-actions">
+          <ImportSeaDigestToggle />
           <button
             type="button"
             className="pagination__btn"
