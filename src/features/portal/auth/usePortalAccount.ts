@@ -49,7 +49,7 @@ export function usePortalAccount(session: Session | null) {
       setPortalStatus(status)
 
       const { data: cust } = await supabase
-        .from('customers')
+        .from('portal_account')
         .select('name')
         .eq('account_id', pu.account_id)
         .maybeSingle()

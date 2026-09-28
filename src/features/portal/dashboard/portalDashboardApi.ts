@@ -38,7 +38,7 @@ export type PortalShipmentRow = {
   volume_m3: number | null
   load_type: 'LCL' | 'FCL' | null
   status: string
-  customers: { name: string } | null
+  customer_name: string | null
 }
 
 export type KpiMetric = { label: string; value: number; deltaPct: number; up: boolean }
@@ -86,7 +86,7 @@ const SHIP_SELECT = `
   origin, destination, vessel_flight, etd, eta, departed, arrived, doc_date, relevant_date,
   shipper_name, consignee_name, customer_ref, load_type,
   consol_key, goods_desc, pack_qty, pack_type, weight_kg, volume_m3, status,
-  customers ( name )
+  customer_name
 `
 
 function pctDelta(cur: number, prev: number): { deltaPct: number; up: boolean } {
@@ -97,7 +97,7 @@ function pctDelta(cur: number, prev: number): { deltaPct: number; up: boolean } 
 
 async function fetchShipmentsInRange(from: string, to: string): Promise<PortalShipmentRow[]> {
   const { data, error } = await supabase
-    .from('shipments')
+    .from('portal_shipments')
     .select(SHIP_SELECT)
     .gte('relevant_date', from)
     .lte('relevant_date', to)
@@ -114,8 +114,8 @@ export async function loadPortalDashboard(range: PortalRange, ports: PortMap) {
   const [rows, prevRows, invoiceRes, containerRes] = await Promise.all([
     fetchShipmentsInRange(bounds.from, bounds.to),
     fetchShipmentsInRange(prevBounds.from, prevBounds.to),
-    supabase.from('invoices').select('balance, currency, doc_date').gt('balance', 0),
-    supabase.from('containers').select('id, consol_key, c_number, container_size, avail_to'),
+    supabase.from('portal_invoices').select('balance, currency, doc_date').gt('balance', 0),
+    supabase.from('portal_containers').select('id, consol_key, c_number, container_size, avail_to'),
   ])
 
   const open = rows.filter((r) => !isArrived(r.status))
@@ -243,7 +243,7 @@ export function buildGlobeData(open: PortalShipmentRow[], ports: PortMap): { lan
 }
 
 export function shipmentDisplayName(r: PortalShipmentRow): string {
-  return r.goods_desc?.trim() || r.customers?.name || r.shipper_name || `Shipment ${r.job_unique}`
+  return r.goods_desc?.trim() || r.customer_name || r.shipper_name || `Shipment ${r.job_unique}`
 }
 
 export function shipmentTrackingId(r: PortalShipmentRow): string {

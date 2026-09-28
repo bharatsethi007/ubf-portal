@@ -14,7 +14,7 @@ const DETAIL_SELECT = `
   origin, destination, vessel_flight, etd, eta, departed, arrived, doc_date,
   relevant_date, created_src, shipper_name, consignee_name, customer_ref, load_type,
   consol_key, goods_desc, pack_qty, pack_type, weight_kg, volume_m3, marks, final_dest,
-  master_bill, status, customers ( name )
+  master_bill, status, customer_name
 `
 
 const INVOICE_SELECT =
@@ -34,7 +34,7 @@ export async function fetchPortalShipment(jobNoParam: string): Promise<PortalShi
   if (/^\d+$/.test(key)) {
     const n = Number(key)
     const { data: byJobNo } = await supabase
-      .from('shipments')
+      .from('portal_shipments')
       .select(DETAIL_SELECT)
       .eq('job_no', n)
       .order('relevant_date', { ascending: false, nullsFirst: false })
@@ -45,7 +45,7 @@ export async function fetchPortalShipment(jobNoParam: string): Promise<PortalShi
   }
 
   const { data: byBill } = await supabase
-    .from('shipments')
+    .from('portal_shipments')
     .select(DETAIL_SELECT)
     .eq('house_bill', key)
     .order('relevant_date', { ascending: false, nullsFirst: false })
@@ -57,7 +57,7 @@ export async function fetchPortalShipment(jobNoParam: string): Promise<PortalShi
 
 async function fetchByFilter(col: string, val: string | number): Promise<PortalShipmentDetail | null> {
   const { data, error } = await supabase
-    .from('shipments')
+    .from('portal_shipments')
     .select(DETAIL_SELECT)
     .eq(col, val)
     .maybeSingle()
@@ -68,7 +68,7 @@ async function fetchByFilter(col: string, val: string | number): Promise<PortalS
 async function fetchContainers(consolKey: string | null, mode: string | null): Promise<Container[]> {
   if (!consolKey || mode !== 'sea') return []
   const { data, error } = await supabase
-    .from('containers')
+    .from('portal_containers')
     .select('c_number, seal, container_size, avail_from, avail_to')
     .eq('consol_key', consolKey)
     .order('c_number')
@@ -88,7 +88,7 @@ async function fetchContainers(consolKey: string | null, mode: string | null): P
 
 async function fetchPortalBooking(jobUnique: number): Promise<PortalBookingLink | null> {
   const { data, error } = await supabase
-    .from('bookings')
+    .from('portal_bookings')
     .select('id, delivery_date')
     .eq('shipment_id', jobUnique)
     .order('updated_at', { ascending: false })
@@ -100,7 +100,7 @@ async function fetchPortalBooking(jobUnique: number): Promise<PortalBookingLink 
 
 async function fetchInvoices(jobUnique: number): Promise<Invoice[]> {
   const { data, error } = await supabase
-    .from('invoices')
+    .from('portal_invoices')
     .select(INVOICE_SELECT)
     .eq('job_unique', jobUnique)
     .order('doc_date', { ascending: false })
