@@ -42,7 +42,7 @@ export default function PortalLoginPage({ session, authReady }: Props) {
   return (
     <div className="portal-root portal-login">
       <section className="portal-login__form-side">
-        <img src="/ub-freight-logo.png" alt="UB Freight" className="portal-login__brand" />
+        <img src="/ub-freight-logo-ink.png" alt="UB Freight" className="portal-login__brand" />
         <div className="portal-login__form-inner">
           <h1 className="portal-login__heading">Sign in to your portal</h1>
           <p className="portal-login__sub">
