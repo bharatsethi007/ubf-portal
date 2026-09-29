@@ -6,6 +6,7 @@ import { portalSignOut } from '../auth/portalSignOut'
 const TABS = [
   { to: '/portal', label: 'Home', end: true },
   { to: '/portal/shipments', label: 'Shipments' },
+  { to: '/portal/bookings', label: 'Bookings' },
   { to: '/portal/billing', label: 'Billing' },
   { to: '/portal/quotes', label: 'Quotes' },
 ]

@@ -5,6 +5,8 @@ import SetPasswordPage from '../features/portal/auth/SetPasswordPage'
 import PortalShellV2 from '../features/portal/v2/PortalShellV2'
 import PortalHomePage from '../features/portal/v2/PortalHomePage'
 import PortalShipmentDetailV3 from '../features/portal/v2/detail/PortalShipmentDetailV3'
+import PortalBookingsPage from '../features/portal/v2/bookings/PortalBookingsPage'
+import BookingRequestPage from '../features/portal/v2/bookings/BookingRequestPage'
 import PortalShipmentsPage from '../features/portal/pages/PortalShipmentsPage'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
 import PortalStubPage from '../features/portal/stubs/PortalStubPage'
@@ -32,7 +34,8 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route index element={<PortalHomePage />} />
           <Route path="shipments/:jobNo" element={<PortalShipmentDetailV3 />} />
           <Route path="shipments" element={<PortalShipmentsPage />} />
-          <Route path="bookings" element={<PortalStubPage title="Bookings" />} />
+          <Route path="bookings" element={<PortalBookingsPage />} />
+          <Route path="bookings/new" element={<BookingRequestPage />} />
           <Route path="quotes" element={<PortalStubPage title="Quotes" />} />
           <Route path="billing" element={<PortalStubPage title="Billing" />} />
           <Route path="settings/whatsapp" element={<WhatsAppSettingsPage />} />

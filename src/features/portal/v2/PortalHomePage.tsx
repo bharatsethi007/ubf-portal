@@ -77,7 +77,7 @@ export default function PortalHomePage() {
         </div>
         <div className="pv3-head__actions">
           <button type="button" className="pv3-btn pv3-btn--ghost" onClick={openSearch}><Search size={15} /> Find shipment</button>
-          <Link to="/portal/bookings" className="pv3-btn pv3-btn--primary"><Plus size={15} /> New booking</Link>
+          <Link to="/portal/bookings/new" className="pv3-btn pv3-btn--primary"><Plus size={15} /> New booking</Link>
         </div>
       </div>
 

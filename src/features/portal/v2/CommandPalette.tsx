@@ -32,7 +32,7 @@ let cache: Row[] | null = null
 
 const ACTIONS: Result[] = [
   { key: 'a-bill', kind: 'Action', title: 'Pay or view invoices', sub: 'Billing and statements', to: '/portal/billing', icon: 'pay' },
-  { key: 'a-book', kind: 'Action', title: 'Book a new shipment', sub: 'Air or sea across the Pacific', to: '/portal/bookings', icon: 'book' },
+  { key: 'a-book', kind: 'Action', title: 'Book a new shipment', sub: 'Air or sea across the Pacific', to: '/portal/bookings/new', icon: 'book' },
   { key: 'a-quote', kind: 'Action', title: 'Request a quote', sub: 'Get a price for a new lane', to: '/portal/quotes', icon: 'doc' },
 ]
 
