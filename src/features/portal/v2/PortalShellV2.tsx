@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { usePortalAccount, type PortalAccount } from '../auth/usePortalAccount'
 import PortalTopBar from './PortalTopBar'
 import CommandPalette from './CommandPalette'
+import BetaNotice from './BetaNotice'
 import '../layout/portalTheme.css'
 import './portalV2.css'
 
@@ -44,6 +45,7 @@ export default function PortalShellV2({ session }: Props) {
         <Outlet context={ctx} />
       </main>
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
+      <BetaNotice />
     </div>
   )
 }

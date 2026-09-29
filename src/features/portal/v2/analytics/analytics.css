@@ -9,15 +9,19 @@
 .pv3-an__delta--good { background: var(--green-soft); color: var(--green); }
 .pv3-an__delta--bad { background: var(--red-soft); color: var(--red); }
 
-.pv3-an__insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
-.pv3-an__insight { display: flex; gap: 12px; padding: 14px 16px; border-left: 3px solid var(--blue); }
-.pv3-an__insight b { display: block; font-size: 14px; color: var(--ink); }
-.pv3-an__insight p { margin: 3px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
-.pv3-an__iico { width: 30px; height: 30px; flex: none; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); }
-.pv3-an__insight--good { border-left-color: var(--green); }
-.pv3-an__insight--good .pv3-an__iico { background: var(--green-soft); color: var(--green); }
-.pv3-an__insight--watch { border-left-color: var(--amber); }
-.pv3-an__insight--watch .pv3-an__iico { background: var(--amber-soft); color: var(--amber); }
+.pv3-an__hl { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); padding: 0; overflow: hidden; }
+@media (max-width: 1000px) { .pv3-an__hl { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .pv3-an__hl { grid-template-columns: minmax(0, 1fr); } }
+.pv3-an__hli { position: relative; padding: 18px 20px 20px; border-left: 1px solid var(--line-soft); }
+.pv3-an__hli:first-child { border-left: 0; }
+.pv3-an__hli span { display: block; font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; color: var(--muted); }
+.pv3-an__hli strong { display: block; margin-top: 8px; font-size: 28px; line-height: 1; font-weight: 700; letter-spacing: -.02em; color: var(--navy); font-variant-numeric: tabular-nums; }
+.pv3-an__hli b { display: block; margin-top: 10px; font-size: 14px; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.pv3-an__hli p { margin: 3px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.pv3-an__hli::after { content: ''; position: absolute; left: 20px; top: 0; width: 24px; height: 2px; border-radius: 0 0 2px 2px; background: var(--orange); }
+.pv3-an__role { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pv3-an__role--supplier { background: var(--blue-soft); color: var(--blue); }
+.pv3-an__role--customer { background: var(--green-soft); color: var(--green); }
 
 .pv3-an__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
 @media (max-width: 900px) { .pv3-an__grid { grid-template-columns: minmax(0, 1fr); } }

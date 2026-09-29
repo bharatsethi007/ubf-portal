@@ -1,11 +1,11 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowDownRight, ArrowUpRight, Boxes, Info, Lightbulb, Package, TrendingDown, TrendingUp } from 'lucide-react'
+import { ArrowDownRight, ArrowUpRight, Boxes, Info, Package } from 'lucide-react'
 import { usePorts } from '../../../../hooks/usePorts'
-import { fmtMoney, fmtNum } from '../homeModel'
+import { fmtNum } from '../homeModel'
 import { CostPerKgChart, EmissionsChart, SpendChart, VolumeChart } from './AnalyticsCharts'
 import { DelaysCard, LanesTable, PartiesTable } from './AnalyticsTables'
-import { delta, fetchAnalytics, insights, money2, perKg, type AnalyticsV2 } from './analyticsApi'
+import { delta, fetchAnalytics, insights, money2, perKg, rateDelta, type AnalyticsV2 } from './analyticsApi'
 import './analytics.css'
 
 const RANGES = [3, 6, 12, 24] as const
@@ -45,16 +45,19 @@ export default function PortalAnalyticsPage() {
   const tips = useMemo(() => (a ? insights(a, ports) : []), [a, ports])
   const t = a?.totals, p = a?.prior
   const vs = `vs previous ${months} months`
-  const cpk = t ? perKg(t.spend, t.kg) : null
-  const cpkPrev = p ? perKg(p.spend, p.kg) : null
-  const onTime = t && t.arrived_n >= 5 ? Math.round((t.on_time / t.arrived_n) * 100) : null
+  const airCpk = t ? perKg(t.air_spend, t.air_kg ?? 0) : null
+  const airCpkPrev = p ? perKg(p.air_spend ?? 0, p.air_kg ?? 0) : null
+  const lclCpm = t ? perKg(t.lcl_spend ?? 0, t.lcl_cbm ?? 0) : null
+  const lclCpmPrev = p ? perKg(p.lcl_spend ?? 0, p.lcl_cbm ?? 0) : null
+  const teu = a?.containers.teu ?? 0
+  const airT = (t?.air_kg ?? 0) / 1000
 
   return (
     <div className="pv3-page">
       <div className="pv3-head pv3-rise">
         <div>
           <h1>Analytics</h1>
-          <p>How your freight is performing: cost, volume, lanes, suppliers and emissions.</p>
+          <p>How your freight is moving: volume, trade lanes, suppliers and customers.</p>
         </div>
         <div className="pv3-seg pv3-an__range" role="group" aria-label="Period">
           {RANGES.map((r) => <button key={r} type="button" className={months === r ? 'pv3-seg__on' : ''} onClick={() => setMonths(r)}>{r < 12 ? `${r}M` : r === 12 ? '12M' : '24M'}</button>)}
@@ -64,21 +67,22 @@ export default function PortalAnalyticsPage() {
       {err && <div className="pv3-error">{err}</div>}
 
       <div className="pv3-kpis pv3-an__kpis">
-        <Kpi label="Shipments" value={t ? fmtNum(t.shipments) : '—'} d={t && p ? delta(t.shipments, p.shipments) : null} sub={t ? `${t.sea} sea · ${t.air} air` : ''} delay={0.02} />
-        <Kpi label="Freight spend" value={t ? fmtMoney(t.spend, 'NZD', true) : '—'} d={t && p ? delta(t.spend, p.spend) : null} goodDown sub={vs} delay={0.05} />
-        <Kpi label="Cost per kg" value={cpk != null ? money2(cpk) : '—'} d={cpk != null && cpkPrev != null ? Math.round(((cpk - cpkPrev) / cpkPrev) * 100) : null} goodDown sub={vs} delay={0.08} />
-        <Kpi label="Weight shipped" value={t ? `${fmtNum(t.kg / 1000, true)} t` : '—'} d={t && p ? delta(t.kg, p.kg) : null} sub={t ? `${fmtNum(t.cbm)} m³` : ''} delay={0.11} />
-        <Kpi label="Containers" value={a ? fmtNum(a.containers.n) : '—'} sub={a ? `${fmtNum(a.containers.teu)} TEU` : ''} delay={0.14} />
-        <Kpi label={onTime != null ? 'On time' : 'CO₂e estimate'} value={onTime != null ? `${onTime}%` : t ? `${fmtNum(t.co2_kg / 1000, true)} t` : '—'}
-          sub={onTime != null ? `of ${t!.arrived_n} tracked arrivals` : 'sea and air, GLEC defaults'} delay={0.17} />
+        <Kpi label="Shipments" value={t ? fmtNum(t.shipments) : '—'} d={t && p ? delta(t.shipments, p.shipments) : null} sub={t ? `${t.air} air · ${t.lcl ?? 0} LCL · ${t.fcl ?? 0} FCL` : ''} delay={0.02} />
+        <Kpi label="FCL TEUs" value={a ? fmtNum(teu) : '—'} d={a?.containers_prior ? delta(teu, a.containers_prior.teu) : null} sub={a ? `${fmtNum(a.containers.n)} containers` : ''} delay={0.05} />
+        <Kpi label="LCL volume" value={t ? `${fmtNum(t.lcl_cbm ?? 0)} m³` : '—'} d={t && p ? delta(t.lcl_cbm ?? 0, p.lcl_cbm ?? 0) : null} sub={t ? `${t.lcl ?? 0} LCL shipments` : ''} delay={0.08} />
+        <Kpi label="Air weight" value={t ? (airT >= 1 ? `${fmtNum(airT, true)} t` : `${fmtNum(t.air_kg ?? 0)} kg`) : '—'} d={t && p ? delta(t.air_kg ?? 0, p.air_kg ?? 0) : null} sub={t ? `${t.air} air shipments` : ''} delay={0.11} />
+        <Kpi label="Air cost per kg" value={airCpk != null ? money2(airCpk) : '—'} d={rateDelta(airCpk, airCpkPrev)} goodDown sub={vs} delay={0.14} />
+        <Kpi label="LCL cost per m³" value={lclCpm != null ? money2(lclCpm) : '—'} d={rateDelta(lclCpm, lclCpmPrev)} goodDown sub={vs} delay={0.17} />
       </div>
 
       {tips.length > 0 && (
-        <section className="pv3-an__insights pv3-rise" style={{ animationDelay: '.12s' }} aria-label="Insights">
+        <section className="pv3-card pv3-an__hl pv3-rise" style={{ animationDelay: '.12s' }} aria-label="Highlights">
           {tips.map((i) => (
-            <article key={i.title} className={`pv3-card pv3-an__insight pv3-an__insight--${i.tone}`}>
-              <span className="pv3-an__iico">{i.tone === 'good' ? <TrendingDown size={16} /> : i.tone === 'watch' ? <TrendingUp size={16} /> : <Lightbulb size={16} />}</span>
-              <div><b>{i.title}</b><p>{i.body}</p></div>
+            <article key={i.eyebrow} className="pv3-an__hli">
+              <span>{i.eyebrow}</span>
+              <strong>{i.stat}</strong>
+              <b title={i.title}>{i.title}</b>
+              <p>{i.body}</p>
             </article>
           ))}
         </section>

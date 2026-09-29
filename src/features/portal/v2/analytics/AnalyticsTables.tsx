@@ -58,14 +58,15 @@ export function LanesTable({ lanes, ports }: { lanes: ALane[]; ports: PortMap })
 export function PartiesTable({ parties, ports }: { parties: AParty[]; ports: PortMap }) {
   return (
     <section className="pv3-card pv3-table-card pv3-rise">
-      <header className="pv3-card__head"><h2>Supplier scorecard</h2><span className="pv3-muted">Who ships the most, how fast and how reliably</span></header>
+      <header className="pv3-card__head"><h2>Suppliers & customers</h2><span className="pv3-muted">Suppliers on imports, customers on exports</span></header>
       <div className="pv3-table-wrap">
         <table className="pv3-table pv3-an__table">
-          <thead><tr><th>Supplier</th><th>Ships from</th><th>Shipments</th><th>Weight</th><th>Freight</th><th>Transit</th><th>On time</th><th>Last shipped</th></tr></thead>
+          <thead><tr><th>Name</th><th>Type</th><th>Ships from</th><th>Shipments</th><th>Weight</th><th>Freight</th><th>Transit</th><th>On time</th><th>Last shipped</th></tr></thead>
           <tbody>
             {parties.map((p) => (
-              <tr key={p.party} className="pv3-an__static">
+              <tr key={`${p.party}-${p.role ?? ''}`} className="pv3-an__static">
                 <td><b className="pv3-an__party" title={titleCase(p.party)}>{titleCase(p.party)}</b></td>
+                <td><span className={`pv3-an__role pv3-an__role--${p.role ?? 'supplier'}`}>{p.role === 'customer' ? 'Customer' : 'Supplier'}</span></td>
                 <td className="pv3-ellipsis">{(p.origins ?? []).filter(Boolean).slice(0, 2).map((o) => placeName(o, ports)).join(', ') || '—'}</td>
                 <td>{p.n}</td>
                 <td>{fmtNum(p.kg / 1000, true)} t</td>
@@ -75,7 +76,7 @@ export function PartiesTable({ parties, ports }: { parties: AParty[]; ports: Por
                 <td>{fmtDay(p.last)}</td>
               </tr>
             ))}
-            {!parties.length && <tr><td colSpan={8} className="pv3-empty-cell">No shipments in this period.</td></tr>}
+            {!parties.length && <tr><td colSpan={9} className="pv3-empty-cell">No shipments in this period.</td></tr>}
           </tbody>
         </table>
       </div>
