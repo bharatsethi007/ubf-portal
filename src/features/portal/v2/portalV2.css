@@ -412,3 +412,50 @@ button.pv3-exc__row { width: calc(100% + 12px); border: 0; background: transpare
   .pv3-peek__end { align-items: flex-start; text-align: left; }
   .pv3-drawer { left: 8px; right: 8px; top: auto; bottom: 8px; width: auto; max-height: 75%; }
 }
+
+/* ---------- shipment detail ---------- */
+.pv3-crumbs { display: flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); }
+.pv3-crumbs a { color: var(--muted); text-decoration: none; }
+.pv3-crumbs a:hover { color: var(--blue); }
+.pv3-crumbs span { color: var(--ink); font-weight: 500; }
+.pv3-dhead { padding: 18px 20px; display: flex; align-items: flex-start; justify-content: space-between; gap: 20px; }
+.pv3-dhead__main { display: flex; gap: 14px; min-width: 0; }
+.pv3-dhead__text { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.pv3-dhead__row { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.pv3-dhead h1 { margin: 0; font-size: 24px; font-weight: 600; color: var(--ink); letter-spacing: -.02em; }
+.pv3-dhead p { margin: 0; font-size: 14px; color: var(--ink-2); }
+.pv3-dhead__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pv3-dhead__chips span { font-size: 12px; padding: 4px 9px; border-radius: 6px; background: var(--bg); border: 1px solid var(--line-soft); color: var(--ink-2); }
+.pv3-dhead__chips b { color: var(--ink); font-weight: 600; }
+.pv3-dhead__chips .pv3-missing { background: var(--amber-soft); border-color: #FDE7C2; }
+.pv3-dhead__actions { display: flex; gap: 8px; flex-shrink: 0; flex-wrap: wrap; justify-content: flex-end; }
+.pv3-btn--ok { background: var(--green); color: #FFFFFF; }
+.pv3-live-badge { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; font-weight: 600; color: var(--green); padding: 2px 8px; border-radius: 999px; background: var(--green-soft); animation: pv3-fade .4s ease both; }
+.pv3-live-badge svg { animation: pv3-blinkx 1.6s ease-in-out infinite; }
+@keyframes pv3-blinkx { 0%, 100% { opacity: 1; } 50% { opacity: .35; } }
+
+.pv3-track { position: relative; height: 560px; border-radius: 12px; overflow: hidden; background: #0B1A3A; border: 1px solid var(--line); box-shadow: var(--shadow); }
+.pv3-track__panel { position: absolute; left: 16px; top: 16px; bottom: 16px; width: 380px; z-index: 2; display: flex; flex-direction: column; overflow: hidden; border-radius: 16px; background: #FFFFFF; box-shadow: 0 20px 50px rgba(0, 0, 0, .35); animation: pv3-slidein2 .45s var(--ease) both; }
+.pv3-track__panel > * { flex-shrink: 0; }
+.pv3-track__panel { overflow-y: auto; }
+@keyframes pv3-slidein2 { from { opacity: 0; transform: translateX(-16px); } to { opacity: 1; transform: none; } }
+.pv3-track--mobile { height: 320px; border-radius: 12px 12px 0 0; }
+.pv3-track__below { border-radius: 0 0 12px 12px; overflow: hidden; margin-top: -1px; }
+
+.pv3-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.pv3-tabs__btn { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border: 0; background: transparent; font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; white-space: nowrap; }
+.pv3-tabs__btn:hover { color: var(--ink); }
+.pv3-tabs__btn--on { color: var(--ink); }
+.pv3-tabs__btn--on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--navy); border-radius: 2px; animation: pv3-grow .25s var(--ease) both; }
+.pv3-tabs__n { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); }
+.pv3-tabpanel { min-height: 200px; }
+.pv3-tabcard { padding: 18px 20px; }
+.pv3-overview { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr); gap: 16px; align-items: start; }
+.pv3-overview__timeline { padding: 18px 0 8px; }
+.pv3-overview__timeline .pv3-card__head { padding: 0 20px; }
+.pv3-overview__facts { padding: 18px 20px; }
+@media (max-width: 900px) {
+  .pv3-dhead { flex-direction: column; }
+  .pv3-dhead__actions { justify-content: flex-start; }
+  .pv3-overview { grid-template-columns: 1fr; }
+}

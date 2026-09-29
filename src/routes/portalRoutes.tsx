@@ -4,7 +4,7 @@ import PortalLoginPage from '../features/portal/auth/PortalLoginPage'
 import SetPasswordPage from '../features/portal/auth/SetPasswordPage'
 import PortalShellV2 from '../features/portal/v2/PortalShellV2'
 import PortalHomePage from '../features/portal/v2/PortalHomePage'
-import PortalShipmentDetailPage from '../features/portal/shipment/PortalShipmentDetailPage'
+import PortalShipmentDetailV3 from '../features/portal/v2/detail/PortalShipmentDetailV3'
 import PortalShipmentsPage from '../features/portal/pages/PortalShipmentsPage'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
 import PortalStubPage from '../features/portal/stubs/PortalStubPage'
@@ -30,7 +30,7 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
       <Route element={<PortalAuthGate session={session} isStaff={isStaff} staffReady={staffReady} />}>
         <Route element={<PortalShellV2 session={session!} />}>
           <Route index element={<PortalHomePage />} />
-          <Route path="shipments/:jobNo" element={<PortalShipmentDetailPage />} />
+          <Route path="shipments/:jobNo" element={<PortalShipmentDetailV3 />} />
           <Route path="shipments" element={<PortalShipmentsPage />} />
           <Route path="bookings" element={<PortalStubPage title="Bookings" />} />
           <Route path="quotes" element={<PortalStubPage title="Quotes" />} />

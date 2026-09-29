@@ -15,7 +15,7 @@ export default function PortalShellV2({ session }: Props) {
   const { account } = usePortalAccount(session)
   const [searchOpen, setSearchOpen] = useState(false)
   const { pathname } = useLocation()
-  const flush = pathname === '/portal' || pathname === '/portal/'
+  const flush = pathname === '/portal' || pathname === '/portal/' || pathname.startsWith('/portal/shipments/')
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
