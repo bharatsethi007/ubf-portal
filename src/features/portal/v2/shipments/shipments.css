@@ -1,0 +1,72 @@
+/* Portal shipments list (v3). Tokens from portalV2.css. */
+
+.pv3-sl__pending {
+  display: flex; align-items: center; flex-wrap: wrap; gap: 8px 12px; padding: 12px 16px; border-radius: 12px;
+  background: var(--blue-soft); color: var(--ink-2); font-size: 14px; text-decoration: none; border: 1px solid #C7D7FE;
+}
+.pv3-sl__pending .pv3-link { margin-left: auto; }
+.pv3-sl__dot { width: 8px; height: 8px; border-radius: 50%; background: var(--blue); box-shadow: 0 0 0 4px rgba(37, 99, 235, .15); }
+
+.pv3-sl__tabs { display: flex; gap: 4px; overflow-x: auto; border-bottom: 1px solid var(--line); scrollbar-width: none; }
+.pv3-sl__tab {
+  position: relative; display: inline-flex; align-items: center; gap: 8px; padding: 10px 14px; border: 0; background: none;
+  font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; white-space: nowrap;
+}
+.pv3-sl__tab span { min-width: 22px; padding: 1px 7px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); font-size: 12px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pv3-sl__tab:hover { color: var(--ink); }
+.pv3-sl__tab--on { color: var(--navy); }
+.pv3-sl__tab--on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; border-radius: 2px; background: var(--orange); animation: pv3-grow .25s var(--ease) both; }
+.pv3-sl__tab--on span { background: var(--navy); color: #FFFFFF; }
+.pv3-sl__tab--warn span { background: var(--amber-soft); color: var(--amber); }
+.pv3-sl__tab--warn.pv3-sl__tab--on span { background: var(--amber); color: #FFFFFF; }
+
+.pv3-sl { padding: 14px 20px 6px; }
+.pv3-sl__bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; margin-bottom: 10px; }
+.pv3-sl__search {
+  flex: 1 1 300px; display: flex; align-items: center; gap: 8px; height: 38px; padding: 0 12px; border: 1px solid var(--line);
+  border-radius: 10px; background: #FFFFFF; color: var(--muted); transition: border-color .15s, box-shadow .15s;
+}
+.pv3-sl__search:focus-within { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37, 99, 235, .12); }
+.pv3-sl__search input { flex: 1; min-width: 0; border: 0; outline: none; background: transparent; font: inherit; font-size: 14px; color: var(--ink); }
+.pv3-sl__search button { display: inline-flex; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 2px; }
+.pv3-sl .pv3-seg { grid-template-columns: none; grid-auto-flow: column; }
+.pv3-sl .pv3-seg button { padding: 0 12px; }
+.pv3-sl__select { height: 34px; padding: 0 10px; border: 1px solid var(--line); border-radius: 8px; background: #FFFFFF; font: inherit; font-size: 13px; color: var(--ink-2); cursor: pointer; }
+
+.pv3-sl__table td { vertical-align: middle; }
+.pv3-sl__row { animation: pv3-rise .35s var(--ease) both; }
+.pv3-sl__id { display: flex; align-items: center; gap: 10px; }
+.pv3-sl__mode { width: 30px; height: 30px; flex: none; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; }
+.pv3-sl__mode--sea { background: var(--blue-soft); color: var(--blue); }
+.pv3-sl__mode--air { background: #F3E8FF; color: #7E22CE; }
+.pv3-sl__no { display: block; font-family: 'IBM Plex Mono', ui-monospace, monospace; font-weight: 600; font-size: 13px; color: var(--navy); }
+.pv3-sl__row:hover .pv3-sl__no { color: var(--blue); }
+.pv3-sl__party { display: block; max-width: 210px; color: var(--ink); font-weight: 500; }
+.pv3-sl__po { display: inline-block; margin-top: 2px; padding: 0 6px; border-radius: 4px; background: var(--line-soft); font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11px; color: var(--ink-2); }
+
+.pv3-sl__route { display: grid; grid-template-columns: minmax(0, 1fr) 56px minmax(0, 1fr); align-items: center; gap: 10px; min-width: 330px; }
+.pv3-sl__route > div:first-child, .pv3-sl__route > div:last-child { display: flex; flex-direction: column; min-width: 0; }
+.pv3-sl__place { display: inline-flex; align-items: center; gap: 6px; color: var(--ink); font-weight: 500; min-width: 0; }
+.pv3-sl__place span:last-child { overflow: hidden; text-overflow: ellipsis; }
+.pv3-sl__flag { width: 16px; height: 12px; border-radius: 2px; flex: none; box-shadow: 0 0 0 1px rgba(15, 23, 42, .08); background-size: cover; }
+.pv3-sl__flag--none { background: var(--line); }
+.pv3-sl__date { padding-left: 22px; font-size: 12px; color: var(--muted); }
+.pv3-sl__date--late { color: var(--red); font-weight: 600; }
+.pv3-sl__track { position: relative; height: 4px; border-radius: 4px; background: var(--line); overflow: hidden; }
+.pv3-sl__track span { position: absolute; inset: 0 auto 0 0; border-radius: 4px; background: linear-gradient(90deg, var(--blue), #60A5FA); transition: width .6s var(--ease); }
+
+.pv3-sl__vessel { display: block; max-width: 190px; color: var(--ink-2); }
+.pv3-sl__cargo span { display: block; font-size: 12px; font-variant-numeric: tabular-nums; }
+.pv3-sl__cargo span:first-child { color: var(--ink-2); font-size: 13px; }
+.pv3-sl__cargo span + span { color: var(--muted); }
+.pv3-sl__late { display: flex; align-items: center; gap: 4px; margin-top: 4px; font-size: 11px; font-weight: 600; color: var(--red); }
+.pv3-sl__go { color: var(--line); width: 24px; }
+.pv3-sl__row:hover .pv3-sl__go { color: var(--blue); }
+
+.pv3-sl__foot { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 0 8px; font-size: 13px; color: var(--muted); }
+.pv3-sl__foot div { display: flex; align-items: center; gap: 8px; }
+
+@media (max-width: 760px) {
+  .pv3-sl { padding: 12px 14px 4px; }
+  .pv3-sl__select { flex: 1; }
+}

@@ -8,7 +8,7 @@ import PortalShipmentDetailV3 from '../features/portal/v2/detail/PortalShipmentD
 import PortalBookingsPage from '../features/portal/v2/bookings/PortalBookingsPage'
 import BookingRequestPage from '../features/portal/v2/bookings/BookingRequestPage'
 import PortalRatesPage from '../features/portal/v2/rates/PortalRatesPage'
-import PortalShipmentsPage from '../features/portal/pages/PortalShipmentsPage'
+import PortalShipmentsV3 from '../features/portal/v2/shipments/PortalShipmentsV3'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
 import PortalStubPage from '../features/portal/stubs/PortalStubPage'
 import PortalAuthGate from '../features/portal/auth/PortalAuthGate'
@@ -34,7 +34,7 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
         <Route element={<PortalShellV2 session={session!} />}>
           <Route index element={<PortalHomePage />} />
           <Route path="shipments/:jobNo" element={<PortalShipmentDetailV3 />} />
-          <Route path="shipments" element={<PortalShipmentsPage />} />
+          <Route path="shipments" element={<PortalShipmentsV3 />} />
           <Route path="bookings" element={<PortalBookingsPage />} />
           <Route path="bookings/new" element={<BookingRequestPage />} />
           <Route path="rates" element={<PortalRatesPage />} />
