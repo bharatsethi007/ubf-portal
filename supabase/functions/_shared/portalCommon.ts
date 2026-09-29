@@ -61,10 +61,11 @@ export function generateToken(): string {
   return b64.replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "");
 }
 
+/** Customer links always go to the customer portal domain, never the staff console. */
+export const CUSTOMER_PORTAL_URL = (Deno.env.get("CUSTOMER_PORTAL_URL") ?? "https://portal.ubfreight.com").replace(/\/$/, "");
+
 export function portalSetPasswordLink(token: string): string {
-  const base = (Deno.env.get("PORTAL_PUBLIC_BASE_URL") ?? "").replace(/\/$/, "");
-  if (!base) throw new Error("PORTAL_PUBLIC_BASE_URL not configured");
-  return `${base}/portal/set-password?token=${encodeURIComponent(token)}`;
+  return `${CUSTOMER_PORTAL_URL}/portal/set-password?token=${encodeURIComponent(token)}`;
 }
 
 export async function findAuthUserIdByEmail(
