@@ -11,6 +11,7 @@ import PortalRatesPage from '../features/portal/v2/rates/PortalRatesPage'
 import PortalAnalyticsPage from '../features/portal/v2/analytics/PortalAnalyticsPage'
 import PortalProductsPage from '../features/portal/v2/products/PortalProductsPage'
 import PortalBillingPage from '../features/portal/v2/billing/PortalBillingPage'
+import NotificationSettingsPage from '../features/portal/v2/notifications/NotificationSettingsPage'
 import PortalShipmentsV3 from '../features/portal/v2/shipments/PortalShipmentsV3'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
 import PortalAuthGate from '../features/portal/auth/PortalAuthGate'
@@ -45,6 +46,7 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route path="quotes" element={<Navigate to="/portal/rates" replace />} />
           <Route path="billing" element={<PortalBillingPage />} />
           <Route path="settings/whatsapp" element={<WhatsAppSettingsPage />} />
+          <Route path="settings/notifications" element={<NotificationSettingsPage />} />
         </Route>
       </Route>
     </Route>

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Bell, ChevronDown, LogOut, MessageCircle, Search } from 'lucide-react'
+import NotificationBell from './notifications/NotificationBell'
 import { portalSignOut } from '../auth/portalSignOut'
 
 const TABS = [
@@ -67,9 +68,7 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
       <NavLink to="/portal/settings/whatsapp" className="pv2-top__icon" aria-label="WhatsApp updates">
         <MessageCircle size={18} />
       </NavLink>
-      <button type="button" className="pv2-top__icon" aria-label="Notifications">
-        <Bell size={18} />
-      </button>
+      <NotificationBell />
 
       <div className="pv2-top__user" ref={menuRef}>
         <button type="button" className="pv2-top__userbtn" aria-expanded={menuOpen} aria-haspopup="true"
@@ -81,6 +80,9 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
         {menuOpen && (
           <div className="pv2-menu">
             <span className="pv2-menu__email">{userEmail}</span>
+            <NavLink to="/portal/settings/notifications" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
+              <Bell size={15} aria-hidden /> Notifications
+            </NavLink>
             <NavLink to="/portal/settings/whatsapp" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
               <MessageCircle size={15} aria-hidden /> WhatsApp updates
             </NavLink>

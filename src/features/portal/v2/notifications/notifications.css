@@ -1,0 +1,60 @@
+/* Portal notifications: bell panel + settings page. Tokens from portalV2.css. */
+
+.pv3-bell { position: relative; }
+.pv3-bell__btn { position: relative; }
+.pv3-bell__badge {
+  position: absolute; top: 3px; right: 2px; min-width: 16px; height: 16px; padding: 0 4px; border-radius: 999px;
+  background: var(--orange); color: var(--navy); font-size: 10px; font-weight: 700; line-height: 16px; text-align: center;
+  box-shadow: 0 0 0 2px var(--navy); animation: pv3-bell-pop .35s var(--ease) both;
+}
+@keyframes pv3-bell-pop { from { transform: scale(.4); opacity: 0; } to { transform: none; opacity: 1; } }
+
+.pv3-bell__panel {
+  position: absolute; top: calc(100% + 10px); right: -8px; z-index: 70; width: min(380px, calc(100vw - 24px));
+  background: #FFFFFF; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg); overflow: hidden;
+  animation: pv3-rise .2s var(--ease) both; color: var(--ink);
+}
+.pv3-bell__panel header { display: flex; align-items: center; justify-content: space-between; padding: 12px 14px; border-bottom: 1px solid var(--line-soft); }
+.pv3-bell__panel header b { font-size: 14px; }
+.pv3-bell__set { display: inline-flex; align-items: center; gap: 5px; font-size: 12.5px; color: var(--muted); text-decoration: none; }
+.pv3-bell__set:hover { color: var(--blue); }
+.pv3-bell__panel ul { list-style: none; margin: 0; padding: 0; max-height: min(460px, 70vh); overflow-y: auto; }
+.pv3-bell__panel li + li { border-top: 1px solid var(--line-soft); }
+.pv3-bell__skel { padding: 14px; }
+.pv3-bell__item { display: flex; gap: 10px; width: 100%; padding: 12px 14px; border: 0; background: transparent; text-align: left; font: inherit; cursor: pointer; }
+.pv3-bell__item:hover { background: #F8FAFC; }
+.pv3-bell__item--new { background: var(--blue-soft); }
+.pv3-bell__item--new:hover { background: #E4ECFF; }
+.pv3-bell__dot { flex: none; width: 8px; height: 8px; margin-top: 6px; border-radius: 50%; background: var(--blue); }
+.pv3-bell__dot--amber { background: #D97706; }
+.pv3-bell__dot--green { background: var(--green); }
+.pv3-bell__dot--navy { background: var(--navy); }
+.pv3-bell__txt { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.pv3-bell__kind { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pv3-bell__txt b { font-size: 13.5px; color: var(--ink); font-weight: 600; }
+.pv3-bell__body { font-size: 12.5px; line-height: 1.4; color: var(--ink-2); }
+.pv3-bell__empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 22px; text-align: center; color: var(--muted); font-size: 13px; }
+
+/* Settings */
+.pv3-nset { max-width: 760px; }
+.pv3-nset__back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 4px; text-decoration: none; }
+.pv3-nset__status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); min-height: 20px; }
+.pv3-nset__ok { display: inline-flex; align-items: center; gap: 4px; color: var(--green); }
+.pv3-nset__card { padding: 4px 0; }
+.pv3-nset__row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; cursor: pointer; }
+.pv3-nset__row + .pv3-nset__row, .pv3-nset__list .pv3-nset__row { border-top: 1px solid var(--line-soft); }
+.pv3-nset__row .pv3-bell__dot { margin: 0 11px 0 11px; }
+.pv3-nset__row--master { padding-top: 16px; padding-bottom: 16px; }
+.pv3-nset__ico { width: 30px; height: 30px; flex: none; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); }
+.pv3-nset__txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
+.pv3-nset__txt b { font-size: 14px; color: var(--ink); }
+.pv3-nset__txt span { font-size: 13px; color: var(--muted); }
+.pv3-nset__list--off { opacity: .45; }
+
+.pv3-switch { appearance: none; flex: none; position: relative; width: 40px; height: 22px; border-radius: 999px; background: #CBD5E1; cursor: pointer; transition: background .2s; margin: 0; }
+.pv3-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .2s var(--ease); }
+.pv3-switch:checked { background: var(--green); }
+.pv3-switch:checked::after { transform: translateX(18px); }
+.pv3-switch:disabled { cursor: default; }
+.pv3-switch:focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+.pv3-nset__err { color: var(--red); }

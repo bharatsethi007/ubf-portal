@@ -31,6 +31,7 @@ type Result = {
 let cache: Row[] | null = null
 
 const ACTIONS: Result[] = [
+  { key: 'a-notif', kind: 'Action', title: 'Notification settings', sub: 'Choose which updates we email you', to: '/portal/settings/notifications', icon: 'doc' },
   { key: 'a-bill', kind: 'Action', title: 'Pay or view invoices', sub: 'Billing and statements', to: '/portal/billing', icon: 'pay' },
   { key: 'a-book', kind: 'Action', title: 'Book a new shipment', sub: 'Air or sea across the Pacific', to: '/portal/bookings/new', icon: 'book' },
   { key: 'a-an', kind: 'Action', title: 'Analytics', sub: 'Spend, cost per kg, lanes, suppliers, emissions', to: '/portal/analytics', icon: 'doc' },
