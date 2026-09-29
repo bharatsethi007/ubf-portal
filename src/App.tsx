@@ -93,7 +93,7 @@ function AuthGate({
   if (!session) return <Login />
   if (!staffReady) return <div className="center muted">Loading…</div>
   if (!isStaff && isPortalUser) {
-    const portalUrl = (import.meta.env.VITE_PORTAL_URL || '').replace(/\/+$/, '')
+    const portalUrl = (import.meta.env.VITE_PORTAL_URL || (window.location.hostname.endsWith('ubfreight.com') ? 'https://portal.ubfreight.com' : '')).replace(/\/+$/, '')
     if (portalUrl) {
       window.location.replace(`${portalUrl}/portal`)
       return <div className="center muted">Loading…</div>
