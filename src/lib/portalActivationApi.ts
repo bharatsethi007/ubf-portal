@@ -12,6 +12,8 @@ export type PortalUserRecord = {
   activated_at: string | null
   last_login_at: string | null
   display_name: string | null
+  role?: 'admin' | 'member'
+  invited_by?: string | null
 }
 
 export type PortalActivateResult = {
@@ -76,6 +78,12 @@ export async function reactivatePortalAccess(userId: string): Promise<void> {
   await invokePortalFn('portal-revoke-user', { user_id: userId, revoke: false })
 }
 
+/** Staff: change a customer user's role. Refuses to remove the account's last active admin. */
+export async function setPortalRole(userId: string, role: 'admin' | 'member'): Promise<void> {
+  const { error } = await supabase.rpc('staff_set_portal_role', { p_user_id: userId, p_role: role })
+  if (error) throw new Error(error.message)
+}
+
 export async function redeemPortalToken(token: string, password: string): Promise<{ email: string }> {
   return invokePortalFn<{ ok: true; email: string }>('portal-redeem-token', { token, password })
 }
@@ -83,7 +91,7 @@ export async function redeemPortalToken(token: string, password: string): Promis
 export async function fetchPortalUsersForAccount(accountId: string): Promise<PortalUserRecord[]> {
   const { data, error } = await supabase
     .from('portal_users')
-    .select('user_id, email, created_at, status, activated_at, last_login_at, display_name')
+    .select('user_id, email, created_at, status, activated_at, last_login_at, display_name, role, invited_by')
     .eq('account_id', accountId)
     .order('created_at', { ascending: true })
   if (error) throw error

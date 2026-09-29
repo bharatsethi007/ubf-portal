@@ -15,6 +15,8 @@ export {
   fetchPortalUsersForAccount as fetchPortalUsers,
   regeneratePortalLink,
   revokePortalAccess,
+  reactivatePortalAccess,
+  setPortalRole,
   type PortalActivateResult,
   type PortalUserRecord as PortalUser,
 } from '../../lib/portalActivationApi';

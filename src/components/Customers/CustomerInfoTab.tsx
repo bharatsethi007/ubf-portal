@@ -5,12 +5,12 @@ import { CustomerInfoAddressCard } from './CustomerInfoAddressCard';
 import {
   fetchContacts, fetchPortalUsers, fetchMeta, fetchCustomerSync, saveMeta,
   grantPortalAccess, revokePortalAccess,
-  regeneratePortalLink,
+  regeneratePortalLink, reactivatePortalAccess, setPortalRole,
   resolveCustomerAddress,
   type Contact, type PortalUser, type PortalActivateResult, type CustomerMeta, type CustomerSync,
 } from './customerInfoApi';
 import PortalLinkCopy from '../portalAccess/PortalLinkCopy';
-import PortalStatusPill from '../portalAccess/PortalStatusPill';
+import PortalUserRow from './PortalUserRow';
 import { Card, fmt } from './profileUi';
 
 export function CustomerInfoTab({
@@ -157,6 +157,17 @@ function PortalCard({
     catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); }
     finally { setBusy(false); }
   };
+  const act = async (fn: () => Promise<void>) => {
+    setBusy(true); setErr(null);
+    try { await fn(); await onChange(); }
+    catch (e) { setErr(e instanceof Error ? e.message : 'Failed'); }
+    finally { setBusy(false); }
+  };
+  // Customer-invited users name the colleague who added them; anyone else was set up by UBF staff.
+  const addedBy = (p: PortalUser) => {
+    const by = portal.find((x) => x.user_id === p.invited_by);
+    return by ? (by.display_name || by.email || 'a colleague') : 'UB Freight';
+  };
   const regen = async (uid: string) => {
     setBusy(true); setErr(null);
     try {
@@ -175,25 +186,11 @@ function PortalCard({
       ) : (
         <div className="cp-portal-list">
           {portal.map((p) => (
-            <div key={p.user_id} className="cp-portal-row">
-              <div>
-                <div className="cp-contact-name" style={{ display: 'flex', gap: 8, alignItems: 'center', flexWrap: 'wrap' }}>
-                  {p.email || p.user_id}
-                  <PortalStatusPill status={p.status} />
-                </div>
-                <div className="cp-contact-sub">
-                  {p.status === 'active' && p.activated_at ? `Active since ${fmt.date(p.activated_at)}` : `Since ${fmt.date(p.created_at)}`}
-                </div>
-              </div>
-              <div style={{ display: 'flex', gap: 8 }}>
-                {p.status === 'pending' && (
-                  <button className="cp-btn cp-btn--sm" disabled={busy} onClick={() => regen(p.user_id)}>Copy link</button>
-                )}
-                {p.status !== 'revoked' && (
-                  <button className="cp-btn cp-btn--sm cp-btn--danger" disabled={busy} onClick={() => revoke(p.user_id)}>Revoke</button>
-                )}
-              </div>
-            </div>
+            <PortalUserRow key={p.user_id} p={p} busy={busy} addedBy={addedBy(p)}
+              onRole={(r) => act(() => setPortalRole(p.user_id, r))}
+              onRevoke={() => revoke(p.user_id)}
+              onReactivate={() => act(() => reactivatePortalAccess(p.user_id))}
+              onCopyLink={() => regen(p.user_id)} />
           ))}
         </div>
       )}
