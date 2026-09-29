@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useParams, useSearchParams } from 'react-router-dom'
-import { Anchor, Check, ChevronRight, Copy, Gauge, Mail, Package, Plane, Radio, Ship } from 'lucide-react'
+import { Anchor, Check, ChevronRight, Copy, Gauge, MessageSquare, Package, Plane, Radio, Ship } from 'lucide-react'
 import { usePorts } from '../../../../hooks/usePorts'
 import TrackMap from '../../../publicTrack/TrackMap'
 import TrackEtaCard from '../../../publicTrack/TrackEtaCard'
@@ -21,11 +21,6 @@ type Tab = (typeof TABS)[number]
 const LEGACY: Record<string, Tab> = { Summary: 'Overview', 'Track & trace': 'Overview', Task: 'Tasks' }
 
 const TRACK_BASE = ((import.meta.env.VITE_TRACKING_BASE_URL as string | undefined) || 'https://tracking.ubfreight.com').replace(/\/+$/, '')
-
-const CONTACT: Record<string, string> = {
-  FIS: 'importsea.nz@ubfreight.com', FIA: 'importair.nz@ubfreight.com',
-  FES: 'exportsea.nz@ubfreight.com', FEA: 'exportair.nz@ubfreight.com',
-}
 
 function useIsDesktop() {
   const q = '(min-width: 900px)'
@@ -99,8 +94,6 @@ export default function PortalShipmentDetailV3() {
   const nowLine = v?.position
     ? [v.speed_kn != null ? `${v.speed_kn} kn` : null, v.nm_to_go != null ? `${v.nm_to_go.toLocaleString()} nm to go` : null].filter(Boolean).join(' · ') || 'At sea'
     : null
-  const email = CONTACT[(s.module ?? '').toUpperCase()] ?? 'info.nz@ubfreight.com'
-  const subject = encodeURIComponent(`Shipment ${no}${s.house_bill ? ` · HBL ${s.house_bill}` : ''}`)
   const shareLink = pt?.token ? `${TRACK_BASE}/t/${pt.token}` : null
   const copy = async () => {
     if (!shareLink) return
@@ -165,7 +158,7 @@ export default function PortalShipmentDetailV3() {
               {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Link copied' : 'Share tracking'}
             </button>
           )}
-          <a className="pv3-btn pv3-btn--ghost" href={`mailto:${email}?subject=${subject}`}><Mail size={14} /> Email UBF</a>
+          <Link className="pv3-btn pv3-btn--ghost" to={`/portal/messages?job=${s.job_unique}`}><MessageSquare size={14} /> Message UBF</Link>
           <button type="button" className="pv3-btn pv3-btn--primary" onClick={() => setTab('Documents')}>Documents</button>
         </div>
       </header>

@@ -2337,3 +2337,6 @@ a:hover { text-decoration: underline; }
   .wa-inbox-layout { grid-template-columns: 1fr; }
 }
 
+
+/* Portal messages inbox (console) */
+.wa-inbox-chip--warn { background: #FFF7E6; color: #B45309; }

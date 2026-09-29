@@ -2,7 +2,7 @@
 import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronDown, ChevronsLeft, ChevronsRight, ClipboardList,
-  FileText, Handshake, Menu, MessageCircle, Package, Plane, Search, Settings, Ship,
+  FileText, Handshake, Inbox, Menu, MessageCircle, Package, Plane, Search, Settings, Ship,
   TowerControl, Truck, Users, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -10,6 +10,7 @@ import Logo from '../components/Logo'
 import SyncButton from '../components/SyncButton'
 import UserMenu from '../components/staff/UserMenu'
 import { needsActionTotal } from '../pages/whatsapp/whatsappInboxApi'
+import { waitingTotal } from '../pages/messages/portalMessagesApi'
 import { supabase } from '../supabase'
 import { ModuleGuard, usePermissions } from '../access/PermissionsProvider'
 
@@ -57,6 +58,7 @@ export default function AppShell({ session, search, onSearch }: Props) {
   const [navOpen, setNavOpen] = useState(false)
   const [bkOpen, setBkOpen] = useState(true)
   const [waNeedsAction, setWaNeedsAction] = useState(0)
+  const [portalWaiting, setPortalWaiting] = useState(0)
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(COLLAPSE_KEY) === '1' } catch { return false }
   })
@@ -89,6 +91,7 @@ export default function AppShell({ session, search, onSearch }: Props) {
       void needsActionTotal()
         .then((n) => { if (!cancelled) setWaNeedsAction(n) })
         .catch(() => { if (!cancelled) setWaNeedsAction(0) })
+      void waitingTotal().then((n) => { if (!cancelled) setPortalWaiting(n) })
     }
     load()
     const id = window.setInterval(load, 60_000)
@@ -198,6 +201,10 @@ export default function AppShell({ session, search, onSearch }: Props) {
               {waNeedsAction > 0 ? (
                 <span className="wa-topbar-btn__badge">{waNeedsAction > 99 ? '99+' : waNeedsAction}</span>
               ) : null}
+            </button>
+            <button type="button" className="sync-btn wa-topbar-btn" title="Portal messages" aria-label="Portal messages" onClick={() => navigate('/messages')}>
+              <Inbox size={16} strokeWidth={2} />
+              {portalWaiting > 0 ? <span className="wa-topbar-btn__badge">{portalWaiting > 99 ? '99+' : portalWaiting}</span> : null}
             </button>
             <SyncButton userEmail={session.user.email ?? ''} />
             <UserMenu session={session} />

@@ -68,6 +68,7 @@ import ChargeTemplatesPage from './pages/setup/ChargeTemplatesPage'
 import ExchangeRatesPage from './pages/setup/ExchangeRatesPage'
 import EmailSignatureCsat from './pages/setup/EmailSignatureCsat'
 import WhatsAppInboxPage from './pages/whatsapp/WhatsAppInboxPage'
+import PortalMessagesInbox from './pages/messages/PortalMessagesInbox'
 import { Toaster } from './components/ui/sonner'
 
 function StaffDenied() {
@@ -174,6 +175,7 @@ export default function App() {
             <Route path="/estimates" element={<EstimatesPage />} />
             <Route path="/quotes" element={<StaffRoute><QuotesPage /></StaffRoute>} />
             <Route path="/whatsapp" element={<StaffRoute><WhatsAppInboxPage /></StaffRoute>} />
+            <Route path="/messages" element={<StaffRoute><PortalMessagesInbox /></StaffRoute>} />
             <Route path="/quotes/new" element={<StaffRoute><NewQuoteSearch /></StaffRoute>} />
             <Route path="/quotes/:id/responses/:responseId" element={<StaffRoute><QuoteResponsePage /></StaffRoute>} />
             <Route path="/quotes/:id" element={<StaffRoute><QuoteDetailPage /></StaffRoute>} />

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { unreadTotal } from './messages/messagesApi'
 import { NavLink, useNavigate } from 'react-router-dom'
 import { Bell, ChevronDown, LogOut, MessageCircle, Search, Users } from 'lucide-react'
 import NotificationBell from './notifications/NotificationBell'
@@ -25,6 +26,14 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
   const navigate = useNavigate()
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
+  const [unread, setUnread] = useState(0)
+
+  useEffect(() => {
+    const tick = () => { if (document.visibilityState === 'visible') void unreadTotal().then(setUnread) }
+    tick()
+    const id = window.setInterval(tick, 60_000)
+    return () => window.clearInterval(id)
+  }, [])
 
   useEffect(() => {
     if (!menuOpen) return
@@ -65,8 +74,9 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
         <Search size={18} />
       </button>
 
-      <NavLink to="/portal/settings/whatsapp" className="pv2-top__icon" aria-label="WhatsApp updates">
+      <NavLink to="/portal/messages" className="pv2-top__icon pv3-bell__btn" aria-label={unread ? `Messages, ${unread} unread` : 'Messages'} title="Messages">
         <MessageCircle size={18} />
+        {unread > 0 && <span className="pv3-bell__badge">{unread > 9 ? '9+' : unread}</span>}
       </NavLink>
       <NotificationBell />
 
