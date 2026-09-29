@@ -41,6 +41,8 @@ export type HomeInvoice = {
   currency: string | null
 }
 
+export type LivePosition = { job_unique: number; lng: number; lat: number; heading: number | null; speed_kn: number | null; ship_name: string | null; position_at: string }
+
 export type AnalyticsMonth = { month: string; sea: number; air: number; kg: number; cbm: number; spend: number }
 export type AnalyticsLane = { origin: string; destination: string; mode: string; n: number; kg: number; transit_days: number | null; sched_days: number | null }
 export type Analytics = {
@@ -64,23 +66,26 @@ export function usePortalHome() {
   const [pool, setPool] = useState<HomeShipment[]>([])
   const [invoices, setInvoices] = useState<HomeInvoice[]>([])
   const [analytics, setAnalytics] = useState<Analytics | null>(null)
+  const [positions, setPositions] = useState<Map<number, LivePosition>>(new Map())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
     setLoading(true)
     setError('')
-    const [w, i, a] = await Promise.all([
+    const [w, i, a, lp] = await Promise.all([
       supabase.from('portal_shipments').select(SHIP_COLS).gte('doc_date', isoDaysAgo(150))
         .order('doc_date', { ascending: false }).limit(1000),
       supabase.from('portal_invoices').select('invoice_no, job_unique, doc_date, date_due, balance, currency')
         .gt('balance', 0).order('doc_date', { ascending: false }).limit(500),
       supabase.rpc('portal_analytics'),
+      supabase.rpc('portal_live_positions'),
     ])
     if (w.error || i.error) setError('Some data could not load. Refresh to try again.')
     setPool((w.data ?? []) as HomeShipment[])
     setInvoices((i.data ?? []) as HomeInvoice[])
     setAnalytics((a.data ?? null) as Analytics | null)
+    setPositions(new Map(((lp.data ?? []) as LivePosition[]).map((p) => [p.job_unique, p])))
     setLoading(false)
   }, [])
 
@@ -88,5 +93,5 @@ export function usePortalHome() {
 
   const active = useMemo(() => pool.filter((s) => s.is_active), [pool])
 
-  return { pool, active, invoices, analytics, loading, error, reload: load }
+  return { pool, active, invoices, analytics, positions, loading, error, reload: load }
 }

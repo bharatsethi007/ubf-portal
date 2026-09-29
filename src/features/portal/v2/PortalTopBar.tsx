@@ -8,7 +8,7 @@ const TABS = [
   { to: '/portal/shipments', label: 'Shipments' },
   { to: '/portal/bookings', label: 'Bookings' },
   { to: '/portal/billing', label: 'Billing' },
-  { to: '/portal/quotes', label: 'Quotes' },
+  { to: '/portal/rates', label: 'Rates' },
 ]
 
 type Props = {

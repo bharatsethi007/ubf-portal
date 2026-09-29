@@ -1,4 +1,4 @@
-import { Route } from 'react-router-dom'
+import { Navigate, Route } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import PortalLoginPage from '../features/portal/auth/PortalLoginPage'
 import SetPasswordPage from '../features/portal/auth/SetPasswordPage'
@@ -7,6 +7,7 @@ import PortalHomePage from '../features/portal/v2/PortalHomePage'
 import PortalShipmentDetailV3 from '../features/portal/v2/detail/PortalShipmentDetailV3'
 import PortalBookingsPage from '../features/portal/v2/bookings/PortalBookingsPage'
 import BookingRequestPage from '../features/portal/v2/bookings/BookingRequestPage'
+import PortalRatesPage from '../features/portal/v2/rates/PortalRatesPage'
 import PortalShipmentsPage from '../features/portal/pages/PortalShipmentsPage'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
 import PortalStubPage from '../features/portal/stubs/PortalStubPage'
@@ -36,7 +37,8 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route path="shipments" element={<PortalShipmentsPage />} />
           <Route path="bookings" element={<PortalBookingsPage />} />
           <Route path="bookings/new" element={<BookingRequestPage />} />
-          <Route path="quotes" element={<PortalStubPage title="Quotes" />} />
+          <Route path="rates" element={<PortalRatesPage />} />
+          <Route path="quotes" element={<Navigate to="/portal/rates" replace />} />
           <Route path="billing" element={<PortalStubPage title="Billing" />} />
           <Route path="settings/whatsapp" element={<WhatsAppSettingsPage />} />
         </Route>

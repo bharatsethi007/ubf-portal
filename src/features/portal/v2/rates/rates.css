@@ -1,0 +1,58 @@
+/* Portal rates: search, result cards, quote request. Uses the pv3 tokens from portalV2.css. */
+
+.pv3-rsearch { padding: 18px 20px; display: flex; flex-direction: column; gap: 14px; }
+.pv3-rsearch__row { display: flex; flex-wrap: wrap; gap: 10px; }
+.pv3-rsearch__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1.4fr)) repeat(2, minmax(0, 0.8fr)) auto; gap: 12px; align-items: end; }
+.pv3-rsearch__go { height: 42px; white-space: nowrap; }
+@media (max-width: 1000px) { .pv3-rsearch__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } .pv3-rsearch__go { grid-column: 1 / -1; } }
+@media (max-width: 560px) { .pv3-rsearch__grid { grid-template-columns: minmax(0, 1fr); } }
+
+.pv3-rresults { display: flex; flex-direction: column; gap: 12px; }
+.pv3-rresults__head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 10px 16px; margin-top: 4px; }
+.pv3-rresults__head h2 { margin: 0; font-size: 17px; font-weight: 600; color: var(--ink); }
+
+.pv3-rate { display: grid; grid-template-columns: minmax(0, 1fr) 270px; gap: 20px; padding: 18px 20px; transition: box-shadow .2s var(--ease), transform .2s var(--ease); }
+.pv3-rate:hover { transform: translateY(-1px); box-shadow: var(--shadow-lg); }
+.pv3-rate--ask { background: linear-gradient(0deg, #FAFBFD, #FAFBFD); }
+.pv3-rate__main { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.pv3-rate__carrier { display: flex; align-items: center; gap: 12px; }
+.pv3-rate__carrier b { display: block; font-size: 15px; color: var(--ink); }
+.pv3-rate__carrier span { font-size: 13px; color: var(--muted); }
+.pv3-rate__ico { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); flex: none; }
+.pv3-rate__tags { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
+.pv3-tag--green { background: var(--green-soft); color: var(--green); }
+.pv3-rate__facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
+.pv3-rate__facts li { display: inline-flex; align-items: center; gap: 6px; }
+.pv3-rate__facts svg { color: var(--muted); }
+.pv3-rate__breaks { display: flex; flex-wrap: wrap; gap: 6px; }
+.pv3-rate__breaks span { display: inline-flex; flex-direction: column; padding: 6px 10px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; font-weight: 600; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pv3-rate__breaks i { font-style: normal; font-weight: 500; font-size: 11px; color: var(--muted); }
+.pv3-rate__extras { font-size: 12px; color: var(--muted); }
+
+.pv3-rate__price { display: flex; flex-direction: column; align-items: flex-end; justify-content: center; gap: 4px; text-align: right; border-left: 1px solid var(--line-soft); padding-left: 20px; }
+.pv3-rate__amount { font-size: 26px; font-weight: 700; color: var(--navy); letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
+.pv3-rate__amount--ask { font-size: 18px; color: var(--ink-2); }
+.pv3-rate__unit { font-size: 12px; color: var(--muted); }
+.pv3-rate__total { font-size: 13px; font-weight: 600; color: var(--green); margin-top: 2px; }
+.pv3-rate__price .pv3-btn { margin-top: 10px; }
+@media (max-width: 760px) {
+  .pv3-rate { grid-template-columns: minmax(0, 1fr); }
+  .pv3-rate__price { align-items: flex-start; text-align: left; border-left: 0; padding-left: 0; border-top: 1px solid var(--line-soft); padding-top: 14px; }
+}
+
+.pv3-rempty { display: flex; align-items: center; gap: 16px; padding: 20px; color: var(--ink-2); }
+.pv3-rempty svg { color: var(--orange); flex: none; }
+.pv3-rempty b { color: var(--ink); }
+.pv3-rempty p { margin: 2px 0 0; font-size: 13px; color: var(--muted); }
+.pv3-rempty .pv3-btn { margin-left: auto; }
+@media (max-width: 640px) { .pv3-rempty { flex-wrap: wrap; } .pv3-rempty .pv3-btn { margin-left: 0; } }
+
+.pv3-quote { border: 1px solid #FDBA74; }
+.pv3-quote__head { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.pv3-quote__head h2 { margin: 0; }
+.pv3-quote__done { display: flex; align-items: flex-start; gap: 12px; }
+.pv3-quote__done p { margin: 4px 0 0; color: var(--muted); font-size: 14px; }
+
+.pv3-ratebanner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 14px 18px; border: 1px solid #A7F3D0; background: var(--green-soft); border-radius: 12px; color: var(--ink-2); font-size: 14px; }
+.pv3-ratebanner b { color: var(--ink); font-variant-numeric: tabular-nums; }
+.pv3-ratebanner .pv3-textbtn { margin-left: auto; }

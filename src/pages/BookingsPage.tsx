@@ -136,7 +136,7 @@ function BookingRow({
   const overdue = overdueAccountId ? overdueMap[overdueAccountId] : null
 
   return (
-    <tr className={rowCls} onClick={() => navigate(`/bookings/${module}/${b.id}/edit`)}>
+    <tr className={rowCls} onClick={() => navigate(b.source === 'customer_portal' ? `/bookings/${b.id}` : `/bookings/${module}/${b.id}/edit`)}>
       <td><strong>{b.booking_ref}</strong></td>
       <td>
         <PartyCell

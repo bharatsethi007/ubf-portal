@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
-import { ArrowRight, Plane, Plus, Search, Ship } from 'lucide-react'
+import { ArrowRight, Plane, Plus, Search, Ship, Tag } from 'lucide-react'
 import { usePorts } from '../../../hooks/usePorts'
 import GlobalMap from './GlobalMap'
 import AnalyticsSection from './AnalyticsSection'
@@ -36,7 +36,7 @@ export default function PortalHomePage() {
   const navigate = useNavigate()
   const { account, openSearch } = useOutletContext<PortalOutletContext>()
   const { ports } = usePorts()
-  const { pool, active, invoices, analytics, loading, error } = usePortalHome()
+  const { pool, active, invoices, analytics, positions, loading, error } = usePortalHome()
   const today = todayIso()
 
   const m = useMemo(() => money(invoices), [invoices])
@@ -77,6 +77,7 @@ export default function PortalHomePage() {
         </div>
         <div className="pv3-head__actions">
           <button type="button" className="pv3-btn pv3-btn--ghost" onClick={openSearch}><Search size={15} /> Find shipment</button>
+          <Link to="/portal/rates" className="pv3-btn pv3-btn--ghost"><Tag size={15} /> Get rates</Link>
           <Link to="/portal/bookings/new" className="pv3-btn pv3-btn--primary"><Plus size={15} /> New booking</Link>
         </div>
       </div>
@@ -91,7 +92,7 @@ export default function PortalHomePage() {
       </div>
 
       <div className="pv3-rise" style={{ animationDelay: '.1s' }}>
-        <GlobalMap active={active} pool={pool} lanes={analytics?.lanes ?? []} ports={ports} />
+        <GlobalMap active={active} pool={pool} lanes={analytics?.lanes ?? []} ports={ports} positions={positions} />
       </div>
 
       <div className="pv3-split">

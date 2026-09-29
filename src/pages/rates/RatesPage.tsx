@@ -33,6 +33,7 @@ const GROUPS: ModuleGroup[] = [
     links: [
       { label: 'Rules', to: '/setup/rates/rules' },
       { label: 'Ports & Groups', to: '/setup/rates/ports' },
+      { label: 'Customer margins (portal pricing)', to: '/setup/rates/margins' },
     ],
   },
 ]

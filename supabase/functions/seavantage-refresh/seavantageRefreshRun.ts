@@ -37,7 +37,7 @@ async function insertEvents(db: SupabaseClient, bookingId: string, rows: Trackin
   return written
 }
 
-async function insertPositions(db: SupabaseClient, rows: VesselPositionRow[]): Promise<number> {
+export async function insertPositions(db: SupabaseClient, rows: VesselPositionRow[]): Promise<number> {
   if (!rows.length) return 0
   const byKey = new Map<string, VesselPositionRow[]>()
   const noKey: VesselPositionRow[] = []

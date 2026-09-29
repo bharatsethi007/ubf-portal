@@ -31,11 +31,13 @@ export type PortalBooking = {
   consignee_name: string | null
   portal_status: PortalBookingStatus
   customer_ref: string | null
+  decline_reason: string | null
+  quoted_rate: { product: string; carrier: string | null; container_type: string | null; currency: string; sell: number | null; unit: string } | null
 }
 
 const COLS = `id, shipment_id, booking_ref, module, mode, load_type, status, source, created_at, origin, destination,
   etd, eta, vessel, incoterm, goods_description, pieces, packing_type, weight_kg, cbm, container_type,
-  container_count, cargo_ready_date, is_dg, special_instructions, consignee_name, portal_status, customer_ref`
+  container_count, cargo_ready_date, is_dg, special_instructions, consignee_name, portal_status, customer_ref, decline_reason, quoted_rate`
 
 export async function listPortalBookings(): Promise<PortalBooking[]> {
   const { data, error } = await supabase.from('portal_bookings').select(COLS).order('created_at', { ascending: false }).limit(500)
@@ -68,6 +70,8 @@ export type BookingRequest = {
   consignee_address: string
   customer_ref: string
   notes: string
+  /** Published rate the customer is booking against; the server re-prices it. */
+  rate_ref?: string
 }
 
 export async function requestBooking(req: BookingRequest): Promise<{ booking_id: string; booking_ref: string }> {

@@ -33,7 +33,8 @@ let cache: Row[] | null = null
 const ACTIONS: Result[] = [
   { key: 'a-bill', kind: 'Action', title: 'Pay or view invoices', sub: 'Billing and statements', to: '/portal/billing', icon: 'pay' },
   { key: 'a-book', kind: 'Action', title: 'Book a new shipment', sub: 'Air or sea across the Pacific', to: '/portal/bookings/new', icon: 'book' },
-  { key: 'a-quote', kind: 'Action', title: 'Request a quote', sub: 'Get a price for a new lane', to: '/portal/quotes', icon: 'doc' },
+  { key: 'a-rates', kind: 'Action', title: 'Search rates', sub: 'Live prices on our published lanes', to: '/portal/rates', icon: 'doc' },
+  { key: 'a-quote', kind: 'Action', title: 'Request a quote', sub: 'Get a price for any lane', to: '/portal/rates', icon: 'doc' },
 ]
 
 type Props = { open: boolean; onClose: () => void }

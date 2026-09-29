@@ -16,6 +16,7 @@ import BookingRecordHeader from './BookingRecordHeader'
 import BookingRecordNav from './BookingRecordNav'
 import BookingRecordSkeleton from './BookingRecordSkeleton'
 import BookingRecordErrorBoundary from './BookingRecordErrorBoundary'
+import PortalRequestPanel from './portalRequest/PortalRequestPanel'
 import { useBookingRecord } from './useBookingRecord'
 import { PortConnectDetailProvider } from './portConnect/PortConnectDetailProvider'
 import { aggregatePortConnectBookingFields } from './portConnect/bookingPortConnectCoalesce'
@@ -134,6 +135,13 @@ function BookingRecordPageContent({
             patchBooking({ archived_at: archivedAt }, { archived_at: archivedAt })
           }
         />
+
+        {booking.source === 'customer_portal' && (
+          <PortalRequestPanel
+            booking={booking}
+            onChanged={async () => { await reloadQuiet(); bumpHistory() }}
+          />
+        )}
 
         <Tabs defaultValue="details" className="booking-record-tabs">
           <TabsList variant="line" className="booking-record-tabs__list">

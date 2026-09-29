@@ -3,7 +3,7 @@ import mapboxgl from 'mapbox-gl'
 import 'mapbox-gl/dist/mapbox-gl.css'
 import { ChevronLeft, ChevronRight, X } from 'lucide-react'
 import type { PortMap } from '../../../hooks/usePorts'
-import type { AnalyticsLane, HomeShipment } from './usePortalHome'
+import type { AnalyticsLane, HomeShipment, LivePosition } from './usePortalHome'
 import ShipmentPeek from './ShipmentPeek'
 import {
   fmtDay, greatCircle, legFraction, placeName, pointAt, portCoord, shipmentNo, shortCode, stageLabel, stageTone, type LngLat,
@@ -23,6 +23,8 @@ type Props = {
   pool: HomeShipment[]
   lanes: AnalyticsLane[]
   ports: PortMap
+  /** Live AIS fixes by job_unique; shipments without one show an estimated position. */
+  positions?: Map<number, LivePosition>
 }
 
 type Line = GeoJSON.Feature<GeoJSON.LineString>
@@ -35,7 +37,7 @@ const DASHES: number[][] = [
   [0, 0.5, 3, 3.5], [0, 1, 3, 3], [0, 1.5, 3, 2.5], [0, 2, 3, 2], [0, 2.5, 3, 1.5], [0, 3, 3, 1], [0, 3.5, 3, 0.5],
 ]
 
-export default function GlobalMap({ active, pool, lanes, ports }: Props) {
+export default function GlobalMap({ active, pool, lanes, ports, positions }: Props) {
   const box = useRef<HTMLDivElement>(null)
   const mapRef = useRef<mapboxgl.Map | null>(null)
   const vesselMarkers = useRef<mapboxgl.Marker[]>([])
@@ -64,14 +66,16 @@ export default function GlobalMap({ active, pool, lanes, ports }: Props) {
     }
 
     const activeLines: Line[] = []
-    const vessels: { s: HomeShipment; at: LngLat }[] = []
+    const vessels: { s: HomeShipment; at: LngLat; live: LivePosition | null }[] = []
     for (const s of active) {
       const a = portCoord(s.origin, ports)
       const b = portCoord(s.destination, ports)
       if (!a || !b) continue
       const line = greatCircle(a, b)
       activeLines.push({ type: 'Feature', properties: { id: s.job_unique, stage: s.stage, o: s.origin, d: s.destination }, geometry: { type: 'LineString', coordinates: line } })
-      if (s.stage === 2) vessels.push({ s, at: pointAt(line, legFraction(s)) })
+      const fix = positions?.get(s.job_unique) ?? null
+      if (fix) vessels.push({ s, at: [fix.lng, fix.lat], live: fix })
+      else if (s.stage === 2) vessels.push({ s, at: pointAt(line, legFraction(s)), live: null })
     }
 
     const portPoints = (lines: Line[], weight: (f: Line) => number) => {
@@ -101,7 +105,7 @@ export default function GlobalMap({ active, pool, lanes, ports }: Props) {
       lanePorts: portPoints(laneLines, (f) => Number(f.properties?.n ?? 1)),
       activePorts: portPoints(activeLines, () => 1),
     }
-  }, [active, lanes, ports])
+  }, [active, lanes, ports, positions])
 
   // Latest state for map event handlers registered once.
   const live = useRef({ view, active, pool, ports })
@@ -234,8 +238,11 @@ export default function GlobalMap({ active, pool, lanes, ports }: Props) {
       for (const v of data.vessels) {
         const el = document.createElement('button')
         el.type = 'button'
-        el.className = 'pv3-vessel'
-        el.title = `${shipmentNo(v.s)} · estimated position`
+        el.className = v.live ? 'pv3-vessel pv3-vessel--live' : 'pv3-vessel'
+        el.title = v.live
+          ? `${shipmentNo(v.s)} · ${v.live.ship_name ?? 'vessel'}${v.live.speed_kn != null ? ` · ${Math.round(v.live.speed_kn * 10) / 10} kn` : ''} · live AIS`
+          : `${shipmentNo(v.s)} · estimated position`
+        if (v.live?.heading != null) el.style.setProperty('--hdg', `${v.live.heading}deg`)
         el.setAttribute('aria-label', `Shipment ${shipmentNo(v.s)}`)
         el.addEventListener('click', (ev) => {
           ev.stopPropagation()
@@ -278,6 +285,7 @@ export default function GlobalMap({ active, pool, lanes, ports }: Props) {
             <>
               <span><i className="pv3-legend__line pv3-legend__line--blue" />In transit</span>
               <span><i className="pv3-legend__line pv3-legend__line--orange" />Booked or arrived</span>
+              {data.vessels.some((v) => v.live) && <span><i className="pv3-legend__dot pv3-legend__dot--live" />Live vessel (AIS)</span>}
               <span><i className="pv3-legend__dot" />Estimated position</span>
             </>
           ) : (

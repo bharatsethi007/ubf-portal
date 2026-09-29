@@ -24,6 +24,8 @@ export type PublicTrack = {
   planned: LngLat[]
   updated_at: string | null
   expires_at: string
+  /** Consol payloads only: false when no carrier, SeaVantage, port or AIS data exists yet. */
+  live?: boolean
 }
 
 export type TrackResult =
@@ -31,11 +33,13 @@ export type TrackResult =
   | { kind: 'missing' | 'expired' | 'revoked' | 'error' }
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/share-track`
+// ERP consol links (every sea shipment) start with c_ and are served by consol-track.
+const CONSOL_FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/consol-track`
 const ANON = import.meta.env.VITE_SUPABASE_ANON_KEY as string
 
 export async function fetchTrack(token: string, poll = false): Promise<TrackResult> {
   try {
-    const res = await fetch(FN, {
+    const res = await fetch(token.startsWith('c_') ? CONSOL_FN : FN, {
       method: 'POST',
       headers: { 'content-type': 'application/json', apikey: ANON },
       body: JSON.stringify({ token, poll: poll ? 1 : 0 }),

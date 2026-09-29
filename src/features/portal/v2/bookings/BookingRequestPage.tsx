@@ -1,10 +1,12 @@
-import { useMemo, useState, type ReactNode } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
-import { ArrowLeft, CheckCircle2, Loader2, Plane, Ship } from 'lucide-react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, BadgeCheck, CheckCircle2, Loader2, Plane, Ship } from 'lucide-react'
 import DateField from '../../../../components/DateField'
 import { usePorts } from '../../../../hooks/usePorts'
 import PortPicker from './PortPicker'
 import { CONTAINER_TYPES, INCOTERMS, PACKING, requestBooking, type BookingRequest } from './bookingsApi'
+import { directionOf, fetchRateOption, money, type RateOption } from '../rates/ratesApi'
+import '../rates/rates.css'
 
 const EMPTY: BookingRequest = {
   direction: 'import', mode: 'sea', load_type: 'FCL', origin: '', destination: '', incoterm: '', cargo_ready_date: '',
@@ -31,8 +33,34 @@ export default function BookingRequestPage() {
   const [err, setErr] = useState('')
   const [done, setDone] = useState<string | null>(null)
   const set = <K extends keyof BookingRequest>(k: K, v: BookingRequest[K]) => setF((s) => ({ ...s, [k]: v }))
+  const [params] = useSearchParams()
+  const [rate, setRate] = useState<RateOption | null>(null)
 
-  const setMode = (m: 'sea' | 'air') => setF((s) => ({ ...s, mode: m, load_type: m === 'sea' ? (s.load_type || 'FCL') : '', origin: '', destination: '' }))
+  // Booking from a rate search: prefill the lane and hold the rate ref (priced again on the server).
+  useEffect(() => {
+    const ref = params.get('rate')
+    if (!ref) return
+    void fetchRateOption(ref).then((o) => {
+      if (!o || !o.origin || !o.destination) return
+      setRate(o)
+      setF((s) => ({
+        ...s,
+        rate_ref: o.ref,
+        mode: o.product === 'AIR' ? 'air' : 'sea',
+        load_type: o.product === 'AIR' ? '' : o.product,
+        direction: directionOf(o.origin!, o.destination!),
+        origin: o.origin!, destination: o.destination!,
+        container_type: o.container_type ?? s.container_type,
+        container_count: params.get('boxes') ?? s.container_count,
+        weight_kg: params.get('kg') ?? s.weight_kg,
+        cbm: params.get('cbm') ?? s.cbm,
+      }))
+    })
+  }, [params])
+
+  const dropRate = () => { setRate(null); setF((s) => ({ ...s, rate_ref: undefined })) }
+
+  const setMode = (m: 'sea' | 'air') => { setRate(null); setF((s) => ({ ...s, rate_ref: undefined, mode: m, load_type: m === 'sea' ? (s.load_type || 'FCL') : '', origin: '', destination: '' })) }
   const fcl = f.mode === 'sea' && f.load_type === 'FCL'
 
   const missing = useMemo(() => {
@@ -72,7 +100,7 @@ export default function BookingRequestPage() {
           </ol>
           <div className="pv3-done__actions">
             <Link to="/portal/bookings" className="pv3-btn pv3-btn--primary">View my bookings</Link>
-            <button type="button" className="pv3-btn pv3-btn--ghost" onClick={() => { setF(EMPTY); setDone(null) }}>Book another</button>
+            <button type="button" className="pv3-btn pv3-btn--ghost" onClick={() => { setF(EMPTY); setRate(null); setDone(null) }}>Book another</button>
           </div>
         </div>
       </div>
@@ -88,6 +116,16 @@ export default function BookingRequestPage() {
           <p>Tell us what you're moving. We confirm space and price before anything is final.</p>
         </div>
       </div>
+
+      {rate && rate.sell != null && (
+        <div className="pv3-ratebanner pv3-rise">
+          <BadgeCheck size={18} color="#15803D" />
+          <span>Booking at <b>{money(rate.sell, rate.currency)}</b> {rate.unit} with {rate.carrier ?? 'the carrier'}
+            {rate.valid_to ? `, valid to ${new Date(`${rate.valid_to}T00:00:00`).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}` : ''}.
+            {' '}Local charges and duties are confirmed with your booking.</span>
+          <button type="button" className="pv3-textbtn" onClick={dropRate}>Book without this rate</button>
+        </div>
+      )}
 
       <section className="pv3-card pv3-form pv3-rise" style={{ animationDelay: '.05s' }}>
         <h2>Route</h2>

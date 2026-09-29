@@ -97,6 +97,8 @@ export default function PortalBookingsPage() {
                         <div className="pv3-bdetail">
                           <dl className="pv3-peek__facts">
                             {([
+                              ['Why declined', b.portal_status === 'declined' ? b.decline_reason : null],
+                              ['Booked rate', b.quoted_rate?.sell != null ? `${b.quoted_rate.currency} ${Number(b.quoted_rate.sell).toLocaleString('en-NZ')} ${b.quoted_rate.unit} · ${b.quoted_rate.carrier ?? ''}` : null],
                               ['Incoterm', b.incoterm], ['Consignee', titleCase(b.consignee_name)], ['Volume', b.cbm ? `${Number(b.cbm).toFixed(2)} m³` : null],
                               ['Vessel', b.vessel], ['ETD', b.etd ? fmtDay(b.etd) : null], ['ETA', b.eta ? fmtDay(b.eta) : null],
                               ['Dangerous goods', b.is_dg ? 'Yes' : null], ['Notes', b.special_instructions],

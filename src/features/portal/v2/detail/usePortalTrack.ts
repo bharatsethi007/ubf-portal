@@ -58,7 +58,7 @@ export function scheduleTrack(s: PortalShipmentDetail, ports: PortMap): PublicTr
   }
 }
 
-/** Live tracker data when the shipment has a tracked booking, otherwise the schedule view. */
+/** Live tracker data (sea: per ERP consol; else a tracked booking), otherwise the schedule view. */
 export function usePortalTrack(s: PortalShipmentDetail | null, ports: PortMap): PortalTrack | null {
   const [state, setState] = useState<PortalTrack | null>(null)
 
@@ -70,11 +70,14 @@ export function usePortalTrack(s: PortalShipmentDetail | null, ports: PortMap): 
     setState(fallback())
 
     void (async () => {
-      const { data: token } = await supabase.rpc('portal_track_token', { p_job_unique: s.job_unique })
+      const { data: token } = await supabase.rpc('portal_track_token_v2', { p_job_unique: s.job_unique })
       if (!alive || !token) return
       const load = async (poll: boolean) => {
         const r = await fetchTrack(String(token), poll)
-        if (alive && r.kind === 'ok') setState({ track: r.data, live: true, token: String(token) })
+        if (!alive || r.kind !== 'ok') return
+        // Consol with nothing live yet: keep the ERP schedule view, but the share link still works.
+        if (r.data.live === false) setState({ ...fallback(), token: String(token) })
+        else setState({ track: r.data, live: true, token: String(token) })
       }
       await load(false)
       timer = window.setInterval(() => {

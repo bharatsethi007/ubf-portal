@@ -17,6 +17,7 @@ const BOOKING_SELECT = `
       bacc_sent, cleared, truck_booked, inv_approved, inv_sent,
   last_free_day, discharge_date, delivery_date, door_direction, pickup_peak, ubf_bay, ubf_time_slot, ubf_devanner, drop_off_depot, cartage_instructions_full, cartage_instructions_empty, empty_pickup_date, container_return_date,
   hold_reason, hold_code, handled_by, erp_ref_confirmed_at, field_overrides, weight_flags_ack, archived_at,
+  source, status, customer_ref, decline_reason, created_at, quoted_rate,
   customers!bookings_account_id_fkey ( name, account_terms, customs_payment_type, credit_limit ),
   consignee:customers!bookings_consignee_account_id_fkey ( name ),
   importer:customers!bookings_importer_account_id_fkey ( name ),

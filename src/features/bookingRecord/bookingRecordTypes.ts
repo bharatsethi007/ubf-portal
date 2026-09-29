@@ -52,6 +52,13 @@ export type BookingRecord = {
   handled_by: string | null
   erp_ref_confirmed_at: string | null
   archived_at: string | null
+  source: string | null
+  status: string | null
+  customer_ref: string | null
+  decline_reason: string | null
+  created_at: string | null
+  /** Portal bookings made from a published rate: server-priced snapshot (sell only). */
+  quoted_rate: { product: string; carrier: string | null; container_type: string | null; currency: string; sell: number | null; valid_to: string | null } | null
   weight_flags_ack: string[]
   field_overrides?: Record<string, boolean> | null
   consignee_account_id: string | null
