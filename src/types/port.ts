@@ -3,6 +3,7 @@ export type Port = {
   name: string
   lat: number
   lng: number
+  country_code?: string | null
 }
 
 export type PortMap = Map<string, Port>

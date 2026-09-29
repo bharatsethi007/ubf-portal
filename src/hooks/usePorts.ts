@@ -6,7 +6,7 @@ let cache: PortMap | null = null
 let pending: Promise<PortMap> | null = null
 
 async function loadPorts(): Promise<PortMap> {
-  const { data, error } = await supabase.from('ports').select('code,name,lat,lng')
+  const { data, error } = await supabase.from('ports').select('code,name,lat,lng,country_code')
   const map: PortMap = new Map()
   if (error || !data) return map
   for (const row of data) {
@@ -16,6 +16,7 @@ async function loadPorts(): Promise<PortMap> {
       name: String(row.name ?? row.code),
       lat: Number(row.lat),
       lng: Number(row.lng),
+      country_code: row.country_code ? String(row.country_code).toUpperCase() : null,
     })
   }
   return map

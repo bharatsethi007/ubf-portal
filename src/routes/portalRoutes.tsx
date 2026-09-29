@@ -2,8 +2,8 @@ import { Route } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import PortalLoginPage from '../features/portal/auth/PortalLoginPage'
 import SetPasswordPage from '../features/portal/auth/SetPasswordPage'
-import PortalShell from '../features/portal/layout/PortalShell'
-import PortalDashboardPage from '../features/portal/dashboard/PortalDashboardPage'
+import PortalShellV2 from '../features/portal/v2/PortalShellV2'
+import PortalHomePage from '../features/portal/v2/PortalHomePage'
 import PortalShipmentDetailPage from '../features/portal/shipment/PortalShipmentDetailPage'
 import PortalShipmentsPage from '../features/portal/pages/PortalShipmentsPage'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
@@ -28,8 +28,8 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
       <Route path="login" element={<PortalLoginPage session={session} authReady={authReady} />} />
 
       <Route element={<PortalAuthGate session={session} isStaff={isStaff} staffReady={staffReady} />}>
-        <Route element={<PortalShell session={session!} />}>
-          <Route index element={<PortalDashboardPage />} />
+        <Route element={<PortalShellV2 session={session!} />}>
+          <Route index element={<PortalHomePage />} />
           <Route path="shipments/:jobNo" element={<PortalShipmentDetailPage />} />
           <Route path="shipments" element={<PortalShipmentsPage />} />
           <Route path="bookings" element={<PortalStubPage title="Bookings" />} />
