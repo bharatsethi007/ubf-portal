@@ -129,6 +129,44 @@ export async function fetchMaerskEventsByContainer(
   return { status: lastStatus || 200, events }
 }
 
+/**
+ * Fetch DCSA events for any supported filter (e.g. transportDocumentReference for a Maersk MBL).
+ * Same paging and 404 handling as fetchMaerskEventsByContainer.
+ */
+export async function fetchMaerskEvents(
+  creds: MaerskCreds,
+  token: string,
+  params: Record<string, string>,
+): Promise<MaerskFetchResult> {
+  const headers: HeadersInit = {
+    Accept: "application/json",
+    Authorization: `Bearer ${token}`,
+    "Consumer-Key": creds.consumerKey,
+    "API-Version": (Deno.env.get("MAERSK_API_VERSION") ?? "1").trim(),
+  }
+  const first = new URL(eventsUrl())
+  for (const [k, v] of Object.entries(params)) first.searchParams.set(k, v)
+  first.searchParams.set("limit", "100")
+  let url: string | null = first.toString()
+  const events: JsonRecord[] = []
+  let lastStatus = 0
+  for (let pages = 0; url && pages < 6; pages++) {
+    const res: Response = await fetch(url, { headers })
+    lastStatus = res.status
+    if (!res.ok) {
+      const text = await res.text().catch(() => "")
+      if (res.status === 404) return { status: 404, events: [], message: text.slice(0, 200) }
+      return { status: res.status, events, message: text.slice(0, 300) || res.statusText }
+    }
+    const body = (await res.json().catch(() => [])) as unknown
+    if (Array.isArray(body)) events.push(...(body as JsonRecord[]))
+    else if (body && typeof body === "object" && Array.isArray((body as JsonRecord).events)) events.push(...((body as JsonRecord).events as JsonRecord[]))
+    const next = res.headers.get("Next-Page") ?? res.headers.get("next-page")
+    url = next && next.trim() ? next.trim() : null
+  }
+  return { status: lastStatus || 200, events }
+}
+
 // ---------------------------------------------------------------------------
 // DCSA event -> tracking_events row mapping
 // ---------------------------------------------------------------------------

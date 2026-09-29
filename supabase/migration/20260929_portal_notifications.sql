@@ -88,6 +88,7 @@ begin
      where s.doc_date >= current_date - 180;
 
   -- Actual carrier / port events per shipment: its consol, and any portal booking linked to it.
+  -- The first actual departure / arrival must itself be recent: a consol that starts tracking late loads its whole history at once.
   create temp table _ev on commit drop as
     select s.job_unique, e.event_type_code code, e.event_datetime at, upper(coalesce(e.partner_port_code, '')) port, e.received_at, e.container_no
       from _s s join public.consol_tracking_events e on e.consol_key = s.consol_key and not coalesce(e.is_estimated, false)
@@ -119,7 +120,8 @@ begin
     from _s s
     cross join lateral (
       select coalesce(
-        (select min(e.at)::date from _ev e where e.job_unique = s.job_unique and e.code in ('VD', 'DEPA') and e.received_at >= cfg.started_at),
+        (select case when min(e.at) >= cfg.started_at - interval '3 days' then min(e.at)::date end
+           from _ev e where e.job_unique = s.job_unique and e.code in ('VD', 'DEPA')),
         case when s.departed >= cfg.started_at::date then s.departed end) at
     ) d
    where d.at is not null
@@ -135,7 +137,8 @@ begin
     from _s s
     cross join lateral (
       select coalesce(
-        (select min(e.at)::date from _ev e where e.job_unique = s.job_unique and e.received_at >= cfg.started_at
+        (select case when min(e.at) >= cfg.started_at - interval '3 days' then min(e.at)::date end
+           from _ev e where e.job_unique = s.job_unique
             and ((e.code = 'VESSELARRIVAL' and s.direction = 'import') or (e.code in ('VA', 'ARRI') and e.port = upper(coalesce(s.destination, '#'))))),
         case when s.arrived >= cfg.started_at::date then s.arrived end) at
     ) a
@@ -155,6 +158,7 @@ begin
         from _ev where code in ('CUSTOMSRELEASE', 'MPIRELEASE') and container_no is not null
        group by 1, 2
       having count(distinct code) = 2 and max(received_at) >= (select started_at from public.portal_notify_config where id)
+         and max(at) >= (select started_at - interval '3 days' from public.portal_notify_config where id)
     ) r on r.job_unique = s.job_unique
    where s.direction = 'import'
   on conflict do nothing;
