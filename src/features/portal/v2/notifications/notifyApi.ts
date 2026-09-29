@@ -18,9 +18,9 @@ export const KINDS: { kind: Kind; label: string; help: string; tone: 'blue' | 'a
 ]
 export const kindMeta = (k: string) => KINDS.find((x) => x.kind === k) ?? { kind: k as Kind, label: 'Update', help: '', tone: 'blue' as const }
 
-export type Prefs = { email_enabled: boolean; off_kinds: string[]; seen_at: string | null }
-// Email is opt-in: off until the user turns it on.
-const DEFAULT: Prefs = { email_enabled: false, off_kinds: [], seen_at: null }
+export type Prefs = { email_enabled: boolean; off_kinds: string[]; wa_enabled: boolean; wa_off_kinds: string[]; seen_at: string | null }
+// Both channels are opt-in: off until the user turns them on (linking WhatsApp turns WhatsApp on).
+const DEFAULT: Prefs = { email_enabled: false, off_kinds: [], wa_enabled: false, wa_off_kinds: [], seen_at: null }
 
 export async function fetchNotes(limit = 30): Promise<Note[]> {
   const { data } = await supabase.from('portal_notifications')
@@ -32,12 +32,17 @@ export async function fetchNotes(limit = 30): Promise<Note[]> {
 export async function fetchPrefs(): Promise<Prefs> {
   const { data: u } = await supabase.auth.getUser()
   if (!u.user) return DEFAULT
-  const { data } = await supabase.from('portal_notify_prefs').select('email_enabled, off_kinds, seen_at').eq('user_id', u.user.id).maybeSingle()
+  const { data } = await supabase.from('portal_notify_prefs').select('email_enabled, off_kinds, wa_enabled, wa_off_kinds, seen_at').eq('user_id', u.user.id).maybeSingle()
   return (data as Prefs | null) ?? DEFAULT
 }
 
-export async function savePrefs(email: boolean, off: string[]): Promise<void> {
-  const { error } = await supabase.rpc('portal_notify_set_prefs', { p_email: email, p_off_kinds: off })
+export type PrefsPatch = { email?: boolean; off?: string[]; wa?: boolean; waOff?: string[] }
+
+/** Saves only the fields passed; the rest stay as they are. */
+export async function savePrefs(p: PrefsPatch): Promise<void> {
+  const { error } = await supabase.rpc('portal_notify_set_prefs', {
+    p_email: p.email ?? null, p_off_kinds: p.off ?? null, p_whatsapp: p.wa ?? null, p_wa_off_kinds: p.waOff ?? null,
+  })
   if (error) throw new Error('Could not save. Try again.')
 }
 

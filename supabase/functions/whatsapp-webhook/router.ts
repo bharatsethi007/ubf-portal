@@ -1,11 +1,12 @@
 // router.ts — inbound intent routing.
 // - opt-out/opt-in keywords (STOP/START)
+// - CSAT rating reply (1-5) when a whatsapp csat_request is pending for this sender
 // - tracking fast-path (deterministic ref/container detect) with strict account gate
 // - unbound sender: nudge once toward portal binding, then silent + flagged for staff
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const GRAPH = "https://graph.facebook.com/v25.0";
-const PORTAL_WHATSAPP_URL = `${(Deno.env.get("PORTAL_PUBLIC_BASE_URL") ?? "https://console.ubfreight.com").replace(/\/$/, "")}/settings/whatsapp`;
+const PORTAL_WHATSAPP_URL = `${(Deno.env.get("PORTAL_PUBLIC_URL") ?? "https://portal.ubfreight.com").replace(/\/$/, "")}/portal/settings/notifications`;
 
 type Booking = {
   id: string; booking_ref: string | null;
@@ -121,6 +122,36 @@ async function maybeNudge(sb: SupabaseClient, token: string, phoneId: string, ms
     `WhatsApp number in your portal: ${PORTAL_WHATSAPP_URL}\n\nOur team has been notified and will assist.`);
 }
 
+// CSAT: if the sender has a pending whatsapp csat_request and replies with 1-5, capture it.
+async function maybeHandleCsatReply(
+  sb: SupabaseClient, token: string, phoneId: string,
+  msg: { id: string; wa_id: string; body: string | null },
+): Promise<boolean> {
+  const body = (msg.body ?? "").trim();
+  const m = body.match(/^([1-5])(?:\D|$)/);
+  if (!m) return false;
+  const { data: reqRow } = await sb.from("csat_requests")
+    .select("id, token, booking_id")
+    .eq("channel", "whatsapp").eq("recipient_wa_id", msg.wa_id).eq("status", "sent")
+    .gt("expires_at", new Date().toISOString())
+    .order("created_at", { ascending: false }).limit(1).maybeSingle();
+  if (!reqRow?.token) return false;
+  const score = parseInt(m[1], 10);
+  const comment = body.replace(/^\s*[1-5]\s*[\.\)\-:]?\s*/, "").trim() || null;
+  try {
+    await sb.rpc("csat_submit", { p_score: score, p_token: reqRow.token, p_comment: comment });
+  } catch (e) { console.error("csat_submit failed", e); }
+  await sendText(sb, token, phoneId, msg.wa_id,
+    score >= 4
+      ? "Thank you for the great feedback! \u{1F64F}"
+      : "Thanks for your feedback \u2014 we\u2019ll use it to improve. A team member may follow up.",
+    reqRow.booking_id ?? undefined);
+  await sb.from("whatsapp_messages")
+    .update({ intent: "csat", status: "answered", related_booking_id: reqRow.booking_id ?? null })
+    .eq("id", msg.id);
+  return true;
+}
+
 export async function routeInbound(
   sb: SupabaseClient, token: string, phoneId: string,
   msg: { id: string; contact_id: string; wa_id: string; body: string | null },
@@ -139,6 +170,9 @@ export async function routeInbound(
     await sb.from("whatsapp_messages").update({ intent: "optin", status: "answered" }).eq("id", msg.id);
     return;
   }
+
+  // CSAT rating reply (before tracking/other routing)
+  if (await maybeHandleCsatReply(sb, token, phoneId, { id: msg.id, wa_id: msg.wa_id, body })) return;
 
   const { data: contact } = await sb.from("whatsapp_contacts").select("account_id").eq("id", msg.contact_id).maybeSingle();
   const accountId = contact?.account_id ?? null;

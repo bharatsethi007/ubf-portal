@@ -36,20 +36,41 @@
 .pv3-bell__empty { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 28px 22px; text-align: center; color: var(--muted); font-size: 13px; }
 
 /* Settings */
-.pv3-nset { max-width: 760px; }
+.pv3-nset { max-width: 820px; }
 .pv3-nset__back { display: inline-flex; align-items: center; gap: 4px; margin-bottom: 4px; text-decoration: none; }
 .pv3-nset__status { display: inline-flex; align-items: center; gap: 6px; font-size: 13px; color: var(--muted); min-height: 20px; }
 .pv3-nset__ok { display: inline-flex; align-items: center; gap: 4px; color: var(--green); }
-.pv3-nset__card { padding: 4px 0; }
-.pv3-nset__row { display: flex; align-items: center; gap: 14px; padding: 14px 20px; cursor: pointer; }
-.pv3-nset__row + .pv3-nset__row, .pv3-nset__list .pv3-nset__row { border-top: 1px solid var(--line-soft); }
-.pv3-nset__row .pv3-bell__dot { margin: 0 11px 0 11px; }
-.pv3-nset__row--master { padding-top: 16px; padding-bottom: 16px; }
-.pv3-nset__ico { width: 30px; height: 30px; flex: none; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); }
+.pv3-nset__ico { width: 34px; height: 34px; flex: none; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); }
+.pv3-nset__ico--wa { background: #E7F8EE; color: #16A34A; }
 .pv3-nset__txt { display: flex; flex-direction: column; gap: 2px; flex: 1; min-width: 0; }
 .pv3-nset__txt b { font-size: 14px; color: var(--ink); }
-.pv3-nset__txt span { font-size: 13px; color: var(--muted); }
-.pv3-nset__list--off { opacity: .45; }
+.pv3-nset__txt span { font-size: 13px; color: var(--muted); line-height: 1.4; }
+
+.pv3-nset__channels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; align-items: start; }
+@media (max-width: 720px) { .pv3-nset__channels { grid-template-columns: minmax(0, 1fr); } }
+.pv3-nset__chan { padding: 16px 18px; display: flex; flex-direction: column; gap: 12px; }
+.pv3-nset__chan header { display: flex; align-items: center; gap: 12px; }
+.pv3-nset__wanum { display: inline-flex; align-items: center; gap: 4px; color: var(--green) !important; font-weight: 500; }
+.pv3-nset__note { display: flex; align-items: center; gap: 6px; margin: 0; padding: 8px 10px; border-radius: 8px; background: var(--amber-soft); color: var(--amber); font-size: 12.5px; }
+.pv3-nset__cta { align-self: flex-start; }
+.pv3-nset__change { margin-top: 0; }
+
+.pv3-walink { display: flex; flex-direction: column; gap: 12px; padding-top: 12px; border-top: 1px solid var(--line-soft); }
+.pv3-walink__hint { margin: 0; font-size: 13px; color: var(--ink-2); }
+.pv3-walink__consent { display: flex; gap: 10px; align-items: flex-start; font-size: 12.5px; line-height: 1.45; color: var(--ink-2); cursor: pointer; }
+.pv3-walink__consent input { margin-top: 2px; accent-color: var(--navy); }
+.pv3-walink__err { margin: 0; font-size: 13px; }
+.pv3-walink__actions { display: flex; align-items: center; justify-content: flex-end; gap: 8px; }
+.pv3-walink__actions .pv3-textbtn { margin: 0 auto 0 0; }
+
+.pv3-nset__card { margin-top: 16px; padding: 2px 0; }
+.pv3-nset__grid { display: grid; grid-template-columns: minmax(0, 1fr) 72px 88px; align-items: center; gap: 8px; padding: 13px 20px; justify-items: center; }
+.pv3-nset__grid > :first-child { justify-self: stretch; }
+.pv3-nset__grid + .pv3-nset__grid { border-top: 1px solid var(--line-soft); }
+.pv3-nset__grid--head { padding-top: 12px; padding-bottom: 10px; font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; color: var(--muted); }
+.pv3-nset__kind { display: flex; align-items: flex-start; gap: 12px; }
+.pv3-nset__kind .pv3-bell__dot { margin-top: 6px; }
+.pv3-nset__grid .pv3-switch:disabled { opacity: .4; }
 
 .pv3-switch { appearance: none; flex: none; position: relative; width: 40px; height: 22px; border-radius: 999px; background: #CBD5E1; cursor: pointer; transition: background .2s; margin: 0; }
 .pv3-switch::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: #FFFFFF; box-shadow: 0 1px 2px rgba(0, 0, 0, .2); transition: transform .2s var(--ease); }

@@ -96,9 +96,6 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
             <NavLink to="/portal/settings/notifications" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
               <Bell size={15} aria-hidden /> Notifications
             </NavLink>
-            <NavLink to="/portal/settings/whatsapp" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
-              <MessageCircle size={15} aria-hidden /> WhatsApp updates
-            </NavLink>
             <button type="button" className="pv2-menu__item" onClick={logout}>
               <LogOut size={15} aria-hidden /> Log out
             </button>
