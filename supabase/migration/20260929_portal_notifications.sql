@@ -1,7 +1,7 @@
 -- Customer notifications for the portal.
---   portal_notify_config  singleton: master email switch (off until UBF turns it on), test recipient, start time.
+--   portal_notify_config  singleton: master email switch, optional test recipient, start time.
 --   portal_notifications  one row per event per account; the portal bell reads these, the sender emails them.
---   portal_notify_prefs   per portal user: email on/off, event kinds switched off, when they last opened the bell.
+--   portal_notify_prefs   per portal user: email opt-in (off by default), event kinds switched off, when they last opened the bell.
 --   portal_notify_state   last ETA we told the customer about, per shipment (for ETA-change detection).
 --   portal_notify_scan()  cron every 30 min. Only fires on real data: ERP actual dates, tracked carrier/port events,
 --                         new ERP jobs and invoices. Never on schedule guesses. Nothing before config.started_at.
@@ -43,7 +43,7 @@ grant select on public.portal_notifications to authenticated;
 
 create table if not exists public.portal_notify_prefs (
   user_id uuid primary key references auth.users(id) on delete cascade,
-  email_enabled boolean not null default true,
+  email_enabled boolean not null default false,
   off_kinds text[] not null default '{}',
   seen_at timestamptz,
   updated_at timestamptz not null default now()
@@ -209,7 +209,7 @@ grant execute on function public.portal_notify_mark_seen() to authenticated;
 create or replace function public.portal_notify_set_prefs(p_email boolean, p_off_kinds text[])
 returns void language sql security definer set search_path = public as $$
   insert into public.portal_notify_prefs (user_id, email_enabled, off_kinds)
-  values (auth.uid(), coalesce(p_email, true), coalesce(p_off_kinds, '{}'))
+  values (auth.uid(), coalesce(p_email, false), coalesce(p_off_kinds, '{}'))
   on conflict (user_id) do update set email_enabled = excluded.email_enabled, off_kinds = excluded.off_kinds, updated_at = now();
 $$;
 revoke all on function public.portal_notify_set_prefs(boolean, text[]) from public, anon;
@@ -223,7 +223,7 @@ returns jsonb language sql stable security definer set search_path = public as $
     select * from public.portal_notifications where email_status = 'pending' order by created_at limit greatest(1, least(p_limit, 1000))
   ),
   rcpt as (
-    select u.user_id, u.email, u.display_name, u.account_id, coalesce(p.email_enabled, true) on_, coalesce(p.off_kinds, '{}') off_
+    select u.user_id, u.email, u.display_name, u.account_id, coalesce(p.email_enabled, false) on_, coalesce(p.off_kinds, '{}') off_
       from public.portal_users u left join public.portal_notify_prefs p on p.user_id = u.user_id
      where u.status = 'active' and u.email is not null
   )
@@ -262,3 +262,6 @@ select cron.schedule('portal-notify-send', '5 18-23,0-6 * * *', $c$
     headers := jsonb_build_object('Content-Type', 'application/json', 'Authorization', 'Bearer ' || (select decrypted_secret from vault.decrypted_secrets where name = 'service_role_key')),
     body := '{}'::jsonb, timeout_milliseconds := 120000);
 $c$);
+
+-- Email is opt-in per portal user; the master switch stays on so opted-in users get their digest.
+update public.portal_notify_config set email_enabled = true, test_recipient = null, updated_at = now() where id;

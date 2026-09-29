@@ -6,7 +6,7 @@ import './notifications.css'
 
 /** Per-user choice of which updates arrive by email. The bell always shows everything. */
 export default function NotificationSettingsPage() {
-  const [email, setEmail] = useState(true)
+  const [email, setEmail] = useState(false)
   const [off, setOff] = useState<string[]>([])
   const [loaded, setLoaded] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -31,7 +31,7 @@ export default function NotificationSettingsPage() {
       <div className="pv3-head pv3-rise">
         <div>
           <h1>Notifications</h1>
-          <p>Choose which updates we email you. Everything still shows under the bell in the portal.</p>
+          <p>Email updates are off until you turn them on. Everything always shows under the bell in the portal.</p>
         </div>
         <span className="pv3-nset__status" aria-live="polite">
           {busy ? <><Loader2 size={14} className="pv3-spin" /> Saving</> : msg ? <span className={msg.ok ? 'pv3-nset__ok' : 'pv3-nset__err'}>{msg.ok && <Check size={14} />} {msg.text}</span> : null}
@@ -41,7 +41,7 @@ export default function NotificationSettingsPage() {
       <section className="pv3-card pv3-nset__card pv3-rise">
         <label className="pv3-nset__row pv3-nset__row--master">
           <span className="pv3-nset__ico"><Mail size={18} /></span>
-          <span className="pv3-nset__txt"><b>Email me updates</b><span>One email groups everything new since the last one, sent during NZ business hours.</span></span>
+          <span className="pv3-nset__txt"><b>Email me updates</b><span>Off by default. One email groups everything new since the last one, sent during NZ business hours.</span></span>
           <input type="checkbox" className="pv3-switch" checked={email} disabled={!loaded} onChange={(e) => void persist(e.target.checked, off)} />
         </label>
         <div className={`pv3-nset__list${email ? '' : ' pv3-nset__list--off'}`}>

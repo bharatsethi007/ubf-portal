@@ -18,7 +18,8 @@ export const KINDS: { kind: Kind; label: string; help: string; tone: 'blue' | 'a
 export const kindMeta = (k: string) => KINDS.find((x) => x.kind === k) ?? { kind: k as Kind, label: 'Update', help: '', tone: 'blue' as const }
 
 export type Prefs = { email_enabled: boolean; off_kinds: string[]; seen_at: string | null }
-const DEFAULT: Prefs = { email_enabled: true, off_kinds: [], seen_at: null }
+// Email is opt-in: off until the user turns it on.
+const DEFAULT: Prefs = { email_enabled: false, off_kinds: [], seen_at: null }
 
 export async function fetchNotes(limit = 30): Promise<Note[]> {
   const { data } = await supabase.from('portal_notifications')
