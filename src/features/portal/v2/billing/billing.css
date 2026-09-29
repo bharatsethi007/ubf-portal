@@ -1,0 +1,75 @@
+/* Portal billing. Tokens from portalV2.css. */
+
+.pv3-bill__kpis { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+@media (max-width: 1000px) { .pv3-bill__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.pv3-num { text-align: right !important; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.pv3-bill__red { color: var(--red) !important; }
+.pv3-bill__party { max-width: 220px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv3-bill__table td { vertical-align: middle; }
+
+/* Status pills */
+.pv3-bill__st { display: inline-flex; align-items: center; gap: 6px; padding: 2px 9px; border-radius: 999px; font-size: 12px; font-weight: 600; white-space: nowrap; }
+.pv3-bill__st::before { content: ''; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
+.pv3-bill__st--green { background: var(--green-soft); color: var(--green); }
+.pv3-bill__st--red { background: var(--red-soft); color: var(--red); }
+.pv3-bill__st--amber { background: var(--amber-soft); color: var(--amber); }
+.pv3-bill__st--blue { background: var(--blue-soft); color: var(--blue); }
+
+/* Aging */
+.pv3-bill__aging { padding: 16px 20px; }
+.pv3-bill__aging header { display: flex; align-items: baseline; gap: 10px; margin-bottom: 10px; }
+.pv3-bill__aging h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+.pv3-bill__agbar { display: flex; gap: 2px; height: 12px; border-radius: 12px; overflow: hidden; background: var(--line-soft); }
+.pv3-bill__agbar span { height: 100%; transform-origin: left; animation: pv3-grow .7s var(--ease) both; }
+.pv3-bill__aglegend { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 12px; margin-top: 12px; }
+.pv3-bill__aglegend div { display: grid; grid-template-columns: 10px 1fr; column-gap: 8px; align-items: center; }
+.pv3-bill__aglegend i { width: 10px; height: 10px; border-radius: 3px; }
+.pv3-bill__aglegend span { font-size: 12px; color: var(--muted); }
+.pv3-bill__aglegend b { grid-column: 2; font-size: 15px; color: var(--ink); font-variant-numeric: tabular-nums; }
+.pv3-bill__agzero { opacity: .45; }
+@media (max-width: 760px) { .pv3-bill__aglegend { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+/* Drawer */
+.pv3-bill__drawer { position: fixed; inset: 0; z-index: 60; }
+.pv3-bill__scrim { position: absolute; inset: 0; border: 0; background: rgba(11, 26, 58, .35); cursor: default; animation: pv3-bill-fade .2s both; }
+.pv3-bill__panel {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(500px, 100%); overflow-y: auto; padding: 22px 24px 28px;
+  background: #FFFFFF; box-shadow: -12px 0 40px rgba(11, 26, 58, .18); animation: pv3-bill-slide .28s var(--ease) both;
+  display: flex; flex-direction: column; gap: 16px;
+}
+@keyframes pv3-bill-slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pv3-bill-fade { from { opacity: 0; } to { opacity: 1; } }
+.pv3-bill__dhead { display: flex; justify-content: space-between; gap: 12px; }
+.pv3-bill__dhead h2 { margin: 2px 0 8px; font-size: 22px; color: var(--ink); }
+.pv3-bill__dtype { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+
+.pv3-bill__due { display: flex; justify-content: space-between; gap: 16px; padding: 16px; border-radius: 12px; background: linear-gradient(135deg, #0B1A3A, #13254F); color: #CBD5E1; }
+.pv3-bill__due > div { display: flex; flex-direction: column; }
+.pv3-bill__due > div span { font-size: 12px; text-transform: uppercase; letter-spacing: .05em; }
+.pv3-bill__due > div b { font-size: 24px; color: #FFFFFF; font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+.pv3-bill__due > div i { font-style: normal; font-size: 12px; }
+.pv3-bill__due dl { margin: 0; display: flex; flex-direction: column; gap: 4px; text-align: right; }
+.pv3-bill__due dl div { display: flex; gap: 10px; justify-content: flex-end; font-size: 13px; }
+.pv3-bill__due dt { color: #94A3B8; }
+.pv3-bill__due dd { margin: 0; color: #FFFFFF; font-weight: 600; }
+.pv3-bill__due .pv3-bill__red { color: #FCA5A5 !important; }
+
+.pv3-bill__ship { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; text-decoration: none; color: var(--ink-2); transition: border-color .15s, background .15s; }
+.pv3-bill__ship:hover { border-color: var(--blue); background: var(--blue-soft); }
+.pv3-bill__ship div { display: flex; flex-direction: column; gap: 2px; font-size: 13px; }
+.pv3-bill__ship b { color: var(--ink); font-size: 14px; }
+
+.pv3-bill__h3 { margin: 4px 0 -6px; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); }
+.pv3-bill__lines { width: 100%; border-collapse: collapse; font-size: 13.5px; }
+.pv3-bill__lines td { padding: 9px 0; border-bottom: 1px solid var(--line-soft); color: var(--ink-2); }
+.pv3-bill__lines td:last-child { text-align: right; font-variant-numeric: tabular-nums; white-space: nowrap; padding-left: 12px; }
+.pv3-bill__lines tfoot td { border-bottom: 0; padding: 5px 0; color: var(--muted); }
+.pv3-bill__lines tfoot td:last-child { color: var(--ink); }
+.pv3-bill__lines .pv3-bill__total td { padding-top: 10px; border-top: 2px solid var(--navy); font-size: 16px; font-weight: 700; color: var(--navy); }
+.pv3-bill__gst { margin-left: 8px; padding: 0 5px; border-radius: 4px; background: var(--line-soft); color: var(--muted); font-size: 10.5px; font-weight: 600; }
+.pv3-bill__gap td { background: var(--amber-soft); color: var(--amber) !important; padding: 8px 10px !important; font-size: 12.5px; text-align: left !important; white-space: normal !important; border-radius: 6px; }
+
+.pv3-bill__actions { display: flex; flex-wrap: wrap; gap: 8px; }
+.pv3-bill__actions a { text-decoration: none; }
+.pv3-bill__fine { margin: -6px 0 0; font-size: 12px; color: var(--muted); }

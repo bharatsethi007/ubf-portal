@@ -1,3 +1,4 @@
+import { Link } from 'react-router-dom'
 import { formatMoney, formatShortDate } from '../../dashboard/portalFormat'
 import type { Invoice } from '../../../../types/invoice'
 import { invoiceStatus } from '../../../../types/invoice'
@@ -31,12 +32,12 @@ export default function InvoicesTab({ invoices, loading }: Props) {
         <tbody>
           {invoices.map((inv) => (
             <tr key={inv.invoice_no}>
-              <td className="nums">{inv.invoice_no}</td>
+              <td className="nums"><Link to={`/portal/billing?tab=all&inv=${encodeURIComponent(inv.invoice_no)}`}>{inv.invoice_no}</Link></td>
               <td>{inv.doctype ?? '—'}</td>
               <td className="nums">{formatShortDate(inv.doc_date)}</td>
               <td className="nums">{formatShortDate(inv.date_due)}</td>
-              <td className="portal-td--nums nums">{formatMoney(inv.amt_local ?? 0, inv.currency ?? 'NZD')}</td>
-              <td className="portal-td--nums nums">{formatMoney(inv.balance ?? 0, inv.currency ?? 'NZD')}</td>
+              <td className="portal-td--nums nums">{formatMoney(inv.amt_foreign ?? inv.amt_local ?? 0, inv.currency ?? 'NZD')}</td>
+              <td className="portal-td--nums nums">{formatMoney(inv.amount_due ?? inv.balance ?? 0, inv.currency ?? 'NZD')}</td>
               <td><StatusPill status={invoiceStatus(inv)} /></td>
             </tr>
           ))}

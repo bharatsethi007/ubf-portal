@@ -9,6 +9,9 @@ export type Invoice = {
   balance: number | null
   tax_amount: number | null
   currency: string | null
+  /** Invoice-currency total and balance (amt_local / balance are NZD). */
+  amt_foreign?: number | null
+  amount_due?: number | null
 }
 
 export function invoiceStatus(inv: Invoice): 'Paid' | 'Unpaid' | 'Part-paid' {

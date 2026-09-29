@@ -18,7 +18,7 @@ const DETAIL_SELECT = `
 `
 
 const INVOICE_SELECT =
-  'invoice_no, doctype, module, job_unique, doc_date, date_due, amt_local, balance, tax_amount, currency'
+  'invoice_no, doctype, module, job_unique, doc_date, date_due, amt_local, balance, tax_amount, currency, amt_foreign, amount_due'
 
 /** Resolve route param (job no / house bill / #job_unique) under RLS. */
 export async function fetchPortalShipment(jobNoParam: string): Promise<PortalShipmentDetail | null> {

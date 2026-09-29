@@ -10,9 +10,9 @@ import BookingRequestPage from '../features/portal/v2/bookings/BookingRequestPag
 import PortalRatesPage from '../features/portal/v2/rates/PortalRatesPage'
 import PortalAnalyticsPage from '../features/portal/v2/analytics/PortalAnalyticsPage'
 import PortalProductsPage from '../features/portal/v2/products/PortalProductsPage'
+import PortalBillingPage from '../features/portal/v2/billing/PortalBillingPage'
 import PortalShipmentsV3 from '../features/portal/v2/shipments/PortalShipmentsV3'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
-import PortalStubPage from '../features/portal/stubs/PortalStubPage'
 import PortalAuthGate from '../features/portal/auth/PortalAuthGate'
 
 type Props = {
@@ -43,7 +43,7 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route path="analytics" element={<PortalAnalyticsPage />} />
           <Route path="products" element={<PortalProductsPage />} />
           <Route path="quotes" element={<Navigate to="/portal/rates" replace />} />
-          <Route path="billing" element={<PortalStubPage title="Billing" />} />
+          <Route path="billing" element={<PortalBillingPage />} />
           <Route path="settings/whatsapp" element={<WhatsAppSettingsPage />} />
         </Route>
       </Route>

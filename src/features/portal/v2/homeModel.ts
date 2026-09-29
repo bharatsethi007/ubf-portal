@@ -160,12 +160,12 @@ export function money(invoices: HomeInvoice[], today = todayIso()): Money {
   let open = 0
   let overdue = 0
   let overdueCount = 0
-  let currency = 'NZD'
+  // Balances are ledger (NZD) amounts, whatever currency the invoice was billed in.
+  const currency = 'NZD'
   for (const i of invoices) {
     const bal = Number(i.balance ?? 0)
     if (bal <= 0) continue
     open += bal
-    if (i.currency) currency = i.currency
     const due = i.date_due ?? (i.doc_date ? addDays(i.doc_date.slice(0, 10), 30) : null)
     if (due && due < today) { overdue += bal; overdueCount++ }
   }
@@ -215,7 +215,7 @@ export function exceptions(pool: HomeShipment[], active: HomeShipment[], m: Mone
   }
   if (m.overdueCount > 0) {
     out.push({ key: 'inv', tone: 'amber', kind: 'Billing', title: `${m.overdueCount} ${m.overdueCount === 1 ? 'invoice' : 'invoices'} past due`,
-      sub: `${fmtMoney(m.overdue, m.currency)} outstanding`, to: '/portal/billing', sort: 80 })
+      sub: `${fmtMoney(m.overdue, m.currency)} outstanding`, to: '/portal/billing?tab=overdue', sort: 80 })
   }
   const noRef = active.filter((s) => !s.customer_ref).length
   if (noRef > 0) {
