@@ -44,3 +44,12 @@ export async function unlinkBookingShipment(bookingId: string): Promise<void> {
     .eq('id', bookingId)
   if (error) throw error
 }
+
+export type MatchCandidate = { job_unique: number; consol_key: string | null; score: number; reasons: string[] }
+
+/** Server-side matcher (containers, MBL, consol ref, house bill, ETA) scoped to this booking's customer. */
+export async function bookingMatchCandidates(bookingId: string): Promise<MatchCandidate[]> {
+  const { data, error } = await supabase.rpc('booking_shipment_candidates', { p_booking: bookingId })
+  if (error) return []
+  return (data ?? []) as MatchCandidate[]
+}

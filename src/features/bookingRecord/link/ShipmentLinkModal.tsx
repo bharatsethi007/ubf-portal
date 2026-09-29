@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { Check, Link2, Loader2, Search, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog'
-import { findConsigneeShipments, linkBookingToShipment, type LinkShipment } from './shipmentLinkApi'
+import { bookingMatchCandidates, findConsigneeShipments, linkBookingToShipment, type LinkShipment, type MatchCandidate } from './shipmentLinkApi'
 
 type Props = {
   open: boolean
@@ -25,6 +25,7 @@ export default function ShipmentLinkModal({ open, onOpenChange, bookingId, accou
   const [rows, setRows] = useState<LinkShipment[]>([])
   const [busyId, setBusyId] = useState<number | null>(null)
   const [q, setQ] = useState('')
+  const [cands, setCands] = useState<Map<number, MatchCandidate>>(new Map())
 
   const expected = useMemo(
     () => new Set(expectedContainers.map((c) => c.trim().toUpperCase()).filter(Boolean)),
@@ -35,25 +36,27 @@ export default function ShipmentLinkModal({ open, onOpenChange, bookingId, accou
     if (!open) return
     setQ('')
     setLoading(true)
+    void bookingMatchCandidates(bookingId).then((list) => setCands(new Map(list.map((c) => [c.job_unique, c]))))
     findConsigneeShipments(accountId, consigneeName)
       .then(setRows)
       .catch((e) => toast.error(e instanceof Error ? e.message : 'Lookup failed'))
       .finally(() => setLoading(false))
-  }, [open, accountId, consigneeName])
+  }, [open, accountId, consigneeName, bookingId])
 
   // rank: container match first, then invoice presence, then recency
   const ranked = useMemo(() => {
     const scored = rows.map((s) => {
       const match = s.containers.some((c) => expected.has(c.container_no.trim().toUpperCase()))
-      return { s, match }
+      return { s, match, score: cands.get(s.job_unique)?.score ?? 0 }
     })
     scored.sort((a, b) =>
+      b.score - a.score ||
       Number(b.match) - Number(a.match) ||
       (b.s.invoice_count > 0 ? 1 : 0) - (a.s.invoice_count > 0 ? 1 : 0) ||
       (b.s.eta ?? '').localeCompare(a.s.eta ?? ''),
     )
     return scored
-  }, [rows, expected])
+  }, [rows, expected, cands])
 
   const filtered = useMemo(() => {
     const t = q.trim().toLowerCase()
@@ -64,7 +67,7 @@ export default function ShipmentLinkModal({ open, onOpenChange, bookingId, accou
     )
   }, [ranked, q])
 
-  const suggestedId = ranked[0]?.match ? ranked[0].s.job_unique : null
+  const suggestedId = ranked[0] && (ranked[0].score >= 60 || ranked[0].match) ? ranked[0].s.job_unique : null
 
   async function link(s: LinkShipment) {
     setBusyId(s.job_unique)
@@ -113,7 +116,9 @@ export default function ShipmentLinkModal({ open, onOpenChange, bookingId, accou
                   <div className="link-card__top">
                     <span className="link-card__consol mono">{s.consol_key ?? `#${s.job_unique}`}</span>
                     {suggested ? <span className="link-badge link-badge--suggest"><Sparkles size={11} /> Suggested</span> : null}
-                    {match ? <span className="link-badge link-badge--match"><Check size={11} /> Container match</span> : null}
+                    {(cands.get(s.job_unique)?.reasons ?? (match ? ['container match'] : [])).map((r) => (
+                      <span key={r} className="link-badge link-badge--match"><Check size={11} /> {r}</span>
+                    ))}
                     {s.already_linked ? <span className="link-badge link-badge--muted">Already linked</span> : null}
                     <span className="link-card__inv">
                       {s.invoice_count} inv{s.invoice_total != null ? ` · $${s.invoice_total.toLocaleString()}` : ''}
