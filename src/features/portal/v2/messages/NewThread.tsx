@@ -1,38 +1,45 @@
-import { useEffect, useState, type FormEvent } from 'react'
-import { Loader2, Send, X } from 'lucide-react'
+import { useEffect, useState } from 'react'
+import { ChevronLeft } from 'lucide-react'
+import Composer from './Composer'
 import { recentShipments, sendMessage, type ShipmentOption } from './messagesApi'
 
 type Props = { job: number | null; onCreated: (threadId: string) => void; onClose: () => void }
 
-/** Start a conversation: about a shipment, or a general question. */
+/** New conversation: pick what it's about, then type like any chat. */
 export default function NewThread({ job, onCreated, onClose }: Props) {
   const [ships, setShips] = useState<ShipmentOption[]>([])
   const [about, setAbout] = useState<string>(job != null ? String(job) : '')
   const [subject, setSubject] = useState('')
-  const [text, setText] = useState('')
-  const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
   useEffect(() => { void recentShipments().then(setShips) }, [])
 
-  async function submit(e: FormEvent) {
-    e.preventDefault()
-    if (!text.trim()) return
-    setBusy(true); setErr('')
+  async function send(body: string) {
+    setErr('')
     try {
-      const id = await sendMessage({ body: text, subject: subject.trim() || undefined, job: about ? Number(about) : null })
+      const id = await sendMessage({ body, subject: subject.trim() || undefined, job: about ? Number(about) : null })
       onCreated(id)
-    } catch (x) { setErr(x instanceof Error ? x.message : 'Could not send') } finally { setBusy(false) }
+    } catch (x) {
+      setErr(x instanceof Error ? x.message : 'Not delivered. Try again.')
+      throw x
+    }
   }
 
   return (
-    <form className="pv3-msg__new" onSubmit={(e) => void submit(e)}>
-      <header className="pv3-msg__chead">
-        <div><b>New message</b><span className="pv3-muted">Our team replies here, usually within business hours.</span></div>
-        <button type="button" className="pv3-iconbtn" onClick={onClose} aria-label="Cancel"><X size={16} /></button>
+    <div className="im-conv">
+      <header className="im-conv__head">
+        <button type="button" className="im-back" onClick={onClose} aria-label="Cancel"><ChevronLeft size={22} /></button>
+        <div className="im-conv__title"><b>New message</b><span>Our team replies here during business hours</span></div>
+        <button type="button" className="im-cancel" onClick={onClose}>Cancel</button>
       </header>
-      <div className="pv3-msg__fields">
-        <label><span>About</span>
+
+      <div className="im-to">
+        <label className="im-to__row">
+          <span>To</span>
+          <b className="im-to__chip">UB Freight</b>
+        </label>
+        <label className="im-to__row">
+          <span>About</span>
           <select value={about} onChange={(e) => setAbout(e.target.value)}>
             <option value="">General question</option>
             {job != null && !ships.some((s) => s.job_unique === job) && <option value={job}>This shipment</option>}
@@ -40,18 +47,19 @@ export default function NewThread({ job, onCreated, onClose }: Props) {
           </select>
         </label>
         {!about && (
-          <label><span>Subject</span><input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={120} placeholder="e.g. Rates for next month" /></label>
+          <label className="im-to__row">
+            <span>Subject</span>
+            <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={120} placeholder="Optional" />
+          </label>
         )}
-        <label className="pv3-msg__grow"><span>Message</span>
-          <textarea value={text} onChange={(e) => setText(e.target.value)} rows={6} maxLength={4000} required autoFocus placeholder="How can we help?" />
-        </label>
       </div>
-      {err && <div className="pv3-error" style={{ margin: '0 16px' }}>{err}</div>}
-      <div className="pv3-msg__compose pv3-msg__compose--end">
-        <button type="submit" className="pv3-btn pv3-btn--primary" disabled={busy || !text.trim()}>
-          {busy ? <Loader2 size={15} className="pv3-spin" /> : <Send size={15} />} Send
-        </button>
+
+      <div className="im-stream im-stream--empty">
+        <p className="im-break">Ask about a shipment, a booking, rates or anything else.</p>
       </div>
-    </form>
+
+      {err && <p className="im-err">{err}</p>}
+      <Composer onSend={send} autoFocus placeholder="Message UB Freight" />
+    </div>
   )
 }
