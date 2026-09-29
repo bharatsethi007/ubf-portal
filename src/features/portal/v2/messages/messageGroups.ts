@@ -1,6 +1,6 @@
 import type { Message } from './messagesApi'
 
-export type Group = { key: string; mine: boolean; name: string | null; breakLabel: string | null; items: Message[] }
+export type Group = { key: string; mine: boolean; staff: boolean; name: string | null; breakLabel: string | null; items: Message[] }
 
 const GAP_MS = 15 * 60 * 1000
 
@@ -18,7 +18,7 @@ export function breakLabel(iso: string): string {
 
 function who(m: Message): string | null {
   if (m.mine) return null
-  if (m.kind === 'staff') return m.name ? `${m.name.split(/\s+/)[0]} · UB Freight` : 'UB Freight'
+  if (m.kind === 'staff') return m.name ? m.name.split(/\s+/)[0] : ''
   return m.name
 }
 
@@ -30,7 +30,7 @@ export function groupMessages(msgs: Message[]): Group[] {
     const gap = !prev || Date.parse(m.at) - Date.parse(prev.at) > GAP_MS
     const sameSender = prev && prev.mine === m.mine && prev.kind === m.kind && prev.name === m.name
     if (gap || !sameSender || !out.length) {
-      out.push({ key: `${m.id}`, mine: m.mine, name: who(m), breakLabel: gap ? breakLabel(m.at) : null, items: [m] })
+      out.push({ key: `${m.id}`, mine: m.mine, staff: m.kind === 'staff', name: who(m), breakLabel: gap ? breakLabel(m.at) : null, items: [m] })
     } else {
       out[out.length - 1].items.push(m)
     }

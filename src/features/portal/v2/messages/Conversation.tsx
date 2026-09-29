@@ -5,6 +5,7 @@ import { detailPath } from '../homeModel'
 import Composer from './Composer'
 import { getThread, sendMessage, type Message, type ThreadDetail } from './messagesApi'
 import { groupMessages } from './messageGroups'
+import { UbfAvatar, UbfName, VerifiedTick } from './UbfBrand'
 
 type Props = { threadId: string; onSent: () => void; onBack: () => void }
 const POLL_MS = 15_000
@@ -49,11 +50,11 @@ export default function Conversation({ threadId, onSent, onBack }: Props) {
     <div className="im-conv">
       <header className="im-conv__head">
         <button type="button" className="im-back" onClick={onBack} aria-label="Back to conversations"><ChevronLeft size={22} /></button>
-        <span className="im-avatar im-avatar--ubf" aria-hidden>UB</span>
+        <UbfAvatar size={36} />
         <div className="im-conv__title">
-          <b>{t?.subject ?? ' '}</b>
+          <b className="im-ubf">UB Freight <VerifiedTick size={15} /></b>
           <span>
-            UB Freight
+            {t?.subject ?? ' '}
             {t?.job_unique != null && <> · <Link to={detailPath({ job_unique: t.job_unique })}>View shipment</Link></>}
           </span>
         </div>
@@ -66,7 +67,9 @@ export default function Conversation({ threadId, onSent, onBack }: Props) {
           <div key={g.key}>
             {g.breakLabel && <p className="im-break">{g.breakLabel}</p>}
             <div className={`im-group im-group--${g.mine ? 'me' : 'them'}`}>
-              {!g.mine && g.name && <span className="im-name">{g.name}</span>}
+              {!g.mine && (g.staff || g.name) && (
+                <span className="im-name">{g.staff ? <UbfName prefix={g.name ? `${g.name} · ` : ''} /> : g.name}</span>
+              )}
               {g.items.map((m, i) => (
                 <p key={m.id} title={new Date(m.at).toLocaleString('en-NZ')}
                   className={`im-bubble${i === g.items.length - 1 ? ' im-bubble--tail' : ''}${m.id < 0 ? ' im-bubble--sending' : ''}`}>

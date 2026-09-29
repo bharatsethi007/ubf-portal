@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { ChevronLeft } from 'lucide-react'
 import Composer from './Composer'
 import { recentShipments, sendMessage, type ShipmentOption } from './messagesApi'
+import { VerifiedTick } from './UbfBrand'
 
 type Props = { job: number | null; onCreated: (threadId: string) => void; onClose: () => void }
 
@@ -36,7 +37,7 @@ export default function NewThread({ job, onCreated, onClose }: Props) {
       <div className="im-to">
         <label className="im-to__row">
           <span>To</span>
-          <b className="im-to__chip">UB Freight</b>
+          <b className="im-to__chip">UB Freight <VerifiedTick size={13} /></b>
         </label>
         <label className="im-to__row">
           <span>About</span>

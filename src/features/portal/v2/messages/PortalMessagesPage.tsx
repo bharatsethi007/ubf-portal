@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { MessagesSquare, Package, Search, SquarePen } from 'lucide-react'
+import { MessagesSquare, Search, SquarePen } from 'lucide-react'
 import Conversation from './Conversation'
 import NewThread from './NewThread'
 import { listThreads, when, type Thread } from './messagesApi'
+import { UbfAvatar } from './UbfBrand'
 import './messages.css'
 
 /** Customer messaging with UB Freight, laid out like iMessage: conversation list left, chat right. */
@@ -71,7 +72,7 @@ export default function PortalMessagesPage() {
                 <button key={t.id} type="button" className={`im-row${active === t.id ? ' im-row--on' : ''}${unread ? ' im-row--unread' : ''}`}
                   onClick={() => setParams({ t: t.id })}>
                   <i className="im-row__dot" aria-label={unread ? `${t.unread} unread` : undefined} />
-                  <span className={`im-avatar${tag ? '' : ' im-avatar--ubf'}`} aria-hidden>{tag ? <Package size={18} /> : 'UB'}</span>
+                  <UbfAvatar />
                   <span className="im-row__body">
                     <span className="im-row__top">
                       <b>{t.subject}</b>
