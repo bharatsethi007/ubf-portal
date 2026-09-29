@@ -3,13 +3,12 @@ import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { ArrowRight, Plane, Plus, Search, Ship, Tag } from 'lucide-react'
 import { usePorts } from '../../../hooks/usePorts'
 import GlobalMap from './GlobalMap'
-import AnalyticsSection from './AnalyticsSection'
 import { CalendarCard, ExceptionsCard } from './HomeCards'
 import ShipmentPeek from './ShipmentPeek'
 import { useCountUp } from './useCountUp'
 import { usePortalHome, type HomeShipment } from './usePortalHome'
 import {
-  addDays, calendarEvents, detailPath, exceptions, fmtDay, fmtMoney, isSea, money, placeName, progressPct,
+  addDays, calendarEvents, detailPath, exceptions, fmtDay, fmtMoney, fmtNum, isSea, money, placeName, progressPct,
   shipmentNo, shortCode, stageLabel, stageTone, titleCase, todayIso,
 } from './homeModel'
 import type { PortalOutletContext } from './PortalShellV2'
@@ -153,7 +152,20 @@ export default function PortalHomePage() {
         </div>
       </section>
 
-      <AnalyticsSection data={analytics} ports={ports} currency={m.currency} />
+      <Link to="/portal/analytics" className="pv3-card pv3-home-an pv3-rise pv3-hover" style={{ animationDelay: '.25s' }}>
+        <div>
+          <b>Analytics</b>
+          <span>Cost per kg, lanes, supplier scorecard and emissions</span>
+        </div>
+        {analytics && (
+          <div className="pv3-home-an__nums">
+            <span><i>Shipments, 12 months</i>{fmtNum(analytics.totals.shipments)}</span>
+            <span><i>Freight spend</i>{fmtMoney(analytics.totals.spend, m.currency, true)}</span>
+            <span><i>Containers</i>{fmtNum(analytics.totals.containers)}</span>
+          </div>
+        )}
+        <span className="pv3-link">Open analytics <ArrowRight size={14} /></span>
+      </Link>
     </div>
   )
 }

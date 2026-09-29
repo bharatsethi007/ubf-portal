@@ -1,0 +1,85 @@
+/* Portal products & purchase orders. Tokens from portalV2.css. */
+
+.pv3-prod__kpis { grid-template-columns: repeat(5, minmax(0, 1fr)); }
+@media (max-width: 1100px) { .pv3-prod__kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 600px) { .pv3-prod__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.pv3-prod__empty { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 10px; padding: 40px 24px; }
+.pv3-prod__empty svg { color: var(--orange); }
+.pv3-prod__empty h2 { margin: 4px 0 0; font-size: 20px; color: var(--ink); }
+.pv3-prod__empty p { max-width: 620px; margin: 0; color: var(--ink-2); line-height: 1.55; }
+
+/* Pipeline bar: not shipped / booked / in transit / arrived. */
+.pv3-prod__pipe { display: flex; gap: 2px; width: 150px; height: 8px; border-radius: 8px; overflow: hidden; background: var(--line-soft); }
+.pv3-prod__pipe span { height: 100%; transform-origin: left; animation: pv3-grow .6s var(--ease) both; }
+.pv3-prod__p-open { background: #CBD5E1; }
+.pv3-prod__p-booked { background: #93C5FD; }
+.pv3-prod__p-transit { background: #2563EB; }
+.pv3-prod__p-arrived { background: #15803D; }
+
+/* Upload */
+.pv3-up { display: flex; flex-direction: column; gap: 12px; }
+.pv3-up__row { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; justify-content: space-between; }
+.pv3-up .pv3-seg { grid-template-columns: none; grid-auto-flow: column; }
+.pv3-up .pv3-seg button { padding: 0 12px; }
+.pv3-up__drop {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 8px; padding: 26px; cursor: pointer;
+  border: 2px dashed var(--line); border-radius: 12px; color: var(--muted); font-size: 14px; transition: border-color .15s, background .15s;
+}
+.pv3-up__drop:hover { border-color: var(--blue); background: var(--blue-soft); color: var(--blue); }
+.pv3-up__drop--has { border-style: solid; border-color: var(--blue); color: var(--ink); }
+.pv3-up__preview { display: flex; flex-direction: column; gap: 10px; }
+.pv3-up__map { display: flex; flex-wrap: wrap; gap: 6px; }
+.pv3-up__map span { padding: 3px 8px; border-radius: 6px; font-size: 12px; }
+.pv3-up__ok { background: var(--green-soft); color: var(--green); }
+.pv3-up__miss { background: var(--red-soft); color: var(--red); }
+.pv3-up__done { display: flex; align-items: center; gap: 8px; padding: 10px 12px; border-radius: 10px; background: var(--green-soft); color: var(--green); font-size: 14px; font-weight: 500; }
+
+/* PO list */
+.pv3-po__bar { position: relative; width: 140px; height: 8px; border-radius: 8px; background: var(--line-soft); overflow: hidden; }
+.pv3-po__bar span { position: absolute; inset: 0 auto 0 0; border-radius: 8px; transform-origin: left; animation: pv3-grow .6s var(--ease) both; }
+.pv3-po__bar-ship { background: #93C5FD; }
+.pv3-po__bar-arr { background: #15803D; }
+.pv3-po__chip { display: inline-block; margin: 0 4px 2px 0; padding: 1px 6px; border-radius: 4px; background: var(--blue-soft); color: var(--blue); font-size: 12px; }
+.pv3-po__detail { display: flex; flex-direction: column; gap: 2px; padding: 6px 0; }
+.pv3-po__line { display: grid; grid-template-columns: minmax(200px, 1fr) minmax(0, 2fr); gap: 16px; padding: 10px 0; border-top: 1px solid var(--line-soft); white-space: normal; }
+.pv3-po__line:first-child { border-top: 0; }
+.pv3-po__sku b { display: block; color: var(--ink); }
+.pv3-po__sku > span:nth-child(2) { display: block; color: var(--ink-2); }
+.pv3-po__allocs { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.pv3-po__a { display: inline-flex; align-items: center; gap: 6px; padding: 4px 8px; border: 1px solid var(--line); border-radius: 8px; font-size: 13px; }
+.pv3-po__a a { color: var(--blue); text-decoration: none; font-weight: 600; }
+.pv3-po__a button { display: inline-flex; border: 0; background: none; color: var(--muted); cursor: pointer; padding: 0; }
+.pv3-po__a button:hover { color: var(--red); }
+.pv3-po__alloc { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.pv3-po__alloc select, .pv3-po__alloc input { height: 32px; border: 1px solid var(--line); border-radius: 8px; padding: 0 8px; font: inherit; font-size: 13px; background: #FFFFFF; }
+.pv3-po__alloc select { max-width: 320px; }
+.pv3-po__alloc input { width: 90px; }
+.pv3-po__alloc .pv3-btn { height: 32px; }
+.pv3-po__actions { display: flex; justify-content: flex-end; padding-top: 6px; }
+@media (max-width: 760px) { .pv3-po__line { grid-template-columns: minmax(0, 1fr); } }
+
+/* SKU drawer */
+.pv3-skud { position: fixed; inset: 0; z-index: 60; }
+.pv3-skud__scrim { position: absolute; inset: 0; border: 0; background: rgba(11, 26, 58, .35); animation: pv3-fade .2s both; cursor: default; }
+.pv3-skud__panel {
+  position: absolute; top: 0; right: 0; bottom: 0; width: min(520px, 100%); overflow-y: auto; padding: 22px 24px;
+  background: #FFFFFF; box-shadow: -12px 0 40px rgba(11, 26, 58, .18); animation: pv3-slide .28s var(--ease) both;
+}
+@keyframes pv3-slide { from { transform: translateX(30px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes pv3-fade { from { opacity: 0; } to { opacity: 1; } }
+.pv3-skud__head { display: flex; justify-content: space-between; gap: 12px; margin-bottom: 16px; }
+.pv3-skud__head h2 { margin: 4px 0 2px; font-size: 18px; color: var(--ink); }
+.pv3-skud__h3 { margin: 20px 0 8px; font-size: 13px; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.pv3-sku__flow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; margin-bottom: 14px; }
+.pv3-sku__flow div { padding: 10px; border-radius: 10px; background: var(--line-soft); }
+.pv3-sku__flow span { display: block; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pv3-sku__flow b { font-size: 18px; color: var(--navy); font-variant-numeric: tabular-nums; }
+.pv3-sku__lines { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 10px; }
+.pv3-sku__lines > li { padding: 10px 12px; border: 1px solid var(--line); border-radius: 10px; }
+.pv3-sku__po { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; font-size: 13px; color: var(--ink-2); }
+.pv3-sku__ship { display: grid; grid-template-columns: 110px 90px auto 1fr; align-items: center; gap: 8px; margin-top: 8px; padding: 6px 8px; border-radius: 8px; background: #F8FAFC; text-decoration: none; color: var(--ink-2); font-size: 13px; }
+.pv3-sku__ship:hover { background: var(--blue-soft); }
+.pv3-sku__ship .pv3-cell-sub { margin: 0; }
+.pv3-prod__legend { font-size: 12px; }
+.pv3-prod__legend i { animation: none !important; }

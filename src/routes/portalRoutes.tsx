@@ -8,6 +8,8 @@ import PortalShipmentDetailV3 from '../features/portal/v2/detail/PortalShipmentD
 import PortalBookingsPage from '../features/portal/v2/bookings/PortalBookingsPage'
 import BookingRequestPage from '../features/portal/v2/bookings/BookingRequestPage'
 import PortalRatesPage from '../features/portal/v2/rates/PortalRatesPage'
+import PortalAnalyticsPage from '../features/portal/v2/analytics/PortalAnalyticsPage'
+import PortalProductsPage from '../features/portal/v2/products/PortalProductsPage'
 import PortalShipmentsV3 from '../features/portal/v2/shipments/PortalShipmentsV3'
 import WhatsAppSettingsPage from '../features/portal/pages/WhatsAppSettingsPage'
 import PortalStubPage from '../features/portal/stubs/PortalStubPage'
@@ -38,6 +40,8 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route path="bookings" element={<PortalBookingsPage />} />
           <Route path="bookings/new" element={<BookingRequestPage />} />
           <Route path="rates" element={<PortalRatesPage />} />
+          <Route path="analytics" element={<PortalAnalyticsPage />} />
+          <Route path="products" element={<PortalProductsPage />} />
           <Route path="quotes" element={<Navigate to="/portal/rates" replace />} />
           <Route path="billing" element={<PortalStubPage title="Billing" />} />
           <Route path="settings/whatsapp" element={<WhatsAppSettingsPage />} />

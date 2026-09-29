@@ -7,6 +7,8 @@ const TABS = [
   { to: '/portal', label: 'Home', end: true },
   { to: '/portal/shipments', label: 'Shipments' },
   { to: '/portal/bookings', label: 'Bookings' },
+  { to: '/portal/products', label: 'Products' },
+  { to: '/portal/analytics', label: 'Analytics' },
   { to: '/portal/billing', label: 'Billing' },
   { to: '/portal/rates', label: 'Rates' },
 ]

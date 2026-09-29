@@ -1,0 +1,54 @@
+/* Portal analytics page. Tokens from portalV2.css. */
+
+.pv3-an__range { grid-template-columns: repeat(4, 1fr); min-width: 220px; }
+.pv3-an__kpis { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+@media (max-width: 1200px) { .pv3-an__kpis { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+@media (max-width: 640px) { .pv3-an__kpis { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+
+.pv3-an__delta { display: inline-flex; align-items: center; gap: 1px; margin-right: 6px; padding: 0 5px; border-radius: 999px; font-size: 11px; font-weight: 600; }
+.pv3-an__delta--good { background: var(--green-soft); color: var(--green); }
+.pv3-an__delta--bad { background: var(--red-soft); color: var(--red); }
+
+.pv3-an__insights { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 12px; }
+.pv3-an__insight { display: flex; gap: 12px; padding: 14px 16px; border-left: 3px solid var(--blue); }
+.pv3-an__insight b { display: block; font-size: 14px; color: var(--ink); }
+.pv3-an__insight p { margin: 3px 0 0; font-size: 13px; line-height: 1.45; color: var(--ink-2); }
+.pv3-an__iico { width: 30px; height: 30px; flex: none; border-radius: 8px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); }
+.pv3-an__insight--good { border-left-color: var(--green); }
+.pv3-an__insight--good .pv3-an__iico { background: var(--green-soft); color: var(--green); }
+.pv3-an__insight--watch { border-left-color: var(--amber); }
+.pv3-an__insight--watch .pv3-an__iico { background: var(--amber-soft); color: var(--amber); }
+
+.pv3-an__grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+@media (max-width: 900px) { .pv3-an__grid { grid-template-columns: minmax(0, 1fr); } }
+.pv3-an__chead { display: flex; align-items: flex-start; justify-content: space-between; gap: 12px; margin-bottom: 6px; }
+.pv3-an__chead h2 { margin: 0; font-size: 15px; font-weight: 600; color: var(--ink); }
+.pv3-an__chead .pv3-muted { font-size: 12px; }
+.pv3-an__cval { font-size: 20px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; letter-spacing: -.01em; }
+
+.pv3-an__table td { vertical-align: middle; }
+.pv3-an__static { cursor: default !important; }
+.pv3-an__lane { display: flex; align-items: center; gap: 10px; color: var(--muted); }
+.pv3-an__lane b { color: var(--ink); font-size: 13px; }
+.pv3-an__nbar { display: flex; align-items: center; gap: 8px; min-width: 110px; }
+.pv3-an__nbar span { width: 26px; text-align: right; font-variant-numeric: tabular-nums; color: var(--ink); font-weight: 600; }
+.pv3-an__nbar i { flex: 1; height: 6px; border-radius: 6px; background: var(--line-soft); overflow: hidden; }
+.pv3-an__nbar b { display: block; height: 100%; border-radius: 6px; background: #2563EB; transform-origin: left; animation: pv3-grow .7s var(--ease) both; }
+.pv3-an__pct { display: inline-block; padding: 1px 8px; border-radius: 999px; font-size: 12px; font-weight: 600; }
+.pv3-an__pct--green { background: var(--green-soft); color: var(--green); }
+.pv3-an__pct--amber { background: var(--amber-soft); color: var(--amber); }
+.pv3-an__pct--red { background: var(--red-soft); color: var(--red); }
+.pv3-an__party { display: block; max-width: 240px; overflow: hidden; text-overflow: ellipsis; color: var(--ink); font-weight: 600; }
+
+.pv3-an__two { display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr); gap: 16px; }
+@media (max-width: 900px) { .pv3-an__two { grid-template-columns: minmax(0, 1fr); } }
+.pv3-an__delays { list-style: none; margin: 0; padding: 0 0 8px; }
+.pv3-an__delays a { display: grid; grid-template-columns: 64px 1fr; column-gap: 12px; padding: 10px 0; border-top: 1px solid var(--line-soft); text-decoration: none; color: var(--ink-2); font-size: 13px; }
+.pv3-an__delays b { grid-row: span 2; align-self: center; color: var(--red); font-size: 15px; }
+.pv3-an__none { padding: 6px 0 14px; }
+.pv3-an__cta { display: flex; flex-direction: column; align-items: flex-start; gap: 10px; padding: 20px; background: linear-gradient(135deg, #0B1A3A, #13254F); color: #CBD5E1; }
+.pv3-an__cta svg:first-child { color: var(--orange); }
+.pv3-an__cta b { color: #FFFFFF; font-size: 16px; }
+.pv3-an__cta p { margin: 4px 0 0; font-size: 13px; line-height: 1.5; }
+.pv3-an__cta .pv3-btn--primary { background: var(--orange); color: var(--navy); }
+.pv3-an__foot { display: flex; align-items: center; gap: 6px; }

@@ -519,3 +519,12 @@ button.pv3-exc__row { width: calc(100% + 12px); border: 0; background: transpare
 .pv3-bdetail { display: flex; flex-direction: column; gap: 14px; padding: 14px 16px; background: #FFFFFF; border: 1px solid var(--line-soft); border-radius: 10px; animation: pv3-drop .25s var(--ease) both; }
 .pv3-chev { color: var(--faint); transition: transform .2s var(--ease); }
 .pv3-chev--open { transform: rotate(180deg); }
+
+/* Home: analytics teaser */
+.pv3-home-an { display: flex; flex-wrap: wrap; align-items: center; gap: 16px 32px; padding: 18px 20px; text-decoration: none; color: var(--ink-2); }
+.pv3-home-an b { display: block; font-size: 15px; color: var(--ink); }
+.pv3-home-an > div:first-child span { font-size: 13px; color: var(--muted); }
+.pv3-home-an__nums { display: flex; flex-wrap: wrap; gap: 28px; }
+.pv3-home-an__nums span { display: flex; flex-direction: column; font-size: 18px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
+.pv3-home-an__nums i { font-style: normal; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.pv3-home-an .pv3-link { margin-left: auto; }
