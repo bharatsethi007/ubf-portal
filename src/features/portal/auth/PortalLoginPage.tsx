@@ -5,6 +5,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../../supabase'
 import '../layout/portalTheme.css'
 import './portalLoginPage.css'
+import LoginShowcase from './showcase/LoginShowcase'
 
 type Props = {
   session: Session | null
@@ -40,72 +41,78 @@ export default function PortalLoginPage({ session, authReady }: Props) {
 
   return (
     <div className="portal-root portal-login">
-      <div className="portal-login__form-inner">
-        <h1 className="portal-login__heading">Sign in to your portal</h1>
-        <p className="portal-login__sub">
-          Track your shipments, bookings and invoices in one place.
-        </p>
+      <section className="portal-login__form-side">
+        <img src="/ub-freight-logo-ink.png" alt="UB Freight" className="portal-login__brand" />
+        <div className="portal-login__form-inner">
+          <h1 className="portal-login__heading">Sign in to your portal</h1>
+          <p className="portal-login__sub">
+            Track your shipments, bookings and invoices in one place.
+          </p>
 
-        <form className="portal-login__form" onSubmit={submit}>
-          <label className="portal-login__label">
-            Email
-            <input
-              type="email"
-              className="portal-login__input"
-              autoComplete="username"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
-          </label>
-
-          <label className="portal-login__label">
-            Password
-            <span className="portal-login__pw-wrap">
+          <form className="portal-login__form" onSubmit={submit}>
+            <label className="portal-login__label">
+              Email
               <input
-                type={showPassword ? 'text' : 'password'}
+                type="email"
                 className="portal-login__input"
-                autoComplete="current-password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
+                autoComplete="username"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
               />
-              <button
-                type="button"
-                className="portal-login__pw-toggle"
-                aria-label={showPassword ? 'Hide password' : 'Show password'}
-                onClick={() => setShowPassword((v) => !v)}
-              >
-                {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
-              </button>
-            </span>
-          </label>
+            </label>
 
-          {error && <p className="portal-login__error" role="alert">{error}</p>}
+            <label className="portal-login__label">
+              Password
+              <span className="portal-login__pw-wrap">
+                <input
+                  type={showPassword ? 'text' : 'password'}
+                  className="portal-login__input"
+                  autoComplete="current-password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                />
+                <button
+                  type="button"
+                  className="portal-login__pw-toggle"
+                  aria-label={showPassword ? 'Hide password' : 'Show password'}
+                  onClick={() => setShowPassword((v) => !v)}
+                >
+                  {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                </button>
+              </span>
+            </label>
+
+            {error && <p className="portal-login__error" role="alert">{error}</p>}
+
+            <button
+              type="submit"
+              className="portal-btn-primary portal-login__submit"
+              disabled={busy || !email.trim() || !password}
+            >
+              {busy ? 'Signing in…' : 'Sign in'}
+            </button>
+          </form>
 
           <button
-            type="submit"
-            className="portal-btn-primary portal-login__submit"
-            disabled={busy || !email.trim() || !password}
+            type="button"
+            className="portal-login__forgot"
+            onClick={() => setForgotOpen((v) => !v)}
           >
-            {busy ? 'Signing in…' : 'Sign in'}
+            Forgot password?
           </button>
-        </form>
+          {forgotOpen && (
+            <p className="portal-login__forgot-note">
+              Contact UB Freight to reset your password. Self-service reset is coming soon.
+            </p>
+          )}
 
-        <button
-          type="button"
-          className="portal-login__forgot"
-          onClick={() => setForgotOpen((v) => !v)}
-        >
-          Forgot password?
-        </button>
-        {forgotOpen && (
-          <p className="portal-login__forgot-note">
-            Contact UB Freight to reset your password. Self-service reset is coming soon.
+          <p className="portal-login__footer">
+            Need access? Contact your UB Freight representative.
           </p>
-        )}
-
-        <p className="portal-login__footer">
-          Need access? Contact your UB Freight representative.
-        </p>
+        </div>
+      </section>
+      <div className="portal-login__visual">
+        <LoginShowcase />
       </div>
     </div>
   )
