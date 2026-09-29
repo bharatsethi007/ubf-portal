@@ -18,12 +18,28 @@ function daysBetween(a: string, b: string): number {
   return Math.round((new Date(`${b.slice(0, 10)}T00:00:00`).getTime() - new Date(`${a.slice(0, 10)}T00:00:00`).getTime()) / DAY)
 }
 
-export function shipmentNo(s: { job_no: string | null; house_bill: string | null; shipment_no: string | null; job_unique: number }): string {
-  return String(s.job_no ?? s.house_bill ?? s.shipment_no ?? `#${s.job_unique}`)
+type NoFields = { module?: string | null; job_no: string | number | null; house_bill: string | null; shipment_no: string | number | null; job_unique: number }
+
+/**
+ * UBF shipment number as staff use it.
+ * Exports: job number (e.g. 124285). Imports: module + shipment number (e.g. FIS-2140),
+ * with the house index appended when a shipment holds several houses (FIS-2140/2).
+ */
+export function shipmentNo(s: NoFields): string {
+  const mod = (s.module ?? '').toUpperCase()
+  if (mod.startsWith('FI') && s.shipment_no != null) {
+    const house = Number(s.job_no ?? 0)
+    return `${mod}-${s.shipment_no}${house > 1 ? `/${house}` : ''}`
+  }
+  if (s.job_no != null) return String(s.job_no)
+  if (s.shipment_no != null) return `${mod || 'SHP'}-${s.shipment_no}`
+  return s.house_bill ?? `#${s.job_unique}`
 }
 
-export function detailPath(s: HomeShipment): string {
-  return `/portal/shipments/${encodeURIComponent(shipmentNo(s))}`
+/** Always link by the unique id; shipment numbers can repeat across modules. */
+export function detailPath(s: { job_unique: number }, tab?: string): string {
+  const base = `/portal/shipments/${encodeURIComponent(`#${s.job_unique}`)}`
+  return tab ? `${base}?tab=${encodeURIComponent(tab)}` : base
 }
 
 export function fmtDay(iso: string | null | undefined): string {
@@ -173,6 +189,7 @@ export function fmtNum(n: number, compact = false): string {
 // ---------- exceptions ----------
 export type Exception = {
   key: string
+  id?: number
   tone: 'red' | 'amber' | 'blue'
   kind: string
   title: string
@@ -188,11 +205,11 @@ export function exceptions(pool: HomeShipment[], active: HomeShipment[], m: Mone
     const lane = `${shortCode(s.origin)} → ${shortCode(s.destination)}`
     if (s.stage === 2 && s.eta && s.eta < today) {
       const late = daysBetween(s.eta, today)
-      out.push({ key: `late-${s.job_unique}`, tone: 'red', kind: 'Delayed', title: `${no} past ETA by ${late} ${late === 1 ? 'day' : 'days'}`,
+      out.push({ key: `late-${s.job_unique}`, id: s.job_unique, tone: 'red', kind: 'Delayed', title: `${no} past ETA by ${late} ${late === 1 ? 'day' : 'days'}`,
         sub: `${lane} · was due ${fmtDay(s.eta)} at ${placeName(s.destination, ports)}`, to: detailPath(s), sort: 100 + late })
     } else if (s.stage === 1 && s.etd && s.etd < addDays(today, -2) && s.is_active) {
       const late = daysBetween(s.etd, today)
-      out.push({ key: `dep-${s.job_unique}`, tone: 'amber', kind: 'Departure', title: `${no} not confirmed departed`,
+      out.push({ key: `dep-${s.job_unique}`, id: s.job_unique, tone: 'amber', kind: 'Departure', title: `${no} not confirmed departed`,
         sub: `${lane} · planned ${fmtDay(s.etd)}${s.vessel_flight ? ` on ${s.vessel_flight}` : ''}`, to: detailPath(s), sort: 50 + late })
     }
   }
@@ -209,7 +226,7 @@ export function exceptions(pool: HomeShipment[], active: HomeShipment[], m: Mone
 }
 
 // ---------- calendar ----------
-export type CalEvent = { key: string; type: 'dep' | 'arr'; date: string; no: string; place: string; to: string; sea: boolean }
+export type CalEvent = { key: string; id: number; type: 'dep' | 'arr'; date: string; no: string; place: string; to: string; sea: boolean }
 
 export function calendarEvents(pool: HomeShipment[], ports: PortMap): CalEvent[] {
   const out: CalEvent[] = []
@@ -217,8 +234,8 @@ export function calendarEvents(pool: HomeShipment[], ports: PortMap): CalEvent[]
     const no = shipmentNo(s)
     const dep = s.departed ?? s.etd
     const arr = s.arrived ?? s.eta
-    if (dep) out.push({ key: `d${s.job_unique}`, type: 'dep', date: dep.slice(0, 10), no, place: placeName(s.origin, ports), to: detailPath(s), sea: isSea(s) })
-    if (arr) out.push({ key: `a${s.job_unique}`, type: 'arr', date: arr.slice(0, 10), no, place: placeName(s.destination, ports), to: detailPath(s), sea: isSea(s) })
+    if (dep) out.push({ key: `d${s.job_unique}`, id: s.job_unique, type: 'dep', date: dep.slice(0, 10), no, place: placeName(s.origin, ports), to: detailPath(s), sea: isSea(s) })
+    if (arr) out.push({ key: `a${s.job_unique}`, id: s.job_unique, type: 'arr', date: arr.slice(0, 10), no, place: placeName(s.destination, ports), to: detailPath(s), sea: isSea(s) })
   }
   return out
 }

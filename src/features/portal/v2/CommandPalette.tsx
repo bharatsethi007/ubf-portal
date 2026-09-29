@@ -3,10 +3,11 @@ import { useNavigate } from 'react-router-dom'
 import { CornerDownLeft, FileText, Plane, Plus, Receipt, Search, Ship } from 'lucide-react'
 import { supabase } from '../../../supabase'
 import { usePorts } from '../../../hooks/usePorts'
-import { placeName, shipmentNo, titleCase } from './homeModel'
+import { detailPath, placeName, shipmentNo, titleCase } from './homeModel'
 
 type Row = {
   job_unique: number
+  module: string | null
   job_no: string | null
   house_bill: string | null
   shipment_no: string | null
@@ -53,7 +54,7 @@ export default function CommandPalette({ open, onClose }: Props) {
     if (cache) return
     void supabase
       .from('portal_shipments')
-      .select('job_unique, job_no, house_bill, shipment_no, customer_ref, goods_desc, consignee_name, destination, mode, status')
+      .select('job_unique, module, job_no, house_bill, shipment_no, customer_ref, goods_desc, consignee_name, destination, mode, status')
       .order('doc_date', { ascending: false })
       .limit(1500)
       .then(({ data }) => {
@@ -67,7 +68,7 @@ export default function CommandPalette({ open, onClose }: Props) {
     const ships = rows
       .filter((r) => {
         if (!needle) return true
-        const hay = [r.job_no, r.house_bill, r.shipment_no, r.customer_ref, r.goods_desc, r.consignee_name, r.destination, placeName(r.destination, ports)]
+        const hay = [shipmentNo(r), r.job_no, r.house_bill, r.shipment_no, r.customer_ref, r.goods_desc, r.consignee_name, r.destination, placeName(r.destination, ports)]
           .filter(Boolean).join(' ').toLowerCase()
         return hay.includes(needle)
       })
@@ -77,7 +78,7 @@ export default function CommandPalette({ open, onClose }: Props) {
         kind: 'Shipment',
         title: `${shipmentNo(r)}${r.goods_desc ? ` · ${titleCase(r.goods_desc).slice(0, 48)}` : ''}`,
         sub: [titleCase(r.consignee_name), placeName(r.destination, ports), r.customer_ref ? `PO ${r.customer_ref}` : '', r.status].filter(Boolean).join(' · '),
-        to: `/portal/shipments/${encodeURIComponent(shipmentNo(r))}`,
+        to: detailPath(r),
         icon: (r.mode ?? '').toLowerCase() === 'sea' ? 'sea' : 'air',
       }))
     const acts = ACTIONS.filter((a) => !needle || `${a.title} ${a.sub}`.toLowerCase().includes(needle))

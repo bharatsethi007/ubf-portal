@@ -1,9 +1,11 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Hash, Receipt } from 'lucide-react'
+import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Hash, Plane, Receipt, Ship } from 'lucide-react'
 import { fmtDayLong, monthGrid, todayIso, type CalEvent, type Exception } from './homeModel'
 
-export function ExceptionsCard({ items, loading }: { items: Exception[]; loading: boolean }) {
+type ExProps = { items: Exception[]; loading: boolean; selected: number | null; onSelect: (id: number) => void }
+
+export function ExceptionsCard({ items, loading, selected, onSelect }: ExProps) {
   const [all, setAll] = useState(false)
   const shown = all ? items : items.slice(0, 5)
   const icon = (e: Exception) => {
@@ -27,18 +29,27 @@ export function ExceptionsCard({ items, loading }: { items: Exception[]; loading
         </div>
       ) : (
         <ul className="pv3-exc__list">
-          {shown.map((e, i) => (
-            <li key={e.key} style={{ animationDelay: `${0.2 + i * 0.06}s` }}>
-              <Link to={e.to} className="pv3-exc__row">
+          {shown.map((e, i) => {
+            const inner = (
+              <>
                 <span className={`pv3-exc__icon pv3-exc__icon--${e.tone}`}>{icon(e)}</span>
                 <span className="pv3-exc__text">
                   <span className="pv3-exc__title">{e.title}</span>
                   <span className="pv3-exc__sub">{e.sub}</span>
                 </span>
                 <span className={`pv3-tag pv3-tag--${e.tone}`}>{e.kind}</span>
-              </Link>
-            </li>
-          ))}
+              </>
+            )
+            return (
+              <li key={e.key} style={{ animationDelay: `${0.2 + i * 0.06}s` }}>
+                {e.id != null ? (
+                  <button type="button" className={`pv3-exc__row${selected === e.id ? ' pv3-exc__row--on' : ''}`} onClick={() => onSelect(e.id!)}>{inner}</button>
+                ) : (
+                  <Link to={e.to} className="pv3-exc__row">{inner}</Link>
+                )}
+              </li>
+            )
+          })}
         </ul>
       )}
       {items.length > 5 && (
@@ -50,11 +61,10 @@ export function ExceptionsCard({ items, loading }: { items: Exception[]; loading
   )
 }
 
-export function CalendarCard({ events }: { events: CalEvent[] }) {
+type CalProps = { events: CalEvent[]; selected: number | null; onSelect: (id: number) => void; statusOf: (id: number) => { label: string; tone: string } }
+
+export function CalendarCard({ events, selected, onSelect, statusOf }: CalProps) {
   const today = todayIso()
-  const [cursor, setCursor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } })
-  const [picked, setPicked] = useState<string>(today)
-  const cells = useMemo(() => monthGrid(cursor.y, cursor.m), [cursor])
   const byDay = useMemo(() => {
     const m = new Map<string, CalEvent[]>()
     for (const e of events) {
@@ -64,6 +74,22 @@ export function CalendarCard({ events }: { events: CalEvent[] }) {
     }
     return m
   }, [events])
+
+  // Open on today, or the next day that has something on it.
+  const firstUseful = useMemo(() => {
+    if (byDay.has(today)) return today
+    const dates = [...byDay.keys()].sort()
+    return dates.find((d) => d >= today) ?? dates[dates.length - 1] ?? today
+  }, [byDay, today])
+
+  const [picked, setPicked] = useState<string>(today)
+  const [cursor, setCursor] = useState(() => { const d = new Date(); return { y: d.getFullYear(), m: d.getMonth() } })
+  useEffect(() => {
+    setPicked(firstUseful)
+    setCursor({ y: Number(firstUseful.slice(0, 4)), m: Number(firstUseful.slice(5, 7)) - 1 })
+  }, [firstUseful])
+
+  const cells = useMemo(() => monthGrid(cursor.y, cursor.m), [cursor])
   const title = new Date(cursor.y, cursor.m, 1).toLocaleDateString('en-NZ', { month: 'long', year: 'numeric' })
   const shift = (n: number) => setCursor((c) => {
     const d = new Date(c.y, c.m + n, 1)
@@ -92,8 +118,10 @@ export function CalendarCard({ events }: { events: CalEvent[] }) {
           const dep = list.filter((e) => e.type === 'dep').length
           const arr = list.length - dep
           return (
-            <button key={c.iso} type="button" onClick={() => setPicked(c.iso)}
-              className={['pv3-cal__day', c.inMonth ? '' : 'pv3-cal__day--out', c.iso === today ? 'pv3-cal__day--today' : '', c.iso === picked ? 'pv3-cal__day--on' : ''].join(' ')}>
+            <button key={c.iso} type="button"
+              onClick={() => { setPicked(c.iso); if (list.length === 1) onSelect(list[0].id) }}
+              aria-label={`${fmtDayLong(c.iso)}: ${dep} departures, ${arr} arrivals`}
+              className={['pv3-cal__day', c.inMonth ? '' : 'pv3-cal__day--out', c.iso === today ? 'pv3-cal__day--today' : '', c.iso === picked ? 'pv3-cal__day--on' : '', list.length ? 'pv3-cal__day--busy' : ''].join(' ')}>
               <span className="pv3-cal__num">{Number(c.iso.slice(8))}</span>
               <span className="pv3-cal__marks">
                 {dep > 0 && <span className="pv3-cal__pill pv3-cal__pill--dep">{dep}</span>}
@@ -104,16 +132,23 @@ export function CalendarCard({ events }: { events: CalEvent[] }) {
         })}
       </div>
       <div className="pv3-cal__day-list">
-        <div className="pv3-cal__day-title">{fmtDayLong(picked)}</div>
+        <div className="pv3-cal__day-title">{fmtDayLong(picked)}{picked === today ? ' · today' : ''}</div>
         {dayList.length === 0 ? (
-          <p className="pv3-muted">Nothing scheduled.</p>
-        ) : dayList.slice(0, 6).map((e) => (
-          <Link key={e.key} to={e.to} className="pv3-cal__event">
-            <i className={`pv3-dot pv3-dot--${e.type}`} />
-            <span className="pv3-mono">{e.no}</span>
-            <span className="pv3-muted">{e.type === 'dep' ? 'departs' : 'arrives'} {e.place}</span>
-          </Link>
-        ))}
+          <p className="pv3-muted">Nothing scheduled this day.</p>
+        ) : dayList.map((e) => {
+          const st = statusOf(e.id)
+          return (
+            <button key={e.key} type="button" className={`pv3-cal__event${selected === e.id ? ' pv3-cal__event--on' : ''}`} onClick={() => onSelect(e.id)}>
+              <span className={`pv3-cal__type pv3-cal__type--${e.type}`}>{e.sea ? <Ship size={13} /> : <Plane size={13} />}</span>
+              <span className="pv3-cal__eventmain">
+                <span className="pv3-mono pv3-strong">{e.no}</span>
+                <span className="pv3-muted">{e.type === 'dep' ? 'Departs' : 'Arrives'} {e.place}</span>
+              </span>
+              <span className={`pv3-pill pv3-pill--${st.tone}`}>{st.label}</span>
+              <ChevronRight size={14} className="pv3-drawer__chev" />
+            </button>
+          )
+        })}
       </div>
     </section>
   )

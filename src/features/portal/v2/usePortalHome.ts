@@ -3,6 +3,10 @@ import { supabase } from '../../../supabase'
 
 export type HomeShipment = {
   job_unique: number
+  module: string | null
+  master_bill: string | null
+  pack_qty: number | null
+  pack_type: string | null
   job_no: string | null
   house_bill: string | null
   shipment_no: string | null
@@ -46,7 +50,7 @@ export type Analytics = {
   ontime: { n: number; on_time: number }
 }
 
-const SHIP_COLS = `job_unique, job_no, house_bill, shipment_no, mode, direction, origin, destination,
+const SHIP_COLS = `job_unique, module, job_no, house_bill, shipment_no, master_bill, pack_qty, pack_type, mode, direction, origin, destination,
   vessel_flight, etd, eta, departed, arrived, doc_date, consignee_name, shipper_name, customer_ref,
   goods_desc, load_type, weight_kg, volume_m3, status, stage, is_active`
 

@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useParams } from 'react-router-dom'
+import { useParams, useSearchParams } from 'react-router-dom'
 import { usePorts } from '../../../hooks/usePorts'
 import ShipmentDetailHeader from './ShipmentDetailHeader'
 import { DETAIL_TABS, type DetailTab } from './portalShipmentDetailTypes'
@@ -17,7 +17,9 @@ export default function PortalShipmentDetailPage() {
   const { jobNo } = useParams()
   const { ports } = usePorts()
   const { data, loading, error } = usePortalShipment(jobNo)
-  const [tab, setTab] = useState<DetailTab>('Summary')
+  const [params] = useSearchParams()
+  const initial = params.get('tab')
+  const [tab, setTab] = useState<DetailTab>((DETAIL_TABS as readonly string[]).includes(initial ?? '') ? (initial as DetailTab) : 'Summary')
 
   if (loading) {
     return <p className="portal-empty">Loading shipment…</p>

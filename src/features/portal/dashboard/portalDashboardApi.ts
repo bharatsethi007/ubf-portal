@@ -6,6 +6,7 @@ import {
   isArrived, isAtOrigin, isBooked, isDeparting, isInTransit, mapShipmentStatus, shipmentDirection,
 } from './portalStatus'
 import { buildTradeKpis, type TradeKpiMetrics } from './portalTradeKpi'
+import { detailPath, shipmentNo } from '../v2/homeModel'
 
 export type { CalendarDay, CalendarEvent } from './portalCalendar'
 export { buildCalendar } from './portalCalendar'
@@ -247,13 +248,12 @@ export function shipmentDisplayName(r: PortalShipmentRow): string {
 }
 
 export function shipmentTrackingId(r: PortalShipmentRow): string {
-  const id = r.job_no ?? r.house_bill ?? r.shipment_no ?? `#${r.job_unique}`
-  return String(id)
+  return shipmentNo(r)
 }
 
-/** Absolute path for React Router: /portal/shipments/:jobNo */
+/** Absolute path for React Router, keyed by the unique job id. */
 export function shipmentDetailPath(r: PortalShipmentRow): string {
-  return `/portal/shipments/${encodeURIComponent(shipmentTrackingId(r))}`
+  return detailPath(r)
 }
 
 export function shipmentCargoLine(r: PortalShipmentRow): string {

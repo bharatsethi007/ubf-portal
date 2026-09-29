@@ -1,10 +1,11 @@
-import { useCallback, useMemo } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
 import { ArrowRight, Plane, Plus, Search, Ship } from 'lucide-react'
 import { usePorts } from '../../../hooks/usePorts'
 import GlobalMap from './GlobalMap'
 import AnalyticsSection from './AnalyticsSection'
 import { CalendarCard, ExceptionsCard } from './HomeCards'
+import ShipmentPeek from './ShipmentPeek'
 import { useCountUp } from './useCountUp'
 import { usePortalHome, type HomeShipment } from './usePortalHome'
 import {
@@ -52,6 +53,19 @@ export default function PortalHomePage() {
   const cOpen = useCountUp(loading ? 0 : m.open)
 
   const open = useCallback((s: HomeShipment) => navigate(detailPath(s)), [navigate])
+
+  const byId = useMemo(() => new Map(pool.map((s) => [s.job_unique, s])), [pool])
+  const [picked, setPicked] = useState<number | null>(null)
+  const peekRef = useRef<HTMLDivElement>(null)
+  const pickedShip = picked != null ? byId.get(picked) ?? null : null
+  const select = useCallback((id: number) => setPicked((cur) => (cur === id ? null : id)), [])
+  useEffect(() => {
+    if (pickedShip) peekRef.current?.scrollIntoView({ behavior: 'smooth', block: 'nearest' })
+  }, [pickedShip])
+  const statusOf = useCallback((id: number) => {
+    const s = byId.get(id)
+    return s ? { label: stageLabel(s), tone: stageTone(s) } : { label: '—', tone: 'grey' }
+  }, [byId])
   const company = titleCase(account?.displayName) || 'there'
 
   return (
@@ -77,12 +91,20 @@ export default function PortalHomePage() {
       </div>
 
       <div className="pv3-rise" style={{ animationDelay: '.1s' }}>
-        <GlobalMap active={active} lanes={analytics?.lanes ?? []} ports={ports} onOpen={open} />
+        <GlobalMap active={active} pool={pool} lanes={analytics?.lanes ?? []} ports={ports} />
       </div>
 
       <div className="pv3-split">
-        <ExceptionsCard items={exc} loading={loading} />
-        <CalendarCard events={events} />
+        <ExceptionsCard items={exc} loading={loading} selected={picked} onSelect={select} />
+        <CalendarCard events={events} selected={picked} onSelect={select} statusOf={statusOf} />
+      </div>
+
+      <div ref={peekRef} className={`pv3-peek-panel${pickedShip ? ' pv3-peek-panel--open' : ''}`} aria-live="polite">
+        {pickedShip && (
+          <div className="pv3-card pv3-peek-panel__inner" key={pickedShip.job_unique}>
+            <ShipmentPeek s={pickedShip} ports={ports} onClose={() => setPicked(null)} />
+          </div>
+        )}
       </div>
 
       <section className="pv3-card pv3-table-card pv3-rise" style={{ animationDelay: '.2s' }}>
