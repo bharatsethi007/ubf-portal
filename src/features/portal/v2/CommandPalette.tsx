@@ -38,8 +38,9 @@ const ACTIONS: Result[] = [
   { key: 'a-book', kind: 'Action', title: 'Book a new shipment', sub: 'Air or sea across the Pacific', to: '/portal/bookings/new', icon: 'book' },
   { key: 'a-an', kind: 'Action', title: 'Analytics', sub: 'Spend, cost per kg, lanes, suppliers, emissions', to: '/portal/analytics', icon: 'doc' },
   { key: 'a-sku', kind: 'Action', title: 'Products & purchase orders', sub: 'Where is my SKU, open POs, lead times', to: '/portal/products', icon: 'doc' },
-  { key: 'a-rates', kind: 'Action', title: 'Search rates', sub: 'Live prices on our published lanes', to: '/portal/rates', icon: 'doc' },
-  { key: 'a-quote', kind: 'Action', title: 'Request a quote', sub: 'Get a price for any lane', to: '/portal/rates', icon: 'doc' },
+  { key: 'a-rates', kind: 'Action', title: 'Search rates', sub: 'Live prices on our published lanes', to: '/portal/rates?tab=search', icon: 'doc' },
+  { key: 'a-quote', kind: 'Action', title: 'Request a quote', sub: 'Get a price for any lane', to: '/portal/rates?tab=search', icon: 'doc' },
+  { key: 'a-myquotes', kind: 'Action', title: 'My quotes', sub: 'Review and approve quotes from our team', to: '/portal/rates?tab=quotes', icon: 'doc' },
 ]
 
 type Props = { open: boolean; onClose: () => void }

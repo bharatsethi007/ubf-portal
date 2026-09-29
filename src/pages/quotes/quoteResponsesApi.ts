@@ -30,6 +30,9 @@ export type QuoteResponseSummary = {
   total_buy: number | null
   net_profit: number | null
   margin_pct: number | null
+  sent_to_portal_at: string | null
+  decided_at: string | null
+  decision_note: string | null
 }
 
 export type QuoteResponseRecord = QuoteResponseHeader & {
@@ -88,7 +91,7 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
   const { data, error } = await supabase
     .from('quote_responses')
     .select(
-      'id, response_no, status, quotation_date, carrier, total_sell, total_buy, net_profit, margin_pct',
+      'id, response_no, status, quotation_date, carrier, total_sell, total_buy, net_profit, margin_pct, sent_to_portal_at, decided_at, decision_note',
     )
     .eq('quote_id', quoteId)
     .order('created_at', { ascending: true })
@@ -104,7 +107,22 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
     total_buy: row.total_buy == null ? null : Number(row.total_buy),
     net_profit: row.net_profit == null ? null : Number(row.net_profit),
     margin_pct: row.margin_pct == null ? null : Number(row.margin_pct),
+    sent_to_portal_at: row.sent_to_portal_at ?? null,
+    decided_at: row.decided_at ?? null,
+    decision_note: row.decision_note ?? null,
   }))
+}
+
+/** Publishes a priced response to the customer portal for approval. */
+export async function sendResponseToPortal(responseId: string): Promise<void> {
+  const { error } = await supabase.rpc('quote_response_send', { p_response: responseId })
+  if (error) throw new Error(error.message)
+}
+
+/** Pulls a sent response back before the customer answers. */
+export async function withdrawResponse(responseId: string): Promise<void> {
+  const { error } = await supabase.rpc('quote_response_withdraw', { p_response: responseId })
+  if (error) throw new Error(error.message)
 }
 
 export async function createQuoteResponse(quoteId: string): Promise<{ id: string }> {

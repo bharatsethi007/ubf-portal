@@ -1,11 +1,13 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Loader2, MessageSquareQuote, Plane, Search, Ship } from 'lucide-react'
 import { usePorts } from '../../../../hooks/usePorts'
 import PortPicker from '../bookings/PortPicker'
 import { CONTAINER_TYPES } from '../bookings/bookingsApi'
 import { placeName } from '../homeModel'
+import PortalQuotesTab from './PortalQuotesTab'
 import QuoteRequestPanel from './QuoteRequestPanel'
+import { listOffers } from './quotesApi'
 import RateCard from './RateCard'
 import { searchRates, type RateOption, type RateQuery } from './ratesApi'
 import './rates.css'
@@ -39,6 +41,11 @@ export default function PortalRatesPage() {
   const [err, setErr] = useState('')
   const [asking, setAsking] = useState(false)
   const set = <K extends keyof RateQuery>(k: K, v: RateQuery[K]) => setQ((s) => ({ ...s, [k]: v }))
+  const tab = params.get('tab') === 'search' || params.has('from') || params.has('rate') ? 'search' : 'quotes'
+  const [pending, setPending] = useState(0)
+  const onCount = useCallback((n: number) => setPending(n), [])
+  useEffect(() => { listOffers().then((r) => setPending(r.filter((x) => x.portal_status === 'pending').length)).catch(() => {}) }, [])
+  const goTab = (t: 'search' | 'quotes') => setParams({ tab: t }, { replace: true })
 
   async function run() {
     if (!q.origin || !q.destination) { setErr('Pick where it ships from and to.'); return }
@@ -49,7 +56,7 @@ export default function PortalRatesPage() {
       const r = await searchRates(q)
       setResults(r)
       setSearched(q)
-      setParams({ mode: q.mode, load: q.load, from: q.origin, to: q.destination, ...(q.container ? { container: q.container } : {}) }, { replace: true })
+      setParams({ tab: 'search', mode: q.mode, load: q.load, from: q.origin, to: q.destination, ...(q.container ? { container: q.container } : {}) }, { replace: true })
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Search failed')
     } finally {
@@ -76,9 +83,18 @@ export default function PortalRatesPage() {
       <div className="pv3-head pv3-rise">
         <div>
           <h1>Rates</h1>
-          <p>Live prices on our published lanes. Book at the price you see, or ask us for anything else.</p>
+          <p>{tab === 'quotes' ? 'Quotes our team priced for you. Approve to lock in the price.' : 'Live prices on our published lanes. Book at the price you see, or ask us for anything else.'}</p>
         </div>
       </div>
+
+      <div className="pv3-tabs pv3-ratetabs" role="tablist" aria-label="Rates sections">
+        <button type="button" role="tab" aria-selected={tab === 'quotes'} className={`pv3-tabs__btn${tab === 'quotes' ? ' pv3-tabs__btn--on' : ''}`} onClick={() => goTab('quotes')}>
+          My quotes{pending > 0 && <span className="pv3-tabs__n">{pending}</span>}
+        </button>
+        <button type="button" role="tab" aria-selected={tab === 'search'} className={`pv3-tabs__btn${tab === 'search' ? ' pv3-tabs__btn--on' : ''}`} onClick={() => goTab('search')}>Search rates</button>
+      </div>
+
+      {tab === 'quotes' ? <PortalQuotesTab focusId={params.get('q')} onCount={onCount} /> : <>
 
       <section className="pv3-card pv3-rsearch pv3-rise" style={{ animationDelay: '.04s' }}>
         <div className="pv3-rsearch__row">
@@ -146,6 +162,7 @@ export default function PortalRatesPage() {
           )}
         </section>
       )}
+      </>}
     </div>
   )
 }

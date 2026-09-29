@@ -1,0 +1,54 @@
+/* Portal Rates > Quotes: list of priced quotes with approve / reject. */
+.pv3-pill--amber { background: var(--amber-soft); color: var(--amber); }
+.pv3-pill--red { background: var(--red-soft); color: var(--red); }
+
+.pv3-ratetabs { margin-bottom: 4px; }
+.pv3-qflash { padding: 10px 14px; border: 1px solid #BBF7D0; background: var(--green-soft); color: var(--green); border-radius: 10px; font-size: 14px; }
+
+.pv3-qlist { display: flex; flex-direction: column; gap: 10px; margin-top: 12px; }
+.pv3-qcard { padding: 0; overflow: hidden; transition: box-shadow .2s var(--ease); }
+.pv3-qcard--open { box-shadow: var(--shadow-lg); }
+.pv3-qcard > .pv3-skel { margin: 18px; }
+.pv3-qcard__row {
+  display: grid; grid-template-columns: 150px minmax(0, 1fr) 150px 170px 20px; align-items: center; gap: 16px;
+  width: 100%; padding: 14px 18px; border: 0; background: transparent; font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+}
+.pv3-qcard__row:hover { background: var(--line-soft); }
+.pv3-qcard__id, .pv3-qcard__route { display: flex; flex-direction: column; min-width: 0; }
+.pv3-qcard__route .pv3-cell-sub { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv3-qcard__valid { font-size: 13px; }
+.pv3-qcard__price { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
+.pv3-qcard__amount { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
+.pv3-qdetail { display: flex; flex-direction: column; gap: 16px; padding: 4px 18px 18px; border-top: 1px solid var(--line-soft); animation: pv3-qin .25s var(--ease) both; }
+.pv3-qdetail .pv3-peek__facts { margin-top: 14px; }
+@keyframes pv3-qin { from { opacity: 0; transform: translateY(-4px); } to { opacity: 1; transform: none; } }
+
+.pv3-qlines { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; }
+.pv3-qlines section + section { border-top: 1px solid var(--line); }
+.pv3-qlines header { display: flex; justify-content: space-between; padding: 8px 14px; background: var(--bg); font-size: 12px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
+.pv3-qline { display: grid; grid-template-columns: minmax(0, 1fr) auto 110px; gap: 12px; padding: 8px 14px; font-size: 14px; }
+.pv3-qline + .pv3-qline { border-top: 1px solid var(--line-soft); }
+.pv3-qline > span:last-child, .pv3-qtotal span:last-child { text-align: right; font-variant-numeric: tabular-nums; }
+.pv3-qtotal { border-top: 1px solid var(--line); padding: 8px 14px; }
+.pv3-qtotal div { display: flex; justify-content: space-between; padding: 3px 0; font-size: 14px; color: var(--ink-2); }
+.pv3-qtotal__grand { font-size: 16px !important; font-weight: 600; color: var(--ink) !important; }
+
+.pv3-qnote { margin: 0; padding: 10px 14px; background: var(--bg); border-radius: 8px; font-size: 14px; color: var(--ink-2); white-space: pre-wrap; }
+.pv3-qterms p { margin: 8px 0 0; font-size: 13px; color: var(--muted); white-space: pre-wrap; }
+
+.pv3-qact { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 10px; padding-top: 14px; border-top: 1px solid var(--line-soft); }
+.pv3-qact > .pv3-muted { margin-right: auto; font-size: 13px; }
+.pv3-qconfirm { display: flex; flex-direction: column; gap: 8px; width: 100%; }
+.pv3-qconfirm label { font-size: 14px; font-weight: 500; color: var(--ink); }
+.pv3-qconfirm textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 14px; resize: vertical; }
+.pv3-qconfirm__btns { display: flex; justify-content: flex-end; align-items: center; gap: 12px; }
+
+@media (max-width: 760px) {
+  .pv3-qcard__row { grid-template-columns: minmax(0, 1fr) auto; gap: 6px 12px; }
+  .pv3-qcard__route { grid-column: 1 / -1; order: 3; }
+  .pv3-qcard__valid { order: 4; }
+  .pv3-qcard__row > .pv3-chev { display: none; }
+  .pv3-qline { grid-template-columns: minmax(0, 1fr) auto; }
+  .pv3-qline > .pv3-muted { grid-column: 1 / -1; order: 3; }
+}

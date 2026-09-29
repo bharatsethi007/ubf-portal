@@ -44,7 +44,7 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route path="rates" element={<PortalRatesPage />} />
           <Route path="analytics" element={<PortalAnalyticsPage />} />
           <Route path="products" element={<PortalProductsPage />} />
-          <Route path="quotes" element={<Navigate to="/portal/rates" replace />} />
+          <Route path="quotes" element={<Navigate to="/portal/rates?tab=quotes" replace />} />
           <Route path="billing" element={<PortalBillingPage />} />
           <Route path="settings/whatsapp" element={<Navigate to="/portal/settings/notifications" replace />} />
           <Route path="settings/notifications" element={<NotificationSettingsPage />} />

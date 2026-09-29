@@ -450,11 +450,12 @@ button.pv3-exc__row { width: calc(100% + 12px); border: 0; background: transpare
 .pv3-track--mobile { height: 320px; border-radius: 12px 12px 0 0; }
 .pv3-track__below { border-radius: 0 0 12px 12px; overflow: hidden; margin-top: -1px; }
 
-.pv3-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; }
+.pv3-tabs { display: flex; gap: 2px; border-bottom: 1px solid var(--line); overflow-x: auto; overflow-y: hidden; scrollbar-width: none; }
+.pv3-tabs::-webkit-scrollbar { display: none; }
 .pv3-tabs__btn { position: relative; display: inline-flex; align-items: center; gap: 6px; padding: 10px 14px; border: 0; background: transparent; font: inherit; font-size: 14px; font-weight: 500; color: var(--muted); cursor: pointer; white-space: nowrap; }
 .pv3-tabs__btn:hover { color: var(--ink); }
 .pv3-tabs__btn--on { color: var(--ink); }
-.pv3-tabs__btn--on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: -1px; height: 2px; background: var(--navy); border-radius: 2px; animation: pv3-grow .25s var(--ease) both; }
+.pv3-tabs__btn--on::after { content: ''; position: absolute; left: 10px; right: 10px; bottom: 0; height: 2px; background: var(--navy); border-radius: 2px; animation: pv3-grow .25s var(--ease) both; }
 .pv3-tabs__n { font-size: 11px; font-weight: 600; padding: 1px 6px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); }
 .pv3-tabpanel { min-height: 200px; }
 .pv3-tabcard { padding: 18px 20px; }

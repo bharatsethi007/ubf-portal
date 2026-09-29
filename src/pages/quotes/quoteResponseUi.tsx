@@ -1,15 +1,25 @@
 const STATUS_LABELS: Record<string, string> = {
   draft: 'Draft',
   published: 'Published',
-  sent_for_approval: 'Sent for approval',
+  sent_for_approval: 'Awaiting customer',
   approved: 'Approved',
+  rejected: 'Rejected',
+  withdrawn: 'Withdrawn',
+}
+
+const EXTRA_STYLE: Record<string, { color: string; background: string }> = {
+  rejected: { color: '#B91C1C', background: '#FEF2F2' },
+  withdrawn: { color: '#64748B', background: '#F1F5F9' },
 }
 
 export function responseStatusPill(status: string) {
   const key = status.toLowerCase().replace(/_/g, '-')
   const label = STATUS_LABELS[status] ?? status
-  return <span className={`quote-response-pill quote-response-pill--${key}`}>{label}</span>
+  return <span className={`quote-response-pill quote-response-pill--${key}`} style={EXTRA_STYLE[status]}>{label}</span>
 }
+
+/** Response can go to the customer portal. */
+export const canSendToPortal = (status: string) => status === 'draft' || status === 'published' || status === 'withdrawn'
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—'

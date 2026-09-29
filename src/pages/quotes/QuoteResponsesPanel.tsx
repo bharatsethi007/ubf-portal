@@ -1,14 +1,16 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
-import { Pencil, Trash2, Search, Plus } from 'lucide-react'
+import { Pencil, Trash2, Search, Plus, Send, Undo2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   createQuoteResponse,
   deleteQuoteResponse,
   fetchQuoteResponses,
+  sendResponseToPortal,
+  withdrawResponse,
   updateQuoteResponseHeader,
   type QuoteResponseSummary,
 } from './quoteResponsesApi'
-import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
+import { canSendToPortal, fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
 import QuoteResponseModal from './QuoteResponseModal'
 import QuoteVendorRates from './QuoteVendorRates'
 import QuoteRequestRates from './QuoteRequestRates'
@@ -98,6 +100,19 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
     }
   }
 
+  async function handlePortal(e: MouseEvent, r: QuoteResponseSummary, action: 'send' | 'withdraw') {
+    e.stopPropagation()
+    const label = r.response_no ?? 'this response'
+    if (!confirm(action === 'send' ? `Send ${label} to the customer portal for approval?` : `Withdraw ${label} from the customer portal?`)) return
+    try {
+      await (action === 'send' ? sendResponseToPortal(r.id) : withdrawResponse(r.id))
+      toast.success(action === 'send' ? 'Sent to customer portal' : 'Withdrawn from portal')
+      reload()
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed')
+    }
+  }
+
   function openEditor(responseId: string) {
     setOpenId(responseId)
   }
@@ -179,6 +194,18 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
                       {responseStatusPill(r.status)}
                     </div>
                     <div className="quote-response-card__actions">
+                      {canSendToPortal(r.status) && (
+                        <button type="button" className="quote-response-card__icon" aria-label="Send to customer portal" title="Send to customer portal"
+                          onClick={(e) => handlePortal(e, r, 'send')}>
+                          <Send size={14} />
+                        </button>
+                      )}
+                      {r.status === 'sent_for_approval' && (
+                        <button type="button" className="quote-response-card__icon" aria-label="Withdraw from portal" title="Withdraw from portal"
+                          onClick={(e) => handlePortal(e, r, 'withdraw')}>
+                          <Undo2 size={14} />
+                        </button>
+                      )}
                       <button
                         type="button"
                         className="quote-response-card__icon"
@@ -200,7 +227,14 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
                   <p className="quote-response-card__meta muted">
                     {fmtDate(r.quotation_date)}
                     {r.carrier ? ` · ${r.carrier}` : ''}
+                    {r.sent_to_portal_at ? ` · Sent to portal ${fmtDate(r.sent_to_portal_at)}` : ''}
+                    {r.decided_at ? ` · ${r.status === 'approved' ? 'Approved' : 'Rejected'} ${fmtDate(r.decided_at)}` : ''}
                   </p>
+                  {r.decision_note && (r.status === 'approved' || r.status === 'rejected') && (
+                    <p className="quote-response-card__meta" style={{ color: r.status === 'rejected' ? '#B91C1C' : '#047857' }}>
+                      Customer: {r.decision_note}
+                    </p>
+                  )}
                   <div className="quote-response-card__totals">
                     <div>Quote Total NZD {fmtResponseMoney(r.total_sell)}</div>
                     <div>Total Buy Amount {fmtResponseMoney(r.total_buy)}</div>

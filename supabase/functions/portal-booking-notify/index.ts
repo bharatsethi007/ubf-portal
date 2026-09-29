@@ -1,12 +1,14 @@
 // Portal booking emails. Called by the bookings trigger through pg_net (service role).
 //   new_request            -> module inbox (Import Sea, Export Air, ...), reply-to the requester
 //   quote_request          -> module inbox for a portal quote request (booking_id carries the quote id)
+//   quote_approved|quote_rejected -> module inbox + sender, customer answered a quote (booking_id carries the response id)
 //   confirmed|declined|in_erp -> the customer who asked, reply-to the module inbox
 // Each email goes once per booking and event (portal_booking_notifications).
 // POST { booking_id, event, dry?: true } — dry returns the rendered email without sending.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { renderNotify, type Fact, type NotifyEmail } from "./notifyEmail.ts";
+import { quoteDecisionAlert } from "./quoteDecision.ts";
 
 const CONSOLE_URL = "https://console.ubfreight.com";
 const PORTAL_URL = Deno.env.get("PORTAL_PUBLIC_URL") ?? "https://portal.ubfreight.com";
@@ -200,21 +202,24 @@ Deno.serve(async (req) => {
 
     const admin = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
     const isQuote = event === "quote_request";
-    const { data: b, error } = isQuote
+    const isDecision = event === "quote_approved" || event === "quote_rejected";
+    const { data: b, error } = isDecision
+      ? await admin.rpc("portal_quote_decision_payload", { p_response: bookingId })
+      : isQuote
       ? await admin.rpc("portal_quote_notify_payload", { p_quote: bookingId })
       : await admin.rpc("portal_booking_notify_payload", { p_booking: bookingId });
     if (error) throw error;
     if (!b) return json({ skipped: "not found" });
 
-    const isStaff = event === "new_request" || isQuote;
-    const msg = isQuote ? quoteAlert(b) : event === "new_request" ? staffAlert(b) : customerUpdate(b, event);
+    const isStaff = event === "new_request" || isQuote || isDecision;
+    const msg = isDecision ? quoteDecisionAlert(b) : isQuote ? quoteAlert(b) : event === "new_request" ? staffAlert(b) : customerUpdate(b, event);
     if (!msg) return json({ skipped: `nothing to send for ${event}` });
     if (body?.dry) return json({ dry: true, to: msg.to, replyTo: msg.replyTo, subject: msg.subject, text: renderNotify(msg.email).text });
 
     if ((b.sent ?? []).includes(event)) return json({ skipped: `${event} already sent` });
 
     const sent = await send(msg.to, msg.replyTo, isStaff ? "UBF Portal" : "UB Freight", msg.subject, msg.email);
-    if (sent && !isQuote) await admin.from("portal_booking_notifications").insert({ booking_id: bookingId, event, recipient: msg.to });
+    if (sent && !isQuote && !isDecision) await admin.from("portal_booking_notifications").insert({ booking_id: bookingId, event, recipient: msg.to });
     return json({ event, to: msg.to, sent });
   } catch (e) {
     console.error(e);
