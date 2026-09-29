@@ -1,183 +1,136 @@
-import { useMemo } from 'react'
+import { useCallback, useMemo } from 'react'
 import { Link, useNavigate, useOutletContext } from 'react-router-dom'
-import { ArrowRight, CheckCircle2, CreditCard, Hash, Plane, Plus, Ship } from 'lucide-react'
+import { ArrowRight, Plane, Plus, Search, Ship } from 'lucide-react'
 import { usePorts } from '../../../hooks/usePorts'
-import PacificMap from './PacificMap'
+import GlobalMap from './GlobalMap'
+import AnalyticsSection from './AnalyticsSection'
+import { CalendarCard, ExceptionsCard } from './HomeCards'
 import { useCountUp } from './useCountUp'
 import { usePortalHome, type HomeShipment } from './usePortalHome'
 import {
-  activity, buildLanes, countries, detailPath, fmtMoney, isSea, money, needs, placeName, progressPct,
-  shipmentNo, shortCode, sortForMotion, stageLabel, statusLine, titleCase,
+  addDays, calendarEvents, detailPath, exceptions, fmtDay, fmtMoney, isSea, money, placeName, progressPct,
+  shipmentNo, shortCode, stageLabel, stageTone, titleCase, todayIso,
 } from './homeModel'
 import type { PortalOutletContext } from './PortalShellV2'
 
-function todayLong(): string {
-  return new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long' })
+function greeting(): string {
+  const h = new Date().getHours()
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+}
+
+function Kpi({ label, value, sub, tone, delay, to }: { label: string; value: string; sub?: string; tone?: 'red' | 'amber' | 'blue'; delay: number; to?: string }) {
+  const body = (
+    <>
+      <span className="pv3-kpi__label">{label}</span>
+      <span className={`pv3-kpi__value${tone ? ` pv3-kpi__value--${tone}` : ''}`}>{value}</span>
+      {sub && <span className="pv3-kpi__sub">{sub}</span>}
+    </>
+  )
+  return to
+    ? <Link to={to} className="pv3-card pv3-kpi pv3-rise pv3-hover" style={{ animationDelay: `${delay}s` }}>{body}</Link>
+    : <div className="pv3-card pv3-kpi pv3-rise" style={{ animationDelay: `${delay}s` }}>{body}</div>
 }
 
 export default function PortalHomePage() {
   const navigate = useNavigate()
-  const { account } = useOutletContext<PortalOutletContext>()
+  const { account, openSearch } = useOutletContext<PortalOutletContext>()
   const { ports } = usePorts()
-  const { active, recent, invoices, loading, error } = usePortalHome()
+  const { pool, active, invoices, analytics, loading, error } = usePortalHome()
+  const today = todayIso()
 
-  const sorted = useMemo(() => sortForMotion(active), [active])
-  const { lanes } = useMemo(() => buildLanes(active, ports), [active, ports])
-  const nIslands = useMemo(() => countries(active, ports), [active, ports])
   const m = useMemo(() => money(invoices), [invoices])
-  const todo = useMemo(() => needs(active, m), [active, m])
-  const feed = useMemo(() => activity(active, recent, invoices, ports), [active, recent, invoices, ports])
+  const inTransit = useMemo(() => active.filter((s) => s.stage === 2).length, [active])
+  const arriving = useMemo(() => pool.filter((s) => s.stage < 3 && s.eta && s.eta >= today && s.eta <= addDays(today, 7)).length, [pool, today])
+  const exc = useMemo(() => exceptions(pool, active, m, ports), [pool, active, m, ports])
+  const events = useMemo(() => calendarEvents(pool, ports), [pool, ports])
+  const rows = useMemo(() => [...active].sort((a, b) => (a.eta ?? '9999').localeCompare(b.eta ?? '9999')), [active])
 
-  const cMoving = useCountUp(loading ? 0 : active.length)
-  const cIslands = useCountUp(loading ? 0 : nIslands)
+  const cActive = useCountUp(loading ? 0 : active.length)
+  const cTransit = useCountUp(loading ? 0 : inTransit)
+  const cArr = useCountUp(loading ? 0 : arriving)
+  const cExc = useCountUp(loading ? 0 : exc.length)
   const cOpen = useCountUp(loading ? 0 : m.open)
 
+  const open = useCallback((s: HomeShipment) => navigate(detailPath(s)), [navigate])
   const company = titleCase(account?.displayName) || 'there'
 
   return (
-    <div className="pv2-home">
-      <section className="pv2-hero">
-        <div className="pv2-hero__inner">
-          <div className="pv2-hero__copy">
-            <div className="pv2-rise pv2-hero__eyebrow">
-              <span className="pv2-livedot" aria-hidden><span className="pv2-ping pv2-ping--green" /></span>
-              Live · {todayLong()}
-            </div>
-            <h1 className="pv2-rise pv2-hero__title" style={{ animationDelay: '.08s' }}>
-              Kia ora, {company}.
-              <span className="pv2-hero__subtitle">
-                {loading ? 'Loading your shipments…' : active.length > 0 ? 'Here is everything on the move.' : 'Nothing on the move right now.'}
-              </span>
-            </h1>
+    <div className="pv3-page">
+      <div className="pv3-head pv3-rise">
+        <div>
+          <h1>{greeting()}, {company}</h1>
+          <p>{new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        </div>
+        <div className="pv3-head__actions">
+          <button type="button" className="pv3-btn pv3-btn--ghost" onClick={openSearch}><Search size={15} /> Find shipment</button>
+          <Link to="/portal/bookings" className="pv3-btn pv3-btn--primary"><Plus size={15} /> New booking</Link>
+        </div>
+      </div>
 
-            <div className="pv2-rise pv2-stats" style={{ animationDelay: '.18s' }}>
-              <div className="pv2-stat">
-                <span className="pv2-stat__num">{Math.round(cMoving)}</span>
-                <span className="pv2-stat__label">shipments on the go</span>
-              </div>
-              <div className="pv2-stat">
-                <span className="pv2-stat__num">{Math.round(cIslands)}</span>
-                <span className="pv2-stat__label">{nIslands === 1 ? 'country' : 'countries'} in play</span>
-              </div>
-              <Link to="/portal/billing" className={`pv2-stat${m.overdue > 0 ? ' pv2-stat--warn' : ''}`}>
-                <span className="pv2-stat__num">{fmtMoney(cOpen, m.currency, cOpen >= 10000 ? 0 : 2)}</span>
-                <span className="pv2-stat__label">open balance</span>
-              </Link>
-            </div>
+      {error && <div className="pv3-error">{error}</div>}
 
-            <div className="pv2-rise pv2-needs" style={{ animationDelay: '.3s' }}>
-              {!loading && todo.length === 0 && (
-                <div className="pv2-need pv2-need--clear">
-                  <span className="pv2-need__icon pv2-need__icon--green"><CheckCircle2 size={18} /></span>
-                  <span className="pv2-need__text">
-                    <span className="pv2-need__title">All clear</span>
-                    <span className="pv2-need__body">Nothing needs you right now. We will message you if that changes.</span>
-                  </span>
-                </div>
+      <div className="pv3-kpis">
+        <Kpi label="Active shipments" value={String(Math.round(cActive))} sub={`${Math.round(cTransit)} in transit`} delay={0.04} to="/portal/shipments" />
+        <Kpi label="Arriving next 7 days" value={String(Math.round(cArr))} sub="by scheduled ETA" delay={0.08} />
+        <Kpi label="Exceptions" value={String(Math.round(cExc))} sub={exc.length ? 'need a look' : 'all clear'} tone={exc.length ? 'red' : undefined} delay={0.12} />
+        <Kpi label="Open balance" value={fmtMoney(cOpen, m.currency)} sub={m.overdue > 0 ? `${fmtMoney(m.overdue, m.currency)} past due` : 'nothing past due'} tone={m.overdue > 0 ? 'amber' : undefined} delay={0.16} to="/portal/billing" />
+      </div>
+
+      <div className="pv3-rise" style={{ animationDelay: '.1s' }}>
+        <GlobalMap active={active} lanes={analytics?.lanes ?? []} ports={ports} onOpen={open} />
+      </div>
+
+      <div className="pv3-split">
+        <ExceptionsCard items={exc} loading={loading} />
+        <CalendarCard events={events} />
+      </div>
+
+      <section className="pv3-card pv3-table-card pv3-rise" style={{ animationDelay: '.2s' }}>
+        <header className="pv3-card__head">
+          <h2>Active shipments</h2>
+          <Link to="/portal/shipments" className="pv3-link">All shipments <ArrowRight size={14} /></Link>
+        </header>
+        <div className="pv3-table-wrap">
+          <table className="pv3-table">
+            <thead>
+              <tr>
+                <th>Shipment</th><th>Route</th><th>Mode</th><th>Carrier</th><th>ETD</th><th>ETA</th><th>Status</th><th>Your PO</th>
+              </tr>
+            </thead>
+            <tbody>
+              {loading && [0, 1, 2, 3].map((i) => (
+                <tr key={i}><td colSpan={8}><span className="pv3-skel" /></td></tr>
+              ))}
+              {!loading && rows.length === 0 && (
+                <tr><td colSpan={8} className="pv3-empty-cell">No active shipments right now.</td></tr>
               )}
-              {todo.map((n) => (
-                <div key={n.key} className="pv2-need">
-                  <span className="pv2-sheen" aria-hidden />
-                  <span className={`pv2-need__icon pv2-need__icon--${n.tone}`}>
-                    {n.key === 'overdue' ? <CreditCard size={18} /> : <Hash size={18} />}
-                  </span>
-                  <span className="pv2-need__text">
-                    <span className="pv2-need__title">{n.title}</span>
-                    <span className="pv2-need__body">{n.body}</span>
-                  </span>
-                  <Link to={n.to} className={n.tone === 'amber' ? 'pv2-btn pv2-btn--primary' : 'pv2-btn pv2-btn--ghost'}>{n.cta}</Link>
-                </div>
+              {!loading && rows.slice(0, 12).map((s) => (
+                <tr key={s.job_unique} onClick={() => open(s)} tabIndex={0} onKeyDown={(e) => { if (e.key === 'Enter') open(s) }}>
+                  <td>
+                    <span className="pv3-mono pv3-strong">{shipmentNo(s)}</span>
+                    <span className="pv3-cell-sub">{titleCase(s.goods_desc).slice(0, 42) || titleCase(s.direction === 'import' ? s.shipper_name : s.consignee_name)}</span>
+                  </td>
+                  <td>
+                    <span className="pv3-mono">{shortCode(s.origin)} → {shortCode(s.destination)}</span>
+                    <span className="pv3-cell-sub">{placeName(s.origin, ports)} to {placeName(s.destination, ports)}</span>
+                  </td>
+                  <td><span className="pv3-mode">{isSea(s) ? <Ship size={14} /> : <Plane size={14} />}{isSea(s) ? (s.load_type ?? 'Sea') : 'Air'}</span></td>
+                  <td className="pv3-ellipsis">{s.vessel_flight ?? '—'}</td>
+                  <td className="pv3-mono">{fmtDay(s.departed ?? s.etd)}</td>
+                  <td className="pv3-mono">{fmtDay(s.arrived ?? s.eta)}</td>
+                  <td>
+                    <span className={`pv3-pill pv3-pill--${stageTone(s)}`}>{stageLabel(s)}</span>
+                    <span className="pv3-progress"><span style={{ width: `${progressPct(s)}%` }} /></span>
+                  </td>
+                  <td className={s.customer_ref ? 'pv3-mono' : 'pv3-missing'}>{s.customer_ref ?? 'Add PO'}</td>
+                </tr>
               ))}
-            </div>
-          </div>
-
-          <div className="pv2-hero__map">
-            <PacificMap lanes={lanes} />
-          </div>
+            </tbody>
+          </table>
         </div>
       </section>
 
-      <section className="pv2-body">
-        {error && <div className="pv2-error">{error}</div>}
-
-        <div className="pv2-body__main">
-          <div className="pv2-section-head">
-            <h2>In motion</h2>
-            <div className="pv2-section-head__actions">
-              <Link to="/portal/shipments" className="pv2-link">All shipments <ArrowRight size={14} /></Link>
-              <Link to="/portal/bookings" className="pv2-btn pv2-btn--primary pv2-btn--sm"><Plus size={14} /> Book</Link>
-            </div>
-          </div>
-
-          {loading ? (
-            <div className="pv2-cards">
-              {[0, 1, 2].map((i) => <div key={i} className="pv2-card pv2-skel" style={{ height: 196 }} />)}
-            </div>
-          ) : sorted.length === 0 ? (
-            <div className="pv2-empty">
-              <Ship size={22} />
-              <p>No active shipments. Your recent deliveries are on the Shipments page.</p>
-              <Link to="/portal/bookings" className="pv2-btn pv2-btn--primary">Book a shipment</Link>
-            </div>
-          ) : (
-            <div className="pv2-cards">
-              {sorted.slice(0, 6).map((s, i) => (
-                <ShipmentCard key={s.job_unique} s={s} i={i} ports={ports} onOpen={() => navigate(detailPath(s))} />
-              ))}
-            </div>
-          )}
-          {sorted.length > 6 && (
-            <Link to="/portal/shipments" className="pv2-more">
-              <span>{sorted.length - 6} more on the go</span>
-              <span className="pv2-link">View all <ArrowRight size={14} /></span>
-            </Link>
-          )}
-        </div>
-
-        <aside className="pv2-card pv2-feed">
-          <div className="pv2-feed__head">
-            <h2>Activity</h2>
-            <span className="pv2-live"><span />Live</span>
-          </div>
-          {feed.length === 0 && !loading && <p className="pv2-muted">No recent activity.</p>}
-          {feed.map((f, i) => (
-            <div key={f.key} className="pv2-feed__row" style={{ animationDelay: `${0.4 + i * 0.1}s` }}>
-              <span className={`pv2-feed__dot pv2-feed__dot--${f.tone}`} />
-              <span className="pv2-feed__text">
-                <span className="pv2-feed__title">{f.title}</span>
-                <span className="pv2-feed__sub">{f.sub}</span>
-              </span>
-              <span className="pv2-feed__when">{f.when}</span>
-            </div>
-          ))}
-        </aside>
-      </section>
+      <AnalyticsSection data={analytics} ports={ports} currency={m.currency} />
     </div>
-  )
-}
-
-function ShipmentCard({ s, i, ports, onOpen }: { s: HomeShipment; i: number; ports: ReturnType<typeof usePorts>['ports']; onOpen: () => void }) {
-  const pct = progressPct(s)
-  const label = stageLabel(s)
-  const goods = titleCase(s.goods_desc)
-  const party = titleCase(s.direction === 'import' ? s.shipper_name : s.consignee_name)
-  return (
-    <button type="button" className="pv2-card pv2-scard pv2-lift pv2-rise" style={{ animationDelay: `${0.25 + i * 0.07}s` }} onClick={onOpen}>
-      <span className="pv2-scard__top">
-        <span className={`pv2-pill pv2-pill--${s.stage >= 3 ? 'green' : s.stage === 2 ? 'blue' : 'grey'}`}>{label}</span>
-        <span className="pv2-scard__mode">
-          {isSea(s) ? <Ship size={13} aria-hidden /> : <Plane size={13} aria-hidden />}
-          {[s.load_type, s.vessel_flight].filter(Boolean).join(' · ') || (isSea(s) ? 'Sea' : 'Air')}
-        </span>
-      </span>
-      <span className="pv2-scard__no">{shipmentNo(s)}</span>
-      <span className="pv2-scard__desc">{[goods, party].filter(Boolean).join(' · ') || '—'}</span>
-      <span className="pv2-route">
-        <span className="pv2-route__code" title={placeName(s.origin, ports)}>{shortCode(s.origin)}</span>
-        <span className="pv2-route__track"><span className="pv2-route__fill" style={{ width: `${pct}%`, animationDelay: `${0.5 + i * 0.08}s` }} /></span>
-        <span className="pv2-route__code" title={placeName(s.destination, ports)}>{shortCode(s.destination)}</span>
-      </span>
-      <span className="pv2-scard__line">{statusLine(s, ports)}</span>
-    </button>
   )
 }

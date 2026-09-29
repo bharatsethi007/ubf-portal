@@ -4,8 +4,6 @@ import type { Session } from '@supabase/supabase-js'
 import { usePortalAccount, type PortalAccount } from '../auth/usePortalAccount'
 import PortalTopBar from './PortalTopBar'
 import CommandPalette from './CommandPalette'
-import '@fontsource-variable/geist'
-import '@fontsource-variable/geist-mono'
 import '../layout/portalTheme.css'
 import './portalV2.css'
 
