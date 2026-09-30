@@ -1,8 +1,8 @@
 ﻿import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
-  BarChart3, Building2, Calendar, ChevronDown, ChevronsLeft, ChevronsRight, ClipboardList,
-  FileText, Handshake, Inbox, Menu, MessageCircle, Package, Plane, Search, Settings, Ship,
+  BarChart3, Building2, Calendar, ChevronsLeft, ChevronsRight, ClipboardList,
+  FileText, Handshake, Inbox, Menu, MessageCircle, Package, PackageCheck, Search, Settings,
   TowerControl, Truck, Users, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -31,13 +31,6 @@ const NAV2 = [
   { to: '/users', label: 'Users', icon: Users, module: 'users' },
   { to: '/setup', label: 'Setup', icon: Settings, module: 'setup' },
 ]
-const BOOKINGS = [
-  { to: '/bookings/import-sea', label: 'Import Sea', icon: Ship },
-  { to: '/bookings/import-air', label: 'Import Air', icon: Plane },
-  { to: '/bookings/export-sea', label: 'Export Sea', icon: Ship },
-  { to: '/bookings/export-air', label: 'Export Air', icon: Plane },
-  { to: '/bookings/courier', label: 'Courier', icon: Package },
-]
 
 const linkBase: React.CSSProperties = {
   position: 'relative', display: 'flex', alignItems: 'center', gap: 11,
@@ -55,7 +48,6 @@ type Props = { session: Session; search: string; onSearch: (q: string) => void }
 export default function AppShell({ session, search, onSearch }: Props) {
   const navigate = useNavigate()
   const [navOpen, setNavOpen] = useState(false)
-  const [bkOpen, setBkOpen] = useState(true)
   const [waNeedsAction, setWaNeedsAction] = useState(0)
   const [portalWaiting, setPortalWaiting] = useState(0)
   const [collapsed, setCollapsed] = useState<boolean>(() => {
@@ -64,7 +56,8 @@ export default function AppShell({ session, search, onSearch }: Props) {
   const [isDesktop, setIsDesktop] = useState<boolean>(() =>
     typeof window !== 'undefined' ? window.matchMedia('(min-width: 901px)').matches : true)
   const location = useLocation()
-  const bkActive = location.pathname.startsWith('/bookings')
+  const courierActive = location.pathname.startsWith('/bookings/courier')
+  const bkActive = location.pathname.startsWith('/bookings') && !courierActive
   const shrink = collapsed && isDesktop
 
   const { perms, loading: permsLoading } = usePermissions()
@@ -105,10 +98,6 @@ export default function AppShell({ session, search, onSearch }: Props) {
     ? { ...linkBase, ...collapsedLink, ...(bkActive ? onPill : {}) }
     : (bkActive ? { ...linkBase, ...onPill } : linkBase)
 
-  function onBookingsClick() {
-    if (shrink) { setCollapsed(false); setBkOpen(true) }
-    else setBkOpen((o) => !o)
-  }
 
   const nav1 = NAV.filter((n) => canRead(n.module))
   const nav2 = NAV2.filter((n) => canRead(n.module))
@@ -145,19 +134,19 @@ export default function AppShell({ session, search, onSearch }: Props) {
           ))}
 
           {showBookings && (
-            <button type="button" onClick={onBookingsClick} title={shrink ? 'Bookings' : undefined} style={bkBtnStyle}>
+            <NavLink to="/bookings" title={shrink ? 'Bookings' : undefined} style={bkBtnStyle} onClick={() => setNavOpen(false)}>
               <ActiveBar on={bkActive} />
               <ClipboardList size={18} strokeWidth={1.8} />
-              {!shrink && <span style={{ flex: 1 }}>Bookings</span>}
-              {!shrink && <ChevronDown size={15} style={{ transition: '.15s', transform: bkOpen ? 'rotate(180deg)' : 'none' }} />}
-            </button>
-          )}
-          {showBookings && !shrink && bkOpen && BOOKINGS.map(({ to, label, icon: Icon }) => (
-            <NavLink key={to} to={to} onClick={() => setNavOpen(false)}
-              style={({ isActive }) => isActive ? { ...linkBase, ...onPill, paddingLeft: 38, fontSize: 12.5 } : { ...linkBase, paddingLeft: 38, fontSize: 12.5 }}>
-              <Icon size={15} strokeWidth={1.8} />{label}
+              {!shrink && 'Bookings'}
             </NavLink>
-          ))}
+          )}
+          {showBookings && (
+            <NavLink to="/bookings/courier" title={shrink ? 'Courier' : undefined} style={() => navStyle({ isActive: courierActive })} onClick={() => setNavOpen(false)}>
+              <ActiveBar on={courierActive} />
+              <PackageCheck size={18} strokeWidth={1.8} />
+              {!shrink && 'Courier'}
+            </NavLink>
+          )}
 
           {nav2.map(({ to, label, icon: Icon }) => (
             <NavLink key={to} to={to} style={navStyle} title={shrink ? label : undefined} onClick={() => setNavOpen(false)}>
