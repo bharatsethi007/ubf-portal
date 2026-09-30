@@ -40,7 +40,7 @@ export default function ImportSeaRowRefreshCell({ row, busy, cooldownSec, onRefr
           />
         }
       >
-        <RefreshCw size={14} className={busy ? 'import-sea-spin' : undefined} />
+        <RefreshCw size={11} strokeWidth={2.4} className={busy ? 'import-sea-spin' : undefined} />
       </TooltipTrigger>
       <TooltipContent>{tooltip}</TooltipContent>
     </Tooltip>

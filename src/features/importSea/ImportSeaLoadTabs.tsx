@@ -31,7 +31,7 @@ export default function ImportSeaLoadTabs({ rows, value, onChange }: Props) {
   }
 
   return (
-    <div className="quotes-tabs" role="tablist" aria-label="Load type" style={{ marginBottom: 12 }}>
+    <div className="bk-tabs" role="tablist" aria-label="Load type">
       {LOAD_TABS.map((tab) => {
         if (tab === 'unset' && counts.unset === 0 && value !== 'unset') return null
         const on = value === tab
@@ -41,11 +41,11 @@ export default function ImportSeaLoadTabs({ rows, value, onChange }: Props) {
             type="button"
             role="tab"
             aria-selected={on}
-            className={`quotes-tabs__btn${on ? ' quotes-tabs__btn--on' : ''}`}
+            className={`bk-tabs__btn${on ? ' bk-tabs__btn--on' : ''}`}
             onClick={() => onChange(tab)}
           >
             {LABELS[tab]}
-            <span className="text-muted-foreground" style={{ fontSize: 11 }}>{counts[tab]}</span>
+            <span className="bk-count">{counts[tab]}</span>
           </button>
         )
       })}

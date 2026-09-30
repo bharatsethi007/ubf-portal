@@ -1,4 +1,4 @@
-import { Archive, ChevronDown, Download, Plus, Search } from 'lucide-react'
+import { Archive, ChevronDown, Download, Map as MapIcon, Plus, Search } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import ImportSeaDigestToggle from './ImportSeaDigestToggle'
 import {
@@ -23,6 +23,8 @@ type Props = {
   onNewBooking: () => void
   showArchived: boolean
   onToggleArchived: () => void
+  mapOpen: boolean
+  onToggleMap: () => void
 }
 
 function triSelect(
@@ -62,6 +64,8 @@ export default function ImportSeaFilters({
   onNewBooking,
   showArchived,
   onToggleArchived,
+  mapOpen,
+  onToggleMap,
 }: Props) {
   const { shippingLines, dischargePorts } = collectFilterOptions(rows)
 
@@ -72,7 +76,7 @@ export default function ImportSeaFilters({
         <input
           type="text"
           className="shipment-filters__input shipment-filters__input--search"
-          placeholder="Client, booking ref, job #, container"
+          placeholder="Search client, ref, job #, container"
           value={filters.search}
           disabled={loading}
           onChange={(e) => setFilter('search', e.target.value)}
@@ -113,7 +117,6 @@ export default function ImportSeaFilters({
           title="Show only bookings with invoice passed for approval"
           aria-pressed={filters.invApproved === 'yes'}
           disabled={loading}
-          style={filters.invApproved === 'yes' ? { background: '#0A2472', color: '#fff', borderColor: '#0A2472' } : undefined}
         >
           Inv approved
         </button>
@@ -124,7 +127,6 @@ export default function ImportSeaFilters({
           title="Show only bookings with invoice sent to customer"
           aria-pressed={filters.invSent === 'yes'}
           disabled={loading}
-          style={filters.invSent === 'yes' ? { background: '#0A2472', color: '#fff', borderColor: '#0A2472' } : undefined}
         >
           Inv sent
         </button>
@@ -186,6 +188,16 @@ export default function ImportSeaFilters({
         </div>
 
         <div className="import-sea-toolbar-actions">
+          <button
+            type="button"
+            className="pagination__btn"
+            onClick={onToggleMap}
+            title={mapOpen ? 'Hide vessel map' : 'Show vessel map'}
+            aria-label={mapOpen ? 'Hide vessel map' : 'Show vessel map'}
+            aria-pressed={mapOpen}
+          >
+            <MapIcon size={14} />
+          </button>
           <ImportSeaDigestToggle />
           <button
             type="button"
@@ -193,13 +205,11 @@ export default function ImportSeaFilters({
             onClick={onToggleArchived}
             title={showArchived ? 'Hide archived jobs' : 'Show archived jobs'}
             aria-pressed={showArchived}
-            style={showArchived ? { background: '#0A2472', color: '#fff', borderColor: '#0A2472' } : undefined}
           >
             <Archive size={14} />
           </button>
-          <button type="button" className="pagination__btn" onClick={onExport}>
+          <button type="button" className="pagination__btn" onClick={onExport} title="Export CSV" aria-label="Export CSV">
             <Download size={14} />
-            CSV export
           </button>
           <Button
             type="button"

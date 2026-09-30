@@ -7,7 +7,7 @@ import BoardRowCheckbox, {
   BoardHeaderCheckbox,
 } from '@/components/board/BoardRowCheckbox'
 import type { BoardHeaderCheckState } from '@/components/board/useBoardRowSelection'
-import { useNavigate, useSearchParams } from 'react-router-dom'
+import { useSearchParams } from 'react-router-dom'
 import ImportSeaBoardTableSkeleton from './ImportSeaBoardTableSkeleton'
 import BoardDateCell from './cells/BoardDateCell'
 import BoardSourcedDateCell from './cells/BoardSourcedDateCell'
@@ -16,57 +16,14 @@ import ClientCell from './cells/ClientCell'
 import ContainerCell from './cells/ContainerCell'
 import HoldCell from './cells/HoldCell'
 import ImportSeaRowRefreshCell from './ImportSeaRowRefreshCell'
-import { bookingRecordHref } from './importSeaFilterUrl'
 import ImportSeaOpsStatus from './ImportSeaOpsStatus'
 import type { ImportSeaBoardCellKey } from './importSeaRowDiff'
 import type { ImportSeaRow } from './types'
+import SortableTh from './SortableTh'
+import NextActionCell from '@/features/bookingsWorkspace/NextActionCell'
+import type { BookingFlow } from '@/features/bookingsWorkspace/useBookingFlow'
 
-const COL_SPAN = 17
-
-type SortableThProps = {
-  label: string
-  columnKey: keyof ImportSeaRow
-  sortKey: keyof ImportSeaRow | null
-  sortDir: 'asc' | 'desc'
-  onSort: (key: keyof ImportSeaRow) => void
-  className?: string
-}
-
-function SortableTh({
-  label,
-  columnKey,
-  sortKey,
-  sortDir,
-  onSort,
-  className,
-}: SortableThProps) {
-  const active = sortKey === columnKey
-  const indicator = active ? (sortDir === 'asc' ? '▲' : '▼') : '↕'
-
-  function activate() {
-    onSort(columnKey)
-  }
-
-  return (
-    <th
-      role="button"
-      tabIndex={0}
-      className={`sortable-th${className ? ` ${className}` : ''}`}
-      onClick={activate}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
-          e.preventDefault()
-          activate()
-        }
-      }}
-    >
-      {label}
-      <span className={`sortable-th__ind${active ? ' sortable-th__ind--active' : ' muted'}`}>
-        {indicator}
-      </span>
-    </th>
-  )
-}
+const COL_SPAN = 18
 
 type Props = {
   rows: ImportSeaRow[]
@@ -83,6 +40,9 @@ type Props = {
   rowRefreshCooldownSec: (id: string) => number
   isCellFlashing: (rowId: string, key: ImportSeaBoardCellKey) => boolean
   onToggleInvoice: (id: string, key: 'inv_approved' | 'inv_sent', value: boolean) => void
+  flow: Map<string, BookingFlow>
+  onOpenPeek: (id: string) => void
+  peekId: string | null
 }
 
 function flashClass(active: boolean): string {
@@ -104,17 +64,16 @@ export default function ImportSeaBoardTable({
   rowRefreshCooldownSec,
   isCellFlashing,
   onToggleInvoice,
+  flow,
+  onOpenPeek,
+  peekId,
 }: Props) {
-  const navigate = useNavigate()
   const [searchParams] = useSearchParams()
-
-  function openRecord(id: string) {
-    navigate(bookingRecordHref(id, searchParams))
-  }
+  const selecting = selectedIds.size > 0
 
   return (
     <TooltipProvider delay={300}>
-      <div className="shipments-table card import-sea-board">
+      <div className={`import-sea-board bk-board${selecting ? ' bk-board--selecting' : ''}`}>
         <SkeletonBusy busy={loading} className="table-wrap">
           <table className="data-table import-sea-board__table">
             <thead>
@@ -142,6 +101,7 @@ export default function ImportSeaBoardTable({
                 <th className="import-sea-col-inv">Inv appr</th>
                 <th className="import-sea-col-inv">Inv sent</th>
                 <th className="import-sea-col-refresh" aria-label="Refresh" />
+                <th className="bk-col-todo" aria-label="Next action" title="Next action" />
               </tr>
             </thead>
             <tbody>
@@ -161,8 +121,8 @@ export default function ImportSeaBoardTable({
                   return (
                     <tr
                       key={row.id}
-                      className={`row-clickable${onHold ? ' import-sea-row--hold' : ''}${selected ? ' board-row--selected' : ''}${row.archived_at ? ' opacity-60 italic' : ''}`}
-                      onClick={() => openRecord(row.id)}
+                      className={`row-clickable${onHold ? ' import-sea-row--hold' : ''}${selected ? ' board-row--selected' : ''}${peekId === row.id ? ' bk-row--peek' : ''}${row.archived_at ? ' opacity-60 italic' : ''}`}
+                      onClick={() => onOpenPeek(row.id)}
                     >
                       <BoardCheckboxCell>
                         <BoardRowCheckbox
@@ -282,6 +242,9 @@ export default function ImportSeaBoardTable({
                           cooldownSec={rowRefreshCooldownSec(row.id)}
                           onRefresh={() => onRefreshRow(row)}
                         />
+                      </td>
+                      <td className="bk-col-todo" onClick={(e) => e.stopPropagation()}>
+                        <NextActionCell flow={flow.get(row.id)} onOpen={() => onOpenPeek(row.id)} />
                       </td>
                     </tr>
                   )

@@ -103,8 +103,12 @@ function fitToData(map: mapboxgl.Map, rows: VesselPosition[]) {
   map.fitBounds(b, { padding: 60, maxZoom: 6, duration: 300 })
 }
 
-export default function ImportSeaVesselMap() {
-  const [open, setOpen] = useState(false)
+type MapProps = { /** When set, the parent controls visibility and the header row is hidden. */ open?: boolean }
+
+export default function ImportSeaVesselMap({ open: openProp }: MapProps = {}) {
+  const [openState, setOpen] = useState(false)
+  const controlled = openProp !== undefined
+  const open = controlled ? openProp : openState
   const [rows, setRows] = useState<VesselPosition[]>([])
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
@@ -358,9 +362,11 @@ export default function ImportSeaVesselMap() {
 
   const count = rows.length
 
+  if (controlled && !open) return null
+
   return (
-    <div className="card" style={{ marginBottom: 12, overflow: 'hidden' }}>
-      <button
+    <div className="card bk-map" style={{ marginBottom: 12, overflow: 'hidden' }}>
+      {controlled ? null : <button
         type="button"
         onClick={() => setOpen((v) => !v)}
         className="w-full flex items-center gap-2 px-4 py-2.5"
@@ -381,10 +387,10 @@ export default function ImportSeaVesselMap() {
             transform: open ? 'rotate(180deg)' : 'none',
           }}
         />
-      </button>
+      </button>}
 
       {open && (
-        <div style={{ position: 'relative', height: 420, borderTop: '1px solid #e5e7eb' }}>
+        <div style={{ position: 'relative', height: 420, borderTop: controlled ? 0 : '1px solid #e5e7eb' }}>
           <div ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
           {loading && (
             <div style={overlayStyle} aria-live="polite">

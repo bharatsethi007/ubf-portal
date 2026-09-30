@@ -6,7 +6,7 @@ import { titleCase } from "./towerTheme";
 import { useTowerRpc, type ActionItem, type ExceptionItem } from "./useTower";
 
 const ACTION_HREF: Record<string, string> = {
-  portal: "/bookings/IS", email: "/bookings/IS", nojob: "/bookings/IS",
+  portal: "/bookings/import-sea", email: "/bookings/import-sea", nojob: "/bookings/import-sea",
   topricing: "/quotes", expiring: "/quotes", raterq: "/quotes",
 };
 const age = (h: number | null) => h == null ? "—" : h < 1 ? "Under 1 h" : h < 48 ? `${h} h` : `${Math.round(h / 24)} days`;

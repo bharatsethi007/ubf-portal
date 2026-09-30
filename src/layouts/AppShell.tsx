@@ -32,11 +32,10 @@ const NAV2 = [
   { to: '/setup', label: 'Setup', icon: Settings, module: 'setup' },
 ]
 const BOOKINGS = [
-  { to: '/bookings/EA', label: 'Export Air', icon: Plane },
-  { to: '/bookings/ES', label: 'Export Sea', icon: Ship },
-  { to: '/bookings/IA', label: 'Import Air', icon: Plane },
-  { to: '/bookings/IS', label: 'Import Sea', icon: Ship },
-  { to: '/bookings/import-sea', label: 'Import Sea board', icon: Ship },
+  { to: '/bookings/import-sea', label: 'Import Sea', icon: Ship },
+  { to: '/bookings/import-air', label: 'Import Air', icon: Plane },
+  { to: '/bookings/export-sea', label: 'Export Sea', icon: Ship },
+  { to: '/bookings/export-air', label: 'Export Air', icon: Plane },
   { to: '/bookings/courier', label: 'Courier', icon: Package },
 ]
 

@@ -10,8 +10,18 @@ type Props = {
   name: string | null
 }
 
+/** First two words, title case: "FLOORCO TRADING LTD" -> "Floorco Trading". */
+function shortName(name: string): string {
+  return name
+    .toLowerCase()
+    .replace(/\b[a-z]/g, (c) => c.toUpperCase())
+    .split(/\s+/)
+    .slice(0, 2)
+    .join(' ')
+}
+
 export default function ClientCell({ customerId, name }: Props) {
-  const label = name?.trim() || '—'
+  const label = name?.trim() ? shortName(name.trim()) : '—'
   const content = customerId ? (
     <Link
       to={`/customers/${customerId}`}

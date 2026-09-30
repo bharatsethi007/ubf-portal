@@ -155,7 +155,7 @@ export default function BookingFormPage() {
     }
   }
 
-  if (!mod) return <Navigate to="/bookings/ES" replace />
+  if (!mod) return <Navigate to="/bookings" replace />
 
   const cfg = MODULE_CONFIG[mod]
   const title = `${isEdit ? 'Edit' : 'New'} ${cfg.label} Booking`

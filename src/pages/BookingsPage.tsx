@@ -21,18 +21,18 @@ import {
 
 const MODULES: BookingModule[] = ['EA', 'ES', 'IA', 'IS']
 
-type Props = { module?: BookingModule }
+type Props = { module?: BookingModule; embedded?: boolean }
 
-export default function BookingsPage({ module: moduleProp }: Props) {
+export default function BookingsPage({ module: moduleProp, embedded = false }: Props) {
   const { module: moduleParam } = useParams()
   const module = moduleProp ?? moduleParam
   if (!module || !MODULES.includes(module as BookingModule)) {
-    return <Navigate to="/bookings/ES" replace />
+    return <Navigate to="/bookings" replace />
   }
-  return <BookingsPageContent module={module as BookingModule} />
+  return <BookingsPageContent module={module as BookingModule} embedded={embedded} />
 }
 
-function BookingsPageContent({ module }: { module: BookingModule }) {
+function BookingsPageContent({ module, embedded }: { module: BookingModule; embedded: boolean }) {
   const navigate = useNavigate()
   const { data, loading, error } = useBookings(module)
   const [sourceFilter, setSourceFilter] = useState<BookingSourceFilter>('all')
@@ -67,7 +67,7 @@ function BookingsPageContent({ module }: { module: BookingModule }) {
   return (
     <div className="customers-page">
       <header className="customers-page__head">
-        <h1>{cfg.label} Bookings</h1>
+        {embedded ? <span /> : <h1>{cfg.label} Bookings</h1>}
         <button type="button" className="bookings-page__new" onClick={() => navigate(`/bookings/${module}/new`)}>
           + New Booking
         </button>

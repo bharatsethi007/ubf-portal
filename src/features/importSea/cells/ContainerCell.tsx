@@ -1,21 +1,16 @@
 import { AlertTriangle } from 'lucide-react'
-import { Badge } from '@/components/ui/badge'
 import {
   Popover,
   PopoverContent,
   PopoverTrigger,
 } from '@/components/ui/popover'
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from '@/components/ui/tooltip'
 import ContainerHazardChip from '@/features/bookingRecord/containers/ContainerHazardChip'
 import {
   boardContainerConflictTooltip,
   countUnresolvedContainerConflicts,
 } from '@/features/bookingRecord/containers/containerConflictUtils'
 import { containerTypeLabel, containerTypePillClass } from '../containerTypeUtils'
+import { containerSizeSummary } from '../containerSize'
 import BoardPortConnectDot from './BoardPortConnectDot'
 import type { ImportSeaContainer } from '../types'
 
@@ -24,94 +19,66 @@ type Props = {
   lastSync?: string | null
 }
 
-function TypePill({
-  type,
-  isoType,
-  isoDesc,
-}: {
-  type: string | null
-  isoType?: string | null
-  isoDesc?: string | null
-}) {
-  const label = containerTypeLabel(isoType ?? type, isoDesc)
-  if (!label) return null
+function TypePill({ c }: { c: ImportSeaContainer }) {
+  const label = containerTypeLabel(c.iso_type ?? c.container_type, c.iso_desc)
+  if (!label) return <span className="bk-muted">type not set</span>
   return <span className={containerTypePillClass(label)}>{label}</span>
 }
 
+/** Board cell: "1×20'" summary. Hover shows every container with type, source, hazards, conflicts. */
 export default function ContainerCell({ containers, lastSync }: Props) {
   const list = (containers ?? []).filter((c) => c.container_no?.trim())
   if (!list.length) return <span className="muted">—</span>
 
-  const first = list[0]
-  const firstNo = first.container_no!.trim()
-  const extra = list.length - 1
   const conflictTip = boardContainerConflictTooltip(list)
   const hasConflict = countUnresolvedContainerConflicts(list) > 0
   const totalHazards = list.reduce((n, c) => n + (c.hazard_count ?? 0), 0)
-  const firstHazards = list.flatMap((c) => {
-    const count = c.hazard_count ?? 0
-    if (count <= 0) return []
-    return [{ hazards: c.hazards, hazardCount: count }]
-  })
+  const firstHazard = list.find((c) => (c.hazard_count ?? 0) > 0)
+  const anyPc = list.some((c) => c.source === 'portconnect')
 
   return (
     <span className="import-sea-container-cell" onClick={(e) => e.stopPropagation()}>
+      <Popover>
+        <PopoverTrigger
+          openOnHover
+          delay={120}
+          render={<button type="button" className="bk-cntr" aria-label={`${list.length} containers, show details`} />}
+        >
+          {containerSizeSummary(list)}
+        </PopoverTrigger>
+        <PopoverContent className="bk-cntr-pop" align="start">
+          <div className="bk-cntr-pop__head">
+            {list.length} container{list.length === 1 ? '' : 's'}
+            {anyPc ? <span className="bk-muted"> · PortConnect</span> : null}
+          </div>
+          <ul className="bk-cntr-pop__list">
+            {list.map((c, i) => (
+              <li key={`${c.container_no}-${i}`}>
+                <span className="bk-mono">{c.container_no}</span>
+                {c.source === 'portconnect' ? <BoardPortConnectDot lastSync={lastSync} /> : null}
+                <TypePill c={c} />
+                {c.iso_desc ? <span className="bk-muted">{c.iso_desc}</span> : null}
+                {(c.hazard_count ?? 0) > 0 ? (
+                  <ContainerHazardChip hazards={c.hazards} hazardCount={c.hazard_count} />
+                ) : null}
+              </li>
+            ))}
+          </ul>
+          {hasConflict && conflictTip ? <div className="bk-cntr-pop__warn">{conflictTip}</div> : null}
+        </PopoverContent>
+      </Popover>
+      {anyPc ? <BoardPortConnectDot lastSync={lastSync} /> : null}
       {totalHazards > 0 ? (
         <ContainerHazardChip
-          hazards={firstHazards[0]?.hazards}
+          hazards={firstHazard?.hazards}
           hazardCount={totalHazards}
           className="import-sea-container-cell__hazard"
         />
       ) : null}
-      {hasConflict && conflictTip ? (
-        <Tooltip>
-          <TooltipTrigger
-            render={
-              <span className="import-sea-container-cell__warn" aria-label={conflictTip}>
-                <AlertTriangle size={14} />
-              </span>
-            }
-          />
-          <TooltipContent>{conflictTip}</TooltipContent>
-        </Tooltip>
-      ) : null}
-      <span className="mono import-sea-container-cell__no">{firstNo}</span>
-      {first.source === 'portconnect' ? <BoardPortConnectDot lastSync={lastSync} /> : null}
-      <TypePill
-        type={first.container_type}
-        isoType={first.iso_type}
-        isoDesc={first.iso_desc}
-      />
-      {extra > 0 ? (
-        <Popover>
-          <PopoverTrigger
-            render={
-              <Badge
-                variant="secondary"
-                className="import-sea-container-count"
-              />
-            }
-          >
-            +{extra}
-          </PopoverTrigger>
-          <PopoverContent className="import-sea-container-popover" align="start">
-            <ul className="import-sea-container-popover__list">
-              {list.map((c, i) => (
-                <li key={`${c.container_no}-${i}`} className="import-sea-container-popover__row">
-                  <span className="mono">{c.container_no}</span>
-                  <TypePill
-                    type={c.container_type}
-                    isoType={c.iso_type}
-                    isoDesc={c.iso_desc}
-                  />
-                  {(c.hazard_count ?? 0) > 0 ? (
-                    <ContainerHazardChip hazards={c.hazards} hazardCount={c.hazard_count} />
-                  ) : null}
-                </li>
-              ))}
-            </ul>
-          </PopoverContent>
-        </Popover>
+      {hasConflict ? (
+        <span className="import-sea-container-cell__warn" title={conflictTip ?? 'Container conflict'}>
+          <AlertTriangle size={13} />
+        </span>
       ) : null}
     </span>
   )

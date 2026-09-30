@@ -70,7 +70,6 @@ export default function ImportSeaDigestToggle() {
         display: 'inline-flex',
         alignItems: 'center',
         justifyContent: 'center',
-        ...(on ? { background: '#0A2472', color: '#fff', borderColor: '#0A2472' } : {}),
       }}
     >
       {on ? <MailCheck size={14} /> : <Mail size={14} />}

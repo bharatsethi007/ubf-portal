@@ -8,7 +8,7 @@ export const BOOKING_ID_RE =
 export function BookingRecordRoute() {
   const { bookingId } = useParams()
   if (!bookingId || !BOOKING_ID_RE.test(bookingId)) {
-    return <Navigate to="/bookings/ES" replace />
+    return <Navigate to="/bookings" replace />
   }
   return <BookingRecordPage />
 }

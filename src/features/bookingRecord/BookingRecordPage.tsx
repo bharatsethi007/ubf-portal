@@ -26,6 +26,7 @@ import {
 } from './portConnect/portConnectProvenance'
 import { usePortConnectFieldFlash } from './portConnect/usePortConnectFieldFlash'
 import type { ContainerTrackingRow } from './tracking/trackingTypes'
+import '@/features/bookingsWorkspace/bookingsTheme.css'
 
 const EMPTY_CONTAINERS: BookingContainerRow[] = []
 
@@ -93,7 +94,7 @@ function BookingRecordPageContent({
 
   if (error) {
     return (
-      <div className="detail-page booking-record-page">
+      <div className="detail-page booking-record-page bk-root bk-record">
         <BookingRecordNav backHref={backHref} onNewBooking={onNewBooking} />
         <div className="empty card booking-record-error">
           <h2>Failed to load booking</h2>
@@ -106,7 +107,7 @@ function BookingRecordPageContent({
 
   if (!bundle) {
     return (
-      <div className="detail-page booking-record-page">
+      <div className="detail-page booking-record-page bk-root bk-record">
         <BookingRecordNav backHref={backHref} onNewBooking={onNewBooking} />
         <div className="empty card">
           Booking not found. <Link to={backHref}>Back to board</Link>
@@ -122,7 +123,7 @@ function BookingRecordPageContent({
 
   return (
     <PortConnectDetailProvider containers={tracking.containers}>
-      <div className="detail-page booking-record-page">
+      <div className="detail-page booking-record-page bk-root bk-record">
         <BookingRecordNav backHref={backHref} onNewBooking={onNewBooking} />
 
         <BookingRecordHeader

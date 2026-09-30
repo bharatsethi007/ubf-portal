@@ -26,7 +26,6 @@ import TmsPage from './features/tms/TmsPage'
 import ConsignmentForm from './features/tms/ConsignmentForm'
 import Dashboard from './pages/DashboardPage'
 import ShipmentDetail from './pages/ShipmentDetail'
-import BookingsPage from './pages/BookingsPage'
 import { BookingRecordRoute } from './pages/BookingsRoute'
 import BookingFormPage from './pages/bookings/BookingFormPage'
 import StaffRoute from './components/StaffRoute'
@@ -34,7 +33,7 @@ import StaffMfaGate from './components/StaffMfaGate'
 import SliPage from './features/sli/SliPage'
 import PublicTrackPage from './features/publicTrack/PublicTrackPage'
 import RatePage from './pages/public/RatePage'
-import ImportSeaBoardPage from './features/importSea/ImportSeaBoardPage'
+import BookingsWorkspacePage from './features/bookingsWorkspace/BookingsWorkspacePage'
 import CourierBookingsList from './pages/courier/CourierBookingsList'
 import CourierBookingDetail from './pages/courier/CourierBookingDetail'
 import SetupPage from './pages/setup/SetupPage'
@@ -179,10 +178,11 @@ export default function App() {
             <Route path="/quotes/new" element={<StaffRoute><NewQuoteSearch /></StaffRoute>} />
             <Route path="/quotes/:id/responses/:responseId" element={<StaffRoute><QuoteResponsePage /></StaffRoute>} />
             <Route path="/quotes/:id" element={<StaffRoute><QuoteDetailPage /></StaffRoute>} />
-            <Route
-              path="/bookings/import-sea"
-              element={<StaffRoute><ImportSeaBoardPage /></StaffRoute>}
-            />
+            <Route path="/bookings" element={<StaffRoute><BookingsWorkspacePage /></StaffRoute>} />
+            <Route path="/bookings/import-sea" element={<StaffRoute><BookingsWorkspacePage slug="import-sea" /></StaffRoute>} />
+            <Route path="/bookings/import-air" element={<StaffRoute><BookingsWorkspacePage slug="import-air" /></StaffRoute>} />
+            <Route path="/bookings/export-sea" element={<StaffRoute><BookingsWorkspacePage slug="export-sea" /></StaffRoute>} />
+            <Route path="/bookings/export-air" element={<StaffRoute><BookingsWorkspacePage slug="export-air" /></StaffRoute>} />
             <Route
               path="/bookings/courier"
               element={<StaffRoute><CourierBookingsList /></StaffRoute>}
@@ -199,10 +199,10 @@ export default function App() {
               path="/bookings/:module/:id/edit"
               element={<StaffRoute><BookingFormPage /></StaffRoute>}
             />
-            <Route path="/bookings/EA" element={<StaffRoute><BookingsPage module="EA" /></StaffRoute>} />
-            <Route path="/bookings/ES" element={<StaffRoute><BookingsPage module="ES" /></StaffRoute>} />
-            <Route path="/bookings/IA" element={<StaffRoute><BookingsPage module="IA" /></StaffRoute>} />
-            <Route path="/bookings/IS" element={<StaffRoute><BookingsPage module="IS" /></StaffRoute>} />
+            <Route path="/bookings/EA" element={<Navigate to="/bookings/export-air" replace />} />
+            <Route path="/bookings/ES" element={<Navigate to="/bookings/export-sea" replace />} />
+            <Route path="/bookings/IA" element={<Navigate to="/bookings/import-air" replace />} />
+            <Route path="/bookings/IS" element={<Navigate to="/bookings/import-sea" replace />} />
             <Route
               path="/bookings/:bookingId"
               element={<StaffRoute><BookingRecordRoute /></StaffRoute>}

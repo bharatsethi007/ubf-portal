@@ -1,4 +1,4 @@
-import { fmtBoardDate } from '../importSeaBoardFormat'
+import { fmtBoardDate, fmtBoardDateLong } from '../importSeaBoardFormat'
 import { lfdClass } from '../importSeaRowUtils'
 
 type Props = {
@@ -16,5 +16,5 @@ export default function BoardDateCell({ value, lfd = false }: Props) {
     .filter(Boolean)
     .join(' ')
 
-  return <span className={className}>{fmtBoardDate(value)}</span>
+  return <span className={className} title={fmtBoardDateLong(value)}>{fmtBoardDate(value)}</span>
 }

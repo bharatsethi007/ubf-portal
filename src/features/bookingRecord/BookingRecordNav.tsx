@@ -9,7 +9,7 @@ export default function BookingRecordNav({ backHref }: Props) {
   return (
     <div className="booking-record-nav">
       <Link to={backHref} className="detail-back booking-record-back">
-        ← Back to Import Sea board
+        ← Back to bookings
       </Link>
     </div>
   )

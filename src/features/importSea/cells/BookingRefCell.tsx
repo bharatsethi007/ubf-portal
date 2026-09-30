@@ -28,7 +28,7 @@ export default function BookingRefCell({
       ) : (
         <span className="import-sea-dot import-sea-dot--synced" title="Linked to ERP shipment" aria-hidden />
       )}
-      <Link to={bookingRecordHref(bookingId, boardParams)} className="link-mono">
+      <Link to={bookingRecordHref(bookingId, boardParams)} className="link-mono" onClick={(e) => e.stopPropagation()}>
         {ref}
       </Link>
     </span>
