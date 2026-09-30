@@ -1,8 +1,9 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useSearchParams } from 'react-router-dom'
-import { ChevronLeft, ChevronRight, Download, Search, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Download, FileText, Loader2, Search, X } from 'lucide-react'
 import { fmtDay, fmtMoney, todayIso } from '../homeModel'
 import InvoiceDrawer from './InvoiceDrawer'
+import { downloadStatementPdf } from './pdf/statementApi'
 import {
   AGING, STATUS, aging, daysLate, docLabel, download, fetchBilling, inTab, money2, searchText, statusOf, summary, toCsv,
   type BillInvoice, type Tab,
@@ -33,6 +34,7 @@ export default function PortalBillingPage() {
   const [err, setErr] = useState('')
   const [q, setQ] = useState('')
   const [page, setPage] = useState(0)
+  const [stBusy, setStBusy] = useState(false)
   const picked = params.get('inv')
   const today = todayIso()
 
@@ -79,6 +81,10 @@ export default function PortalBillingPage() {
           <p>{rows ? `${sum.openCount} open invoice${sum.openCount === 1 ? '' : 's'}${sum.nextDue ? ` · next due ${fmtDay(sum.nextDue)}` : ''}` : 'Loading your invoices…'}</p>
         </div>
         <div className="pv3-head__actions">
+          <button type="button" className="pv3-btn pv3-btn--primary" disabled={stBusy || !rows}
+            onClick={() => { setStBusy(true); setErr(''); downloadStatementPdf().catch((e) => setErr(e instanceof Error ? e.message : 'Statement could not be made.')).finally(() => setStBusy(false)) }}>
+            {stBusy ? <Loader2 size={15} className="pv3-spin" /> : <FileText size={15} />} Statement PDF
+          </button>
           <button type="button" className="pv3-btn pv3-btn--ghost" disabled={!shown.length}
             onClick={() => download(`ub-freight-invoices-${today}.csv`, new Blob([toCsv(shown, today)], { type: 'text/csv;charset=utf-8' }))}>
             <Download size={15} /> Export

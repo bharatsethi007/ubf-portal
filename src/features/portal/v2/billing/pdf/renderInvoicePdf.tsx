@@ -2,6 +2,8 @@ import { Font, pdf } from '@react-pdf/renderer'
 import type { InvoiceLine } from '../billingApi'
 import type { InvoiceDoc } from './invoiceDocApi'
 import InvoicePdf from './InvoicePdf'
+import StatementPdf from './StatementPdf'
+import type { Statement } from './statementModel'
 
 let fonts = false
 function registerFonts() {
@@ -19,4 +21,9 @@ function registerFonts() {
 export async function renderInvoicePdf(doc: InvoiceDoc, lines: InvoiceLine[]): Promise<Blob> {
   registerFonts()
   return pdf(<InvoicePdf doc={doc} lines={lines} logo="/ub-logo-pdf.png" />).toBlob()
+}
+
+export async function renderStatementPdf(st: Statement, asOf: string): Promise<Blob> {
+  registerFonts()
+  return pdf(<StatementPdf st={st} asOf={asOf} logo="/ub-logo-pdf.png" />).toBlob()
 }
