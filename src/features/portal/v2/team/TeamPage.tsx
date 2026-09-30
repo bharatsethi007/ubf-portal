@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowLeft, Loader2, RotateCcw, Send, ShieldCheck, UserMinus, UserPlus } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowLeft, Loader2, Pencil, RotateCcw, Send, ShieldCheck, UserMinus, UserPlus } from 'lucide-react'
 import InviteForm from './InviteForm'
+import PersonEdit from './PersonEdit'
 import { fetchTeam, initials, lastSeen, remove, resend, restore, setRole, type Member, type Team } from './teamApi'
 import './team.css'
 
@@ -13,11 +14,21 @@ export default function TeamPage() {
   const [inviting, setInviting] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [confirm, setConfirm] = useState<string | null>(null)
+  const [params, setParams] = useSearchParams()
+  const [editing, setEditing] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try { setTeam(await fetchTeam()); setErr('') } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load') }
   }, [])
   useEffect(() => { void load() }, [load])
+
+  // ?edit=me (from Home or the user menu) opens your own details.
+  useEffect(() => {
+    if (params.get('edit') !== 'me' || !team) return
+    const me = team.members.find((x) => x.is_me)
+    if (me) setEditing(me.user_id)
+    setParams({}, { replace: true })
+  }, [params, team, setParams])
 
   const admin = team?.my_role === 'admin'
   const active = (team?.members ?? []).filter((m) => m.status !== 'revoked')
@@ -37,10 +48,15 @@ export default function TeamPage() {
         <span className={`pv3-team__av${m.role === 'admin' ? ' pv3-team__av--admin' : ''}`}>{initials(m)}</span>
         <div className="pv3-team__who">
           <b>{who}{m.is_me && <em> (you)</em>}</b>
-          <span>{m.name ? m.email : ''}{m.name ? ' · ' : ''}{lastSeen(m)}{m.invited_by ? ` · added by ${m.invited_by}` : ''}</span>
+          <span>{m.name ? m.email : ''}{m.name ? ' · ' : ''}{m.phone ? `${m.phone} · ` : ''}{lastSeen(m)}{m.invited_by ? ` · added by ${m.invited_by}` : ''}</span>
         </div>
         {m.status === 'pending' && <span className="pv3-team__pill pv3-team__pill--amber">Invited</span>}
         {m.role === 'admin' && m.status !== 'revoked' && <span className="pv3-team__pill"><ShieldCheck size={12} /> Admin</span>}
+        {!admin && m.is_me && (
+          <div className="pv3-team__acts">
+            <button type="button" className="pv3-iconbtn" aria-label="Edit your details" title="Edit your details" onClick={() => { setEditing(m.user_id); setNote(null) }}><Pencil size={15} /></button>
+          </div>
+        )}
         {admin && (
           <div className="pv3-team__acts">
             {busy === m.user_id ? <Loader2 size={16} className="pv3-spin" /> : m.status === 'revoked' ? (
@@ -58,6 +74,7 @@ export default function TeamPage() {
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
                 </select>
+                <button type="button" className="pv3-iconbtn" aria-label={`Edit ${who}`} title="Edit name and phone" onClick={() => { setEditing(m.user_id); setNote(null) }}><Pencil size={15} /></button>
                 <button type="button" className="pv3-iconbtn" aria-label={`Remove ${who}`} title="Remove access" onClick={() => setConfirm(m.user_id)}><UserMinus size={16} /></button>
               </>
             )}
@@ -89,7 +106,9 @@ export default function TeamPage() {
       <section className="pv3-card pv3-team__card pv3-rise">
         <header><b>{active.length} {active.length === 1 ? 'person' : 'people'}</b></header>
         {!team && !err && <div className="pv3-skel-list" style={{ padding: 16 }}>{[0, 1, 2].map((i) => <span key={i} className="pv3-skel" />)}</div>}
-        <ul>{active.map((m) => <Row key={m.user_id} m={m} />)}</ul>
+        <ul>{active.map((m) => (editing === m.user_id
+          ? <PersonEdit key={m.user_id} m={m} onCancel={() => setEditing(null)} onDone={(msg) => { setEditing(null); setNote({ ok: true, text: msg }); void load() }} />
+          : <Row key={m.user_id} m={m} />))}</ul>
       </section>
 
       {removed.length > 0 && (

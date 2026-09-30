@@ -65,14 +65,17 @@ export default function PortalHomePage() {
     const s = byId.get(id)
     return s ? { label: stageLabel(s), tone: stageTone(s) } : { label: '—', tone: 'grey' }
   }, [byId])
-  const company = titleCase(account?.displayName) || 'there'
+  const hello = account?.firstName || titleCase(account?.companyName) || 'there'
 
   return (
     <div className="pv3-page">
       <div className="pv3-head pv3-rise">
         <div>
-          <h1>{greeting()}, {company}</h1>
-          <p>{new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <h1>{greeting()}, {hello}</h1>
+          <p>
+            {new Date().toLocaleDateString('en-NZ', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {account && !account.personName && <> · <Link to="/portal/settings/team?edit=me" className="pv3-link">Add your name</Link></>}
+          </p>
         </div>
         <div className="pv3-head__actions">
           <button type="button" className="pv3-btn pv3-btn--ghost" onClick={openSearch}><Search size={15} /> Find shipment</button>

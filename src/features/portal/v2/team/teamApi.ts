@@ -2,7 +2,7 @@ import { supabase } from '../../../../supabase'
 
 export type Role = 'admin' | 'member'
 export type Member = {
-  user_id: string; email: string; name: string | null; role: Role; status: 'active' | 'pending' | 'revoked'
+  user_id: string; email: string; name: string | null; phone?: string | null; role: Role; status: 'active' | 'pending' | 'revoked'
   last_login_at: string | null; activated_at: string | null; created_at: string | null; is_me: boolean
   invited_by: string | null; invite_expires_at: string | null
 }
@@ -32,6 +32,15 @@ export const resend = (userId: string) => call({ action: 'resend', user_id: user
 export const setRole = (userId: string, role: Role) => call({ action: 'set_role', user_id: userId, role })
 export const remove = (userId: string) => call({ action: 'remove', user_id: userId })
 export const restore = (userId: string) => call({ action: 'restore', user_id: userId })
+
+/** Name and phone for one person. Their own, or anyone's if you're an admin. */
+export async function updatePerson(userId: string, name: string, phone: string): Promise<void> {
+  const { error } = await supabase.rpc('portal_team_update_person', { p_user: userId, p_name: name, p_phone: phone })
+  if (error) {
+    if (/portal_team_update_person/.test(error.message)) throw new Error('Saving details isn\u2019t switched on yet. Ask UB Freight.')
+    throw new Error(error.message.replace(/^.*?:\s*/, '') || 'Could not save')
+  }
+}
 
 export function lastSeen(m: Member): string {
   if (m.status === 'pending') return m.invite_expires_at && m.invite_expires_at < new Date().toISOString() ? 'Invite expired' : 'Invite sent'

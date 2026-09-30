@@ -37,3 +37,12 @@
 .pv3-team__fields input, .pv3-team__fields select { height: 38px; border: 1px solid var(--line); border-radius: 8px; padding: 0 10px; font: inherit; font-size: 14px; background: #FFFFFF; }
 .pv3-team__fields input:focus, .pv3-team__fields select:focus { outline: 2px solid var(--blue-soft); border-color: var(--blue); }
 .pv3-team__row { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 10px; }
+
+/* Edit a person's details */
+.pv3-team__edit { display: block; background: #FAFBFD; }
+.pv3-team__edit form { display: flex; flex-direction: column; gap: 12px; }
+.pv3-team__edit-title { font-size: 14px; color: var(--ink); }
+.pv3-team__invite .pv3-team__fields { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+@media (max-width: 900px) { .pv3-team__invite .pv3-team__fields { grid-template-columns: 1fr 1fr; } }
+@media (max-width: 560px) { .pv3-team__invite .pv3-team__fields { grid-template-columns: minmax(0, 1fr); } }
+.pv3-team__locked { display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px; box-sizing: border-box; border: 1px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 400 !important; }

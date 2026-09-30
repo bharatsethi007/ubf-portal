@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { useMessageDock } from './messages/MessagesDock'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { BookUser, Bell, ChevronDown, LogOut, MessageCircle, Search, Users } from 'lucide-react'
+import { BookUser, Bell, UserRound, ChevronDown, LogOut, MessageCircle, Search, Users } from 'lucide-react'
 import NotificationBell from './notifications/NotificationBell'
 import { portalSignOut } from '../auth/portalSignOut'
 
@@ -83,6 +83,9 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
         {menuOpen && (
           <div className="pv2-menu">
             <span className="pv2-menu__email">{userEmail}</span>
+            <NavLink to="/portal/settings/team?edit=me" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
+              <UserRound size={15} aria-hidden /> My details
+            </NavLink>
             <NavLink to="/portal/settings/team" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
               <Users size={15} aria-hidden /> Team
             </NavLink>
