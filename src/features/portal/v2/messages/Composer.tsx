@@ -1,11 +1,11 @@
 import { useLayoutEffect, useRef, useState } from 'react'
 import { ArrowUp } from 'lucide-react'
 
-type Props = { onSend: (body: string) => Promise<unknown>; placeholder?: string; autoFocus?: boolean; disabled?: boolean }
+type Props = { onSend: (body: string) => Promise<unknown>; placeholder?: string; autoFocus?: boolean; disabled?: boolean; initial?: string }
 
 /** Pill input that grows with the text. Enter sends, Shift+Enter adds a line. */
-export default function Composer({ onSend, placeholder = 'Message', autoFocus, disabled }: Props) {
-  const [text, setText] = useState('')
+export default function Composer({ onSend, placeholder = 'Message', autoFocus, disabled, initial }: Props) {
+  const [text, setText] = useState(initial ?? '')
   const [busy, setBusy] = useState(false)
   const ref = useRef<HTMLTextAreaElement>(null)
 
@@ -28,7 +28,7 @@ export default function Composer({ onSend, placeholder = 'Message', autoFocus, d
     <form className="im-compose" onSubmit={(e) => { e.preventDefault(); void send() }}>
       <div className="im-compose__pill">
         <textarea ref={ref} rows={1} value={text} maxLength={4000} placeholder={placeholder} aria-label="Message"
-          autoFocus={autoFocus} onChange={(e) => setText(e.target.value)}
+          autoFocus={autoFocus} onFocus={(e) => { const n = e.currentTarget.value.length; e.currentTarget.setSelectionRange(n, n) }} onChange={(e) => setText(e.target.value)}
           onKeyDown={(e) => { if (e.key === 'Enter' && !e.shiftKey && !e.nativeEvent.isComposing) { e.preventDefault(); void send() } }} />
         <button type="submit" className="im-send" disabled={!ready} aria-label="Send"><ArrowUp size={16} strokeWidth={2.6} /></button>
       </div>

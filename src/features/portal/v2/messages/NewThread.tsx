@@ -4,10 +4,10 @@ import Composer from './Composer'
 import { recentShipments, sendMessage, type ShipmentOption } from './messagesApi'
 import { VerifiedTick } from './UbfBrand'
 
-type Props = { job: number | null; subject?: string | null; onCreated: (threadId: string) => void; onClose: () => void }
+type Props = { job: number | null; subject?: string | null; draft?: string | null; onCreated: (threadId: string) => void; onClose: () => void }
 
 /** New conversation: pick what it's about, then type like any chat. */
-export default function NewThread({ job, subject: presetSubject, onCreated, onClose }: Props) {
+export default function NewThread({ job, subject: presetSubject, draft, onCreated, onClose }: Props) {
   const [ships, setShips] = useState<ShipmentOption[]>([])
   const [about, setAbout] = useState<string>(job != null ? String(job) : '')
   const [subject, setSubject] = useState(presetSubject ?? '')
@@ -60,7 +60,7 @@ export default function NewThread({ job, subject: presetSubject, onCreated, onCl
       </div>
 
       {err && <p className="im-err">{err}</p>}
-      <Composer onSend={send} autoFocus placeholder="Message UB Freight" />
+      <Composer onSend={send} autoFocus placeholder="Message UB Freight" initial={draft ?? undefined} />
     </div>
   )
 }

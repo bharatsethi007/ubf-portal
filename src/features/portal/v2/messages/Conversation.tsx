@@ -7,11 +7,11 @@ import { getThread, sendMessage, type Message, type ThreadDetail } from './messa
 import { groupMessages } from './messageGroups'
 import { UbfAvatar, UbfName, VerifiedTick } from './UbfBrand'
 
-type Props = { threadId: string; onSent: () => void; onBack: () => void }
+type Props = { threadId: string; onSent: () => void; onBack: () => void; draft?: string | null }
 const POLL_MS = 15_000
 
 /** One conversation, iMessage style: grouped bubbles, time breaks, pill composer. Polls while open. */
-export default function Conversation({ threadId, onSent, onBack }: Props) {
+export default function Conversation({ threadId, onSent, onBack, draft }: Props) {
   const [t, setT] = useState<ThreadDetail | null>(null)
   const [pending, setPending] = useState<Message[]>([])
   const [err, setErr] = useState('')
@@ -85,7 +85,7 @@ export default function Conversation({ threadId, onSent, onBack }: Props) {
       </div>
 
       {err && <p className="im-err">{err}</p>}
-      <Composer onSend={send} autoFocus />
+      <Composer key={threadId} onSend={send} autoFocus initial={draft ?? undefined} />
     </div>
   )
 }

@@ -187,6 +187,7 @@ export function fmtNum(n: number, compact = false): string {
 }
 
 // ---------- exceptions ----------
+export type ExceptionAsk = { job?: number | null; subject: string; draft: string }
 export type Exception = {
   key: string
   id?: number
@@ -196,6 +197,16 @@ export type Exception = {
   sub: string
   to: string
   sort: number
+  /** Plain-English reason this is flagged. */
+  why: string
+  /** What happens next, or what the customer can do. */
+  next: string
+  /** One-click message to UBF, prefilled. */
+  ask: ExceptionAsk
+  /** Main link, e.g. to the shipment or invoices. */
+  link: { label: string; to: string }
+  /** Affected shipments, when the exception covers several. */
+  items?: { id: number; no: string; to: string }[]
 }
 
 export function exceptions(pool: HomeShipment[], active: HomeShipment[], m: Money, ports: PortMap, today = todayIso()): Exception[] {
@@ -203,24 +214,53 @@ export function exceptions(pool: HomeShipment[], active: HomeShipment[], m: Mone
   for (const s of pool) {
     const no = shipmentNo(s)
     const lane = `${shortCode(s.origin)} → ${shortCode(s.destination)}`
+    const dest = placeName(s.destination, ports)
     if (s.stage === 2 && s.eta && s.eta < today) {
       const late = daysBetween(s.eta, today)
-      out.push({ key: `late-${s.job_unique}`, id: s.job_unique, tone: 'red', kind: 'Delayed', title: `${no} past ETA by ${late} ${late === 1 ? 'day' : 'days'}`,
-        sub: `${lane} · was due ${fmtDay(s.eta)} at ${placeName(s.destination, ports)}`, to: detailPath(s), sort: 100 + late })
+      out.push({
+        key: `late-${s.job_unique}`, id: s.job_unique, tone: 'red', kind: 'Delayed', title: `${no} past ETA by ${late} ${late === 1 ? 'day' : 'days'}`,
+        sub: `${lane} · was due ${fmtDay(s.eta)} at ${dest}`, to: detailPath(s), sort: 100 + late,
+        why: `This shipment was due at ${dest} on ${fmtDay(s.eta)} and we have no arrival recorded yet. ${isSea(s) ? 'Vessels often slip because of port congestion, weather or a changed rotation.' : 'Flights can be offloaded or rerouted at a transit hub.'}`,
+        next: 'Message us and we will confirm the new arrival date with the carrier. Tell us if the delay affects your plans.',
+        ask: { job: s.job_unique, subject: `Delay: ${no}`, draft: `Hi team, ${no} (${lane}) was due ${fmtDay(s.eta)} and still shows in transit. Can you confirm the new arrival date?` },
+        link: { label: 'View shipment', to: detailPath(s) },
+      })
     } else if (s.stage === 1 && s.etd && s.etd < addDays(today, -2) && s.is_active) {
       const late = daysBetween(s.etd, today)
-      out.push({ key: `dep-${s.job_unique}`, id: s.job_unique, tone: 'amber', kind: 'Departure', title: `${no} not confirmed departed`,
-        sub: `${lane} · planned ${fmtDay(s.etd)}${s.vessel_flight ? ` on ${s.vessel_flight}` : ''}`, to: detailPath(s), sort: 50 + late })
+      out.push({
+        key: `dep-${s.job_unique}`, id: s.job_unique, tone: 'amber', kind: 'Departure', title: `${no} not confirmed departed`,
+        sub: `${lane} · planned ${fmtDay(s.etd)}${s.vessel_flight ? ` on ${s.vessel_flight}` : ''}`, to: detailPath(s), sort: 50 + late,
+        why: `It was planned to leave ${placeName(s.origin, ports)} on ${fmtDay(s.etd)}${s.vessel_flight ? ` on ${s.vessel_flight}` : ''}, ${late} ${late === 1 ? 'day' : 'days'} ago, but departure isn't confirmed. It may have moved to a later ${isSea(s) ? 'sailing' : 'flight'}, or the confirmation is still on its way.`,
+        next: 'Message us and we will confirm whether it has left, or the new departure date.',
+        ask: { job: s.job_unique, subject: `Departure: ${no}`, draft: `Hi team, ${no} (${lane}) was planned to depart ${fmtDay(s.etd)}. Has it left, or has it moved to a later ${isSea(s) ? 'sailing' : 'flight'}?` },
+        link: { label: 'View shipment', to: detailPath(s) },
+      })
     }
   }
   if (m.overdueCount > 0) {
-    out.push({ key: 'inv', tone: 'amber', kind: 'Billing', title: `${m.overdueCount} ${m.overdueCount === 1 ? 'invoice' : 'invoices'} past due`,
-      sub: `${fmtMoney(m.overdue, m.currency)} outstanding`, to: '/portal/billing?tab=overdue', sort: 80 })
+    const many = m.overdueCount !== 1
+    out.push({
+      key: 'inv', tone: 'amber', kind: 'Billing', title: `${m.overdueCount} ${many ? 'invoices' : 'invoice'} past due`,
+      sub: `${fmtMoney(m.overdue, m.currency)} outstanding`, to: '/portal/billing?tab=overdue', sort: 80,
+      why: `${many ? 'These invoices are' : 'This invoice is'} past the due date. If ${many ? 'they have' : 'it has'} already been paid, the payment may not be matched yet.`,
+      next: 'Check the invoices. If one is wrong or already paid, tell us and we will sort it.',
+      ask: { subject: 'Overdue invoices', draft: `Hi team, I see ${m.overdueCount} ${many ? 'invoices' : 'invoice'} past due (${fmtMoney(m.overdue, m.currency)}). ` },
+      link: { label: 'See overdue invoices', to: '/portal/billing?tab=overdue' },
+    })
   }
-  const noRef = active.filter((s) => !s.customer_ref).length
-  if (noRef > 0) {
-    out.push({ key: 'po', tone: 'blue', kind: 'Data', title: `${noRef} active ${noRef === 1 ? 'shipment has' : 'shipments have'} no PO`,
-      sub: 'Add your reference so you can search and report by it', to: '/portal/shipments', sort: 10 })
+  const noRef = active.filter((s) => !s.customer_ref)
+  if (noRef.length > 0) {
+    const n = noRef.length
+    const list = noRef.slice(0, 12).map((s) => shipmentNo(s))
+    out.push({
+      key: 'po', tone: 'blue', kind: 'Data', title: `${n} active ${n === 1 ? 'shipment has' : 'shipments have'} no PO`,
+      sub: 'Add your reference so you can search and report by it', to: '/portal/shipments', sort: 10,
+      why: 'Without your PO or order number, these shipments are harder to find, and your reports and invoices won\u2019t show your reference.',
+      next: 'Send us the references and we can add them to the shipments and invoices.',
+      ask: { subject: 'PO numbers for shipments', draft: `Hi team, here are our references:\n${list.map((x) => `${x}: `).join('\n')}` },
+      link: { label: 'See shipments', to: '/portal/shipments?status=attention' },
+      items: noRef.slice(0, 12).map((s) => ({ id: s.job_unique, no: shipmentNo(s), to: detailPath(s) })),
+    })
   }
   return out.sort((a, b) => b.sort - a.sort)
 }

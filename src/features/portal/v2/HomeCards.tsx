@@ -1,12 +1,16 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { AlertTriangle, CalendarDays, CheckCircle2, ChevronLeft, ChevronRight, Clock, Hash, Plane, Receipt, Ship } from 'lucide-react'
+import { AlertTriangle, ArrowRight, CalendarDays, CheckCircle2, ChevronDown, ChevronLeft, ChevronRight, Clock, Hash, MessageSquare, Plane, Receipt, Ship } from 'lucide-react'
+import { useMessageDock } from './messages/MessagesDock'
 import { fmtDayLong, monthGrid, todayIso, type CalEvent, type Exception } from './homeModel'
 
-type ExProps = { items: Exception[]; loading: boolean; selected: number | null; onSelect: (id: number) => void }
+type ExProps = { items: Exception[]; loading: boolean; selected?: number | null; onSelect?: (id: number) => void }
 
-export function ExceptionsCard({ items, loading, selected, onSelect }: ExProps) {
+/** Exceptions on Home. Each row opens to say why it's flagged, what happens next, and messages UBF in one click. */
+export function ExceptionsCard({ items, loading }: ExProps) {
   const [all, setAll] = useState(false)
+  const [open, setOpen] = useState<string | null>(null)
+  const { openMessages } = useMessageDock()
   const shown = all ? items : items.slice(0, 5)
   const icon = (e: Exception) => {
     if (e.kind === 'Billing') return <Receipt size={15} />
@@ -15,7 +19,7 @@ export function ExceptionsCard({ items, loading, selected, onSelect }: ExProps) 
     return <AlertTriangle size={15} />
   }
   return (
-    <section className="pv3-card pv3-exc pv3-rise" style={{ animationDelay: '.15s' }}>
+    <section id="exceptions" className="pv3-card pv3-exc pv3-rise" style={{ animationDelay: '.15s' }}>
       <header className="pv3-card__head">
         <h2>Exceptions</h2>
         {items.length > 0 && <span className="pv3-count pv3-count--red">{items.length}</span>}
@@ -30,22 +34,35 @@ export function ExceptionsCard({ items, loading, selected, onSelect }: ExProps) 
       ) : (
         <ul className="pv3-exc__list">
           {shown.map((e, i) => {
-            const inner = (
-              <>
-                <span className={`pv3-exc__icon pv3-exc__icon--${e.tone}`}>{icon(e)}</span>
-                <span className="pv3-exc__text">
-                  <span className="pv3-exc__title">{e.title}</span>
-                  <span className="pv3-exc__sub">{e.sub}</span>
-                </span>
-                <span className={`pv3-tag pv3-tag--${e.tone}`}>{e.kind}</span>
-              </>
-            )
+            const isOpen = open === e.key
             return (
               <li key={e.key} style={{ animationDelay: `${0.2 + i * 0.06}s` }}>
-                {e.id != null ? (
-                  <button type="button" className={`pv3-exc__row${selected === e.id ? ' pv3-exc__row--on' : ''}`} onClick={() => onSelect(e.id!)}>{inner}</button>
-                ) : (
-                  <Link to={e.to} className="pv3-exc__row">{inner}</Link>
+                <button type="button" className={`pv3-exc__row${isOpen ? ' pv3-exc__row--on' : ''}`} aria-expanded={isOpen}
+                  onClick={() => setOpen(isOpen ? null : e.key)}>
+                  <span className={`pv3-exc__icon pv3-exc__icon--${e.tone}`}>{icon(e)}</span>
+                  <span className="pv3-exc__text">
+                    <span className="pv3-exc__title">{e.title}</span>
+                    <span className="pv3-exc__sub">{e.sub}</span>
+                  </span>
+                  <span className={`pv3-tag pv3-tag--${e.tone}`}>{e.kind}</span>
+                  <ChevronDown size={16} className={`pv3-chev${isOpen ? ' pv3-chev--open' : ''}`} aria-hidden />
+                </button>
+                {isOpen && (
+                  <div className="pv3-exc__more">
+                    <p><b>Why</b>{e.why}</p>
+                    <p><b>Next</b>{e.next}</p>
+                    {e.items && e.items.length > 0 && (
+                      <div className="pv3-exc__chips">
+                        {e.items.map((x) => <Link key={x.id} to={x.to} className="pv3-exc__chip pv3-mono">{x.no}</Link>)}
+                      </div>
+                    )}
+                    <div className="pv3-exc__acts">
+                      <button type="button" className="pv3-btn pv3-btn--primary" onClick={() => openMessages({ job: e.ask.job ?? null, subject: e.ask.subject, draft: e.ask.draft, compose: true })}>
+                        <MessageSquare size={14} /> Message UBF
+                      </button>
+                      <Link to={e.link.to} className="pv3-btn pv3-btn--ghost">{e.link.label} <ArrowRight size={14} /></Link>
+                    </div>
+                  </div>
                 )}
               </li>
             )

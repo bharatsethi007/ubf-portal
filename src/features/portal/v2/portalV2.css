@@ -529,3 +529,18 @@ button.pv3-exc__row { width: calc(100% + 12px); border: 0; background: transpare
 .pv3-home-an__nums span { display: flex; flex-direction: column; font-size: 18px; font-weight: 700; color: var(--navy); font-variant-numeric: tabular-nums; }
 .pv3-home-an__nums i { font-style: normal; font-size: 11px; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .pv3-home-an .pv3-link { margin-left: auto; }
+
+/* Exceptions: open a row to see why, what's next, and message UBF */
+.pv3-exc__row { width: 100%; border: 0; background: transparent; font: inherit; text-align: left; cursor: pointer; }
+.pv3-exc__row--on { background: var(--bg); }
+.pv3-exc__row .pv3-chev { flex: none; color: var(--muted); transition: transform .18s var(--ease); }
+.pv3-exc__row .pv3-chev--open { transform: rotate(180deg); }
+.pv3-exc__more { display: flex; flex-direction: column; gap: 8px; padding: 4px 6px 14px 50px; animation: pv3-rise .25s var(--ease) both; }
+.pv3-exc__more p { margin: 0; font-size: 13.5px; line-height: 1.5; color: var(--ink-2); }
+.pv3-exc__more p b { display: inline-block; min-width: 44px; margin-right: 6px; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .04em; color: var(--muted); }
+.pv3-exc__chips { display: flex; flex-wrap: wrap; gap: 6px; }
+.pv3-exc__chip { padding: 3px 9px; border-radius: 999px; background: var(--blue-soft); color: var(--blue); font-size: 12px; font-weight: 600; text-decoration: none; }
+.pv3-exc__chip:hover { text-decoration: underline; }
+.pv3-exc__acts { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 2px; }
+@media (max-width: 640px) { .pv3-exc__more { padding-left: 6px; } }
+.pv3-kpi--btn { border: 1px solid var(--line); font: inherit; text-align: left; cursor: pointer; }

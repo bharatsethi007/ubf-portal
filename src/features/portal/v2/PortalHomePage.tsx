@@ -18,7 +18,7 @@ function greeting(): string {
   return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
 }
 
-function Kpi({ label, value, sub, tone, delay, to }: { label: string; value: string; sub?: string; tone?: 'red' | 'amber' | 'blue'; delay: number; to?: string }) {
+function Kpi({ label, value, sub, tone, delay, to, onClick }: { label: string; value: string; sub?: string; tone?: 'red' | 'amber' | 'blue'; delay: number; to?: string; onClick?: () => void }) {
   const body = (
     <>
       <span className="pv3-kpi__label">{label}</span>
@@ -26,6 +26,7 @@ function Kpi({ label, value, sub, tone, delay, to }: { label: string; value: str
       {sub && <span className="pv3-kpi__sub">{sub}</span>}
     </>
   )
+  if (onClick) return <button type="button" onClick={onClick} className="pv3-card pv3-kpi pv3-kpi--btn pv3-rise pv3-hover" style={{ animationDelay: `${delay}s` }}>{body}</button>
   return to
     ? <Link to={to} className="pv3-card pv3-kpi pv3-rise pv3-hover" style={{ animationDelay: `${delay}s` }}>{body}</Link>
     : <div className="pv3-card pv3-kpi pv3-rise" style={{ animationDelay: `${delay}s` }}>{body}</div>
@@ -89,7 +90,8 @@ export default function PortalHomePage() {
       <div className="pv3-kpis">
         <Kpi label="Active shipments" value={String(Math.round(cActive))} sub={`${Math.round(cTransit)} in transit`} delay={0.04} to="/portal/shipments" />
         <Kpi label="Arriving next 7 days" value={String(Math.round(cArr))} sub="by scheduled ETA" delay={0.08} />
-        <Kpi label="Exceptions" value={String(Math.round(cExc))} sub={exc.length ? 'need a look' : 'all clear'} tone={exc.length ? 'red' : undefined} delay={0.12} />
+        <Kpi label="Exceptions" value={String(Math.round(cExc))} sub={exc.length ? 'need a look' : 'all clear'} tone={exc.length ? 'red' : undefined} delay={0.12}
+          onClick={exc.length ? () => document.getElementById('exceptions')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined} />
         <Kpi label="Open balance" value={fmtMoney(cOpen, m.currency)} sub={m.overdue > 0 ? `${fmtMoney(m.overdue, m.currency)} past due` : 'nothing past due'} tone={m.overdue > 0 ? 'amber' : undefined} delay={0.16} to="/portal/billing" />
       </div>
 
@@ -98,7 +100,7 @@ export default function PortalHomePage() {
       </div>
 
       <div className="pv3-split">
-        <ExceptionsCard items={exc} loading={loading} selected={picked} onSelect={select} />
+        <ExceptionsCard items={exc} loading={loading} />
         <CalendarCard events={events} selected={picked} onSelect={select} statusOf={statusOf} />
       </div>
 

@@ -7,8 +7,8 @@ import { listThreads, when, type Thread } from './messagesApi'
 import { UbfAvatar } from './UbfBrand'
 import './messages.css'
 
-export type DockTarget = { job?: number | string | null; subject?: string | null; threadId?: string | null; compose?: boolean }
-type View = { kind: 'list' } | { kind: 'new'; job: number | null; subject: string | null } | { kind: 'thread'; id: string }
+export type DockTarget = { job?: number | string | null; subject?: string | null; threadId?: string | null; compose?: boolean; draft?: string | null }
+type View = { kind: 'list' } | { kind: 'new'; job: number | null; subject: string | null; draft?: string | null } | { kind: 'thread'; id: string; draft?: string | null }
 type Ctx = { openMessages: (t?: DockTarget) => void; unread: number; toggle: () => void }
 
 const DockCtx = createContext<Ctx | null>(null)
@@ -61,16 +61,17 @@ export function MessagesDockProvider({ children }: { children: ReactNode }) {
     if (t?.threadId) { setView({ kind: 'thread', id: t.threadId }); return }
     const job = t?.job != null && t.job !== '' ? Number(t.job) : null
     const subject = t?.subject ?? null
+    const draft = t?.draft ?? null
     if (job != null) {
       const go = (list: Thread[] | null) => {
         const hit = list?.find((x) => Number(x.job_unique) === job && x.status === 'open')
-        setView(hit ? { kind: 'thread', id: hit.id } : { kind: 'new', job, subject })
+        setView(hit ? { kind: 'thread', id: hit.id, draft } : { kind: 'new', job, subject, draft })
       }
       if (threadsRef.current) go(threadsRef.current)
-      else { setView({ kind: 'new', job, subject }); void load().then(go) }
+      else { setView({ kind: 'new', job, subject, draft }); void load().then(go) }
       return
     }
-    setView(subject || t?.compose ? { kind: 'new', job: null, subject } : { kind: 'list' })
+    setView(subject || draft || t?.compose ? { kind: 'new', job: null, subject, draft } : { kind: 'list' })
   }, [load])
 
   const toggle = useCallback(() => setOpen((o) => !o), [])
@@ -156,11 +157,11 @@ export function MessagesDockProvider({ children }: { children: ReactNode }) {
             <>
               <button type="button" className="im-dock__close" onClick={() => setOpen(false)} aria-label="Close messages"><X size={18} /></button>
               {view.kind === 'new' ? (
-                <NewThread key={`${view.job}-${view.subject}`} job={view.job} subject={view.subject}
+                <NewThread key={`${view.job}-${view.subject}-${view.draft ?? ''}`} job={view.job} subject={view.subject} draft={view.draft}
                   onClose={() => setView({ kind: 'list' })}
                   onCreated={(id) => { setView({ kind: 'thread', id }); void load() }} />
               ) : (
-                <Conversation threadId={view.id} onSent={() => void load()} onBack={() => { setView({ kind: 'list' }); void load() }} />
+                <Conversation key={`${view.id}-${view.draft ?? ''}`} threadId={view.id} draft={view.draft} onSent={() => void load()} onBack={() => { setView({ kind: 'list' }); void load() }} />
               )}
             </>
           )}
