@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { unreadTotal } from './messages/messagesApi'
 import { NavLink, useNavigate } from 'react-router-dom'
-import { Bell, ChevronDown, LogOut, MessageCircle, Search, Users } from 'lucide-react'
+import { BookUser, Bell, ChevronDown, LogOut, MessageCircle, Search, Users } from 'lucide-react'
 import NotificationBell from './notifications/NotificationBell'
 import { portalSignOut } from '../auth/portalSignOut'
 
@@ -92,6 +92,9 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
             <span className="pv2-menu__email">{userEmail}</span>
             <NavLink to="/portal/settings/team" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
               <Users size={15} aria-hidden /> Team
+            </NavLink>
+            <NavLink to="/portal/settings/contacts" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
+              <BookUser size={15} aria-hidden /> Contacts
             </NavLink>
             <NavLink to="/portal/settings/notifications" className="pv2-menu__item" onClick={() => setMenuOpen(false)}>
               <Bell size={15} aria-hidden /> Notifications

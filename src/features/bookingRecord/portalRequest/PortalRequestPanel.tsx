@@ -4,6 +4,7 @@ import { toast } from 'sonner'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import ShipmentLinkModal from '../link/ShipmentLinkModal'
+import PortalRequestParties from './PortalRequestParties'
 import { bookingMatchCandidates, type MatchCandidate } from '../link/shipmentLinkApi'
 import type { BookingRecord } from '../bookingRecordTypes'
 import {
@@ -122,7 +123,9 @@ export default function PortalRequestPanel({ booking, onChanged }: Props) {
           </div>
         )}
 
-        {booking.quoted_rate?.sell != null && (
+        <PortalRequestParties bookingId={booking.id} />
+
+        {booking.quoted_rate?.sell != null && booking.quoted_rate.product !== 'QUOTE' && (
           <div className="flex flex-wrap items-center gap-2 text-slate-700">
             <span className="rounded-md bg-emerald-50 px-2 py-0.5 text-xs font-medium text-emerald-800">Booked at published rate</span>
             <span className="font-mono font-semibold">{booking.quoted_rate.currency} {Number(booking.quoted_rate.sell).toLocaleString('en-NZ')}</span>

@@ -36,6 +36,17 @@ export type QuoteOffer = {
   decided_at: string | null
   decision_note: string | null
   decided_by_name: string | null
+  booking_id: string | null
+  booking_ref: string | null
+  direction: 'import' | 'export' | null
+  weight_kg: number | null
+  cbm: number | null
+  pieces: number | null
+  cargo_ready_date: string | null
+  is_hazardous: boolean | null
+  need_refrigeration: boolean | null
+  container_type: string | null
+  container_count: number | null
 }
 
 export type OfferLine = {

@@ -13,6 +13,7 @@ import PortalProductsPage from '../features/portal/v2/products/PortalProductsPag
 import PortalBillingPage from '../features/portal/v2/billing/PortalBillingPage'
 import NotificationSettingsPage from '../features/portal/v2/notifications/NotificationSettingsPage'
 import TeamPage from '../features/portal/v2/team/TeamPage'
+import ContactsPage from '../features/portal/v2/contacts/ContactsPage'
 import PortalMessagesPage from '../features/portal/v2/messages/PortalMessagesPage'
 import PortalShipmentsV3 from '../features/portal/v2/shipments/PortalShipmentsV3'
 import PortalAuthGate from '../features/portal/auth/PortalAuthGate'
@@ -49,6 +50,7 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route path="settings/whatsapp" element={<Navigate to="/portal/settings/notifications" replace />} />
           <Route path="settings/notifications" element={<NotificationSettingsPage />} />
           <Route path="settings/team" element={<TeamPage />} />
+          <Route path="settings/contacts" element={<ContactsPage />} />
           <Route path="messages" element={<PortalMessagesPage />} />
         </Route>
       </Route>

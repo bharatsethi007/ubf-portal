@@ -93,8 +93,15 @@ function staffAlert(b: Payload): { to: string; replyTo?: string; subject: string
       ],
       callout: dup
         ? { tone: "amber", text: `Possible duplicate: ERP shipment <b>${dup.consol_key ?? dup.job_unique}</b> already matches this booking (${(dup.reasons ?? []).join(", ")}). Link it instead of creating a new job.` }
+        : b.quote && !b.quoted_rate
+        ? { tone: "amber", text: `No price agreed yet. Quote <b>${b.quote.quote_no}</b> was opened for this booking. Price it in Quotes and send it for approval.` }
         : null,
-      facts: [["Customer", `${who}${b.account_id ? ` (${b.account_id})` : ""}`], ["Booked at rate", rateLine(b.quoted_rate)], ...facts, ["Notes", b.notes]],
+      facts: [
+        ["Customer", `${who}${b.account_id ? ` (${b.account_id})` : ""}`], ["Booked at rate", rateLine(b.quoted_rate)], ...facts,
+        ["Shipper", b.shipper], ["Consignee", b.consignee], ["Pickup", b.pickup_address], ["Delivery", b.delivery_address],
+        ["Services", [b.needs_customs ? "Customs clearance" : null, b.needs_insurance ? `Insurance${b.cargo_value ? ` on ${b.cargo_value}` : ""}` : null].filter(Boolean).join(", ") || null],
+        ["HS code", b.hs_code], ["Notes", b.notes],
+      ],
       button: { label: "Review in console", url: `${CONSOLE_URL}/bookings/${b.id}` },
       footer: "Sent to the team inbox when a customer submits a booking on portal.ubfreight.com. Reply to reach the customer.",
     },
@@ -103,6 +110,7 @@ function staffAlert(b: Payload): { to: string; replyTo?: string; subject: string
 
 function rateLine(r: Payload | null | undefined): string | null {
   if (!r?.sell) return null
+  if (r.product === "QUOTE") return `${r.currency} ${Number(r.sell).toLocaleString("en-NZ", { minimumFractionDigits: 2 })} total · approved quote ${r.quote_no ?? ""}${r.response_no ? ` (${r.response_no})` : ""}`
   const unit = r.product === "FCL" ? `per ${r.container_type ?? "container"}` : r.product === "LCL" ? "per W/M" : "per kg"
   return `${r.currency} ${Number(r.sell).toLocaleString("en-NZ")} ${unit} · ${r.carrier ?? "carrier"}${r.valid_to ? ` · valid to ${fmtDate(r.valid_to)}` : ""}`
 }

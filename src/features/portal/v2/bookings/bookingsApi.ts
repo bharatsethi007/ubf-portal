@@ -32,12 +32,20 @@ export type PortalBooking = {
   portal_status: PortalBookingStatus
   customer_ref: string | null
   decline_reason: string | null
-  quoted_rate: { product: string; carrier: string | null; container_type: string | null; currency: string; sell: number | null; unit: string } | null
+  quoted_rate: { product: string; carrier: string | null; container_type: string | null; currency: string; sell: number | null; unit: string; quote_no?: string } | null
+  shipper_name: string | null
+  pickup_address: string | null
+  delivery_address: string | null
+  quote_id: string | null
+  quote_no: string | null
+  quote_approved: boolean | null
+  quote_state: 'pricing' | 'awaiting' | 'approved' | null
 }
 
 const COLS = `id, shipment_id, booking_ref, module, mode, load_type, status, source, created_at, origin, destination,
   etd, eta, vessel, incoterm, goods_description, pieces, packing_type, weight_kg, cbm, container_type,
-  container_count, cargo_ready_date, is_dg, special_instructions, consignee_name, portal_status, customer_ref, decline_reason, quoted_rate`
+  container_count, cargo_ready_date, is_dg, special_instructions, consignee_name, portal_status, customer_ref, decline_reason, quoted_rate,
+  shipper_name, pickup_address, delivery_address, quote_id, quote_no, quote_approved, quote_state`
 
 export async function listPortalBookings(): Promise<PortalBooking[]> {
   const { data, error } = await supabase.from('portal_bookings').select(COLS).order('created_at', { ascending: false }).limit(500)
@@ -45,38 +53,10 @@ export async function listPortalBookings(): Promise<PortalBooking[]> {
   return (data ?? []) as PortalBooking[]
 }
 
-export type BookingRequest = {
-  direction: 'import' | 'export'
-  mode: 'sea' | 'air'
-  load_type: 'FCL' | 'LCL' | ''
-  origin: string
-  destination: string
-  incoterm: string
-  cargo_ready_date: string
-  goods_description: string
-  pieces: string
-  packing_type: string
-  weight_kg: string
-  cbm: string
-  container_type: string
-  container_count: string
-  is_dg: boolean
-  un_number: string
-  dg_class: string
-  is_temp_controlled: boolean
-  temp_range: string
-  shipper: string
-  consignee: string
-  consignee_address: string
-  customer_ref: string
-  notes: string
-  /** Published rate the customer is booking against; the server re-prices it. */
-  rate_ref?: string
-}
-
-export async function requestBooking(req: BookingRequest): Promise<{ booking_id: string; booking_ref: string }> {
+/** Sends a booking request (see bookingModel.submitBooking for the payload). */
+export async function requestBooking(req: object): Promise<{ booking_id: string; booking_ref: string }> {
   const { data, error } = await supabase.rpc('portal_request_booking', { p: req })
-  if (error) throw new Error(error.message.replace(/^.*?:\s*/, '') || 'Could not submit booking')
+  if (error) throw new Error(error.message || 'Could not submit booking')
   const row = Array.isArray(data) ? data[0] : data
   return row as { booking_id: string; booking_ref: string }
 }

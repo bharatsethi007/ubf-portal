@@ -94,13 +94,16 @@ export default function PortalBookingsPage() {
                           <dl className="pv3-peek__facts">
                             {([
                               ['Why declined', b.portal_status === 'declined' ? b.decline_reason : null],
-                              ['Booked rate', b.quoted_rate?.sell != null ? `${b.quoted_rate.currency} ${Number(b.quoted_rate.sell).toLocaleString('en-NZ')} ${b.quoted_rate.unit} · ${b.quoted_rate.carrier ?? ''}` : null],
+                              ['Booked rate', b.quoted_rate?.sell != null ? `${b.quoted_rate.currency} ${Number(b.quoted_rate.sell).toLocaleString('en-NZ')} ${b.quoted_rate.unit === 'total' ? 'total' : b.quoted_rate.unit}${b.quoted_rate.carrier ? ` · ${b.quoted_rate.carrier}` : ''}` : null],
+                              ['Quote', b.quote_no ? `${b.quote_no} · ${b.quote_state === 'approved' ? 'approved' : b.quote_state === 'awaiting' ? 'ready for your approval' : 'our team is pricing it'}` : null],
+                              ['Shipper', titleCase(b.shipper_name)], ['Pickup', b.pickup_address], ['Delivery', b.delivery_address],
                               ['Incoterm', b.incoterm], ['Consignee', titleCase(b.consignee_name)], ['Volume', b.cbm ? `${Number(b.cbm).toFixed(2)} m³` : null],
                               ['Vessel', b.vessel], ['ETD', b.etd ? fmtDay(b.etd) : null], ['ETA', b.eta ? fmtDay(b.eta) : null],
                               ['Dangerous goods', b.is_dg ? 'Yes' : null], ['Notes', b.special_instructions],
                             ] as [string, string | null][]).filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd title={v ?? ''}>{v}</dd></div>)}
                           </dl>
                           <div className="pv3-peek__actions">
+                            {b.quote_state === 'awaiting' && <Link to="/portal/rates?tab=quotes" className="pv3-btn pv3-btn--primary">Review quote <ArrowRight size={14} /></Link>}
                             {b.shipment_id != null && <Link to={detailPath({ job_unique: b.shipment_id })} className="pv3-btn pv3-btn--primary">Track shipment <ArrowRight size={14} /></Link>}
                             <Link className="pv3-btn pv3-btn--ghost" to={msg}><MessageSquare size={14} /> Message UBF</Link>
                           </div>

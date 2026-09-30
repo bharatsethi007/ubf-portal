@@ -1,0 +1,40 @@
+/* Portal contacts + shared modal. Tokens from portalV2.css. */
+
+.pv3-modal { position: fixed; inset: 0; z-index: 70; display: flex; align-items: flex-start; justify-content: center; padding: 40px 16px; overflow-y: auto; }
+.pv3-modal__scrim { position: fixed; inset: 0; border: 0; background: rgba(11, 26, 58, .4); cursor: default; animation: pv3-bill-fade .2s both; }
+.pv3-modal__panel {
+  position: relative; width: min(760px, 100%); background: #FFFFFF; border-radius: 16px; box-shadow: 0 24px 60px rgba(11, 26, 58, .25);
+  display: flex; flex-direction: column; animation: pv3-modal-in .24s var(--ease) both;
+}
+.pv3-modal__panel--wide { width: min(900px, 100%); }
+@keyframes pv3-modal-in { from { opacity: 0; transform: translateY(12px) scale(.99); } to { opacity: 1; transform: none; } }
+.pv3-modal__head { display: flex; justify-content: space-between; align-items: flex-start; gap: 12px; padding: 20px 24px 14px; border-bottom: 1px solid var(--line-soft); }
+.pv3-modal__head h2 { margin: 0; font-size: 18px; color: var(--ink); }
+.pv3-modal__head p { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.pv3-modal__body { padding: 18px 24px; display: flex; flex-direction: column; gap: 14px; }
+.pv3-modal__body h3 { margin: 6px 0 -2px; font-size: 12px; font-weight: 600; letter-spacing: .05em; text-transform: uppercase; color: var(--muted); }
+.pv3-modal__foot { position: sticky; bottom: 0; display: flex; align-items: center; justify-content: flex-end; gap: 12px; padding: 14px 24px; border-top: 1px solid var(--line-soft); background: #FFFFFF; border-radius: 0 0 16px 16px; }
+.pv3-modal__foot .pv3-form__err { margin-right: auto; }
+
+.pv3-contacts__bar { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; margin-top: 8px; }
+.pv3-contacts__search { position: relative; width: min(320px, 100%); }
+.pv3-contacts__search svg { position: absolute; left: 11px; top: 11px; color: var(--faint); }
+.pv3-contacts__search input { width: 100%; height: 38px; box-sizing: border-box; padding: 0 12px 0 32px; border: 1px solid var(--line); border-radius: 8px; font: inherit; font-size: 14px; }
+.pv3-contacts__role { display: inline-block; font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; background: var(--line-soft); color: var(--ink-2); white-space: nowrap; }
+.pv3-contacts__role--shipper { background: var(--blue-soft); color: var(--blue); }
+.pv3-contacts__role--consignee { background: var(--green-soft); color: var(--green); }
+.pv3-contacts__acts { display: flex; gap: 4px; justify-content: flex-end; }
+
+/* Party picker inside the booking form */
+.pv3-party { display: flex; flex-direction: column; gap: 12px; }
+.pv3-party__pick { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-end; }
+.pv3-party__pick .pv3-field { flex: 1 1 260px; }
+.pv3-party__chosen { display: flex; align-items: center; gap: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--bg); }
+.pv3-party__chosen div { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 2px; font-size: 13px; color: var(--ink-2); }
+.pv3-party__chosen b { color: var(--ink); font-size: 14px; }
+.pv3-party__save { font-size: 13px; }
+.pv3-notice { display: flex; gap: 10px; align-items: flex-start; padding: 12px 14px; border-radius: 10px; font-size: 13.5px; line-height: 1.45; }
+.pv3-notice--amber { background: var(--amber-soft); color: var(--amber); border: 1px solid #FCD34D; }
+.pv3-notice--green { background: var(--green-soft); color: var(--green); border: 1px solid #86EFAC; }
+.pv3-notice svg { flex: none; margin-top: 1px; }
+.pv3-notice b { color: inherit; }
