@@ -5,16 +5,17 @@ import PartyPicker from './PartyPicker'
 import { doorDeliveryTerms, originPickupTerms, type BookingDraft } from './bookingModel'
 
 type Set = <K extends keyof BookingDraft>(k: K, v: BookingDraft[K]) => void
-type Props = { f: BookingDraft; set: Set; contacts: Contact[] }
+type Props = { f: BookingDraft; set: Set; contacts: Contact[]; autoServices?: boolean }
 
 const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'CNY', 'GBP', 'JPY', 'FJD']
 
 /** Shipper and consignee, collection and delivery, customs and insurance, references. */
-export default function BookingPartiesServices({ f, set, contacts }: Props) {
+export default function BookingPartiesServices({ f, set, contacts, autoServices = true }: Props) {
   const imp = f.direction === 'import'
 
   // Terms that put collection or door delivery in our hands switch those on, prefilled from the party.
   useEffect(() => {
+    if (!autoServices) return
     if (imp && originPickupTerms.has(f.incoterm) && !f.pickup) {
       set('pickup', true)
       if (!f.pickup_address) set('pickup_address', f.shipper.address)

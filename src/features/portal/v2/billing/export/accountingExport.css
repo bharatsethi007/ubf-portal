@@ -32,3 +32,5 @@
 
 /* Keep the header (and its Export menu) above the KPI cards, which open their own stacking contexts. */
 .pv3-head--menu { position: relative; z-index: 40; }
+
+.pv3-xmenu__list--up { top: auto; bottom: calc(100% + 6px); left: 0; right: auto; }

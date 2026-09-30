@@ -10,12 +10,13 @@ type Row = {
   cargo_value: number | null; cargo_value_currency: string | null; hs_code: string | null; incoterm: string | null
   quote_id: string | null; quoted_rate: { product?: string; sell?: number; currency?: string; response_no?: string } | null
   quote: { quote_no: string; status: string } | null
+  customer_edited_at: string | null
 }
 
 const COLS = `shipper_name, shipper_contact, shipper_address, shipper_phone, shipper_email,
   consignee_name, consignee_contact, consignee_address, consignee_phone, consignee_email,
   pickup_address, delivery_address, needs_customs, needs_insurance, cargo_value, cargo_value_currency, hs_code, incoterm,
-  quote_id, quoted_rate, quote:quotes!bookings_quote_id_fkey(quote_no, status)`
+  quote_id, quoted_rate, customer_edited_at, quote:quotes!bookings_quote_id_fkey(quote_no, status)`
 
 function Party({ title, name, rest }: { title: string; name: string | null; rest: (string | null)[] }) {
   if (!name && !rest.some(Boolean)) return null
@@ -46,6 +47,11 @@ export default function PortalRequestParties({ bookingId }: { bookingId: string 
 
   return (
     <div className="grid gap-3 rounded-lg border border-slate-200 bg-slate-50 p-3">
+      {r.customer_edited_at && (
+        <p className="rounded-md bg-blue-50 px-2 py-1 text-xs font-medium text-blue-800">
+          Customer updated this request {new Date(r.customer_edited_at).toLocaleString('en-NZ', { day: 'numeric', month: 'short', hour: 'numeric', minute: '2-digit' })}. Check the details below and the booking fields before keying.
+        </p>
+      )}
       {r.quote && (
         <div className="flex flex-wrap items-center gap-2 text-slate-700">
           <FileText size={14} className="text-slate-500" />

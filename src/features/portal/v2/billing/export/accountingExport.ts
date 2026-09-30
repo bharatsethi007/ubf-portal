@@ -91,3 +91,13 @@ export function myobCsv(data: Priced[], s: ExportSettings): string {
   }).join('\r\n'))
   return [head.map(cell).join(','), ...blocks].join('\r\n\r\n').replace(/^([^\r]*)\r\n\r\n/, '$1\r\n')
 }
+
+/** Plain spreadsheet of one or more invoices, one row per charge line. */
+export function linesCsv(data: Priced[]): string {
+  const head = ['Invoice', 'Invoice date', 'Due date', 'Shipment', 'Your ref', 'Charge', 'Amount excl GST', 'GST', 'Currency']
+  const rows = data.flatMap(({ inv, lines }) => lines.map((l) => [
+    inv.invoice_no, dmy(inv.doc_date), dmy(inv.date_due), inv.shipment_no ?? '', inv.customer_ref ?? '', l.description,
+    money(l.amount), l.zero ? 'GST free' : money(Math.round(l.amount * 0.15 * 100) / 100), inv.currency,
+  ]))
+  return [head, ...rows].map((r) => r.map(cell).join(',')).join('\r\n')
+}

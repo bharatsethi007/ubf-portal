@@ -5,6 +5,7 @@ import { usePortalAccount, type PortalAccount } from '../auth/usePortalAccount'
 import PortalTopBar from './PortalTopBar'
 import CommandPalette from './CommandPalette'
 import BetaNotice from './BetaNotice'
+import { MessagesDockProvider } from './messages/MessagesDock'
 import '../layout/portalTheme.css'
 import './portalV2.css'
 
@@ -35,6 +36,7 @@ export default function PortalShellV2({ session }: Props) {
 
   return (
     <div className="portal-root pv2-root">
+      <MessagesDockProvider>
       <PortalTopBar
         displayName={account?.displayName ?? 'Customer portal'}
         userEmail={account?.email ?? session.user.email ?? ''}
@@ -46,6 +48,7 @@ export default function PortalShellV2({ session }: Props) {
       </main>
       <CommandPalette open={searchOpen} onClose={() => setSearchOpen(false)} />
       <BetaNotice />
+      </MessagesDockProvider>
     </div>
   )
 }

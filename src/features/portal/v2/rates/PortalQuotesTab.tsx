@@ -44,7 +44,7 @@ export default function PortalQuotesTab({ focusId, onCount }: Props) {
     return c
   }, [groups])
 
-  const focused = focusId ? groups.find((x) => x.options.some((o) => o.id === focusId)) : undefined
+  const focused = focusId ? groups.find((x) => x.options.some((o) => o.id === focusId || o.quote_id === focusId)) : undefined
   const active: Filter = filter ?? (focused ? (focused.status in counts ? (focused.status as Filter) : 'all') : counts.pending ? 'pending' : 'all')
   const shown = groups.filter((g) => active === 'all' || g.status === active)
 

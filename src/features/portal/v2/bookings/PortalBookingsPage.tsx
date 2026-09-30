@@ -1,9 +1,10 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
-import { Link } from 'react-router-dom'
-import { ArrowRight, ChevronDown, MessageSquare, Plane, Plus, Ship } from 'lucide-react'
+import { Link, useSearchParams } from 'react-router-dom'
+import { ArrowRight, ChevronDown, FileText, MessageSquare, Pencil, Plane, Plus, Ship } from 'lucide-react'
 import { usePorts } from '../../../../hooks/usePorts'
 import { detailPath, fmtDay, fmtNum, placeName, shortCode, titleCase } from '../homeModel'
 import { bookingModeLabel, listPortalBookings, STATUS_LABEL, STATUS_TONE, type PortalBooking, type PortalBookingStatus } from './bookingsApi'
+import { useMessageDock } from '../messages/MessagesDock'
 
 type Filter = 'all' | PortalBookingStatus
 const FILTERS: { key: Filter; label: string }[] = [
@@ -17,10 +18,12 @@ const FILTERS: { key: Filter; label: string }[] = [
 export default function PortalBookingsPage() {
   const { ports } = usePorts()
   const [rows, setRows] = useState<PortalBooking[]>([])
+  const { openMessages } = useMessageDock()
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [filter, setFilter] = useState<Filter>('all')
-  const [open, setOpen] = useState<string | null>(null)
+  const [params] = useSearchParams()
+  const [open, setOpen] = useState<string | null>(params.get('b'))
 
   useEffect(() => {
     listPortalBookings().then(setRows).catch((e) => setError(e instanceof Error ? e.message : 'Could not load bookings')).finally(() => setLoading(false))
@@ -75,7 +78,7 @@ export default function PortalBookingsPage() {
                 const cargo = b.load_type === 'FCL' && b.container_count
                   ? `${b.container_count} × ${b.container_type ?? 'container'}`
                   : [b.pieces ? `${fmtNum(Number(b.pieces))} ${b.packing_type ?? 'pcs'}` : null, b.weight_kg ? `${fmtNum(Number(b.weight_kg))} kg` : null].filter(Boolean).join(' · ') || '—'
-                const msg = `/portal/messages?${b.shipment_id != null ? `job=${b.shipment_id}&` : 'new=1&'}subject=${encodeURIComponent(`Booking ${b.booking_ref ?? ''}`)}`
+                const msg = () => openMessages({ job: b.shipment_id, subject: `Booking ${b.booking_ref ?? ''}`.trim(), compose: true })
                 return (
                   <Fragment key={b.id}>
                     <tr onClick={() => setOpen(isOpen ? null : b.id)} className={isOpen ? 'pv3-row--open' : ''}>
@@ -95,7 +98,6 @@ export default function PortalBookingsPage() {
                             {([
                               ['Why declined', b.portal_status === 'declined' ? b.decline_reason : null],
                               ['Booked rate', b.quoted_rate?.sell != null ? `${b.quoted_rate.currency} ${Number(b.quoted_rate.sell).toLocaleString('en-NZ')} ${b.quoted_rate.unit === 'total' ? 'total' : b.quoted_rate.unit}${b.quoted_rate.carrier ? ` · ${b.quoted_rate.carrier}` : ''}` : null],
-                              ['Quote', b.quote_no ? `${b.quote_no} · ${b.quote_state === 'approved' ? 'approved' : b.quote_state === 'awaiting' ? 'ready for your approval' : 'our team is pricing it'}` : null],
                               ['Shipper', titleCase(b.shipper_name)], ['Pickup', b.pickup_address], ['Delivery', b.delivery_address],
                               ['Incoterm', b.incoterm], ['Consignee', titleCase(b.consignee_name)], ['Volume', b.cbm ? `${Number(b.cbm).toFixed(2)} m³` : null],
                               ['Vessel', b.vessel], ['ETD', b.etd ? fmtDay(b.etd) : null], ['ETA', b.eta ? fmtDay(b.eta) : null],
@@ -103,9 +105,17 @@ export default function PortalBookingsPage() {
                             ] as [string, string | null][]).filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd title={v ?? ''}>{v}</dd></div>)}
                           </dl>
                           <div className="pv3-peek__actions">
-                            {b.quote_state === 'awaiting' && <Link to="/portal/rates?tab=quotes" className="pv3-btn pv3-btn--primary">Review quote <ArrowRight size={14} /></Link>}
+                            {b.quote_state === 'awaiting' && <Link to={`/portal/rates?tab=quotes&q=${b.quote_id}`} className="pv3-btn pv3-btn--primary">Review quote <ArrowRight size={14} /></Link>}
+                            {b.quote_no && b.quote_state !== 'awaiting' && (
+                              <Link to={`/portal/rates?tab=quotes&q=${b.quote_id}`} className="pv3-btn pv3-btn--ghost" title={b.quote_state === 'approved' ? 'Approved quote' : 'Our team is pricing it'}>
+                                <FileText size={14} /> Quote {b.quote_no}{b.quote_state === 'pricing' ? ' · pricing' : ''}
+                              </Link>
+                            )}
+                            {b.shipment_id == null && (b.portal_status === 'requested' || b.portal_status === 'confirmed') && (
+                              <Link to={`/portal/bookings/${b.id}/edit`} className="pv3-btn pv3-btn--ghost"><Pencil size={14} /> Edit booking</Link>
+                            )}
                             {b.shipment_id != null && <Link to={detailPath({ job_unique: b.shipment_id })} className="pv3-btn pv3-btn--primary">Track shipment <ArrowRight size={14} /></Link>}
-                            <Link className="pv3-btn pv3-btn--ghost" to={msg}><MessageSquare size={14} /> Message UBF</Link>
+                            <button type="button" className="pv3-btn pv3-btn--ghost" onClick={msg}><MessageSquare size={14} /> Message UBF</button>
                           </div>
                         </div>
                       </td></tr>

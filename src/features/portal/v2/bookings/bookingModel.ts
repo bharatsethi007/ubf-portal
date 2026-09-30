@@ -1,3 +1,4 @@
+import { supabase } from '../../../../supabase'
 import { EMPTY_PARTY, saveContact, type Party } from '../contacts/contactsApi'
 import { requestBooking } from './bookingsApi'
 
@@ -108,4 +109,48 @@ export async function submitBooking(d: BookingDraft): Promise<{ booking_id: stri
     delivery_address: delivery ? d.delivery_address : '',
     cargo_value: d.needs_insurance ? d.cargo_value : '',
   })
+}
+
+/** Saved booking (portal_booking_get) back into the form's shape. */
+export function draftFromBooking(b: Record<string, unknown>): BookingDraft {
+  const s = (v: unknown) => (v == null ? '' : String(v))
+  const party = (x: unknown) => {
+    const p = (x ?? {}) as Record<string, unknown>
+    return { ...EMPTY_PARTY, company: s(p.company), contact_name: s(p.contact_name), email: s(p.email), phone: s(p.phone),
+      address: s(p.address), city: s(p.city), postcode: s(p.postcode), country: s(p.country) }
+  }
+  const [md, dir] = s(b.mode).split('_')
+  const shipper = party(b.shipper)
+  const consignee = party(b.consignee)
+  return {
+    ...EMPTY_DRAFT,
+    direction: dir === 'export' ? 'export' : 'import', mode: md === 'air' ? 'air' : 'sea',
+    load_type: md === 'air' ? '' : (s(b.load_type) === 'LCL' ? 'LCL' : 'FCL'),
+    origin: s(b.origin), destination: s(b.destination), incoterm: s(b.incoterm), cargo_ready_date: s(b.cargo_ready_date).slice(0, 10),
+    goods_description: s(b.goods_description), hs_code: s(b.hs_code), pieces: s(b.pieces), packing_type: s(b.packing_type),
+    weight_kg: s(b.weight_kg), cbm: s(b.cbm), container_type: s(b.container_type) || '40HQ', container_count: s(b.container_count) || '1',
+    is_dg: !!b.is_dg, un_number: s(b.un_number), dg_class: s(b.dg_class), is_temp_controlled: !!b.is_temp_controlled, temp_range: s(b.temp_range),
+    shipper, consignee,
+    pickup: !!b.pickup_address, pickup_address: s(b.pickup_address), delivery: !!b.delivery_address, delivery_address: s(b.delivery_address),
+    needs_customs: b.needs_customs !== false, needs_insurance: !!b.needs_insurance, cargo_value: s(b.cargo_value),
+    cargo_value_currency: s(b.cargo_value_currency) || 'NZD', customer_ref: s(b.customer_ref), notes: s(b.notes),
+  }
+}
+
+export async function fetchBookingForEdit(id: string): Promise<Record<string, unknown> | null> {
+  const { data, error } = await supabase.rpc('portal_booking_get', { p_booking: id })
+  if (error) throw new Error('Booking could not load.')
+  return (data ?? null) as Record<string, unknown> | null
+}
+
+/** Saves edits (and any new contacts the customer ticked) to a booking that is not yet a shipment. */
+export async function saveBookingEdit(id: string, d: BookingDraft): Promise<void> {
+  if (d.save_shipper && d.shipper.company.trim()) await saveContact({ ...d.shipper, role: 'shipper' }).catch(() => null)
+  if (d.save_consignee && d.consignee.company.trim()) await saveContact({ ...d.consignee, role: 'consignee' }).catch(() => null)
+  const { save_shipper: _a, save_consignee: _b, pickup, delivery, rate_ref: _r, quote_response_id: _q, approve_note: _n, ...rest } = d
+  const { error } = await supabase.rpc('portal_booking_update', {
+    p_booking: id,
+    p: { ...rest, pickup_address: pickup ? d.pickup_address : '', delivery_address: delivery ? d.delivery_address : '', cargo_value: d.needs_insurance ? d.cargo_value : '' },
+  })
+  if (error) throw new Error(error.message || 'Changes could not be saved.')
 }

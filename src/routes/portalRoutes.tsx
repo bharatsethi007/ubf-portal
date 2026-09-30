@@ -7,6 +7,7 @@ import PortalHomePage from '../features/portal/v2/PortalHomePage'
 import PortalShipmentDetailV3 from '../features/portal/v2/detail/PortalShipmentDetailV3'
 import PortalBookingsPage from '../features/portal/v2/bookings/PortalBookingsPage'
 import BookingRequestPage from '../features/portal/v2/bookings/BookingRequestPage'
+import BookingEditPage from '../features/portal/v2/bookings/BookingEditPage'
 import PortalRatesPage from '../features/portal/v2/rates/PortalRatesPage'
 import PortalAnalyticsPage from '../features/portal/v2/analytics/PortalAnalyticsPage'
 import PortalProductsPage from '../features/portal/v2/products/PortalProductsPage'
@@ -42,6 +43,7 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route path="shipments" element={<PortalShipmentsV3 />} />
           <Route path="bookings" element={<PortalBookingsPage />} />
           <Route path="bookings/new" element={<BookingRequestPage />} />
+          <Route path="bookings/:id/edit" element={<BookingEditPage />} />
           <Route path="rates" element={<PortalRatesPage />} />
           <Route path="analytics" element={<PortalAnalyticsPage />} />
           <Route path="products" element={<PortalProductsPage />} />

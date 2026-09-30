@@ -17,6 +17,7 @@ import { fmtDay, fmtNum, placeName, shipmentNo, shortCode, titleCase } from '../
 import InvoiceDrawer from '../billing/InvoiceDrawer'
 import { toBillInvoice, type BillInvoice } from '../billing/billingApi'
 import { usePortalTrack } from './usePortalTrack'
+import { useMessageDock } from '../messages/MessagesDock'
 
 const TABS = ['Overview', 'Cargo & containers', 'Documents', 'Invoices', 'Tasks', 'Additional services'] as const
 type Tab = (typeof TABS)[number]
@@ -56,6 +57,7 @@ export default function PortalShipmentDetailV3() {
   const desktop = useIsDesktop()
   const [copied, setCopied] = useState(false)
   const [openInv, setOpenInv] = useState<BillInvoice | null>(null)
+  const { openMessages } = useMessageDock()
 
   const raw = params.get('tab') ?? 'Overview'
   const tab: Tab = (TABS as readonly string[]).includes(raw) ? (raw as Tab) : LEGACY[raw] ?? 'Overview'
@@ -161,7 +163,7 @@ export default function PortalShipmentDetailV3() {
               {copied ? <Check size={14} /> : <Copy size={14} />} {copied ? 'Link copied' : 'Share tracking'}
             </button>
           )}
-          <Link className="pv3-btn pv3-btn--ghost" to={`/portal/messages?job=${s.job_unique}`}><MessageSquare size={14} /> Message UBF</Link>
+          <button type="button" className="pv3-btn pv3-btn--ghost" onClick={() => openMessages({ job: s.job_unique, subject: `Shipment ${no}` })}><MessageSquare size={14} /> Message UBF</button>
           <button type="button" className="pv3-btn pv3-btn--primary" onClick={() => setTab('Documents')}>Documents</button>
         </div>
       </header>

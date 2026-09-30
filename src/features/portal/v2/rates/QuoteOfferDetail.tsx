@@ -1,8 +1,9 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, ChevronDown, Loader2, MessageSquare, Package, X } from 'lucide-react'
+import { ArrowRight, Check, ChevronDown, Loader2, MessageSquare, Package, X } from 'lucide-react'
 import { fmtDay } from '../homeModel'
 import { money } from './ratesApi'
+import { useMessageDock } from '../messages/MessagesDock'
 import QuoteBookingModal from './QuoteBookingModal'
 import { daysLeft, groupLines, listOfferLines, respondToOffer, type OfferLine, type QuoteOffer } from './quotesApi'
 
@@ -20,6 +21,7 @@ export default function QuoteOfferDetail({ o, open, onAnswered }: Props) {
   const [busy, setBusy] = useState(false)
   const [terms, setTerms] = useState(false)
   const [booking, setBooking] = useState(false)
+  const { openMessages } = useMessageDock()
   const cur = o.currency ?? 'NZD'
   const left = daysLeft(o.valid_till)
 
@@ -46,7 +48,7 @@ export default function QuoteOfferDetail({ o, open, onAnswered }: Props) {
     ['Free time at origin', o.origin_free_time_days ? `${o.origin_free_time_days} days` : null],
     ['Free time at destination', o.detention_free_time_dest ? `${o.detention_free_time_dest} days` : null],
     ['Valid', o.valid_till ? `${o.valid_from ? `${fmtDay(o.valid_from)} to ` : 'Until '}${fmtDay(o.valid_till)}` : null],
-    ['Your reference', o.customer_po], ['Quote', `${o.quote_no}${o.response_no ? ` · ${o.response_no}` : ''}`], ['Booking', o.booking_ref],
+    ['Your reference', o.customer_po], ['Quote', `${o.quote_no}${o.response_no ? ` · ${o.response_no}` : ''}`],
   ]
 
   return (
@@ -54,6 +56,12 @@ export default function QuoteOfferDetail({ o, open, onAnswered }: Props) {
       <dl className="pv3-peek__facts">
         {facts.filter(([, v]) => v).map(([k, v]) => <div key={k}><dt>{k}</dt><dd title={v ?? ''}>{v}</dd></div>)}
       </dl>
+
+      {o.booking_id && o.booking_ref && (
+        <Link to={`/portal/bookings?b=${o.booking_id}`} className="pv3-notice pv3-notice--green" style={{ textDecoration: 'none' }}>
+          <Package size={17} /><span style={{ flex: 1 }}>Booked as <b className="pv3-mono">{o.booking_ref}</b>. See the booking, or edit it until the shipment is created.</span><ArrowRight size={16} />
+        </Link>
+      )}
 
       {lines === null && !err && <span className="pv3-skel" />}
       {lines && (
@@ -131,7 +139,7 @@ export default function QuoteOfferDetail({ o, open, onAnswered }: Props) {
       {o.portal_status === 'expired' && (
         <div className="pv3-qact">
           <span className="pv3-muted">This price has expired.</span>
-          <Link className="pv3-btn pv3-btn--ghost" to={`/portal/messages?new=1&subject=${encodeURIComponent(`Refresh quote ${o.response_no ?? o.quote_no}`)}`}><MessageSquare size={14} /> Ask for a refresh</Link>
+          <button type="button" className="pv3-btn pv3-btn--ghost" onClick={() => openMessages({ subject: `Refresh quote ${o.response_no ?? o.quote_no}` })}><MessageSquare size={14} /> Ask for a refresh</button>
         </div>
       )}
       {booking && <QuoteBookingModal o={o} closesOthers={multi} onClose={() => setBooking(false)} onBooked={() => { setBooking(false); onAnswered() }} />}

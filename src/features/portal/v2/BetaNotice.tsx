@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useMessageDock } from './messages/MessagesDock'
 import { FlaskConical, Mail, MessageSquare, X } from 'lucide-react'
 
 const KEY = 'ubf_portal_beta_ack_v1'
@@ -15,7 +15,7 @@ function markSeen() {
 /** One-time beta notice for the customer portal. */
 export default function BetaNotice() {
   const [open, setOpen] = useState(false)
-  const navigate = useNavigate()
+  const { openMessages } = useMessageDock()
 
   useEffect(() => { if (!seen()) setOpen(true) }, [])
   useEffect(() => {
@@ -26,7 +26,7 @@ export default function BetaNotice() {
   }, [open])
 
   function close() { markSeen(); setOpen(false) }
-  function message() { close(); navigate('/portal/messages') }
+  function message() { close(); openMessages({ subject: 'Portal feedback' }) }
 
   if (!open) return null
   return (

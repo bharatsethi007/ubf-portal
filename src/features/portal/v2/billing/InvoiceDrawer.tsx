@@ -5,12 +5,14 @@ import { detailPath, fmtDay } from '../homeModel'
 import { STATUS, daysLate, docLabel, fetchInvoiceDetail, money2, statusOf, type BillInvoice, type InvoiceDetail } from './billingApi'
 import { downloadInvoicePdf } from './pdf/invoiceDocApi'
 import './billing.css'
+import { useMessageDock } from '../messages/MessagesDock'
 
 type Props = { inv: BillInvoice; onClose: () => void; fromShipment?: boolean }
 
 /** One invoice on screen: status, balance, and every charge line. */
 export default function InvoiceDrawer({ inv, onClose, fromShipment }: Props) {
   const [d, setD] = useState<InvoiceDetail | null>(null)
+  const { openMessages } = useMessageDock()
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
   const [pdfBusy, setPdfBusy] = useState(false)
@@ -34,8 +36,8 @@ export default function InvoiceDrawer({ inv, onClose, fromShipment }: Props) {
     return () => window.removeEventListener('keydown', k)
   }, [onClose])
 
-  const subject = encodeURIComponent(`Invoice ${inv.invoice_no}${inv.shipment_no ? ` / ${inv.shipment_no}` : ''}`)
-  const query = `/portal/messages?${inv.job_unique != null ? `job=${inv.job_unique}&` : 'new=1&'}subject=${subject}`
+  const subject = `Invoice ${inv.invoice_no}${inv.shipment_no ? ` / ${inv.shipment_no}` : ''}`
+  const ask = () => openMessages({ job: inv.job_unique, subject, compose: true })
 
   async function savePdf() {
     setPdfBusy(true); setPdfErr('')
@@ -113,7 +115,7 @@ export default function InvoiceDrawer({ inv, onClose, fromShipment }: Props) {
           <button type="button" className="pv3-btn pv3-btn--primary" disabled={loading || pdfBusy} onClick={() => void savePdf()}>
             {pdfBusy ? <Loader2 size={15} className="pv3-spin" /> : <Download size={15} />} Download PDF
           </button>
-          <Link className="pv3-btn pv3-btn--ghost" to={query}><MessageSquare size={15} /> Ask about this invoice</Link>
+          <button type="button" className="pv3-btn pv3-btn--ghost" onClick={ask}><MessageSquare size={15} /> Ask about this invoice</button>
         </div>
         {pdfErr && <div className="pv3-error">{pdfErr}</div>}
         <p className="pv3-bill__fine">The PDF is a duplicate copy for your records. Ask us in messages for the original. Quote the invoice number when you pay.</p>

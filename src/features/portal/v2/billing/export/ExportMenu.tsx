@@ -3,10 +3,10 @@ import { ChevronDown, Download, FileSpreadsheet } from 'lucide-react'
 import BrandMark from './BrandMark'
 import type { Target } from './accountingExport'
 
-type Props = { disabled?: boolean; onCsv: () => void; onLedger: (t: Target) => void }
+type Props = { disabled?: boolean; onCsv: () => void; onLedger: (t: Target) => void; up?: boolean; csvHint?: string; label?: string }
 
 /** One Export button with a menu: plain CSV, Xero bills, MYOB purchases. */
-export default function ExportMenu({ disabled, onCsv, onLedger }: Props) {
+export default function ExportMenu({ disabled, onCsv, onLedger, up, csvHint = 'Invoices on screen, for Excel', label = 'Export' }: Props) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
 
@@ -24,13 +24,13 @@ export default function ExportMenu({ disabled, onCsv, onLedger }: Props) {
   return (
     <div className="pv3-xmenu" ref={box}>
       <button type="button" className="pv3-btn pv3-btn--ghost" disabled={disabled} aria-haspopup="menu" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
-        <Download size={15} /> Export <ChevronDown size={14} className={`pv3-chev${open ? ' pv3-chev--open' : ''}`} />
+        <Download size={15} /> {label} <ChevronDown size={14} className={`pv3-chev${open ? ' pv3-chev--open' : ''}`} />
       </button>
       {open && (
-        <div className="pv3-xmenu__list" role="menu">
+        <div className={`pv3-xmenu__list${up ? ' pv3-xmenu__list--up' : ''}`} role="menu">
           <button type="button" role="menuitem" className="pv3-xmenu__item" onClick={() => pick(onCsv)}>
             <span className="pv3-xmenu__ico"><FileSpreadsheet size={18} /></span>
-            <span><b>CSV</b><i>Invoices on screen, for Excel</i></span>
+            <span><b>CSV</b><i>{csvHint}</i></span>
           </button>
           <button type="button" role="menuitem" className="pv3-xmenu__item" onClick={() => pick(() => onLedger('xero'))}>
             <span className="pv3-xmenu__ico"><BrandMark brand="xero" /></span>

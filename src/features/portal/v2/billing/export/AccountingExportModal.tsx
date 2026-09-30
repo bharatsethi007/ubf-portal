@@ -28,7 +28,8 @@ export default function AccountingExportModal({ target, rows, onClose }: Props) 
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(0)
   const [err, setErr] = useState('')
-  const picked = useMemo(() => rows.filter((r) => !from || r.doc_date >= from), [rows, from])
+  const single = rows.length === 1
+  const picked = useMemo(() => (single ? rows : rows.filter((r) => !from || r.doc_date >= from)), [rows, from, single])
   const set = (k: keyof ExportSettings, v: string) => setS((x) => ({ ...x, [k]: v }))
 
   async function run() {
@@ -39,7 +40,7 @@ export default function AccountingExportModal({ target, rows, onClose }: Props) 
       saveSettings(target, s)
       const data = await loadLines(picked, setDone)
       const csv = target === 'xero' ? xeroCsv(data, s) : myobCsv(data, s)
-      download(`ub-freight-bills-${target}-${todayIso()}.csv`, new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
+      download(single ? `ub-freight-invoice-${rows[0].invoice_no}-${target}.csv` : `ub-freight-bills-${target}-${todayIso()}.csv`, new Blob(['﻿' + csv], { type: 'text/csv;charset=utf-8' }))
       onClose()
     } catch (e) {
       setErr(e instanceof Error ? e.message : 'Export failed')
@@ -60,16 +61,23 @@ export default function AccountingExportModal({ target, rows, onClose }: Props) 
         <header className="pv3-modal__head">
           <div className="pv3-ax__title">
             <span className="pv3-xmenu__ico"><BrandMark brand={target} /></span>
-            <div><h2>Export bills to {NAME[target]}</h2><p>Your UB Freight invoices as supplier bills, with every charge line and the right GST.</p></div>
+            <div><h2>{single ? `Export invoice ${rows[0].invoice_no} to ${NAME[target]}` : `Export bills to ${NAME[target]}`}</h2><p>Your UB Freight invoices as supplier bills, with every charge line and the right GST.</p></div>
           </div>
           <button type="button" className="pv3-iconbtn" onClick={onClose} aria-label="Close" disabled={busy}><X size={16} /></button>
         </header>
         <div className="pv3-modal__body pv3-form">
           <div className="pv3-form__grid">
-            <div className="pv3-field"><label>Invoices dated from</label>
-              <DateField value={from || null} onChange={(v) => setFrom(v)} width="100%" placeholder="All dates" />
-              <span className="pv3-muted" style={{ fontSize: 12 }}>{picked.length} invoice{picked.length === 1 ? '' : 's'} from the list on screen</span>
-            </div>
+            {single ? (
+              <div className="pv3-field"><label>Invoice</label>
+                <input value={`${rows[0].invoice_no} · ${rows[0].currency} ${rows[0].amount.toLocaleString('en-NZ', { minimumFractionDigits: 2 })}`} readOnly />
+                <span className="pv3-muted" style={{ fontSize: 12 }}>One bill with every charge line</span>
+              </div>
+            ) : (
+              <div className="pv3-field"><label>Invoices dated from</label>
+                <DateField value={from || null} onChange={(v) => setFrom(v)} width="100%" placeholder="All dates" />
+                <span className="pv3-muted" style={{ fontSize: 12 }}>{picked.length} invoice{picked.length === 1 ? '' : 's'} from the list on screen</span>
+              </div>
+            )}
             {field('supplier', 'Supplier name')}
           </div>
           <div className="pv3-form__grid">
