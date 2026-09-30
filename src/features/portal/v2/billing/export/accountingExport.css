@@ -1,0 +1,34 @@
+/* Billing export menu + accounting export modal. Tokens from portalV2.css. */
+
+.pv3-xmenu { position: relative; }
+.pv3-xmenu__list {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 260px; padding: 6px;
+  background: #FFFFFF; border: 1px solid var(--line); border-radius: 12px; box-shadow: var(--shadow-lg);
+  display: flex; flex-direction: column; gap: 2px; animation: pv3-pop .14s var(--ease) both;
+}
+.pv3-xmenu__item {
+  display: flex; align-items: center; gap: 12px; width: 100%; padding: 9px 10px; border: 0; border-radius: 8px;
+  background: transparent; font: inherit; text-align: left; color: var(--ink); cursor: pointer; transition: background .12s;
+}
+.pv3-xmenu__item:hover, .pv3-xmenu__item:focus-visible { background: #F1F5F9; outline: none; }
+.pv3-xmenu__item > span:last-child { display: flex; flex-direction: column; gap: 1px; }
+.pv3-xmenu__item b { font-size: 14px; font-weight: 600; }
+.pv3-xmenu__item i { font-style: normal; font-size: 12px; color: var(--muted); }
+.pv3-xmenu__ico {
+  flex: none; width: 40px; height: 32px; display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid var(--line-soft); border-radius: 8px; background: #FFFFFF; color: var(--green);
+}
+
+.pv3-brandmark { height: 20px; width: auto; max-width: 34px; object-fit: contain; display: block; }
+.pv3-brandmark--badge {
+  height: 18px; max-width: none; padding: 0 6px; border-radius: 999px; color: #FFFFFF;
+  font-size: 9.5px; font-weight: 700; letter-spacing: .3px; line-height: 18px;
+}
+
+.pv3-ax__title { display: flex; align-items: center; gap: 14px; }
+.pv3-ax__title .pv3-xmenu__ico { width: 48px; height: 40px; }
+.pv3-ax__steps { padding: 12px 14px; border-radius: 10px; background: var(--bg); font-size: 13px; color: var(--ink-2); }
+.pv3-ax__steps ol { margin: 6px 0 0; padding-left: 18px; display: flex; flex-direction: column; gap: 3px; }
+
+/* Keep the header (and its Export menu) above the KPI cards, which open their own stacking contexts. */
+.pv3-head--menu { position: relative; z-index: 40; }
