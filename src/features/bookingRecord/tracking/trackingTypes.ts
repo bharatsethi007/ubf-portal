@@ -13,10 +13,12 @@ export type BookingTrackingSettings = {
   seavantage_enabled: boolean
   last_seavantage_sync: string | null
   seavantage_error: string | null
+  carrier_fallback_sv: boolean
+  carrier_fallback_reason: string | null
 }
 
 export type BookingTrackingPatch = Partial<
-  Pick<BookingTrackingSettings, 'portconnect_enabled' | 'carrier_enabled' | 'carrier_scac' | 'seavantage_enabled'>
+  Pick<BookingTrackingSettings, 'portconnect_enabled' | 'carrier_enabled' | 'carrier_scac' | 'seavantage_enabled' | 'carrier_fallback_sv'>
 >
 
 export type ContainerTrackingRow = {

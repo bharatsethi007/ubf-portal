@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase'
+import type { SvRefreshSummary } from './seaVantageTrackingApi'
 
 export type CarrierRefreshSummary = {
   ok?: boolean
@@ -8,6 +9,9 @@ export type CarrierRefreshSummary = {
   matched_carrier?: string | null
   last_refreshed_at: string
   error?: string
+  /** Maersk had no data; SeaVantage took over tracking for this booking. */
+  fallback?: 'seavantage'
+  seavantage?: SvRefreshSummary
 }
 
 type FnPayload = { error?: string; message?: string } & Partial<CarrierRefreshSummary>

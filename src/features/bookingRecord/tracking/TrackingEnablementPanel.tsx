@@ -1,4 +1,4 @@
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, RotateCcw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import PortConnectEnablementRow from './PortConnectEnablementRow'
@@ -68,8 +68,29 @@ function CarrierRow({
               {matchedCarrier}
             </span>
           ) : null}
+          {settings.carrier_fallback_sv ? (
+            <span
+              className="ml-2 rounded bg-amber-100 px-1.5 py-0.5 text-[11px] font-medium text-amber-800"
+              title={settings.carrier_fallback_reason ?? 'Maersk API had no data'}
+            >
+              Via SeaVantage
+            </span>
+          ) : null}
         </div>
         <div className="booking-tracking-enable__actions">
+          {settings.carrier_fallback_sv ? (
+            <Button
+              type="button"
+              size="xs"
+              variant="outline"
+              title="Retry Maersk API on next refresh"
+              aria-label="Retry Maersk API"
+              disabled={carrierBusy || !enabled}
+              onClick={() => onPatch({ carrier_fallback_sv: false })}
+            >
+              <RotateCcw size={13} />
+            </Button>
+          ) : null}
           <Button
             type="button"
             size="xs"

@@ -20,6 +20,7 @@ import {
 } from './portconnectSubscriptionApi'
 import { refreshCarrier as refreshCarrierFn } from './carrierTrackingApi'
 import { refreshSeaVantage, resolveShippingLineRoute } from './seaVantageTrackingApi'
+import { formatCarrierSummary, formatSeaVantageSummary } from './carrierRefreshToast'
 import type {
   BookingTrackingEvent,
   BookingTrackingPatch,
@@ -208,33 +209,13 @@ export function useBookingTracking(
         }
         const summary = await refreshSeaVantage(bookingId)
         await reload()
-        if (summary.skipped) {
-          toast(summary.reason ?? 'Skipped')
-        } else {
-          const parts: string[] = []
-          if (summary.containers_registered) parts.push(`${summary.containers_registered} registered`)
-          parts.push(
-            `${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'}`,
-            `${summary.events_written} event${summary.events_written === 1 ? '' : 's'}`,
-            `${summary.positions_written} AIS point${summary.positions_written === 1 ? '' : 's'}`,
-          )
-          if (summary.containers_no_data.length) parts.push(`no data: ${summary.containers_no_data.join(', ')}`)
-          toast.success(parts.join(' · '))
-        }
+        if (summary.skipped) toast(formatSeaVantageSummary(summary))
+        else toast.success(formatSeaVantageSummary(summary))
       } else {
         // 'maersk' | 'none' (no carrier picked) | 'unmapped' → free Maersk path (prefix auto-detect)
         const summary = await refreshCarrierFn(bookingId)
         await reload()
-        const parts = [
-          summary.matched_carrier
-            ? `${summary.matched_carrier}: ${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'}`
-            : `${summary.containers_found} container${summary.containers_found === 1 ? '' : 's'} matched`,
-          `${summary.events_written} new event${summary.events_written === 1 ? '' : 's'}`,
-        ]
-        if (summary.containers_not_recognised.length) {
-          parts.push(`no Maersk data: ${summary.containers_not_recognised.join(', ')}`)
-        }
-        toast.success(parts.join(' · '))
+        toast.success(formatCarrierSummary(summary))
       }
       await onAfterRefresh?.()
     } catch (err) {

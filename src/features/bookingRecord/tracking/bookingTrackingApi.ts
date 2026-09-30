@@ -10,7 +10,8 @@ import { CONTAINER_SELECT } from './containerTrackingSelect'
 const SETTINGS_SELECT = `
   booking_id, portconnect_enabled, carrier_enabled, carrier_scac,
   last_portconnect_sync, last_carrier_sync, portconnect_error, carrier_error,
-  seavantage_enabled, last_seavantage_sync, seavantage_error
+  seavantage_enabled, last_seavantage_sync, seavantage_error,
+  carrier_fallback_sv, carrier_fallback_reason
 `
 
 const EVENT_SELECT = `
@@ -36,6 +37,8 @@ export function defaultTrackingSettings(bookingId: string): BookingTrackingSetti
     seavantage_enabled: true,
     last_seavantage_sync: null,
     seavantage_error: null,
+    carrier_fallback_sv: false,
+    carrier_fallback_reason: null,
   }
 }
 

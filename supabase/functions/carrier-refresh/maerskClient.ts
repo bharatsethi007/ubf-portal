@@ -168,6 +168,17 @@ export async function fetchMaerskEvents(
 }
 
 // ---------------------------------------------------------------------------
+// Carrier auto-matching (container BIC prefix -> Maersk sub-brand label).
+// ---------------------------------------------------------------------------
+
+export function carrierFromContainerPrefix(containerNo: string): { scac: string; name: string } {
+  const prefix = containerNo.trim().slice(0, 4).toUpperCase()
+  if (prefix === "SUDU") return { scac: "SUDU", name: "Hamburg Süd" }
+  if (prefix === "SEKU" || prefix === "SELU" || prefix === "SELB") return { scac: "SEAU", name: "Sealand" }
+  return { scac: "MAEU", name: "Maersk" }
+}
+
+// ---------------------------------------------------------------------------
 // DCSA event -> tracking_events row mapping
 // ---------------------------------------------------------------------------
 
