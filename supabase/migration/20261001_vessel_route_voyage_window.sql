@@ -1,0 +1,6 @@
+-- Applied live via MCP 1 Oct 2026 as migration vessel_route_voyage_window.
+-- get_booking_vessel_route now limits AIS points to this voyage:
+--   start = last AIS fix within ~50km of POL (container_tracking.raw->>'loadPortCode', else first event port) - 6h,
+--           fallback end - 40 days
+--   end   = min(container_tracking.inbound_ata) + 12h, fallback now()
+-- Output adds 'window': {from, to}. Full definition: see live DB (pg_get_functiondef).
