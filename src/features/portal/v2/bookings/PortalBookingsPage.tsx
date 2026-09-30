@@ -1,6 +1,6 @@
 import { Fragment, useEffect, useMemo, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { ArrowRight, ChevronDown, Mail, Plane, Plus, Ship } from 'lucide-react'
+import { ArrowRight, ChevronDown, MessageSquare, Plane, Plus, Ship } from 'lucide-react'
 import { usePorts } from '../../../../hooks/usePorts'
 import { detailPath, fmtDay, fmtNum, placeName, shortCode, titleCase } from '../homeModel'
 import { bookingModeLabel, listPortalBookings, STATUS_LABEL, STATUS_TONE, type PortalBooking, type PortalBookingStatus } from './bookingsApi'
@@ -13,10 +13,6 @@ const FILTERS: { key: Filter; label: string }[] = [
   { key: 'in_erp', label: 'Shipment created' },
   { key: 'declined', label: 'Declined' },
 ]
-
-const CONTACT: Record<string, string> = {
-  IS: 'importsea.nz@ubfreight.com', IA: 'importair.nz@ubfreight.com', ES: 'exportsea.nz@ubfreight.com', EA: 'exportair.nz@ubfreight.com',
-}
 
 export default function PortalBookingsPage() {
   const { ports } = usePorts()
@@ -79,7 +75,7 @@ export default function PortalBookingsPage() {
                 const cargo = b.load_type === 'FCL' && b.container_count
                   ? `${b.container_count} × ${b.container_type ?? 'container'}`
                   : [b.pieces ? `${fmtNum(Number(b.pieces))} ${b.packing_type ?? 'pcs'}` : null, b.weight_kg ? `${fmtNum(Number(b.weight_kg))} kg` : null].filter(Boolean).join(' · ') || '—'
-                const subject = encodeURIComponent(`Booking ${b.booking_ref ?? ''}`)
+                const msg = `/portal/messages?${b.shipment_id != null ? `job=${b.shipment_id}&` : 'new=1&'}subject=${encodeURIComponent(`Booking ${b.booking_ref ?? ''}`)}`
                 return (
                   <Fragment key={b.id}>
                     <tr onClick={() => setOpen(isOpen ? null : b.id)} className={isOpen ? 'pv3-row--open' : ''}>
@@ -106,7 +102,7 @@ export default function PortalBookingsPage() {
                           </dl>
                           <div className="pv3-peek__actions">
                             {b.shipment_id != null && <Link to={detailPath({ job_unique: b.shipment_id })} className="pv3-btn pv3-btn--primary">Track shipment <ArrowRight size={14} /></Link>}
-                            <a className="pv3-btn pv3-btn--ghost" href={`mailto:${CONTACT[b.module ?? ''] ?? 'info.nz@ubfreight.com'}?subject=${subject}`}><Mail size={14} /> Email UBF</a>
+                            <Link className="pv3-btn pv3-btn--ghost" to={msg}><MessageSquare size={14} /> Message UBF</Link>
                           </div>
                         </div>
                       </td></tr>

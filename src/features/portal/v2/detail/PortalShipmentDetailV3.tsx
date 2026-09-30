@@ -14,6 +14,8 @@ import TaskTab from '../../shipment/tabs/TaskTab'
 import AdditionalServicesTab from '../../shipment/tabs/AdditionalServicesTab'
 import ShipmentCsatWidget from '../../../../pages/portal/ShipmentCsatWidget'
 import { fmtDay, fmtNum, placeName, shipmentNo, shortCode, titleCase } from '../homeModel'
+import InvoiceDrawer from '../billing/InvoiceDrawer'
+import { toBillInvoice, type BillInvoice } from '../billing/billingApi'
 import { usePortalTrack } from './usePortalTrack'
 
 const TABS = ['Overview', 'Cargo & containers', 'Documents', 'Invoices', 'Tasks', 'Additional services'] as const
@@ -53,6 +55,7 @@ export default function PortalShipmentDetailV3() {
   const pt = usePortalTrack(s, ports)
   const desktop = useIsDesktop()
   const [copied, setCopied] = useState(false)
+  const [openInv, setOpenInv] = useState<BillInvoice | null>(null)
 
   const raw = params.get('tab') ?? 'Overview'
   const tab: Tab = (TABS as readonly string[]).includes(raw) ? (raw as Tab) : LEGACY[raw] ?? 'Overview'
@@ -224,10 +227,12 @@ export default function PortalShipmentDetailV3() {
         )}
         {tab === 'Cargo & containers' && <div className="pv3-card pv3-tabcard"><CargoContainersTab shipment={s} containers={data.containers} /></div>}
         {tab === 'Documents' && <div className="pv3-card pv3-tabcard"><DocumentsTab /></div>}
-        {tab === 'Invoices' && <div className="pv3-card pv3-tabcard"><InvoicesTab invoices={data.invoices} /></div>}
+        {tab === 'Invoices' && <div className="pv3-card pv3-tabcard"><InvoicesTab invoices={data.invoices}
+          onOpen={(i) => setOpenInv(toBillInvoice(i, { shipment_no: shipmentNo(s), customer_ref: s.customer_ref, origin: s.origin, destination: s.destination }))} /></div>}
         {tab === 'Tasks' && <div className="pv3-card pv3-tabcard"><TaskTab tasks={data.tasks} /></div>}
         {tab === 'Additional services' && <div className="pv3-card pv3-tabcard"><AdditionalServicesTab /></div>}
       </div>
+      {openInv && <InvoiceDrawer inv={openInv} fromShipment onClose={() => setOpenInv(null)} />}
     </div>
   )
 }

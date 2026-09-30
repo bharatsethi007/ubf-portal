@@ -4,12 +4,13 @@ import { fmtDay } from '../homeModel'
 import { money } from './ratesApi'
 import { daysLeft, groupLines, listOfferLines, respondToOffer, type OfferLine, type QuoteOffer } from './quotesApi'
 
-type Props = { o: QuoteOffer; onAnswered: () => void }
+type Props = { o: QuoteOffer; open: number; onAnswered: () => void }
 
 const fmtQty = (n: number | null) => (n == null ? '' : n.toLocaleString('en-NZ', { maximumFractionDigits: 2 }))
 
 /** Charges, terms and the approve / reject step for one quote. */
-export default function QuoteOfferDetail({ o, onAnswered }: Props) {
+export default function QuoteOfferDetail({ o, open, onAnswered }: Props) {
+  const multi = open > 1
   const [lines, setLines] = useState<OfferLine[] | null>(null)
   const [err, setErr] = useState('')
   const [step, setStep] = useState<'idle' | 'approve' | 'reject'>('idle')
@@ -93,14 +94,16 @@ export default function QuoteOfferDetail({ o, onAnswered }: Props) {
         <div className="pv3-qact">
           {step === 'idle' ? (
             <>
-              <span className="pv3-muted">{left != null && left <= 3 ? `Expires ${left <= 0 ? 'today' : `in ${left} day${left === 1 ? '' : 's'}`}. ` : ''}Approve to lock in this price.</span>
-              <button type="button" className="pv3-btn pv3-btn--ghost" onClick={() => setStep('reject')}><X size={14} /> Reject</button>
-              <button type="button" className="pv3-btn pv3-btn--ok" onClick={() => setStep('approve')}><Check size={14} /> Approve</button>
+              <span className="pv3-muted">{left != null && left <= 3 ? `Expires ${left <= 0 ? 'today' : `in ${left} day${left === 1 ? '' : 's'}`}. ` : ''}{multi ? 'Choose this option to lock in its price.' : 'Approve to lock in this price.'}</span>
+              <button type="button" className="pv3-btn pv3-btn--ghost" onClick={() => setStep('reject')}><X size={14} /> {multi ? 'None of these' : 'Reject'}</button>
+              <button type="button" className="pv3-btn pv3-btn--ok" onClick={() => setStep('approve')}><Check size={14} /> {multi ? 'Choose this option' : 'Approve'}</button>
             </>
           ) : (
             <div className="pv3-qconfirm">
               <label htmlFor={`qn-${o.id}`}>
-                {step === 'approve' ? `Approve ${o.response_no ?? o.quote_no} for ${money(o.total_sell, cur)}? Add a note if you like.` : 'Why is this not right? Price, timing, routing?'}
+                {step === 'approve'
+                  ? `${multi ? 'Choose' : 'Approve'} ${o.carrier ?? o.response_no ?? o.quote_no} for ${money(o.total_sell, cur)}?${multi ? ' The other options close.' : ''} Add a note if you like.`
+                  : `${multi ? `This rejects all ${open} options. ` : ''}Why is this not right? Price, timing, routing?`}
               </label>
               <textarea id={`qn-${o.id}`} rows={2} value={note} onChange={(e) => setNote(e.target.value)}
                 placeholder={step === 'approve' ? 'e.g. Cargo ready 12 Oct, please book' : 'e.g. Need a lower price or a faster sailing'} />

@@ -1,6 +1,6 @@
 import { supabase } from '../../../../supabase'
 
-export type OfferStatus = 'pending' | 'expired' | 'approved' | 'rejected' | 'withdrawn'
+export type OfferStatus = 'pending' | 'expired' | 'approved' | 'rejected' | 'withdrawn' | 'crosswin'
 
 /** A priced quote UBF sent to this account. Sell side only. */
 export type QuoteOffer = {
@@ -59,6 +59,7 @@ export const STATUS_LABEL: Record<OfferStatus, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   withdrawn: 'Closed',
+  crosswin: 'Not chosen',
 }
 
 export const STATUS_TONE: Record<OfferStatus, 'amber' | 'green' | 'red' | 'grey'> = {
@@ -67,6 +68,7 @@ export const STATUS_TONE: Record<OfferStatus, 'amber' | 'green' | 'red' | 'grey'
   approved: 'green',
   rejected: 'red',
   withdrawn: 'grey',
+  crosswin: 'grey',
 }
 
 export const GROUP_LABEL: Record<string, string> = {
@@ -110,4 +112,43 @@ export function daysLeft(validTill: string | null): number | null {
   if (!validTill) return null
   const end = new Date(`${validTill}T23:59:59`)
   return Math.ceil((end.getTime() - Date.now()) / 86400000)
+}
+
+/** One quote with every option UBF sent for it. */
+export type QuoteGroup = {
+  quote_id: string
+  quote_no: string
+  first: QuoteOffer
+  options: QuoteOffer[]
+  status: OfferStatus
+  sent_at: string
+  cheapest: number | null
+  currency: string
+}
+
+/** Quote-level status: approved wins, then waiting, then expired, then rejected, else closed. */
+function groupStatus(options: QuoteOffer[]): OfferStatus {
+  const has = (s: OfferStatus) => options.some((o) => o.portal_status === s)
+  if (has('approved')) return 'approved'
+  if (has('pending')) return 'pending'
+  if (has('expired')) return 'expired'
+  if (has('rejected')) return 'rejected'
+  return 'withdrawn'
+}
+
+export function groupOffers(rows: QuoteOffer[]): QuoteGroup[] {
+  const by = new Map<string, QuoteOffer[]>()
+  for (const r of rows) by.set(r.quote_id, [...(by.get(r.quote_id) ?? []), r])
+  return [...by.values()]
+    .map((opts) => {
+      const options = [...opts].sort((a, b) => (Number(a.total_sell) || 0) - (Number(b.total_sell) || 0))
+      const live = options.filter((o) => o.portal_status === 'pending' || o.portal_status === 'approved')
+      const priced = (live.length ? live : options).map((o) => Number(o.total_sell)).filter((n) => n > 0)
+      return {
+        quote_id: options[0].quote_id, quote_no: options[0].quote_no, first: options[0], options,
+        status: groupStatus(options), sent_at: options.reduce((m, o) => (o.sent_at > m ? o.sent_at : m), options[0].sent_at),
+        cheapest: priced.length ? Math.min(...priced) : null, currency: options[0].currency ?? 'NZD',
+      }
+    })
+    .sort((a, b) => b.sent_at.localeCompare(a.sent_at))
 }

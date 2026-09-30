@@ -1,17 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Mail, X } from 'lucide-react'
+import { Download, Loader2, MessageSquare, X } from 'lucide-react'
 import { detailPath, fmtDay } from '../homeModel'
-import { UBF_BILLING } from './billingConfig'
 import { STATUS, daysLate, docLabel, fetchInvoiceDetail, money2, statusOf, type BillInvoice, type InvoiceDetail } from './billingApi'
+import { downloadInvoicePdf } from './pdf/invoiceDocApi'
+import './billing.css'
 
-type Props = { inv: BillInvoice; onClose: () => void }
+type Props = { inv: BillInvoice; onClose: () => void; fromShipment?: boolean }
 
 /** One invoice on screen: status, balance, and every charge line. */
-export default function InvoiceDrawer({ inv, onClose }: Props) {
+export default function InvoiceDrawer({ inv, onClose, fromShipment }: Props) {
   const [d, setD] = useState<InvoiceDetail | null>(null)
   const [loading, setLoading] = useState(true)
   const [err, setErr] = useState('')
+  const [pdfBusy, setPdfBusy] = useState(false)
+  const [pdfErr, setPdfErr] = useState('')
   const st = statusOf(inv)
   const cur = inv.currency
 
@@ -31,7 +34,14 @@ export default function InvoiceDrawer({ inv, onClose }: Props) {
     return () => window.removeEventListener('keydown', k)
   }, [onClose])
 
-  const query = `mailto:${UBF_BILLING.email}?subject=${encodeURIComponent(`Invoice ${inv.invoice_no}${inv.shipment_no ? ` / ${inv.shipment_no}` : ''}`)}`
+  const subject = encodeURIComponent(`Invoice ${inv.invoice_no}${inv.shipment_no ? ` / ${inv.shipment_no}` : ''}`)
+  const query = `/portal/messages?${inv.job_unique != null ? `job=${inv.job_unique}&` : 'new=1&'}subject=${subject}`
+
+  async function savePdf() {
+    setPdfBusy(true); setPdfErr('')
+    try { await downloadInvoicePdf(inv.invoice_no, d?.lines ?? []) } catch (e) { setPdfErr(e instanceof Error ? e.message : 'PDF could not be made.') }
+    finally { setPdfBusy(false) }
+  }
   const net = (d?.lines ?? []).reduce((n, l) => n + l.amount, 0)
 
   return (
@@ -62,7 +72,7 @@ export default function InvoiceDrawer({ inv, onClose }: Props) {
           </dl>
         </div>
 
-        {inv.job_unique != null && (
+        {inv.job_unique != null && !fromShipment && (
           <Link to={detailPath({ job_unique: inv.job_unique })} className="pv3-bill__ship">
             <div>
               <b className="pv3-mono">{inv.shipment_no ?? `#${inv.job_unique}`}</b>
@@ -100,9 +110,13 @@ export default function InvoiceDrawer({ inv, onClose }: Props) {
         )}
 
         <div className="pv3-bill__actions">
-          <a className="pv3-btn pv3-btn--ghost" href={query}><Mail size={15} /> Query this invoice</a>
+          <button type="button" className="pv3-btn pv3-btn--primary" disabled={loading || pdfBusy} onClick={() => void savePdf()}>
+            {pdfBusy ? <Loader2 size={15} className="pv3-spin" /> : <Download size={15} />} Download PDF
+          </button>
+          <Link className="pv3-btn pv3-btn--ghost" to={query}><MessageSquare size={15} /> Ask about this invoice</Link>
         </div>
-        <p className="pv3-bill__fine">Quote the invoice number when you pay.</p>
+        {pdfErr && <div className="pv3-error">{pdfErr}</div>}
+        <p className="pv3-bill__fine">The PDF is a duplicate copy for your records. Ask us in messages for the original. Quote the invoice number when you pay.</p>
       </aside>
     </div>
   )

@@ -3,7 +3,7 @@ import { formatMoney, formatShortDate } from '../../dashboard/portalFormat'
 import type { Invoice } from '../../../../types/invoice'
 import { invoiceStatus } from '../../../../types/invoice'
 
-type Props = { invoices: Invoice[]; loading?: boolean }
+type Props = { invoices: Invoice[]; loading?: boolean; onOpen?: (inv: Invoice) => void }
 
 function StatusPill({ status }: { status: ReturnType<typeof invoiceStatus> }) {
   const cls =
@@ -13,7 +13,7 @@ function StatusPill({ status }: { status: ReturnType<typeof invoiceStatus> }) {
   return <span className={cls}>{status}</span>
 }
 
-export default function InvoicesTab({ invoices, loading }: Props) {
+export default function InvoicesTab({ invoices, loading, onOpen }: Props) {
   if (loading) return <p className="portal-empty">Loading invoices…</p>
   if (!invoices.length) {
     return <p className="portal-empty">No invoices linked to this shipment.</p>
@@ -32,7 +32,11 @@ export default function InvoicesTab({ invoices, loading }: Props) {
         <tbody>
           {invoices.map((inv) => (
             <tr key={inv.invoice_no}>
-              <td className="nums"><Link to={`/portal/billing?tab=all&inv=${encodeURIComponent(inv.invoice_no)}`}>{inv.invoice_no}</Link></td>
+              <td className="nums">
+                {onOpen
+                  ? <button type="button" className="pv3-link" style={{ border: 0, background: 'none', padding: 0, font: 'inherit', cursor: 'pointer' }} onClick={() => onOpen(inv)}>{inv.invoice_no}</button>
+                  : <Link to={`/portal/billing?tab=all&inv=${encodeURIComponent(inv.invoice_no)}`}>{inv.invoice_no}</Link>}
+              </td>
               <td>{inv.doctype ?? '—'}</td>
               <td className="nums">{formatShortDate(inv.doc_date)}</td>
               <td className="nums">{formatShortDate(inv.date_due)}</td>

@@ -12,6 +12,7 @@ export default function PortalMessagesPage() {
   const [params, setParams] = useSearchParams()
   const active = params.get('t')
   const jobParam = params.get('job')
+  const subjectParam = params.get('subject')
   const composing = params.get('new') === '1' || (!!jobParam && !active)
   const [threads, setThreads] = useState<Thread[] | null>(null)
   const [q, setQ] = useState('')
@@ -97,7 +98,7 @@ export default function PortalMessagesPage() {
 
         <div className="im-detail">
           {composing ? (
-            <NewThread job={jobParam ? Number(jobParam) : null} onClose={() => setParams({})}
+            <NewThread job={jobParam ? Number(jobParam) : null} subject={subjectParam} onClose={() => setParams({})}
               onCreated={(id) => { setParams({ t: id }); void load() }} />
           ) : active ? (
             <Conversation threadId={active} onSent={() => void load()} onBack={() => setParams({})} />

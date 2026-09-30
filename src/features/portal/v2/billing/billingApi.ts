@@ -1,5 +1,6 @@
 import { supabase } from '../../../../supabase'
 import { addDays, todayIso } from '../homeModel'
+import type { Invoice } from '../../../../types/invoice'
 
 /** One invoice. `amount`/`due` are in the invoice currency; `*_nzd` are the ledger (NZD) values. */
 export type BillInvoice = {
@@ -26,7 +27,7 @@ export type BillInvoice = {
   house_bill: string | null
 }
 
-export type InvoiceLine = { code: string | null; description: string | null; amount: number; gst_rate: number; gst: number }
+export type InvoiceLine = { code: string | null; description: string | null; amount: number; gst_rate: number; gst: number; gst_code?: string | null }
 export type InvoiceDetail = { invoice_no: string; total: number; gst: number; lines: InvoiceLine[]; itemised: boolean }
 
 export async function fetchBilling(months = 24): Promise<BillInvoice[]> {
@@ -154,4 +155,20 @@ export function download(name: string, blob: Blob): void {
   a.download = name
   a.click()
   setTimeout(() => URL.revokeObjectURL(a.href), 1000)
+}
+
+/** Shipment-page invoice row to the billing shape, so the same drawer can open from a shipment. */
+export function toBillInvoice(i: Invoice, ship: { shipment_no?: string | null; customer_ref?: string | null; origin?: string | null; destination?: string | null } = {}): BillInvoice {
+  const amountNzd = Number(i.amt_local) || 0
+  const amount = Number(i.amt_foreign ?? i.amt_local) || 0
+  const fx = amountNzd ? amount / amountNzd : 1
+  const docDate = i.doc_date ?? todayIso()
+  return {
+    invoice_no: i.invoice_no, doctype: i.doctype, module: i.module, job_unique: i.job_unique,
+    doc_date: docDate, date_due: i.date_due ?? addDays(docDate, 30), currency: i.currency ?? 'NZD', fx,
+    amount, amount_nzd: amountNzd, due: Number(i.amount_due ?? i.balance) || 0, due_nzd: Number(i.balance) || 0,
+    gst: Math.round((Number(i.tax_amount) || 0) * fx * 100) / 100,
+    shipment_no: ship.shipment_no ?? null, customer_ref: ship.customer_ref ?? null, origin: ship.origin ?? null,
+    destination: ship.destination ?? null, mode: null, direction: null, party: null, house_bill: null,
+  }
 }

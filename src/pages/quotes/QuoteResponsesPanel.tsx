@@ -5,8 +5,8 @@ import {
   createQuoteResponse,
   deleteQuoteResponse,
   fetchQuoteResponses,
-  sendResponseToPortal,
-  withdrawResponse,
+  sendQuoteForApproval,
+  withdrawQuoteApproval,
   updateQuoteResponseHeader,
   type QuoteResponseSummary,
 } from './quoteResponsesApi'
@@ -100,16 +100,25 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
     }
   }
 
-  async function handlePortal(e: MouseEvent, r: QuoteResponseSummary, action: 'send' | 'withdraw') {
-    e.stopPropagation()
-    const label = r.response_no ?? 'this response'
-    if (!confirm(action === 'send' ? `Send ${label} to the customer portal for approval?` : `Withdraw ${label} from the customer portal?`)) return
+  const sendable = responses.filter((r) => canSendToPortal(r.status, r.total_sell)).length
+  const waiting = responses.filter((r) => r.status === 'sent_for_approval').length
+  const decided = responses.some((r) => r.status === 'approved')
+  const [portalBusy, setPortalBusy] = useState(false)
+
+  async function handlePortal(action: 'send' | 'withdraw') {
+    const msg = action === 'send'
+      ? `Send ${sendable} option${sendable === 1 ? '' : 's'} to the customer portal for approval?`
+      : `Withdraw ${waiting} option${waiting === 1 ? '' : 's'} from the customer portal?`
+    if (!confirm(msg)) return
+    setPortalBusy(true)
     try {
-      await (action === 'send' ? sendResponseToPortal(r.id) : withdrawResponse(r.id))
-      toast.success(action === 'send' ? 'Sent to customer portal' : 'Withdrawn from portal')
+      const n = await (action === 'send' ? sendQuoteForApproval(quoteId) : withdrawQuoteApproval(quoteId))
+      toast.success(action === 'send' ? `${n} option${n === 1 ? '' : 's'} sent for approval` : 'Withdrawn from portal')
       reload()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed')
+    } finally {
+      setPortalBusy(false)
     }
   }
 
@@ -160,6 +169,16 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
           <div className="qr-head">
             <h2 className="qr-head__title">Quote Responses</h2>
             <div className="qr-actions">
+              {waiting > 0 && (
+                <button type="button" className="nqd-btn nqd-btn--ghost" disabled={portalBusy} onClick={() => handlePortal('withdraw')}>
+                  <Undo2 size={15} /> Withdraw
+                </button>
+              )}
+              {sendable > 0 && !decided && (
+                <button type="button" className="nqd-btn nqd-btn--ghost" disabled={portalBusy} onClick={() => handlePortal('send')}>
+                  <Send size={15} /> Send for approval{sendable > 1 ? ` (${sendable})` : ''}
+                </button>
+              )}
               <button type="button" className="nqd-btn nqd-btn--ghost" onClick={handleSearchRates}>
                 <Search size={15} /> Search Rates
               </button>
@@ -194,18 +213,6 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
                       {responseStatusPill(r.status)}
                     </div>
                     <div className="quote-response-card__actions">
-                      {canSendToPortal(r.status) && (
-                        <button type="button" className="quote-response-card__icon" aria-label="Send to customer portal" title="Send to customer portal"
-                          onClick={(e) => handlePortal(e, r, 'send')}>
-                          <Send size={14} />
-                        </button>
-                      )}
-                      {r.status === 'sent_for_approval' && (
-                        <button type="button" className="quote-response-card__icon" aria-label="Withdraw from portal" title="Withdraw from portal"
-                          onClick={(e) => handlePortal(e, r, 'withdraw')}>
-                          <Undo2 size={14} />
-                        </button>
-                      )}
                       <button
                         type="button"
                         className="quote-response-card__icon"
@@ -228,7 +235,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
                     {fmtDate(r.quotation_date)}
                     {r.carrier ? ` · ${r.carrier}` : ''}
                     {r.sent_to_portal_at ? ` · Sent to portal ${fmtDate(r.sent_to_portal_at)}` : ''}
-                    {r.decided_at ? ` · ${r.status === 'approved' ? 'Approved' : 'Rejected'} ${fmtDate(r.decided_at)}` : ''}
+                    {r.decided_at ? ` · ${r.status === 'approved' ? 'Approved' : r.status === 'crosswin' ? 'Customer chose another option' : 'Rejected'} ${fmtDate(r.decided_at)}` : ''}
                   </p>
                   {r.decision_note && (r.status === 'approved' || r.status === 'rejected') && (
                     <p className="quote-response-card__meta" style={{ color: r.status === 'rejected' ? '#B91C1C' : '#047857' }}>

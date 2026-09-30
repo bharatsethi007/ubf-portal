@@ -113,16 +113,18 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
   }))
 }
 
-/** Publishes a priced response to the customer portal for approval. */
-export async function sendResponseToPortal(responseId: string): Promise<void> {
-  const { error } = await supabase.rpc('quote_response_send', { p_response: responseId })
+/** Sends every priced, unsent option on the quote to the customer portal. Returns how many went. */
+export async function sendQuoteForApproval(quoteId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('quote_send_for_approval', { p_quote: quoteId })
   if (error) throw new Error(error.message)
+  return Number(data) || 0
 }
 
-/** Pulls a sent response back before the customer answers. */
-export async function withdrawResponse(responseId: string): Promise<void> {
-  const { error } = await supabase.rpc('quote_response_withdraw', { p_response: responseId })
+/** Pulls every option waiting on the customer back. */
+export async function withdrawQuoteApproval(quoteId: string): Promise<number> {
+  const { data, error } = await supabase.rpc('quote_withdraw_approval', { p_quote: quoteId })
   if (error) throw new Error(error.message)
+  return Number(data) || 0
 }
 
 export async function createQuoteResponse(quoteId: string): Promise<{ id: string }> {

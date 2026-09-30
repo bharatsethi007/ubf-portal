@@ -5,11 +5,13 @@ const STATUS_LABELS: Record<string, string> = {
   approved: 'Approved',
   rejected: 'Rejected',
   withdrawn: 'Withdrawn',
+  crosswin: 'Cross win',
 }
 
 const EXTRA_STYLE: Record<string, { color: string; background: string }> = {
   rejected: { color: '#B91C1C', background: '#FEF2F2' },
   withdrawn: { color: '#64748B', background: '#F1F5F9' },
+  crosswin: { color: '#92400E', background: '#FFFBEB' },
 }
 
 export function responseStatusPill(status: string) {
@@ -18,8 +20,9 @@ export function responseStatusPill(status: string) {
   return <span className={`quote-response-pill quote-response-pill--${key}`} style={EXTRA_STYLE[status]}>{label}</span>
 }
 
-/** Response can go to the customer portal. */
-export const canSendToPortal = (status: string) => status === 'draft' || status === 'published' || status === 'withdrawn'
+/** Response can go to the customer portal: unsent and priced. */
+export const canSendToPortal = (status: string, totalSell: number | null) =>
+  (status === 'draft' || status === 'published' || status === 'withdrawn') && (totalSell ?? 0) > 0
 
 function fmtDate(iso: string | null): string {
   if (!iso) return '—'

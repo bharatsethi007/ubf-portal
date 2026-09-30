@@ -19,6 +19,23 @@
 .pv3-qcard__valid { font-size: 13px; }
 .pv3-qcard__price { display: flex; flex-direction: column; align-items: flex-end; gap: 4px; }
 .pv3-qcard__amount { font-size: 17px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.pv3-qcard__amount small { font-size: 12px; font-weight: 500; color: var(--muted); }
+.pv3-qcard__sub { display: flex; align-items: center; gap: 8px; font-size: 12px; }
+
+.pv3-qopts { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 10px; padding: 14px 18px 0; border-top: 1px solid var(--line-soft); }
+.pv3-qopt {
+  display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px;
+  background: var(--card); font: inherit; text-align: left; color: var(--ink); cursor: pointer;
+  transition: border-color .15s var(--ease), box-shadow .15s var(--ease), transform .15s var(--ease);
+}
+.pv3-qopt:hover { border-color: var(--faint); transform: translateY(-1px); }
+.pv3-qopt--on { border-color: var(--navy); box-shadow: 0 0 0 1px var(--navy); }
+.pv3-qopt--dim { opacity: .6; }
+.pv3-qopt__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-size: 11px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: var(--muted); }
+.pv3-qopt b { font-size: 14px; font-weight: 600; }
+.pv3-qopt__meta { display: inline-flex; align-items: center; gap: 5px; font-size: 12px; color: var(--muted); }
+.pv3-qopt__price { margin-top: 4px; font-size: 16px; font-weight: 600; font-variant-numeric: tabular-nums; }
+
 
 .pv3-qdetail { display: flex; flex-direction: column; gap: 16px; padding: 4px 18px 18px; border-top: 1px solid var(--line-soft); animation: pv3-qin .25s var(--ease) both; }
 .pv3-qdetail .pv3-peek__facts { margin-top: 14px; }

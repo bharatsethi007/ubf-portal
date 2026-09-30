@@ -7,7 +7,7 @@ import { CONTAINER_TYPES } from '../bookings/bookingsApi'
 import { placeName } from '../homeModel'
 import PortalQuotesTab from './PortalQuotesTab'
 import QuoteRequestPanel from './QuoteRequestPanel'
-import { listOffers } from './quotesApi'
+import { groupOffers, listOffers } from './quotesApi'
 import RateCard from './RateCard'
 import { searchRates, type RateOption, type RateQuery } from './ratesApi'
 import './rates.css'
@@ -44,7 +44,7 @@ export default function PortalRatesPage() {
   const tab = params.get('tab') === 'search' || params.has('from') || params.has('rate') ? 'search' : 'quotes'
   const [pending, setPending] = useState(0)
   const onCount = useCallback((n: number) => setPending(n), [])
-  useEffect(() => { listOffers().then((r) => setPending(r.filter((x) => x.portal_status === 'pending').length)).catch(() => {}) }, [])
+  useEffect(() => { listOffers().then((r) => setPending(groupOffers(r).filter((g) => g.status === 'pending').length)).catch(() => {}) }, [])
   const goTab = (t: 'search' | 'quotes') => setParams({ tab: t }, { replace: true })
 
   async function run() {

@@ -1,19 +1,8 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, FileText, Mail, Plane, Receipt, Ship, X } from 'lucide-react'
+import { ArrowRight, FileText, MessageSquare, Plane, Receipt, Ship, X } from 'lucide-react'
 import type { PortMap } from '../../../hooks/usePorts'
 import type { HomeShipment } from './usePortalHome'
 import { detailPath, fmtDay, fmtNum, isSea, placeName, shipmentNo, shortCode, stageLabel, stageTone, titleCase } from './homeModel'
-
-const CONTACT: Record<string, string> = {
-  FIS: 'importsea.nz@ubfreight.com',
-  FIA: 'importair.nz@ubfreight.com',
-  FES: 'exportsea.nz@ubfreight.com',
-  FEA: 'exportair.nz@ubfreight.com',
-}
-
-function contactFor(s: HomeShipment): string {
-  return CONTACT[(s.module ?? '').toUpperCase()] ?? 'info.nz@ubfreight.com'
-}
 
 const STEPS = ['Booked', 'Departed', 'Arrived', 'Delivered']
 
@@ -26,7 +15,6 @@ export default function ShipmentPeek({ s, ports, onClose, compact }: Props) {
   const done = s.stage >= 3 ? 3 : s.stage === 2 ? 2 : 1
   const dep = s.departed ?? s.etd
   const arr = s.arrived ?? s.eta
-  const subject = encodeURIComponent(`Shipment ${no}${s.house_bill ? ` · HBL ${s.house_bill}` : ''}`)
   const facts: [string, string | null][] = [
     ['Carrier', s.vessel_flight],
     ['Load', isSea(s) ? (s.load_type ?? 'Sea') : 'Air'],
@@ -90,7 +78,7 @@ export default function ShipmentPeek({ s, ports, onClose, compact }: Props) {
         <Link to={detailPath(s)} className="pv3-btn pv3-btn--primary">View shipment <ArrowRight size={14} /></Link>
         <Link to={detailPath(s, 'Documents')} className="pv3-btn pv3-btn--ghost"><FileText size={14} /> Documents</Link>
         <Link to={detailPath(s, 'Invoices')} className="pv3-btn pv3-btn--ghost"><Receipt size={14} /> Invoices</Link>
-        <a href={`mailto:${contactFor(s)}?subject=${subject}`} className="pv3-btn pv3-btn--ghost"><Mail size={14} /> Email UBF</a>
+        <Link to={`/portal/messages?job=${s.job_unique}`} className="pv3-btn pv3-btn--ghost"><MessageSquare size={14} /> Message UBF</Link>
       </div>
     </article>
   )

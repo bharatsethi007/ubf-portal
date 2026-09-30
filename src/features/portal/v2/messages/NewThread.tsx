@@ -4,13 +4,13 @@ import Composer from './Composer'
 import { recentShipments, sendMessage, type ShipmentOption } from './messagesApi'
 import { VerifiedTick } from './UbfBrand'
 
-type Props = { job: number | null; onCreated: (threadId: string) => void; onClose: () => void }
+type Props = { job: number | null; subject?: string | null; onCreated: (threadId: string) => void; onClose: () => void }
 
 /** New conversation: pick what it's about, then type like any chat. */
-export default function NewThread({ job, onCreated, onClose }: Props) {
+export default function NewThread({ job, subject: presetSubject, onCreated, onClose }: Props) {
   const [ships, setShips] = useState<ShipmentOption[]>([])
   const [about, setAbout] = useState<string>(job != null ? String(job) : '')
-  const [subject, setSubject] = useState('')
+  const [subject, setSubject] = useState(presetSubject ?? '')
   const [err, setErr] = useState('')
 
   useEffect(() => { void recentShipments().then(setShips) }, [])
@@ -47,7 +47,7 @@ export default function NewThread({ job, onCreated, onClose }: Props) {
             {ships.map((s) => <option key={s.job_unique} value={s.job_unique}>{s.label}</option>)}
           </select>
         </label>
-        {!about && (
+        {(!about || presetSubject) && (
           <label className="im-to__row">
             <span>Subject</span>
             <input value={subject} onChange={(e) => setSubject(e.target.value)} maxLength={120} placeholder="Optional" />
