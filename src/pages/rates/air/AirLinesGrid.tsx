@@ -4,6 +4,8 @@ import { useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { AirLineDraft } from '../airRatesApi'
 import AirportCell from './AirportCell'
 import MarginField from '../MarginField'
+import { BulkMarginBar, RowBox, SelectAllBox } from '../BulkMarginBar'
+import { useLineSelection } from '../useLineSelection'
 import { marginText, type Margin } from '../margin'
 
 function rowStyle(c?: string): CSSProperties | undefined {
@@ -36,19 +38,31 @@ const RATE_FIELDS: { k: keyof AirLineDraft; label: string; w: number }[] = [
 
 type Props = { lines: AirLineDraft[]; defaultCurrency: string; cardMargin?: Margin | null; onChange: (lines: AirLineDraft[]) => void }
 
+const lineText = (l: AirLineDraft) => `${l.origin_port_code} ${l.dest_port_code} ${l.via} ${l.frequency} ${l.currency_code}`
+
 export default function AirLinesGrid({ lines, defaultCurrency, cardMargin = null, onChange }: Props) {
+  const sel = useLineSelection(lines, lineText)
   const { items: currencies } = useCurrencies()
   function update(key: string, patch: Partial<AirLineDraft>) { onChange(lines.map((l) => (l.key === key ? { ...l, ...patch } : l))) }
   function remove(key: string) { onChange(lines.filter((l) => l.key !== key)) }
   function add() { onChange([...lines, newAirLine(defaultCurrency)]) }
 
+  // Air sells are worked out at quote time from the margin, so only the margin is stored.
+  function bulkApply(type: 'pct' | 'fixed', value: number) {
+    onChange(lines.map((l) => (sel.selected.has(l.key) ? { ...l, margin_type: type, margin_value: String(value) } : l)))
+  }
+  function bulkReset() {
+    onChange(lines.map((l) => (sel.selected.has(l.key) ? { ...l, margin_type: '', margin_value: '' } : l)))
+  }
   return (
     <div>
+      <BulkMarginBar total={lines.length} shown={sel.visible.length} selectedCount={sel.selected.size}
+        filter={sel.filter} onFilter={sel.setFilter} onApply={bulkApply} onReset={bulkReset} onClearSelection={sel.clear} unit="kg" />
       <div className="table-wrap">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Origin</th><th>Destination</th>
+              <th style={{ width: 28 }}><SelectAllBox all={sel.allVisible} some={sel.someVisible} onToggle={sel.toggleAllVisible} /></th><th>Origin</th><th>Destination</th>
               {RATE_FIELDS.map((f) => (<th key={f.k as string} title={`${f.label} — per kg`}>{f.label}</th>))}
               <th title="Blank = card default. Fixed = per kg on every break, also added once to the min.">Markup</th>
               <th>Cur</th><th>Transit (d)</th><th>Freq</th><th>Via</th><th></th>
@@ -56,9 +70,10 @@ export default function AirLinesGrid({ lines, defaultCurrency, cardMargin = null
           </thead>
           <tbody>
             {lines.length === 0 ? (
-              <tr><td colSpan={15} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
-            ) : lines.map((l) => (
+              <tr><td colSpan={16} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
+            ) : sel.visible.map((l) => (
               <tr key={l.key} style={rowStyle(l.confidence)} title={l.confidence && l.confidence !== 'green' ? (l.note || (l.raw_origin ? `Sheet said: ${l.raw_origin}` : '')) : undefined}>
+                <td><RowBox checked={sel.selected.has(l.key)} onToggle={(shift) => sel.toggle(l.key, shift)} /></td>
                 <td><AirportCell value={l.origin_port_code} onChange={(code) => update(l.key, { origin_port_code: code })} /></td>
                 <td><AirportCell value={l.dest_port_code} onChange={(code) => update(l.key, { dest_port_code: code })} /></td>
                 {RATE_FIELDS.map((f) => (

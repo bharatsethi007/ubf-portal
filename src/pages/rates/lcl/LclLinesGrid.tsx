@@ -4,6 +4,8 @@ import { useSeaPorts } from '../../../hooks/useSeaPorts'
 import { useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { LaneCharge, LclLineDraft } from '../ratesApi'
 import MarginField from '../MarginField'
+import { BulkMarginBar, RowBox, SelectAllBox } from '../BulkMarginBar'
+import { useLineSelection } from '../useLineSelection'
 import { lineMargin, marginText, resolveMargin, suggestSell, type Margin } from '../margin'
 
 export function formatLaneCharges(lc: LaneCharge[]): string {
@@ -49,7 +51,10 @@ export function newLclLine(defaultCurrency: string): LclLineDraft {
 
 type Props = { lines: LclLineDraft[]; defaultCurrency: string; cardMargin?: Margin | null; onChange: (lines: LclLineDraft[]) => void }
 
+const lineText = (l: LclLineDraft) => `${l.origin_port_code} ${l.dest_port_code} ${l.via} ${l.frequency} ${l.currency_code}`
+
 export default function LclLinesGrid({ lines, defaultCurrency, cardMargin = null, onChange }: Props) {
+  const sel = useLineSelection(lines, lineText)
   // Fixed margin is per W/M, and is also added once to the minimum.
   const effective = (l: LclLineDraft) => resolveMargin(lineMargin(l.margin_type, l.margin_value), cardMargin)
   const hasOverride = (l: LclLineDraft) => lineMargin(l.margin_type, l.margin_value) != null
@@ -94,23 +99,44 @@ export default function LclLinesGrid({ lines, defaultCurrency, cardMargin = null
 
   const markupReady = cardMargin != null || lines.some(hasOverride)
 
+  function bulkApply(type: 'pct' | 'fixed', value: number) {
+    onChange(lines.map((l) => {
+      if (!sel.selected.has(l.key)) return l
+      const next = { ...l, margin_type: type, margin_value: String(value) }
+      const m = effective(next)
+      const wm = suggestSell(l.rate_per_wm, m)
+      const min = suggestSell(l.min_charge, m)
+      return { ...next, ...(wm ? { sell_per_wm: wm } : {}), ...(min ? { sell_min: min } : {}) }
+    }))
+  }
+  function bulkReset() {
+    onChange(lines.map((l) => {
+      if (!sel.selected.has(l.key)) return l
+      const next: LclLineDraft = { ...l, margin_type: '', margin_value: '' }
+      const m = effective(next)
+      return { ...next, sell_per_wm: suggestSell(l.rate_per_wm, m), sell_min: suggestSell(l.min_charge, m) }
+    }))
+  }
   return (
     <div>
+      <BulkMarginBar total={lines.length} shown={sel.visible.length} selectedCount={sel.selected.size}
+        filter={sel.filter} onFilter={sel.setFilter} onApply={bulkApply} onReset={bulkReset} onClearSelection={sel.clear} unit="W/M" />
       <div className="table-wrap">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Origin</th><th>Destination</th><th>Rate /WM</th><th title="Blank = card default. Fixed = per W/M, also added to the min.">Markup</th><th>Sell /WM</th><th>Min</th><th>Sell min</th><th>Cur</th><th>Margin</th>
+              <th style={{ width: 28 }}><SelectAllBox all={sel.allVisible} some={sel.someVisible} onToggle={sel.toggleAllVisible} /></th><th>Origin</th><th>Destination</th><th>Rate /WM</th><th title="Blank = card default. Fixed = per W/M, also added to the min.">Markup</th><th>Sell /WM</th><th>Min</th><th>Sell min</th><th>Cur</th><th>Margin</th>
               <th>Transit (d)</th><th>Freq</th><th>Via</th><th>Charges /WM</th><th></th>
             </tr>
           </thead>
           <tbody>
             {lines.length === 0 ? (
-              <tr><td colSpan={14} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
-            ) : lines.map((l) => {
+              <tr><td colSpan={15} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
+            ) : sel.visible.map((l) => {
               const m = marginPct(l.rate_per_wm, l.sell_per_wm ?? '')
               return (
               <tr key={l.key} style={rowStyle(l.confidence)} title={l.confidence && l.confidence !== 'green' ? (l.note || (l.raw_origin ? `Sheet said: ${l.raw_origin}` : '')) : undefined}>
+                <td><RowBox checked={sel.selected.has(l.key)} onToggle={(shift) => sel.toggle(l.key, shift)} /></td>
                 <td>
                   <select className="input input--sm" value={l.origin_port_code} onChange={(e) => update(l.key, { origin_port_code: e.target.value })}>
                     <option value="">—</option>

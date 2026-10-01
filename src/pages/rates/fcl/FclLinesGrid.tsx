@@ -4,6 +4,8 @@ import { useSeaPorts } from '../../../hooks/useSeaPorts'
 import { useContainerTypes, useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { FclLineDraft } from '../ratesApi'
 import MarginField from '../MarginField'
+import { BulkMarginBar, RowBox, SelectAllBox } from '../BulkMarginBar'
+import { useLineSelection } from '../useLineSelection'
 import { lineMargin, marginText, resolveMargin, suggestSell, type Margin } from '../margin'
 
 function rowStyle(c?: string): CSSProperties | undefined {
@@ -52,7 +54,10 @@ type Props = {
   onChange: (lines: FclLineDraft[]) => void
 }
 
+const lineText = (l: FclLineDraft) => `${l.origin_port_code} ${l.dest_port_code} ${l.container_type} ${l.via} ${l.currency_code}`
+
 export default function FclLinesGrid({ lines, defaultCurrency, cardMargin = null, onChange }: Props) {
+  const sel = useLineSelection(lines, lineText)
   const effective = (l: FclLineDraft) => resolveMargin(lineMargin(l.margin_type, l.margin_value), cardMargin)
   const hasOverride = (l: FclLineDraft) => lineMargin(l.margin_type, l.margin_value) != null
   const { ports } = useSeaPorts()
@@ -92,24 +97,42 @@ export default function FclLinesGrid({ lines, defaultCurrency, cardMargin = null
 
   const markupReady = cardMargin != null || lines.some(hasOverride)
 
+  function bulkApply(type: 'pct' | 'fixed', value: number) {
+    onChange(lines.map((l) => {
+      if (!sel.selected.has(l.key)) return l
+      const next = { ...l, margin_type: type, margin_value: String(value) }
+      const sug = suggestSell(l.base_rate, effective(next))
+      return sug ? { ...next, sell_rate: sug } : next
+    }))
+  }
+  function bulkReset() {
+    onChange(lines.map((l) => {
+      if (!sel.selected.has(l.key)) return l
+      const next: FclLineDraft = { ...l, margin_type: '', margin_value: '' }
+      return { ...next, sell_rate: suggestSell(l.base_rate, effective(next)) }
+    }))
+  }
   return (
     <div>
+      <BulkMarginBar total={lines.length} shown={sel.visible.length} selectedCount={sel.selected.size}
+        filter={sel.filter} onFilter={sel.setFilter} onApply={bulkApply} onReset={bulkReset} onClearSelection={sel.clear} unit="container" />
       <div className="table-wrap">
         <table className="data-table">
           <thead>
             <tr>
-              <th>Origin</th><th>Destination</th><th>Container</th>
+              <th style={{ width: 28 }}><SelectAllBox all={sel.allVisible} some={sel.someVisible} onToggle={sel.toggleAllVisible} /></th><th>Origin</th><th>Destination</th><th>Container</th>
               <th>Base rate</th><th title="Blank = card default">Markup</th><th>Sell</th><th>Cur</th><th>Margin</th>
               <th>Transit (d)</th><th>Via</th><th></th>
             </tr>
           </thead>
           <tbody>
             {lines.length === 0 ? (
-              <tr><td colSpan={11} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
-            ) : lines.map((l) => {
+              <tr><td colSpan={12} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
+            ) : sel.visible.map((l) => {
               const m = marginPct(l.base_rate, l.sell_rate ?? '')
               return (
               <tr key={l.key} style={rowStyle(l.confidence)} title={l.confidence && l.confidence !== 'green' ? (l.note || (l.raw_origin ? `Sheet said: ${l.raw_origin}` : '')) : undefined}>
+                <td><RowBox checked={sel.selected.has(l.key)} onToggle={(shift) => sel.toggle(l.key, shift)} /></td>
                 <td>
                   <select className="input input--sm" value={l.origin_port_code} onChange={(e) => update(l.key, { origin_port_code: e.target.value })}>
                     <option value="">—</option>
