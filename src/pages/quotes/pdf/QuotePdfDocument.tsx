@@ -26,7 +26,7 @@ const s = StyleSheet.create({
   colLabel: { color: ORANGE, fontWeight: 700, fontSize: 8, letterSpacing: 0.4, marginBottom: 5, paddingBottom: 3, borderBottom: '1 solid ' + NAVY },
   field: { marginBottom: 4 },
   fieldK: { color: MUTE, fontSize: 6.5, fontWeight: 500, letterSpacing: 0.2 },
-  fieldV: { color: BLACK, fontWeight: 600, fontSize: 7.8, marginTop: 0.5 },
+  fieldV: { color: BLACK, fontWeight: 400, fontSize: 7.8, marginTop: 0.5 },
   secHead: { marginTop: 12, color: NAVY, fontWeight: 700, fontSize: 8.5, letterSpacing: 0.5, marginBottom: 4 },
   tRow: { flexDirection: 'row', alignItems: 'center' },
   tHead: { backgroundColor: NAVY },
@@ -35,15 +35,15 @@ const s = StyleSheet.create({
   tRowB: { borderBottom: '0.5 solid ' + LINE },
   totalRow: { borderTop: '0.75 solid ' + NAVY, backgroundColor: SOFT },
   grpRow: { backgroundColor: SOFT },
-  grpCell: { color: NAVY, fontWeight: 700, fontSize: 7, letterSpacing: 0.3, paddingVertical: 3.5, paddingHorizontal: 4 },
+  grpCell: { color: NAVY, fontWeight: 600, fontSize: 7, letterSpacing: 0.3, paddingVertical: 3.5, paddingHorizontal: 4 },
   tagsWrap: { flexDirection: 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 8 },
   tagsLabel: { color: ORANGE, fontWeight: 700, fontSize: 6.6, letterSpacing: 0.4, marginRight: 10, marginBottom: 4 },
   chip: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#eef2f7', borderRadius: 10, paddingVertical: 2.5, paddingHorizontal: 8, marginRight: 6, marginBottom: 4 },
   chipDot: { width: 4, height: 4, borderRadius: 2, backgroundColor: ORANGE, marginRight: 5 },
-  chipTxt: { fontSize: 7.2, color: NAVY, fontWeight: 600 },
+  chipTxt: { fontSize: 7.2, color: NAVY, fontWeight: 500 },
   totLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
   totK: { color: MUTE, fontSize: 8, fontWeight: 500 },
-  totV: { color: BLACK, fontWeight: 600, fontSize: 8 },
+  totV: { color: BLACK, fontWeight: 500, fontSize: 8 },
   grand: { borderTop: '1 solid ' + NAVY, marginTop: 3, paddingTop: 4 },
   grandK: { color: NAVY, fontWeight: 700, fontSize: 9.5 },
   grandV: { color: NAVY, fontWeight: 700, fontSize: 10 },
@@ -51,7 +51,7 @@ const s = StyleSheet.create({
   noteLine: { color: BLACK, fontSize: 7.2, lineHeight: 1.4, marginBottom: 1.5 },
   termsHead: { color: NAVY, fontWeight: 700, fontSize: 10, marginBottom: 8, textAlign: 'center' },
   termRow: { flexDirection: 'row', marginBottom: 4 },
-  termNo: { width: 13, color: BLACK, fontWeight: 600, fontSize: 7 },
+  termNo: { width: 13, color: BLACK, fontWeight: 400, fontSize: 7 },
   termTxt: { flex: 1, color: BLACK, fontSize: 7, lineHeight: 1.35 },
   subRow: { flexDirection: 'row', marginBottom: 2, marginLeft: 13 },
   subNo: { width: 13, color: BLACK, fontSize: 7 },
@@ -63,7 +63,7 @@ const s = StyleSheet.create({
   optMeta: { flexDirection: 'row', paddingVertical: 4, paddingHorizontal: 2, borderBottom: '0.5 solid ' + LINE, marginBottom: 2 },
   optMetaItem: { flex: 1, flexDirection: 'column' },
   optMetaK: { color: MUTE, fontSize: 6, fontWeight: 500, letterSpacing: 0.3, marginBottom: 1.5, lineHeight: 1 },
-  optMetaV: { color: NAVY, fontSize: 7.8, fontWeight: 600, lineHeight: 1 },
+  optMetaV: { color: NAVY, fontSize: 7.8, fontWeight: 400, lineHeight: 1 },
   optTotals: { marginTop: 4, alignSelf: 'flex-end', width: 200 },
   extNoteWrap: { marginTop: 12, paddingTop: 8, borderTop: '0.5px solid #d0d5dd' },
   extNoteLabel: { fontSize: 7, fontWeight: 600, color: BLACK, marginBottom: 3, letterSpacing: 0.3 },
@@ -243,10 +243,10 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                   </View>
                 ))}
                 <View style={[s.tRow, s.totalRow]}>
-                  <Text style={[s.tCell, { flex: 2.8, fontWeight: 700 }]}>TOTAL</Text>
-                  <Text style={[s.tCell, { flex: 2.4, fontWeight: 700 }]}>{data.commTotal.units}</Text>
-                  <Text style={[s.tCell, { flex: 1.2, fontWeight: 700 }]}>{data.commTotal.gross}</Text>
-                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
+                  <Text style={[s.tCell, { flex: 2.8, fontWeight: 600 }]}>TOTAL</Text>
+                  <Text style={[s.tCell, { flex: 2.4, fontWeight: 500 }]}>{data.commTotal.units}</Text>
+                  <Text style={[s.tCell, { flex: 1.2, fontWeight: 500 }]}>{data.commTotal.gross}</Text>
+                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 500 }]}>{data.commTotal.vol}</Text>
                 </View>
               </>
             ) : (
@@ -268,11 +268,11 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
                   </View>
                 ))}
                 <View style={[s.tRow, s.totalRow]}>
-                  <Text style={[s.tCell, { flex: 2.6, fontWeight: 700 }]}>TOTAL</Text>
-                  <Text style={[s.tCell, { flex: 2.2, fontWeight: 700 }]}>{data.commTotal.units}</Text>
-                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.gross}</Text>
-                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 700 }]}>{data.commTotal.vol}</Text>
-                  <Text style={[s.tCell, { flex: 1.3, fontWeight: 700 }]}>{data.commTotal.chg}</Text>
+                  <Text style={[s.tCell, { flex: 2.6, fontWeight: 600 }]}>TOTAL</Text>
+                  <Text style={[s.tCell, { flex: 2.2, fontWeight: 500 }]}>{data.commTotal.units}</Text>
+                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 500 }]}>{data.commTotal.gross}</Text>
+                  <Text style={[s.tCell, { flex: 1.1, fontWeight: 500 }]}>{data.commTotal.vol}</Text>
+                  <Text style={[s.tCell, { flex: 1.3, fontWeight: 500 }]}>{data.commTotal.chg}</Text>
                 </View>
               </>
             )}
