@@ -1,6 +1,7 @@
 import { supabase } from '../../supabase'
 import { attachAirLocalCharges, type OptionAirLocalCharge } from './airLocalChargeMatch'
 import { applyMargin, cardMargin, lineMargin, resolveMargin } from './margin'
+import { asAirProduct, cargoClassFor, isSellOnlyProduct, nextConsolDeparture, parseSchedule, type AirCargoClass, type AirProduct, type ConsolDeparture } from './airConsol'
 
 // IATA volumetric standard: 1 m³ = 6000 cm³ → 167 kg. (Courier/express uses 5000 → 200; not air cargo.)
 export const AIR_VOLUMETRIC_KG_PER_CBM = 167
@@ -16,6 +17,8 @@ export type AirQuoteLane = {
   incoterm?: string | null   // drives leg defaults + completeness in the card
   hasPickup?: boolean        // pickup address set → origin cartage in play
   hasDelivery?: boolean      // drop address set → destination cartage in play
+  cargoClass?: AirCargoClass // general | temp | dg — picks THC lines and DG sheets
+  suppliers?: number         // export clearance is charged per supplier (default 1)
 }
 
 export type AirRateSurcharge = { label: string; amount: number; sellAmount: number; basis: string; scope: string | null }
@@ -47,6 +50,10 @@ export type AirRateOption = {
   surchargeSellTotal: number
   sellTotal: number
   localCharges: OptionAirLocalCharge[]
+  possibleCharges: OptionAirLocalCharge[] // contingent fees: shown, never totalled
+  airProduct: AirProduct
+  buyUnknown: boolean       // UBF sell tariff (consol / PE): no buy cost on file
+  nextDeparture: ConsolDeparture | null
   freightless?: boolean   // synthetic charges-only option (no freight rate on the lane)
 }
 
@@ -92,13 +99,14 @@ export function chargeableKgFromCargo(rows: { total_cbm: number | null; gross_wt
 
 export async function fetchAirQuoteLane(quoteId: string): Promise<AirQuoteLane> {
   const { data: q, error } = await supabase
-    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type, incoterms, pickup_address, drop_address').eq('id', quoteId).single()
+    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type, incoterms, pickup_address, drop_address, is_hazardous, reefer_temp_c, need_refrigeration').eq('id', quoteId).single()
   if (error) throw error
   const { data: cargo } = await supabase.from('quote_cargo_lines').select('total_cbm, gross_wt').eq('quote_id', quoteId)
   const r = q as Record<string, any>
   const { chargeableKg, grossKg, cbm } = chargeableKgFromCargo(((cargo as any[]) ?? []).map((c) => ({ total_cbm: c.total_cbm, gross_wt: c.gross_wt })))
   return { from_port_code: r.from_port_code ?? null, to_port_code: r.to_port_code ?? null, currency: r.cargo_value_currency ?? null, chargeableKg, grossKg, cbm,
-    movement: r.movement_type ?? null, incoterm: r.incoterms ?? null, hasPickup: !!r.pickup_address, hasDelivery: !!r.drop_address }
+    movement: r.movement_type ?? null, incoterm: r.incoterms ?? null, hasPickup: !!r.pickup_address, hasDelivery: !!r.drop_address,
+    cargoClass: cargoClassFor(r.is_hazardous, r.reefer_temp_c, r.need_refrigeration) }
 }
 
 // When no freight card matches the lane we still want to surface matching local
@@ -120,6 +128,8 @@ function makeChargesOnlyOption(lane: AirQuoteLane): AirRateOption {
     freightTotal: 0, surchargeTotal: 0, total: 0,
     freightSellTotal: 0, surchargeSellTotal: 0, sellTotal: 0,
     localCharges: [],
+    possibleCharges: [],
+    airProduct: 'direct', buyUnknown: false, nextDeparture: null,
     freightless: true,
   }
 }
@@ -132,7 +142,7 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_air_lines')
-    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, margin_type, margin_value, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed)')
+    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, margin_type, margin_value, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, air_product, consol_schedule, consol_skip_dates)')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -145,6 +155,8 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
     const status = String(card.status)
     if (status !== 'active' && status !== 'validated') continue
     if (!withinValidity(card.valid_from ?? null, card.valid_to ?? null, today)) continue
+    // UBF consol / personal effects don't carry DG — those go airline direct.
+    if (lane.cargoClass === 'dg' && isSellOnlyProduct(asAirProduct(card.air_product))) continue
     const id = String(card.id)
     if (!groups.has(id)) groups.set(id, { card, line: raw })
   }
@@ -172,6 +184,8 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
   const options: AirRateOption[] = []
   for (const [id, g] of groups) {
     const { card, line } = g
+    const product = asAirProduct(card.air_product)
+    const sellOnly = isSellOnlyProduct(product)
     // Line margin (or legacy markup_pct) overrides the card default; fixed = per kg, +once on min.
     const margin = resolveMargin(
       lineMargin(line.margin_type ?? (line.markup_pct != null ? 'pct' : null), line.margin_value ?? line.markup_pct),
@@ -183,11 +197,11 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
     const buyBands: Band[] = BREAKS
       .filter((b) => line[b.col] != null && !isNaN(Number(line[b.col])))
       .map((b) => ({ thresh: b.thresh, rate: Number(line[b.col]) }))
-    const buy = priceAirFreight(w, buyBands, minCharge)
-
-    const sellBands: Band[] = buyBands.map((b) => ({ thresh: b.thresh, rate: applyMargin(b.rate, margin) }))
-    const sellMin = applyMargin(minCharge, margin)
+    // Sell-only tariff: the card rates ARE the sell; buy stays 0 / unknown.
+    const sellBands: Band[] = sellOnly ? buyBands : buyBands.map((b) => ({ thresh: b.thresh, rate: applyMargin(b.rate, margin) }))
+    const sellMin = sellOnly ? minCharge : applyMargin(minCharge, margin)
     const sell = priceAirFreight(w, sellBands, sellMin)
+    const buy = sellOnly ? { billedKg: sell.billedKg, appliedRate: 0, freight: 0, minApplied: sell.minApplied } : priceAirFreight(w, buyBands, minCharge)
 
     const surcharges: AirRateSurcharge[] = (surByCard.get(id) ?? []).map((s) => ({
       label: String(s.label),
@@ -235,9 +249,14 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
       surchargeSellTotal,
       sellTotal: round2(sell.freight + surchargeSellTotal),
       localCharges: [],
+      possibleCharges: [],
+      airProduct: product,
+      buyUnknown: sellOnly,
+      nextDeparture: sellOnly ? nextConsolDeparture(parseSchedule(card.consol_schedule), (card.consol_skip_dates as string[] | null) ?? []) : null,
     })
   }
-  options.sort((a, b) => a.total - b.total)
+  // Compare like with like for the customer: cheapest estimated sell first.
+  options.sort((a, b) => (a.sellTotal || a.total) - (b.sellTotal || b.total))
   await attachAirLocalCharges(lane, options)
   return options
 }

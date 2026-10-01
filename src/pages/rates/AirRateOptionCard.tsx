@@ -4,6 +4,7 @@ import type { AirRateOption, AirRateSurcharge } from './airRateSearchApi'
 import { resolveLegs, completenessFor, serviceTypeForIncoterm, type FoundSources } from './incotermLegs'
 import { toNzd, fmtMoney, fmtNzd, type FxRates } from './fx'
 import AirlineLogo from './AirlineLogo.tsx'
+import { AirDepartureChip, AirPossibleExtras, AirProductBadge } from './AirOptionExtras'
 import type { RateOptionCartage } from '../quotes/rateOptionCartage'
 
 function marginColor(m: number | null): string {
@@ -56,7 +57,8 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
     return { buy: s.amount, sell: s.sellAmount, meta: s.basis === 'per_awb' ? 'per AWB' : s.basis === 'per_bl' ? 'per B/L' : 'flat' }
   }
 
-  const freightMeta = `${o.billedKg.toLocaleString()} kg @ ${fmtMoney(o.appliedRatePerKg, cur)}/kg`
+  const shownRate = o.buyUnknown ? o.sellRatePerKg : o.appliedRatePerKg
+  const freightMeta = `${o.billedKg.toLocaleString()} kg @ ${fmtMoney(shownRate, cur)}/kg`
     + (o.billedKg > o.chargeableKg ? ` · break-pivot from ${o.chargeableKg} kg` : '')
     + (o.minApplied ? ` · min ${fmtMoney(o.minCharge, cur)}` : '')
   const freightItem = o.freightless ? null : mk('f:air', 'Air freight', freightMeta, o.freightTotal, o.freightSellTotal)
@@ -109,7 +111,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
   }
   grandSell = Math.round(grandSell * 100) / 100
   grandBuy = Math.round(grandBuy * 100) / 100
-  const nzdMargin = convertible && grandSell > 0 ? Math.round(((grandSell - grandBuy) / grandSell) * 1000) / 10 : null
+  const nzdMargin = !o.buyUnknown && convertible && grandSell > 0 ? Math.round(((grandSell - grandBuy) / grandSell) * 1000) / 10 : null
   const fallbackSell = o.sellTotal > 0 ? o.sellTotal : o.total
 
   function handleUse() {
@@ -127,6 +129,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
             <AirlineLogo code={o.airlineCode} name={o.airlineName} />
             <span style={{ fontWeight: 600, fontSize: 15 }}>{o.airlineName}</span>
+            <AirProductBadge option={o} />
             <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, padding: '2px 8px', borderRadius: 999, background: 'rgba(10,36,114,0.08)', color: '#0A2472' }}>{o.status}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--muted-foreground)' }}><Plane size={13} /> Air · {o.chargeableKg.toLocaleString()} kg</span>
             {o.transitDays != null && (
@@ -136,6 +139,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--muted-foreground)' }}><CalendarClock size={13} /> {o.frequency}</span>
             )}
           </div>
+          {o.nextDeparture && <div style={{ marginTop: 6 }}><AirDepartureChip option={o} /></div>}
           <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginTop: 8, fontSize: 13 }}>
             <span>{o.via ? `${fromCode} → ${o.via}` : fromCode}</span>
             <ArrowRight size={14} color="var(--muted-foreground)" />
@@ -153,8 +157,8 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
             <>
               <div style={{ display: 'flex', alignItems: 'flex-end', gap: 18 }}>
                 <div>
-                  <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--muted-foreground)' }}>{fmtNzd(grandBuy)}</div>
-                  <div className="text-muted-foreground" style={{ fontSize: 11 }}>est. buy</div>
+                  <div style={{ fontSize: 15, fontWeight: 600, whiteSpace: 'nowrap', color: 'var(--muted-foreground)' }}>{o.buyUnknown ? 'n/a' : fmtNzd(grandBuy)}</div>
+                  <div className="text-muted-foreground" style={{ fontSize: 11 }}>{o.buyUnknown ? 'buy not on file' : 'est. buy'}</div>
                 </div>
                 <div>
                   <div style={{ fontSize: 18, fontWeight: 700, whiteSpace: 'nowrap' }}>{fmtNzd(grandSell)}</div>
@@ -226,6 +230,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
             </div>
             )
           })}
+          <AirPossibleExtras option={o} />
           {convertible && (
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10, marginTop: 12, fontSize: 14 }}>
               <span className="text-muted-foreground">Selected total (sell)</span>

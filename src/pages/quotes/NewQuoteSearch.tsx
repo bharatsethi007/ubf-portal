@@ -24,6 +24,8 @@ import { searchAirRates, type AirRateOption } from '../rates/airRateSearchApi'
 import RateOptionCard from '../rates/RateOptionCard'
 import LclRateOptionCard from '../rates/LclRateOptionCard'
 import AirRateOptionCard from '../rates/AirRateOptionCard'
+import AirOptionsList from '../rates/AirOptionsList'
+import { cargoClassFor } from '../rates/airConsol'
 import { useEffectiveRates } from '../../hooks/useEffectiveRates'
 import { chargeLegsFor, serviceTypeForIncoterm, defaultFreightTerms } from '../rates/incotermLegs'
 import PartySearch from './PartySearch'
@@ -307,6 +309,7 @@ export default function NewQuoteSearch() {
           incoterm: draft.incoterms ?? null,
           hasPickup: !!draft.pickup_address,
           hasDelivery: !!draft.drop_address,
+          cargoClass: cargoClassFor(draft.is_hazardous, draft.reefer_temp_c, draft.need_refrigeration),
         }))
       } else if (draft.shipment_type === 'LCL') {
         const lane: LclQuoteLane = {
@@ -632,9 +635,9 @@ export default function NewQuoteSearch() {
                   <span className="text-muted-foreground" style={{ fontSize: 12 }}>{(isAir ? airOptions.length : isLcl ? lclOptions.length : options.length)} rate{(isAir ? airOptions.length : isLcl ? lclOptions.length : options.length) === 1 ? '' : 's'} for {draft.from_port_code} → {draft.to_port_code}</span>
                 </div>
                 {isAir
-                  ? airOptions.map((o) => (
+                  ? <AirOptionsList options={airOptions} render={(o) => (
                       <AirRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(keys) => handleCreateAir(o, keys)} busy={busyId === o.cardId} fxRates={fxRates} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} isAgent={agentMode} freightTerms={freightTerms ?? ''} cartage={cardCartage ?? undefined} />
-                    ))
+                    )} />
                   : isLcl
                   ? lclOptions.map((o) => (
                       <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} cartage={cardCartage ?? undefined} />

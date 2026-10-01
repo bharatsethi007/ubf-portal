@@ -208,9 +208,11 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
     f.unit = 'Per kg'
     f.qty = String(billedKg)
     f.buy_currency = cur; f.sell_currency = cur
-    f.buy_rate = String(o.appliedRatePerKg)
+    f.buy_rate = o.buyUnknown ? '' : String(o.appliedRatePerKg)
     f.sell_rate = String(o.sellRatePerKg > 0 ? o.sellRatePerKg : o.appliedRatePerKg)
-    if (o.minCharge > 0) {
+    if (o.minCharge > 0 && o.buyUnknown) {
+      f.min_sell = String(o.minCharge)  // UBF sell tariff: min is a sell min, buy unknown
+    } else if (o.minCharge > 0) {
       f.min_buy = String(o.minCharge)   // flat MIN — now correctly a floor on the line total
       const sr = o.sellRatePerKg > 0 ? o.sellRatePerKg : o.appliedRatePerKg
       const sellMin = o.appliedRatePerKg > 0 ? Math.round(o.minCharge * sr / o.appliedRatePerKg * 100) / 100 : o.minCharge
@@ -226,10 +228,10 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
     l.charge_group = s.scope === 'origin' ? 'origin' : s.scope === 'dest' ? 'dest' : 'freight'
     l.vendor = o.airlineName
     l.buy_currency = cur; l.sell_currency = cur
-    if (s.basis === 'per_kg') { l.unit = 'Per kg'; l.qty = String(o.chargeableKg); l.buy_rate = String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
+    if (s.basis === 'per_kg') { l.unit = 'Per kg'; l.qty = String(o.chargeableKg); l.buy_rate = o.buyUnknown ? '' : String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
     else if (s.basis === 'per_cbm') { const cbm = o.cbm > 0 ? o.cbm : 1; l.unit = 'Per CBM'; l.qty = String(cbm); l.buy_rate = String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
     else if (s.basis === 'percent') { l.unit = '% of freight'; l.qty = '1'; l.buy_rate = String(Math.round((s.amount / 100) * o.freightTotal * 100) / 100); l.sell_rate = String(Math.round((s.sellAmount / 100) * o.freightSellTotal * 100) / 100) }
-    else { l.unit = s.basis === 'per_awb' ? 'Per AWB' : s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1'; l.buy_rate = String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
+    else { l.unit = s.basis === 'per_awb' ? 'Per AWB' : s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1'; l.buy_rate = o.buyUnknown ? '' : String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
     lines.push(l)
   })
 
@@ -243,7 +245,8 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
     l.qty = '1'
     l.buy_currency = lc.buyCurrency || cur
     l.sell_currency = lc.sellCurrency || lc.buyCurrency || cur
-    l.buy_rate = String(lc.buyAmount)
+    // No buy on file (sell tariff lines) → blank, not 0, so margin isn't faked.
+    l.buy_rate = lc.buyAmount === 0 && lc.sellAmount > 0 ? '' : String(lc.buyAmount)
     l.sell_rate = String(lc.sellAmount)
     lines.push(l)
   })

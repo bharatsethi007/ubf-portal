@@ -18,6 +18,7 @@ import { createQuoteResponse, updateQuoteResponseHeader, type QuoteResponseHeade
 import RateOptionCard from '../rates/RateOptionCard'
 import LclRateOptionCard from '../rates/LclRateOptionCard'
 import AirRateOptionCard from '../rates/AirRateOptionCard'
+import AirOptionsList from '../rates/AirOptionsList'
 
 type Kind = 'fcl' | 'lcl' | 'air'
 
@@ -169,10 +170,10 @@ export default function QuoteVendorRates({
         {from} → {to} · {summaryExtra} · {count} option{count === 1 ? '' : 's'} · Use a rate to push its lines into a response.
       </p>
 
-      {kind === 'air' && air!.options.map((o) => (
+      {kind === 'air' && <AirOptionsList options={air!.options} render={(o) => (
         <AirRateOptionCard key={o.cardId} option={o} fromCode={from} toCode={to} fxRates={fxRates} busy={busyCard === o.cardId}
           onUse={(keys) => useRate(o.cardId, () => buildAirBuyLinesFromOption(o, keys), curHeader(o.currency, o.airlineName || null, o.transitDays, o.via))} />
-      ))}
+      )} />}
       {kind === 'lcl' && lcl!.options.map((o) => (
         <LclRateOptionCard key={o.cardId} option={o} fromCode={from} toCode={to} busy={busyCard === o.cardId}
           onUse={() => useRate(o.cardId, () => buildLclBuyLinesFromOption(o), curHeader(o.currency, o.coLoaderName || null, o.transitDays, o.via))} />
