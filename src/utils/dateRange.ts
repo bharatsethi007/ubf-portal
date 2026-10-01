@@ -6,8 +6,11 @@ export type DateRange = {
   preset: DatePreset
 }
 
+/** Local calendar date (YYYY-MM-DD). toISOString() is UTC and shifts NZ dates back a day. */
 function iso(d: Date): string {
-  return d.toISOString().slice(0, 10)
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
 }
 
 export function currentMonthDefault(): DateRange {

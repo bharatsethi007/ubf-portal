@@ -27,7 +27,9 @@ export type ShipmentQueryContext = {
 function addOneDay(isoDate: string): string {
   const d = new Date(`${isoDate}T00:00:00`)
   d.setDate(d.getDate() + 1)
-  return d.toISOString().slice(0, 10)
+  const m = String(d.getMonth() + 1).padStart(2, '0')
+  const day = String(d.getDate()).padStart(2, '0')
+  return `${d.getFullYear()}-${m}-${day}`
 }
 
 export function getSortColumn(view: ShipmentView, dateBasis: DateBasis): string {
@@ -81,8 +83,11 @@ function applyFieldFilters<Q extends FilterableQuery>(
   filters: ShipmentFilterFields,
 ): Q {
   let q = query
-  if (filters.origin) q = q.eq('origin', filters.origin) as Q
-  if (filters.destination) q = q.eq('destination', filters.destination) as Q
+  // Port codes are stored upper-case; match typed text case-insensitively as a prefix.
+  const origin = filters.origin.trim()
+  const destination = filters.destination.trim()
+  if (origin) q = q.ilike('origin', `${origin}%`) as Q
+  if (destination) q = q.ilike('destination', `${destination}%`) as Q
   if (filters.vesselFlight.trim()) {
     q = q.ilike('vessel_flight', `%${filters.vesselFlight.trim()}%`) as Q
   }
