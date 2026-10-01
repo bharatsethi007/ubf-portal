@@ -1,5 +1,12 @@
 import { supabase } from '../../supabase'
 
+/** DB columns for a line margin override: both null when no value is set. */
+function marginCols(type: string | undefined, value: string | undefined): { margin_type: string | null; margin_value: number | null } {
+  const v = (value ?? '').trim()
+  if (v === '' || isNaN(Number(v))) return { margin_type: null, margin_value: null }
+  return { margin_type: type === 'fixed' ? 'fixed' : 'pct', margin_value: Number(v) }
+}
+
 export type FclRateCardRow = {
   id: string
   shipping_line_code: string
@@ -105,12 +112,14 @@ export type FclRateCardDetail = {
   valid_to: string | null
   status: string
   default_markup_pct: number | null
+  default_margin_type: 'pct' | 'fixed'
+  default_margin_fixed: number | null
 }
 
 export async function fetchFclRateCard(id: string): Promise<FclRateCardDetail | null> {
   const { data, error } = await supabase
     .from('rate_cards')
-    .select('id, shipping_line_code, title, currency_code, valid_from, valid_to, status, default_markup_pct')
+    .select('id, shipping_line_code, title, currency_code, valid_from, valid_to, status, default_markup_pct, default_margin_type, default_margin_fixed')
     .eq('id', id)
     .eq('rate_type', 'fcl')
     .maybeSingle()
@@ -126,6 +135,8 @@ export async function fetchFclRateCard(id: string): Promise<FclRateCardDetail | 
     valid_to: r.valid_to ? String(r.valid_to) : null,
     status: String(r.status),
     default_markup_pct: r.default_markup_pct == null ? null : Number(r.default_markup_pct),
+    default_margin_type: r.default_margin_type === 'fixed' ? 'fixed' : 'pct',
+    default_margin_fixed: r.default_margin_fixed == null ? null : Number(r.default_margin_fixed),
   }
 }
 
@@ -139,6 +150,8 @@ export async function updateFclRateCardHeader(
     valid_to: string | null
     status: string
     default_markup_pct: number | null
+    default_margin_type: 'pct' | 'fixed'
+    default_margin_fixed: number | null
   },
 ): Promise<void> {
   const { error } = await supabase
@@ -156,6 +169,9 @@ export type FclLineDraft = {
   container_type: string
   base_rate: string
   sell_rate?: string
+  /** Line margin override ('' = use card default). */
+  margin_type?: 'pct' | 'fixed' | ''
+  margin_value?: string
   currency_code: string
   transit_days: string
   via: string
@@ -167,7 +183,7 @@ export type FclLineDraft = {
 export async function listFclLines(cardId: string): Promise<FclLineDraft[]> {
   const { data, error } = await supabase
     .from('rate_card_fcl_lines')
-    .select('id, origin_port_code, dest_port_code, container_type, base_rate, sell_rate, currency_code, transit_days, via')
+    .select('id, origin_port_code, dest_port_code, container_type, base_rate, sell_rate, margin_type, margin_value, currency_code, transit_days, via')
     .eq('rate_card_id', cardId)
     .order('created_at', { ascending: true })
   if (error) throw error
@@ -179,6 +195,8 @@ export async function listFclLines(cardId: string): Promise<FclLineDraft[]> {
     container_type: r.container_type ? String(r.container_type) : '',
     base_rate: r.base_rate == null ? '' : String(r.base_rate),
     sell_rate: r.sell_rate == null ? '' : String(r.sell_rate),
+    margin_type: r.margin_type === 'fixed' ? 'fixed' : r.margin_type === 'pct' ? 'pct' : '',
+    margin_value: r.margin_value == null ? '' : String(r.margin_value),
     currency_code: r.currency_code ? String(r.currency_code) : '',
     transit_days: r.transit_days == null ? '' : String(r.transit_days),
     via: r.via ? String(r.via) : '',
@@ -201,6 +219,7 @@ export async function saveFclLines(cardId: string, lines: FclLineDraft[], origin
       container_type: l.container_type,
       base_rate: (l.base_rate ?? '') === '' ? null : Number(l.base_rate),
       sell_rate: (l.sell_rate ?? '') === '' ? null : Number(l.sell_rate),
+      ...marginCols(l.margin_type, l.margin_value),
       currency_code: l.currency_code || null,
       transit_days: l.transit_days ? Number(l.transit_days) : null,
       via: l.via.trim() || null,
@@ -344,6 +363,7 @@ export async function insertFclLines(cardId: string, lines: FclLineDraft[]): Pro
     container_type: l.container_type,
     base_rate: (l.base_rate ?? '') === '' ? null : Number(l.base_rate),
     sell_rate: (l.sell_rate ?? '') === '' ? null : Number(l.sell_rate),
+    ...marginCols(l.margin_type, l.margin_value),
     currency_code: l.currency_code || null,
     transit_days: l.transit_days ? Number(l.transit_days) : null,
     via: l.via.trim() || null,
@@ -463,12 +483,14 @@ export type LclRateCardDetail = {
   valid_to: string | null
   status: string
   default_markup_pct: number | null
+  default_margin_type: 'pct' | 'fixed'
+  default_margin_fixed: number | null
 }
 
 export async function fetchLclRateCard(id: string): Promise<LclRateCardDetail | null> {
   const { data, error } = await supabase
     .from('rate_cards')
-    .select('id, co_loader_code, title, currency_code, valid_from, valid_to, status, default_markup_pct')
+    .select('id, co_loader_code, title, currency_code, valid_from, valid_to, status, default_markup_pct, default_margin_type, default_margin_fixed')
     .eq('id', id).eq('rate_type', 'lcl').maybeSingle()
   if (error) throw error
   if (!data) return null
@@ -482,12 +504,14 @@ export async function fetchLclRateCard(id: string): Promise<LclRateCardDetail | 
     valid_to: r.valid_to ? String(r.valid_to) : null,
     status: String(r.status),
     default_markup_pct: r.default_markup_pct == null ? null : Number(r.default_markup_pct),
+    default_margin_type: r.default_margin_type === 'fixed' ? 'fixed' : 'pct',
+    default_margin_fixed: r.default_margin_fixed == null ? null : Number(r.default_margin_fixed),
   }
 }
 
 export async function updateLclRateCardHeader(
   id: string,
-  patch: { co_loader_code: string; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string; default_markup_pct: number | null },
+  patch: { co_loader_code: string; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string; default_markup_pct: number | null; default_margin_type: 'pct' | 'fixed'; default_margin_fixed: number | null },
 ): Promise<void> {
   const { error } = await supabase
     .from('rate_cards')
@@ -507,6 +531,9 @@ export type LclLineDraft = {
   sell_per_wm?: string
   min_charge: string
   sell_min?: string
+  /** Line margin override ('' = use card default). */
+  margin_type?: 'pct' | 'fixed' | ''
+  margin_value?: string
   currency_code: string
   transit_days: string
   via: string
@@ -520,7 +547,7 @@ export type LclLineDraft = {
 export async function listLclLines(cardId: string): Promise<LclLineDraft[]> {
   const { data, error } = await supabase
     .from('rate_card_lcl_lines')
-    .select('id, origin_port_code, dest_port_code, rate_per_wm, sell_per_wm, min_charge, sell_min, currency_code, transit_days, via, frequency, lane_charges')
+    .select('id, origin_port_code, dest_port_code, rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, lane_charges')
     .eq('rate_card_id', cardId).order('created_at', { ascending: true })
   if (error) throw error
   return ((data as Record<string, any>[]) ?? []).map((r) => ({
@@ -532,6 +559,8 @@ export async function listLclLines(cardId: string): Promise<LclLineDraft[]> {
     sell_per_wm: r.sell_per_wm == null ? '' : String(r.sell_per_wm),
     min_charge: r.min_charge == null ? '' : String(r.min_charge),
     sell_min: r.sell_min == null ? '' : String(r.sell_min),
+    margin_type: r.margin_type === 'fixed' ? 'fixed' : r.margin_type === 'pct' ? 'pct' : '',
+    margin_value: r.margin_value == null ? '' : String(r.margin_value),
     currency_code: r.currency_code ? String(r.currency_code) : '',
     transit_days: r.transit_days == null ? '' : String(r.transit_days),
     via: r.via ? String(r.via) : '',
@@ -552,6 +581,7 @@ function lclLinePayload(cardId: string, l: LclLineDraft) {
     sell_per_wm: (l.sell_per_wm ?? '') === '' ? null : Number(l.sell_per_wm),
     min_charge: l.min_charge === '' ? null : Number(l.min_charge),
     sell_min: (l.sell_min ?? '') === '' ? null : Number(l.sell_min),
+    ...marginCols(l.margin_type, l.margin_value),
     currency_code: l.currency_code || null,
     transit_days: l.transit_days ? Number(l.transit_days) : null,
     via: l.via.trim() || null,

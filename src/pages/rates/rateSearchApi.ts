@@ -1,5 +1,6 @@
 import { supabase } from '../../supabase'
 import { attachLocalCharges, type OptionLocalCharge } from './localChargeMatch'
+import { applyMargin, cardMargin, lineMargin, resolveMargin } from './margin'
 
 const SIZE_TO_CANONICAL: Record<string, string> = {
   '20': '20GP', '40': '40GP', '20HC': '20HC', '40HC': '40HQ', '40HQ': '40HQ', '20GP': '20GP', '40GP': '40GP',
@@ -75,7 +76,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
 
   const { data: lines, error } = await supabase
     .from('rate_card_fcl_lines')
-    .select('base_rate, sell_rate, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, shipping_line_code, vendor_name, status, valid_from, valid_to, currency_code, shipping_lines(name))')
+    .select('base_rate, sell_rate, margin_type, margin_value, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, shipping_line_code, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, shipping_lines(name))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
     .in('container_type', wantedCodes)
@@ -95,7 +96,10 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     if (!groups.has(id)) groups.set(id, { card, chips: new Map() })
     groups.get(id)!.chips.set(String(raw.container_type), {
       rate: Number(raw.base_rate) || 0,
-      sell: Number(raw.sell_rate) || 0,
+      // Explicit sell wins; else line margin, else card default margin (% or fixed per container).
+      sell: Number(raw.sell_rate) > 0
+        ? Number(raw.sell_rate)
+        : applyMargin(Number(raw.base_rate) || 0, resolveMargin(lineMargin(raw.margin_type, raw.margin_value), cardMargin(card))),
       transit: raw.transit_days != null ? Number(raw.transit_days) : null,
       via: raw.via ?? null, vf, vt,
     })

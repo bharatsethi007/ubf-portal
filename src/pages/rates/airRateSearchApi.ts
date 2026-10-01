@@ -1,5 +1,6 @@
 import { supabase } from '../../supabase'
 import { attachAirLocalCharges, type OptionAirLocalCharge } from './airLocalChargeMatch'
+import { applyMargin, cardMargin, lineMargin, resolveMargin } from './margin'
 
 // IATA volumetric standard: 1 m³ = 6000 cm³ → 167 kg. (Courier/express uses 5000 → 200; not air cargo.)
 export const AIR_VOLUMETRIC_KG_PER_CBM = 167
@@ -131,7 +132,7 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_air_lines')
-    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct)')
+    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, margin_type, margin_value, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed)')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -171,8 +172,11 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
   const options: AirRateOption[] = []
   for (const [id, g] of groups) {
     const { card, line } = g
-    const markup = card.default_markup_pct != null ? Number(card.default_markup_pct) : null
-    const lineMarkup = line.markup_pct != null ? Number(line.markup_pct) : markup
+    // Line margin (or legacy markup_pct) overrides the card default; fixed = per kg, +once on min.
+    const margin = resolveMargin(
+      lineMargin(line.margin_type ?? (line.markup_pct != null ? 'pct' : null), line.margin_value ?? line.markup_pct),
+      cardMargin(card),
+    )
     const currency = line.currency_code ? String(line.currency_code) : (card.currency_code ? String(card.currency_code) : '')
     const minCharge = Number(line.min_charge) || 0
 
@@ -181,9 +185,8 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
       .map((b) => ({ thresh: b.thresh, rate: Number(line[b.col]) }))
     const buy = priceAirFreight(w, buyBands, minCharge)
 
-    const mk = lineMarkup != null && lineMarkup > 0 ? lineMarkup / 100 : 0
-    const sellBands: Band[] = buyBands.map((b) => ({ thresh: b.thresh, rate: round2(b.rate * (1 + mk)) }))
-    const sellMin = round2(minCharge * (1 + mk))
+    const sellBands: Band[] = buyBands.map((b) => ({ thresh: b.thresh, rate: applyMargin(b.rate, margin) }))
+    const sellMin = applyMargin(minCharge, margin)
     const sell = priceAirFreight(w, sellBands, sellMin)
 
     const surcharges: AirRateSurcharge[] = (surByCard.get(id) ?? []).map((s) => ({

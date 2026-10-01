@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { applyMargin, cardMargin, lineMargin, resolveMargin, type Margin } from './margin'
 
 export type LclQuoteLane = {
   from_port_code: string | null
@@ -46,12 +47,11 @@ function withinValidity(from: string | null, to: string | null, today: string): 
   return true
 }
 
-// Freight-family sell fallback: explicit sell wins, else apply the card's default
-// markup %, else fall back to cost. (rate_surcharges stay pass-through — sell = cost.)
-function sellWithMarkup(cost: number, explicit: number | null, markupPct: number | null): number {
+// Freight-family sell fallback: explicit sell wins, else the line margin, else the card's
+// default margin (% or fixed per W/M), else cost. (rate_surcharges stay pass-through — sell = cost.)
+function sellWithMargin(cost: number, explicit: number | null, margin: Margin | null): number {
   if (explicit != null && explicit > 0) return explicit
-  if (markupPct != null && markupPct > 0) return cost * (1 + markupPct / 100)
-  return cost
+  return applyMargin(cost, margin)
 }
 
 export function wmFromCargo(rows: { total_cbm: number | null; gross_wt: number | null }[]): { wm: number; cbm: number } {
@@ -88,7 +88,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_lcl_lines')
-    .select('rate_per_wm, sell_per_wm, min_charge, sell_min, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, co_loaders(name))')
+    .select('rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, co_loaders(name))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -127,13 +127,15 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
     const card = g.card
     const line = g.line
     const cl = Array.isArray(card.co_loaders) ? card.co_loaders[0] : card.co_loaders
-    const markup = card.default_markup_pct != null ? Number(card.default_markup_pct) : null
+    const margin = resolveMargin(lineMargin(line.margin_type, line.margin_value), cardMargin(card))
+    // Lane charges (BAF/LSS per W/M) only take a % margin; a fixed margin goes on the base rate once.
+    const laneMargin = margin?.type === 'pct' ? margin : null
     const currency = line.currency_code ? String(line.currency_code) : (card.currency_code ? String(card.currency_code) : '')
 
     const ratePerWm = Number(line.rate_per_wm) || 0
     const minCharge = Number(line.min_charge) || 0
-    const sellPerWm = round2(sellWithMarkup(ratePerWm, line.sell_per_wm != null ? Number(line.sell_per_wm) : null, markup))
-    const sellMin = round2(sellWithMarkup(minCharge, line.sell_min != null ? Number(line.sell_min) : null, markup))
+    const sellPerWm = round2(sellWithMargin(ratePerWm, line.sell_per_wm != null ? Number(line.sell_per_wm) : null, margin))
+    const sellMin = round2(sellWithMargin(minCharge, line.sell_min != null ? Number(line.sell_min) : null, margin))
 
     const freightTotal = round2(Math.max(ratePerWm * wm, minCharge))
     const freightSellTotal = round2(Math.max(sellPerWm * wm, sellMin))
@@ -141,7 +143,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
     // lane_charges: freight-family per-W/M surcharges (BAF/LSS/…) — markup fallback for sell
     const laneCharges: LclLaneCharge[] = (Array.isArray(line.lane_charges) ? line.lane_charges : []).map((c: any) => {
       const perWm = Number(c.per_wm) || 0
-      return { code: String(c.code ?? ''), label: String(c.label ?? c.code ?? ''), perWm, sellPerWm: round2(sellWithMarkup(perWm, null, markup)) }
+      return { code: String(c.code ?? ''), label: String(c.label ?? c.code ?? ''), perWm, sellPerWm: round2(sellWithMargin(perWm, null, laneMargin)) }
     })
 
     // rate_surcharges: pass-through family — sell = explicit, else cost

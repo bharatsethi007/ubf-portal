@@ -3,6 +3,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useSeaPorts } from '../../../hooks/useSeaPorts'
 import { useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { LaneCharge, LclLineDraft } from '../ratesApi'
+import MarginField from '../MarginField'
+import { lineMargin, marginText, resolveMargin, suggestSell, type Margin } from '../margin'
 
 export function formatLaneCharges(lc: LaneCharge[]): string {
   return (lc ?? []).map((c) => `${c.code}:${c.per_wm}`).join(', ')
@@ -15,11 +17,6 @@ export function parseLaneCharges(s: string): LaneCharge[] {
   }).filter((c) => c.code)
 }
 
-function suggestedSell(buy: string, markup?: number | null): string {
-  const b = Number(buy)
-  if (!buy || isNaN(b) || markup == null || isNaN(markup)) return ''
-  return String(Math.round(b * (1 + markup / 100) * 100) / 100)
-}
 function marginPct(buy: string, sell: string): number | null {
   const b = Number(buy)
   const s = Number(sell)
@@ -50,9 +47,12 @@ export function newLclLine(defaultCurrency: string): LclLineDraft {
   }
 }
 
-type Props = { lines: LclLineDraft[]; defaultCurrency: string; defaultMarkupPct?: number | null; onChange: (lines: LclLineDraft[]) => void }
+type Props = { lines: LclLineDraft[]; defaultCurrency: string; cardMargin?: Margin | null; onChange: (lines: LclLineDraft[]) => void }
 
-export default function LclLinesGrid({ lines, defaultCurrency, defaultMarkupPct, onChange }: Props) {
+export default function LclLinesGrid({ lines, defaultCurrency, cardMargin = null, onChange }: Props) {
+  // Fixed margin is per W/M, and is also added once to the minimum.
+  const effective = (l: LclLineDraft) => resolveMargin(lineMargin(l.margin_type, l.margin_value), cardMargin)
+  const hasOverride = (l: LclLineDraft) => lineMargin(l.margin_type, l.margin_value) != null
   const { ports } = useSeaPorts()
   const { items: currencies } = useCurrencies()
 
@@ -63,16 +63,16 @@ export default function LclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
   function add() { onChange([...lines, newLclLine(defaultCurrency)]) }
   function onWmChange(l: LclLineDraft, v: string) {
     const patch: Partial<LclLineDraft> = { rate_per_wm: v }
-    if ((l.sell_per_wm ?? '') === '') {
-      const sug = suggestedSell(v, defaultMarkupPct)
+    if ((l.sell_per_wm ?? '') === '' || hasOverride(l)) {
+      const sug = suggestSell(v, effective(l))
       if (sug) patch.sell_per_wm = sug
     }
     update(l.key, patch)
   }
   function onMinChange(l: LclLineDraft, v: string) {
     const patch: Partial<LclLineDraft> = { min_charge: v }
-    if ((l.sell_min ?? '') === '') {
-      const sug = suggestedSell(v, defaultMarkupPct)
+    if ((l.sell_min ?? '') === '' || hasOverride(l)) {
+      const sug = suggestSell(v, effective(l))
       if (sug) patch.sell_min = sug
     }
     update(l.key, patch)
@@ -80,13 +80,19 @@ export default function LclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
   function fillEmptySells() {
     onChange(lines.map((l) => {
       const next = { ...l }
-      if ((next.sell_per_wm ?? '') === '') { const s = suggestedSell(next.rate_per_wm, defaultMarkupPct); if (s) next.sell_per_wm = s }
-      if ((next.sell_min ?? '') === '') { const s = suggestedSell(next.min_charge, defaultMarkupPct); if (s) next.sell_min = s }
+      if ((next.sell_per_wm ?? '') === '') { const s = suggestSell(next.rate_per_wm, effective(l)); if (s) next.sell_per_wm = s }
+      if ((next.sell_min ?? '') === '') { const s = suggestSell(next.min_charge, effective(l)); if (s) next.sell_min = s }
       return next
     }))
   }
+  function onMarginChange(l: LclLineDraft, type: 'pct' | 'fixed', value: string) {
+    const m = effective({ ...l, margin_type: type, margin_value: value })
+    const wm = suggestSell(l.rate_per_wm, m)
+    const min = suggestSell(l.min_charge, m)
+    update(l.key, { margin_type: type, margin_value: value, ...(wm ? { sell_per_wm: wm } : {}), ...(min ? { sell_min: min } : {}) })
+  }
 
-  const markupReady = defaultMarkupPct != null && !isNaN(defaultMarkupPct)
+  const markupReady = cardMargin != null || lines.some(hasOverride)
 
   return (
     <div>
@@ -94,13 +100,13 @@ export default function LclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
         <table className="data-table">
           <thead>
             <tr>
-              <th>Origin</th><th>Destination</th><th>Rate /WM</th><th>Sell /WM</th><th>Min</th><th>Sell min</th><th>Cur</th><th>Margin</th>
+              <th>Origin</th><th>Destination</th><th>Rate /WM</th><th title="Blank = card default. Fixed = per W/M, also added to the min.">Markup</th><th>Sell /WM</th><th>Min</th><th>Sell min</th><th>Cur</th><th>Margin</th>
               <th>Transit (d)</th><th>Freq</th><th>Via</th><th>Charges /WM</th><th></th>
             </tr>
           </thead>
           <tbody>
             {lines.length === 0 ? (
-              <tr><td colSpan={13} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
+              <tr><td colSpan={14} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
             ) : lines.map((l) => {
               const m = marginPct(l.rate_per_wm, l.sell_per_wm ?? '')
               return (
@@ -121,13 +127,17 @@ export default function LclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
                   <input className="input input--sm" type="number" inputMode="decimal" value={l.rate_per_wm} onChange={(e) => onWmChange(l, e.target.value)} style={{ width: 90 }} />
                 </td>
                 <td>
-                  <input className="input input--sm" type="number" inputMode="decimal" value={l.sell_per_wm ?? ''} onChange={(e) => update(l.key, { sell_per_wm: e.target.value })} style={{ width: 90 }} placeholder={markupReady ? suggestedSell(l.rate_per_wm, defaultMarkupPct) || '—' : '—'} />
+                  <MarginField compact type={l.margin_type || cardMargin?.type || 'pct'} value={l.margin_value ?? ''}
+                    placeholder={marginText(cardMargin)} onChange={(t, v) => onMarginChange(l, t, v)} />
+                </td>
+                <td>
+                  <input className="input input--sm" type="number" inputMode="decimal" value={l.sell_per_wm ?? ''} onChange={(e) => update(l.key, { sell_per_wm: e.target.value })} style={{ width: 90 }} placeholder={suggestSell(l.rate_per_wm, effective(l)) || '—'} />
                 </td>
                 <td>
                   <input className="input input--sm" type="number" inputMode="decimal" value={l.min_charge} onChange={(e) => onMinChange(l, e.target.value)} style={{ width: 80 }} placeholder="—" />
                 </td>
                 <td>
-                  <input className="input input--sm" type="number" inputMode="decimal" value={l.sell_min ?? ''} onChange={(e) => update(l.key, { sell_min: e.target.value })} style={{ width: 80 }} placeholder={markupReady ? suggestedSell(l.min_charge, defaultMarkupPct) || '—' : '—'} />
+                  <input className="input input--sm" type="number" inputMode="decimal" value={l.sell_min ?? ''} onChange={(e) => update(l.key, { sell_min: e.target.value })} style={{ width: 80 }} placeholder={suggestSell(l.min_charge, effective(l)) || '—'} />
                 </td>
                 <td>
                   <select className="input input--sm" value={l.currency_code} onChange={(e) => update(l.key, { currency_code: e.target.value })}>
@@ -165,8 +175,8 @@ export default function LclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
         <button type="button" className="btn btn--inline" onClick={add} aria-label="Add line" title="Add line" style={{ padding: '6px 10px' }}>
           <Plus size={16} strokeWidth={2} />
         </button>
-        <button type="button" className="btn btn--inline" onClick={fillEmptySells} disabled={!markupReady || lines.length === 0} title={markupReady ? 'Fill empty Sell cells using the card markup' : 'Set a Default markup % on the card first'}>
-          Fill sell from markup
+        <button type="button" className="btn btn--inline" onClick={fillEmptySells} disabled={!markupReady || lines.length === 0} title={markupReady ? 'Fill empty Sell cells using each line margin, else the card default' : 'Set a Default margin on the card first'}>
+          Fill sell from margin
         </button>
       </div>
     </div>

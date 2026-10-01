@@ -96,7 +96,7 @@ export default function AirExcelImport({ cardId, defaultCurrency, onImported }: 
         rate_250: l.rate_250 != null ? s(l.rate_250) : '',
         rate_500: l.rate_500 != null ? s(l.rate_500) : '',
         rate_1000: l.rate_1000 != null ? s(l.rate_1000) : '',
-        markup_pct: '',
+        margin_type: '', margin_value: '',
         currency_code: l.currency_code || defaultCurrency || '',
         transit_days: l.transit_days != null ? s(l.transit_days) : '',
         via: l.via || '',

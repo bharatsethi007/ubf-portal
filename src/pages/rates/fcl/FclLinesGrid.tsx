@@ -3,6 +3,8 @@ import { Plus, Trash2 } from 'lucide-react'
 import { useSeaPorts } from '../../../hooks/useSeaPorts'
 import { useContainerTypes, useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { FclLineDraft } from '../ratesApi'
+import MarginField from '../MarginField'
+import { lineMargin, marginText, resolveMargin, suggestSell, type Margin } from '../margin'
 
 function rowStyle(c?: string): CSSProperties | undefined {
   if (c === 'red') return { background: 'rgba(220,38,38,0.08)' }
@@ -10,11 +12,6 @@ function rowStyle(c?: string): CSSProperties | undefined {
   return undefined
 }
 
-function suggestedSell(buy: string, markup: number | null | undefined): string {
-  const b = Number(buy)
-  if (!buy || isNaN(b) || markup == null || isNaN(markup)) return ''
-  return String(Math.round(b * (1 + markup / 100) * 100) / 100)
-}
 
 function marginPct(buy: string, sell: string): number | null {
   const b = Number(buy)
@@ -50,11 +47,14 @@ export function newFclLine(defaultCurrency: string): FclLineDraft {
 type Props = {
   lines: FclLineDraft[]
   defaultCurrency: string
-  defaultMarkupPct?: number | null
+  /** Card default margin (% or fixed per container); lines may override. */
+  cardMargin?: Margin | null
   onChange: (lines: FclLineDraft[]) => void
 }
 
-export default function FclLinesGrid({ lines, defaultCurrency, defaultMarkupPct, onChange }: Props) {
+export default function FclLinesGrid({ lines, defaultCurrency, cardMargin = null, onChange }: Props) {
+  const effective = (l: FclLineDraft) => resolveMargin(lineMargin(l.margin_type, l.margin_value), cardMargin)
+  const hasOverride = (l: FclLineDraft) => lineMargin(l.margin_type, l.margin_value) != null
   const { ports } = useSeaPorts()
   const { items: containers } = useContainerTypes()
   const { items: currencies } = useCurrencies()
@@ -70,22 +70,27 @@ export default function FclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
   }
   function onBuyChange(l: FclLineDraft, v: string) {
     const patch: Partial<FclLineDraft> = { base_rate: v }
-    // Only auto-fill sell when it's still empty — never clobber a manual sell.
-    if ((l.sell_rate ?? '') === '') {
-      const sug = suggestedSell(v, defaultMarkupPct)
+    // Auto-fill sell when empty, or when the line has its own margin; never clobber a manual sell otherwise.
+    if ((l.sell_rate ?? '') === '' || hasOverride(l)) {
+      const sug = suggestSell(v, effective(l))
       if (sug) patch.sell_rate = sug
     }
     update(l.key, patch)
   }
+  function onMarginChange(l: FclLineDraft, type: 'pct' | 'fixed', value: string) {
+    const next = { ...l, margin_type: type, margin_value: value }
+    const sug = suggestSell(l.base_rate, effective(next))
+    update(l.key, { margin_type: type, margin_value: value, ...(sug ? { sell_rate: sug } : {}) })
+  }
   function fillEmptySells() {
     onChange(lines.map((l) => {
       if ((l.sell_rate ?? '') !== '') return l
-      const sug = suggestedSell(l.base_rate, defaultMarkupPct)
+      const sug = suggestSell(l.base_rate, effective(l))
       return sug ? { ...l, sell_rate: sug } : l
     }))
   }
 
-  const markupReady = defaultMarkupPct != null && !isNaN(defaultMarkupPct)
+  const markupReady = cardMargin != null || lines.some(hasOverride)
 
   return (
     <div>
@@ -94,13 +99,13 @@ export default function FclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
           <thead>
             <tr>
               <th>Origin</th><th>Destination</th><th>Container</th>
-              <th>Base rate</th><th>Sell</th><th>Cur</th><th>Margin</th>
+              <th>Base rate</th><th title="Blank = card default">Markup</th><th>Sell</th><th>Cur</th><th>Margin</th>
               <th>Transit (d)</th><th>Via</th><th></th>
             </tr>
           </thead>
           <tbody>
             {lines.length === 0 ? (
-              <tr><td colSpan={10} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
+              <tr><td colSpan={11} className="text-muted-foreground pad-inline">No lines yet. Add a lane rate.</td></tr>
             ) : lines.map((l) => {
               const m = marginPct(l.base_rate, l.sell_rate ?? '')
               return (
@@ -127,7 +132,11 @@ export default function FclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
                   <input className="input input--sm" type="number" inputMode="decimal" value={l.base_rate} onChange={(e) => onBuyChange(l, e.target.value)} style={{ width: 100 }} />
                 </td>
                 <td>
-                  <input className="input input--sm" type="number" inputMode="decimal" value={l.sell_rate ?? ''} onChange={(e) => update(l.key, { sell_rate: e.target.value })} style={{ width: 100 }} placeholder={markupReady ? suggestedSell(l.base_rate, defaultMarkupPct) || '—' : '—'} />
+                  <MarginField compact type={l.margin_type || cardMargin?.type || 'pct'} value={l.margin_value ?? ''}
+                    placeholder={marginText(cardMargin)} onChange={(t, v) => onMarginChange(l, t, v)} />
+                </td>
+                <td>
+                  <input className="input input--sm" type="number" inputMode="decimal" value={l.sell_rate ?? ''} onChange={(e) => update(l.key, { sell_rate: e.target.value })} style={{ width: 100 }} placeholder={suggestSell(l.base_rate, effective(l)) || '—'} />
                 </td>
                 <td>
                   <select className="input input--sm" value={l.currency_code} onChange={(e) => update(l.key, { currency_code: e.target.value })}>
@@ -160,8 +169,8 @@ export default function FclLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
         <button type="button" className="btn btn--inline" onClick={add}>
           <Plus size={15} strokeWidth={2} /> Add line
         </button>
-        <button type="button" className="btn btn--inline" onClick={fillEmptySells} disabled={!markupReady || lines.length === 0} title={markupReady ? 'Fill empty Sell cells using the card markup' : 'Set a Default markup % on the card first'}>
-          Fill sell from markup
+        <button type="button" className="btn btn--inline" onClick={fillEmptySells} disabled={!markupReady || lines.length === 0} title={markupReady ? 'Fill empty Sell cells using each line margin, else the card default' : 'Set a Default margin on the card first'}>
+          Fill sell from margin
         </button>
       </div>
     </div>

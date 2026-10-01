@@ -88,13 +88,15 @@ export type AirRateCardDetail = {
   valid_to: string | null
   status: string
   default_markup_pct: number | null
+  default_margin_type: 'pct' | 'fixed'
+  default_margin_fixed: number | null
   terms: string | null
 }
 
 export async function fetchAirRateCard(id: string): Promise<AirRateCardDetail | null> {
   const { data, error } = await supabase
     .from('rate_cards')
-    .select('id, vendor_account_id, vendor_name, title, currency_code, valid_from, valid_to, status, default_markup_pct, terms')
+    .select('id, vendor_account_id, vendor_name, title, currency_code, valid_from, valid_to, status, default_markup_pct, default_margin_type, default_margin_fixed, terms')
     .eq('id', id).eq('rate_type', 'air').maybeSingle()
   if (error) throw error
   if (!data) return null
@@ -109,13 +111,15 @@ export async function fetchAirRateCard(id: string): Promise<AirRateCardDetail | 
     valid_to: r.valid_to ? String(r.valid_to) : null,
     status: String(r.status),
     default_markup_pct: r.default_markup_pct == null ? null : Number(r.default_markup_pct),
+    default_margin_type: r.default_margin_type === 'fixed' ? 'fixed' : 'pct',
+    default_margin_fixed: r.default_margin_fixed == null ? null : Number(r.default_margin_fixed),
     terms: r.terms ? String(r.terms) : null,
   }
 }
 
 export async function updateAirRateCardHeader(
   id: string,
-  patch: { airline_code: string; airline_name: string | null; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string; default_markup_pct: number | null; terms: string | null },
+  patch: { airline_code: string; airline_name: string | null; title: string | null; currency_code: string | null; valid_from: string | null; valid_to: string | null; status: string; default_markup_pct: number | null; default_margin_type: 'pct' | 'fixed'; default_margin_fixed: number | null; terms: string | null },
 ): Promise<void> {
   const { error } = await supabase
     .from('rate_cards')
@@ -128,6 +132,8 @@ export async function updateAirRateCardHeader(
       valid_to: patch.valid_to,
       status: patch.status,
       default_markup_pct: patch.default_markup_pct,
+      default_margin_type: patch.default_margin_type,
+      default_margin_fixed: patch.default_margin_fixed,
       terms: patch.terms,
       updated_at: new Date().toISOString(),
     })
@@ -148,7 +154,9 @@ export type AirLineDraft = {
   rate_250: string
   rate_500: string
   rate_1000: string
-  markup_pct?: string
+  /** Line margin override ('' = use card default). Fixed = per kg, also added once to the min. */
+  margin_type?: 'pct' | 'fixed' | ''
+  margin_value?: string
   currency_code: string
   transit_days: string
   via: string
@@ -158,7 +166,7 @@ export type AirLineDraft = {
   note?: string
 }
 
-const AIR_LINE_COLS = 'id, origin_port_code, dest_port_code, min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, currency_code, transit_days, via, frequency'
+const AIR_LINE_COLS = 'id, origin_port_code, dest_port_code, min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, margin_type, margin_value, currency_code, transit_days, via, frequency'
 
 export async function listAirLines(cardId: string): Promise<AirLineDraft[]> {
   const { data, error } = await supabase
@@ -179,7 +187,8 @@ export async function listAirLines(cardId: string): Promise<AirLineDraft[]> {
     rate_250: s(r.rate_250),
     rate_500: s(r.rate_500),
     rate_1000: s(r.rate_1000),
-    markup_pct: s(r.markup_pct),
+    margin_type: r.margin_type === 'fixed' ? 'fixed' : r.margin_type === 'pct' ? 'pct' : '',
+    margin_value: s(r.margin_value),
     currency_code: r.currency_code ? String(r.currency_code) : '',
     transit_days: s(r.transit_days),
     via: r.via ? String(r.via) : '',
@@ -202,7 +211,10 @@ function airLinePayload(cardId: string, l: AirLineDraft) {
     rate_250: numOrNull(l.rate_250),
     rate_500: numOrNull(l.rate_500),
     rate_1000: numOrNull(l.rate_1000),
-    markup_pct: numOrNull(l.markup_pct),
+    // margin_value/type are the source of truth; markup_pct kept in sync for older readers.
+    margin_type: numOrNull(l.margin_value) == null ? null : (l.margin_type === 'fixed' ? 'fixed' : 'pct'),
+    margin_value: numOrNull(l.margin_value),
+    markup_pct: l.margin_type !== 'fixed' ? numOrNull(l.margin_value) : null,
     currency_code: l.currency_code || null,
     transit_days: l.transit_days ? Number(l.transit_days) : null,
     via: l.via.trim() || null,

@@ -9,6 +9,8 @@ import {
   type LclRateCardDetail as CardDetail, type LclLineDraft, type FclSurchargeDraft,
 } from '../ratesApi'
 import LclLinesGrid from './LclLinesGrid'
+import CardDefaultMargin from '../CardDefaultMargin'
+import { cardMargin } from '../margin'
 import LclSurchargesGrid from './LclSurchargesGrid'
 import LclExcelImport from './LclExcelImport'
 
@@ -74,6 +76,7 @@ export default function LclRateCardDetail() {
         co_loader_code: card.co_loader_code, title: card.title, currency_code: card.currency_code,
         valid_from: card.valid_from, valid_to: card.valid_to, status: card.status,
         default_markup_pct: card.default_markup_pct,
+        default_margin_type: card.default_margin_type, default_margin_fixed: card.default_margin_fixed,
       })
       toast.success('Card details saved')
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Save failed') } finally { setSavingHeader(false) }
@@ -155,11 +158,15 @@ export default function LclRateCardDetail() {
                 {currencies.map((c) => (<option key={c.code} value={c.code}>{c.code} — {c.name}</option>))}
               </select>
             </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Default markup %</label>
-              <input type="number" className="input" value={card.default_markup_pct ?? ''} placeholder="e.g. 18" onChange={(e) => setField('default_markup_pct', e.target.value === '' ? null : Number(e.target.value))} />
-              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Pre-fills sell (rate & min) as buy × (1 + markup). Editable per line.</span>
-            </div>
+            <CardDefaultMargin
+              type={card.default_margin_type}
+              pct={card.default_markup_pct}
+              fixed={card.default_margin_fixed}
+              unit="W/M"
+              labelStyle={labelStyle}
+              fieldStyle={fieldStyle}
+              onChange={(m) => setCard((c) => (c ? { ...c, default_margin_type: m.type, default_markup_pct: m.pct, default_margin_fixed: m.fixed } : c))}
+            />
             <div style={fieldStyle}>
               <label style={labelStyle}>Status</label>
               <select className="input" value={card.status} onChange={(e) => setField('status', e.target.value)}>
@@ -188,7 +195,7 @@ export default function LclRateCardDetail() {
             <h2 style={{ fontSize: 16, margin: 0 }}>Lane rates</h2>
             <SaveIcon onClick={saveLines} busy={savingLines} label="Save lines" />
           </div>
-          <LclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} defaultMarkupPct={card.default_markup_pct} onChange={setLines} />
+          <LclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} cardMargin={cardMargin(card)} onChange={setLines} />
         </section>
 
         <hr style={{ margin: '24px 0', border: 0, borderTop: '1px solid var(--border, rgba(0,0,0,.08))' }} />

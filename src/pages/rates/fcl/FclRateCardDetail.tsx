@@ -9,6 +9,8 @@ import {
   type FclRateCardDetail as CardDetail, type FclLineDraft, type FclSurchargeDraft,
 } from '../ratesApi'
 import FclLinesGrid from './FclLinesGrid'
+import CardDefaultMargin from '../CardDefaultMargin'
+import { cardMargin } from '../margin'
 import FclSurchargesGrid from './FclSurchargesGrid'
 import FclExcelImport from './FclExcelImport'
 
@@ -74,6 +76,8 @@ export default function FclRateCardDetail() {
         valid_to: card.valid_to,
         status: card.status,
         default_markup_pct: card.default_markup_pct,
+        default_margin_type: card.default_margin_type,
+        default_margin_fixed: card.default_margin_fixed,
       })
       toast.success('Card details saved')
     } catch (e) {
@@ -174,17 +178,15 @@ export default function FclRateCardDetail() {
                 {currencies.map((c) => (<option key={c.code} value={c.code}>{c.code} — {c.name}</option>))}
               </select>
             </div>
-            <div style={fieldStyle}>
-              <label style={labelStyle}>Default markup %</label>
-              <input
-                type="number"
-                className="input"
-                value={card.default_markup_pct ?? ''}
-                placeholder="e.g. 18"
-                onChange={(e) => setField('default_markup_pct', e.target.value === '' ? null : Number(e.target.value))}
-              />
-              <span style={{ fontSize: 11, color: 'var(--muted-foreground)' }}>Pre-fills each line's sell as buy × (1 + markup). Editable per line.</span>
-            </div>
+            <CardDefaultMargin
+              type={card.default_margin_type}
+              pct={card.default_markup_pct}
+              fixed={card.default_margin_fixed}
+              unit="container"
+              labelStyle={labelStyle}
+              fieldStyle={fieldStyle}
+              onChange={(m) => setCard((c) => (c ? { ...c, default_margin_type: m.type, default_markup_pct: m.pct, default_margin_fixed: m.fixed } : c))}
+            />
             <div style={fieldStyle}>
               <label style={labelStyle}>Status</label>
               <select className="input" value={card.status} onChange={(e) => setField('status', e.target.value)}>
@@ -213,7 +215,7 @@ export default function FclRateCardDetail() {
 
         <section>
           <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Lane rates</h2>
-          <FclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} defaultMarkupPct={card.default_markup_pct} onChange={setLines} />
+          <FclLinesGrid lines={lines} defaultCurrency={card.currency_code ?? ''} cardMargin={cardMargin(card)} onChange={setLines} />
           <div style={{ marginTop: 14 }}>
             <button type="button" className="btn btn--inline" onClick={saveLines} disabled={savingLines}>
               {savingLines ? 'Saving…' : 'Save lines'}

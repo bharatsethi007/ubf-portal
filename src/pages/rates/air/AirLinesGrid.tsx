@@ -3,6 +3,8 @@ import type { CSSProperties } from 'react'
 import { useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { AirLineDraft } from '../airRatesApi'
 import AirportCell from './AirportCell'
+import MarginField from '../MarginField'
+import { marginText, type Margin } from '../margin'
 
 function rowStyle(c?: string): CSSProperties | undefined {
   if (c === 'red') return { background: 'rgba(220,38,38,0.08)' }
@@ -17,7 +19,7 @@ export function newAirLine(defaultCurrency: string): AirLineDraft {
     key: `tmp-${tmpSeq}`, dbId: null,
     origin_port_code: '', dest_port_code: '',
     min_charge: '', rate_n: '', rate_45: '', rate_100: '', rate_250: '', rate_500: '', rate_1000: '',
-    markup_pct: '', currency_code: defaultCurrency,
+    margin_type: '', margin_value: '', currency_code: defaultCurrency,
     transit_days: '', via: '', frequency: '',
   }
 }
@@ -32,15 +34,13 @@ const RATE_FIELDS: { k: keyof AirLineDraft; label: string; w: number }[] = [
   { k: 'rate_1000', label: '+1000', w: 70 },
 ]
 
-type Props = { lines: AirLineDraft[]; defaultCurrency: string; defaultMarkupPct?: number | null; onChange: (lines: AirLineDraft[]) => void }
+type Props = { lines: AirLineDraft[]; defaultCurrency: string; cardMargin?: Margin | null; onChange: (lines: AirLineDraft[]) => void }
 
-export default function AirLinesGrid({ lines, defaultCurrency, defaultMarkupPct, onChange }: Props) {
+export default function AirLinesGrid({ lines, defaultCurrency, cardMargin = null, onChange }: Props) {
   const { items: currencies } = useCurrencies()
   function update(key: string, patch: Partial<AirLineDraft>) { onChange(lines.map((l) => (l.key === key ? { ...l, ...patch } : l))) }
   function remove(key: string) { onChange(lines.filter((l) => l.key !== key)) }
   function add() { onChange([...lines, newAirLine(defaultCurrency)]) }
-
-  const mkPlaceholder = defaultMarkupPct != null && !isNaN(defaultMarkupPct) ? String(defaultMarkupPct) : '—'
 
   return (
     <div>
@@ -50,7 +50,7 @@ export default function AirLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
             <tr>
               <th>Origin</th><th>Destination</th>
               {RATE_FIELDS.map((f) => (<th key={f.k as string} title={`${f.label} — per kg`}>{f.label}</th>))}
-              <th title="Sell markup % — overrides card default">Mk %</th>
+              <th title="Blank = card default. Fixed = per kg on every break, also added once to the min.">Markup</th>
               <th>Cur</th><th>Transit (d)</th><th>Freq</th><th>Via</th><th></th>
             </tr>
           </thead>
@@ -66,7 +66,10 @@ export default function AirLinesGrid({ lines, defaultCurrency, defaultMarkupPct,
                     <input className="input input--sm" type="number" inputMode="decimal" value={(l[f.k] as string) ?? ''} onChange={(e) => update(l.key, { [f.k]: e.target.value } as Partial<AirLineDraft>)} style={{ width: f.w }} placeholder="—" />
                   </td>
                 ))}
-                <td><input className="input input--sm" type="number" inputMode="decimal" value={l.markup_pct ?? ''} onChange={(e) => update(l.key, { markup_pct: e.target.value })} style={{ width: 62 }} placeholder={mkPlaceholder} /></td>
+                <td>
+                  <MarginField compact type={l.margin_type || cardMargin?.type || 'pct'} value={l.margin_value ?? ''}
+                    placeholder={marginText(cardMargin, '/kg')} onChange={(t, v) => update(l.key, { margin_type: t, margin_value: v })} />
+                </td>
                 <td>
                   <select className="input input--sm" value={l.currency_code} onChange={(e) => update(l.key, { currency_code: e.target.value })}>
                     <option value="">—</option>
