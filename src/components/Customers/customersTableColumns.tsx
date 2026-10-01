@@ -2,6 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { fmtShort } from '../../utils/format'
 import { customerDisplayName } from '../../utils/customerQuery'
 import type { CustomerStats } from '../../types/customer'
+import NotInCfBadge from './NotInCfBadge'
 
 function RoleBadges({ row }: { row: CustomerStats }) {
   return (
@@ -28,7 +29,10 @@ export function customersTableColumns(): ColumnDef<CustomerStats>[] {
       enableSorting: false,
       cell: ({ row }) => (
         <div className="customer-name-cell">
-          <span className="customer-name-cell__name">{customerDisplayName(row.original)}</span>
+          <span className="customer-name-cell__name" style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
+            {customerDisplayName(row.original)}
+            <NotInCfBadge source={row.original.source} />
+          </span>
           <span className="customer-name-cell__code">#{row.original.account_id}</span>
         </div>
       ),

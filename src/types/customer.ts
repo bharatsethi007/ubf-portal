@@ -15,6 +15,8 @@ export type CustomerStats = {
   contact_count: number
   has_portal_access: boolean
   closed: boolean
+  /** 'portal' = created in the portal, not yet in CyberFreight. */
+  source?: string | null
 }
 
 export type Contact = {

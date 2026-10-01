@@ -38,13 +38,15 @@ export type CustomerPickerValue = {
   phone?: string
   email?: string
   contact?: string
+  /** 'portal' = created in the portal, not yet in CyberFreight. */
+  source?: string
 }
 
 /** @deprecated Use CustomerPickerValue */
 export type CustomerSearchHit = CustomerPickerValue
 
 const CUSTOMER_SELECT =
-  'account_id, name, address1, address2, address3, city, state, postcode, country, phone, email, contact'
+  'account_id, name, address1, address2, address3, city, state, postcode, country, phone, email, contact, source'
 
 function optStr(v: unknown): string | undefined {
   if (v == null || v === '') return undefined
@@ -65,6 +67,7 @@ function mapCustomer(row: Record<string, unknown>): CustomerPickerValue {
     phone: optStr(row.phone),
     email: optStr(row.email),
     contact: optStr(row.contact),
+    source: optStr(row.source),
   }
 }
 

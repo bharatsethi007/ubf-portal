@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react'
-import { X, Handshake } from 'lucide-react'
+import { X, Handshake, Plus } from 'lucide-react'
 import { searchParties, type Party } from './partySearchApi'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
+import NotInCfBadge from '../../components/Customers/NotInCfBadge'
+import QuickCustomerDialog from '../../components/Customers/QuickCustomerDialog'
 
 // Small "Direct / Agent" left-right switch shown next to a selected party.
 function AgentSwitch({ on, onChange }: { on: boolean; onChange: (v: boolean) => void }) {
@@ -35,6 +37,8 @@ export default function PartySearch({ value, agentMode, onSelect, onToggleAgent,
   const [open, setOpen] = useState(false)
   const [rows, setRows] = useState<Party[]>([])
   const [loading, setLoading] = useState(false)
+  const [creating, setCreating] = useState(false)
+  const [newName, setNewName] = useState('')
   const blur = useRef<number | undefined>(undefined)
   const debounced = useDebouncedValue(term, 250)
 
@@ -58,6 +62,7 @@ export default function PartySearch({ value, agentMode, onSelect, onToggleAgent,
           <span style={{ fontWeight: 600, fontSize: 14 }}>{value.name}</span>
           <span className="text-muted-foreground" style={{ fontSize: 12 }}>{value.account_id}</span>
           {value.isAgent && <span style={badge}><Handshake size={11} /> Agent</span>}
+          <NotInCfBadge source={value.source} />
           <span style={{ marginLeft: 'auto', display: 'inline-flex', alignItems: 'center', gap: 12 }}>
             <AgentSwitch on={agentMode} onChange={onToggleAgent} />
             <button type="button" aria-label="Clear" onClick={() => onSelect(null)}
@@ -90,11 +95,23 @@ export default function PartySearch({ value, agentMode, onSelect, onToggleAgent,
                 <span style={{ fontWeight: 600 }}>{p.name}</span>
                 <span className="text-muted-foreground" style={{ fontSize: 12 }}>{p.account_id}{p.country ? ` · ${p.country}` : ''}</span>
                 {p.isAgent && <span style={{ ...badge, marginLeft: 'auto' }}><Handshake size={11} /> Agent</span>}
+                {!p.isAgent && p.source === 'portal' && <span style={{ marginLeft: 'auto' }}><NotInCfBadge source={p.source} /></span>}
               </button>
             ))
           )}
+          <button type="button" onMouseDown={(e) => e.preventDefault()}
+            onClick={() => { setNewName(term.trim()); setCreating(true); setOpen(false) }}
+            style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', border: 'none', borderTop: '1px solid #EEF2F6', background: '#FAFBFC', padding: '9px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#2563EB' }}>
+            <Plus size={14} /> New customer{term.trim() ? ` "${term.trim()}"` : ''}
+          </button>
         </div>
       )}
+      <QuickCustomerDialog
+        open={creating}
+        initialName={newName}
+        onClose={() => setCreating(false)}
+        onCreated={(c) => { onSelect({ ...c, isAgent: false, isCustomer: true, agentId: null }); setTerm('') }}
+      />
     </div>
   )
 }
