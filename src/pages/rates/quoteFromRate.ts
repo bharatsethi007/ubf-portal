@@ -136,21 +136,26 @@ export function buildLclBuyLinesFromOption(o: LclRateOption): QuoteResponseLine[
     l.buy_currency = cur; l.sell_currency = cur
     l.buy_rate = String(c.perWm)
     l.sell_rate = String(c.sellPerWm > 0 ? c.sellPerWm : c.perWm)
+    if (c.min != null) { l.min_buy = String(c.min); l.min_sell = String(c.min) }
     lines.push(l)
   }
 
-  // rate_surcharges — per_bl / flat / per_cbm (percent & container/TEU bases skipped)
+  // rate_surcharges — per_bl / flat / per_cbm / per_wm, each in its own currency
+  // (percent & container/TEU bases skipped; contingent ones are never on o.surcharges)
   for (const s of o.surcharges) {
     if (s.basis === 'percent' || s.basis === 'per_container' || s.basis === 'per_teu') continue
-    const l = newQuoteResponseLine(ord++, cur)
+    const sc = s.currency || cur
+    const l = newQuoteResponseLine(ord++, sc)
     l.description = s.label
     l.charge_group = s.scope === 'origin' ? 'origin' : s.scope === 'dest' ? 'dest' : 'freight'
     l.vendor = o.coLoaderName
-    l.buy_currency = cur; l.sell_currency = cur
+    l.buy_currency = sc; l.sell_currency = sc
     l.buy_rate = String(s.amount)
     l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount)
     if (s.basis === 'per_cbm') { l.unit = 'Per CBM'; l.qty = String(cbm) }
+    else if (s.basis === 'per_wm') { l.unit = 'Per W/M'; l.qty = String(wm) }
     else { l.unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1' }
+    if (s.minAmount != null) { l.min_buy = String(s.minAmount); l.min_sell = String(s.minAmount) }
     lines.push(l)
   }
   return lines

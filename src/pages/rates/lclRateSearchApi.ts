@@ -9,13 +9,34 @@ export type LclQuoteLane = {
   cbm: number  // total volume, for per_cbm surcharges; falls back to wm when unknown
 }
 
-export type LclLaneCharge = { code: string; label: string; perWm: number; sellPerWm: number }
-export type LclRateSurcharge = { label: string; amount: number; sellAmount: number; basis: string; scope: string | null }
+export type LclLaneCharge = { code: string; label: string; perWm: number; sellPerWm: number; min: number | null }
+export type LclRateSurcharge = {
+  label: string; amount: number; sellAmount: number; basis: string; scope: string | null
+  currency: string          // own currency (e.g. NZD destination charges on a USD card)
+  minAmount: number | null  // floor on the computed amount
+  contingent: boolean       // only if it applies; never totalled
+  condition: string | null
+}
+
+// Computed buy/sell for one surcharge on this shipment (null = basis n/a to LCL).
+export function lclSurchargeAmounts(s: LclRateSurcharge, wm: number, cbm: number, freightBuy: number, freightSell: number): { buy: number; sell: number; qty: number; unit: string } | null {
+  let buy: number, sell: number, qty = 1, unit = 'Flat'
+  if (s.basis === 'per_container' || s.basis === 'per_teu') return null
+  if (s.basis === 'per_wm') { qty = wm; unit = 'Per W/M'; buy = s.amount * wm; sell = s.sellAmount * wm }
+  else if (s.basis === 'per_cbm') { qty = cbm; unit = 'Per CBM'; buy = s.amount * cbm; sell = s.sellAmount * cbm }
+  else if (s.basis === 'percent') { unit = '% of freight'; buy = (s.amount / 100) * freightBuy; sell = (s.sellAmount / 100) * freightSell }
+  else { unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; buy = s.amount; sell = s.sellAmount }
+  if (s.minAmount != null) { buy = Math.max(buy, s.minAmount); sell = Math.max(sell, s.minAmount) }
+  return { buy: round2(buy), sell: round2(sell), qty, unit }
+}
 
 export type LclRateOption = {
   cardId: string
   coLoaderCode: string
   coLoaderName: string
+  coLoaderLogo: string | null
+  originAgent: string | null   // co-loader agent to nominate with at origin
+  terms: string | null
   currency: string
   transitDays: number | null
   via: string | null
@@ -30,7 +51,8 @@ export type LclRateOption = {
   minCharge: number
   sellMin: number
   laneCharges: LclLaneCharge[]
-  surcharges: LclRateSurcharge[]
+  surcharges: LclRateSurcharge[]        // billable (contingent excluded)
+  possibleCharges: LclRateSurcharge[]   // contingent: shown, not totalled
   freightTotal: number
   surchargeTotal: number
   total: number
@@ -88,7 +110,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_lcl_lines')
-    .select('rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, co_loaders(name))')
+    .select('origin_agent, rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, terms, co_loaders(name, logo_url))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -114,9 +136,19 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
 
   const cardIds = [...groups.keys()]
   const { data: surs } = await supabase
-    .from('rate_surcharges').select('rate_card_id, label, amount, sell_amount, basis, scope').in('rate_card_id', cardIds)
+    .from('rate_surcharges').select('rate_card_id, label, amount, sell_amount, basis, scope, currency_code, min_amount, contingent, condition, origin_countries, except_origin_countries').in('rate_card_id', cardIds)
+  // Country-scoped surcharges (e.g. ex-Australia vs ex-worldwide PSC): UN/LOCODE prefix = country.
+  const polCountry = lane.from_port_code.slice(0, 2).toUpperCase()
+  const countryOk = (s: Record<string, any>) => {
+    const only = Array.isArray(s.origin_countries) ? (s.origin_countries as string[]) : null
+    const except = Array.isArray(s.except_origin_countries) ? (s.except_origin_countries as string[]) : null
+    if (only && only.length > 0 && !only.includes(polCountry)) return false
+    if (except && except.includes(polCountry)) return false
+    return true
+  }
   const surByCard = new Map<string, Record<string, any>[]>()
   for (const s of ((surs as Record<string, any>[]) ?? [])) {
+    if (!countryOk(s)) continue
     const id = String(s.rate_card_id)
     if (!surByCard.has(id)) surByCard.set(id, [])
     surByCard.get(id)!.push(s)
@@ -143,26 +175,34 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
     // lane_charges: freight-family per-W/M surcharges (BAF/LSS/…) — markup fallback for sell
     const laneCharges: LclLaneCharge[] = (Array.isArray(line.lane_charges) ? line.lane_charges : []).map((c: any) => {
       const perWm = Number(c.per_wm) || 0
-      return { code: String(c.code ?? ''), label: String(c.label ?? c.code ?? ''), perWm, sellPerWm: round2(sellWithMargin(perWm, null, laneMargin)) }
+      return { code: String(c.code ?? ''), label: String(c.label ?? c.code ?? ''), perWm, sellPerWm: round2(sellWithMargin(perWm, null, laneMargin)), min: c.min != null ? Number(c.min) : null }
     })
 
     // rate_surcharges: pass-through family — sell = explicit, else cost
-    const surcharges: LclRateSurcharge[] = (surByCard.get(id) ?? []).map((s) => ({
+    const allSurs: LclRateSurcharge[] = (surByCard.get(id) ?? []).map((s) => ({
       label: String(s.label),
       amount: Number(s.amount) || 0,
       sellAmount: (Number(s.sell_amount) || 0) > 0 ? Number(s.sell_amount) : (Number(s.amount) || 0),
       basis: String(s.basis),
       scope: s.scope ?? null,
+      currency: s.currency_code ? String(s.currency_code) : currency,
+      minAmount: s.min_amount != null ? Number(s.min_amount) : null,
+      contingent: !!s.contingent,
+      condition: s.condition ? String(s.condition) : null,
     }))
+    const surcharges = allSurs.filter((s) => !s.contingent)
+    const possibleCharges = allSurs.filter((s) => s.contingent)
 
+    // Totals stay in the card currency; other-currency lines are FX'd in the card UI.
     let surchargeTotal = 0
     let surchargeSellTotal = 0
-    for (const c of laneCharges) { surchargeTotal += c.perWm * wm; surchargeSellTotal += c.sellPerWm * wm }
+    for (const c of laneCharges) {
+      surchargeTotal += Math.max(c.perWm * wm, c.min ?? 0); surchargeSellTotal += Math.max(c.sellPerWm * wm, c.min ?? 0)
+    }
     for (const s of surcharges) {
-      if (s.basis === 'per_container' || s.basis === 'per_teu') continue // n/a to LCL
-      if (s.basis === 'per_cbm') { surchargeTotal += s.amount * cbm; surchargeSellTotal += s.sellAmount * cbm }
-      else if (s.basis === 'percent') { surchargeTotal += (s.amount / 100) * freightTotal; surchargeSellTotal += (s.sellAmount / 100) * freightSellTotal }
-      else { surchargeTotal += s.amount; surchargeSellTotal += s.sellAmount } // per_bl / flat
+      if (s.currency !== currency) continue
+      const a = lclSurchargeAmounts(s, wm, cbm, freightTotal, freightSellTotal)
+      if (a) { surchargeTotal += a.buy; surchargeSellTotal += a.sell }
     }
     surchargeTotal = round2(surchargeTotal)
     surchargeSellTotal = round2(surchargeSellTotal)
@@ -171,6 +211,9 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
       cardId: id,
       coLoaderCode: String(card.co_loader_code ?? ''),
       coLoaderName: cl?.name ? String(cl.name) : String(card.co_loader_code ?? ''),
+      coLoaderLogo: cl?.logo_url ? String(cl.logo_url) : null,
+      originAgent: line.origin_agent ? String(line.origin_agent) : null,
+      terms: card.terms ? String(card.terms) : null,
       currency,
       transitDays: line.transit_days != null ? Number(line.transit_days) : null,
       via: line.via ?? null,
@@ -186,6 +229,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
       sellMin,
       laneCharges,
       surcharges,
+      possibleCharges,
       freightTotal,
       surchargeTotal,
       total: round2(freightTotal + surchargeTotal),

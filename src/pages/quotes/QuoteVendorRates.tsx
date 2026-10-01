@@ -175,7 +175,7 @@ export default function QuoteVendorRates({
           onUse={(keys) => useRate(o.cardId, () => buildAirBuyLinesFromOption(o, keys), curHeader(o.currency, o.airlineName || null, o.transitDays, o.via))} />
       )} />}
       {kind === 'lcl' && lcl!.options.map((o) => (
-        <LclRateOptionCard key={o.cardId} option={o} fromCode={from} toCode={to} busy={busyCard === o.cardId}
+        <LclRateOptionCard key={o.cardId} option={o} fromCode={from} toCode={to} fxRates={fxRates} busy={busyCard === o.cardId}
           onUse={() => useRate(o.cardId, () => buildLclBuyLinesFromOption(o), curHeader(o.currency, o.coLoaderName || null, o.transitDays, o.via))} />
       ))}
       {kind === 'fcl' && fcl!.options.map((o) => (
