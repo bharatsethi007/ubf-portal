@@ -13,6 +13,7 @@ const PIVOT: Record<string, number> = {
   EXW: 0,
   FCA: 1, FAS: 1, FOB: 1,
   CFR: 2, CIF: 2, CPT: 2, CIP: 2, DAP: 2, DPU: 2,
+  DAT: 2, DDU: 2, // legacy: DAT ~ DPU, DDU ~ DAP
   DDP: 3,
 }
 
@@ -51,6 +52,8 @@ const SERVICE_TYPE: Record<string, string> = {
   CIP: 'Port to Port',
   DAP: 'Port to Door',
   DPU: 'Port to Door',
+  DAT: 'Port to Port',
+  DDU: 'Port to Door',
   DDP: 'Door to Door',
 }
 

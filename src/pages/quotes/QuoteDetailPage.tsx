@@ -4,7 +4,8 @@ import { ArrowLeft, FileText, Trophy, Pencil, Plus, X, ArrowRight, Check } from 
 import { toast } from 'sonner'
 import { supabase } from '../../supabase'
 import IncotermSelect from '../../components/bookings/IncotermSelect'
-import CustomerPicker, { type CustomerPickerValue } from '../../components/bookings/CustomerPicker'
+import type { CustomerPickerValue } from '../../components/bookings/CustomerPicker'
+import CustomerSelect from '../../components/Customers/CustomerSelect'
 import SeaPortSelect from '../../components/bookings/SeaPortSelect'
 import IataPortSelect from '../../components/bookings/IataPortSelect'
 import QuoteLaneMap from './QuoteLaneMap'
@@ -125,7 +126,6 @@ export default function QuoteDetailPage() {
   const [initialCargoMode, setInitialCargoMode] = useState<CargoEntryMode>('individual')
   const [loading, setLoading] = useState(true)
   const [statusBusy, setStatusBusy] = useState(false)
-  const [editingCustomer, setEditingCustomer] = useState(false)
   const [editingPorts, setEditingPorts] = useState(false)
 
   const { stats } = useCustomerQuoteStats(quote?.customer_account_id)
@@ -211,7 +211,7 @@ export default function QuoteDetailPage() {
     try {
       await updateQuote(id, { customer_account_id: v.account_id, customer_name: v.name })
       setQuote((q) => (q ? { ...q, customer_account_id: v.account_id, customer_name: v.name } : q))
-      setEditingCustomer(false); toast.success('Customer updated')
+      toast.success('Customer updated')
     } catch { toast.error('Failed to update customer') }
   }
 
@@ -302,20 +302,15 @@ export default function QuoteDetailPage() {
         <Link to="/quotes" className="nqd-back"><ArrowLeft size={14} /> Quotes</Link>
         <div className="nqd-head">
           <div className="nqd-head__left">
-            {editingCustomer ? (
-              <div style={{ minWidth: 280 }}>
-                <CustomerPicker
-                  compact
-                  value={quote.customer_account_id ? { account_id: quote.customer_account_id, name: quote.customer_name ?? '' } : null}
-                  onChange={onCustomerChange}
-                />
-              </div>
-            ) : (
-              <>
-                <span className="nqd-name">{quote.customer_name ?? '—'}</span>
-                <button className="nqd-editicon" onClick={() => setEditingCustomer(true)} aria-label="Change customer"><Pencil size={13} /></button>
-              </>
-            )}
+            <CustomerSelect
+              nameClassName="nqd-name"
+              value={quote.customer_account_id ? {
+                account_id: quote.customer_account_id,
+                name: quote.customer_name ?? '',
+                source: quote.customer_account_id.startsWith('P-') ? 'portal' : undefined,
+              } : null}
+              onChange={(c) => void onCustomerChange(c)}
+            />
             {quoteStatusPill(status)}
             <span className="nqd-sep" />
             <span className="nqd-statpill nqd-statpill--m"><FileText size={13} /> {stats.thisMonth} this month</span>

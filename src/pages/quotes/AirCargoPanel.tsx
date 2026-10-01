@@ -37,7 +37,7 @@ export function addressFieldsFor(incoterm: string, movement?: string): { origin:
   const c = (incoterm || '').toUpperCase()
   let origin = false, delivery = false
   if (c === 'EXW' || c === 'FCA') { origin = true; delivery = true }
-  else if (['FAS', 'FOB', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP'].includes(c)) { delivery = true }
+  else if (['FAS', 'FOB', 'CPT', 'CIP', 'DAP', 'DPU', 'DDP', 'DAT', 'DDU'].includes(c)) { delivery = true }
   // model B: the NZ door leg is always available by direction
   const mv = (movement || '').toLowerCase()
   if (mv === 'export') origin = true

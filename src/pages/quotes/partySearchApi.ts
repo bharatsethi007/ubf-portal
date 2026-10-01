@@ -9,7 +9,7 @@ export type Party = CustomerPickerValue & {
 }
 
 const CUSTOMER_SELECT =
-  'account_id, name, address1, address2, address3, city, state, postcode, country, phone, email, contact'
+  'account_id, name, address1, address2, address3, city, state, postcode, country, phone, email, contact, source'
 
 function mapCustomer(r: Record<string, any>): CustomerPickerValue {
   return {
@@ -25,6 +25,7 @@ function mapCustomer(r: Record<string, any>): CustomerPickerValue {
     phone: r.phone ?? undefined,
     email: r.email ?? undefined,
     contact: r.contact ?? undefined,
+    source: r.source ?? undefined,
   }
 }
 
