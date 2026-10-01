@@ -51,7 +51,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
 
   // Per-line surcharge amounts, computed exactly as the search engine totals them.
   function surAmounts(s: AirRateSurcharge): { buy: number; sell: number; meta: string } {
-    if (s.basis === 'per_kg') return { buy: s.amount * o.chargeableKg, sell: s.sellAmount * o.chargeableKg, meta: `${fmtMoney(s.amount, cur)}/kg × ${o.chargeableKg} kg` }
+    if (s.basis === 'per_kg') return { buy: s.amount * o.chargeableKg, sell: s.sellAmount * o.chargeableKg, meta: `${fmtMoney(o.buyUnknown ? s.sellAmount : s.amount, cur)}/kg × ${o.chargeableKg} kg` }
     if (s.basis === 'per_cbm') { const cbm = o.cbm > 0 ? o.cbm : 1; return { buy: s.amount * cbm, sell: s.sellAmount * cbm, meta: `${fmtMoney(s.amount, cur)}/CBM × ${cbm}` } }
     if (s.basis === 'percent') return { buy: (s.amount / 100) * o.freightTotal, sell: (s.sellAmount / 100) * o.freightSellTotal, meta: `${s.amount}% of freight` }
     return { buy: s.amount, sell: s.sellAmount, meta: s.basis === 'per_awb' ? 'per AWB' : s.basis === 'per_bl' ? 'per B/L' : 'flat' }
@@ -77,15 +77,16 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
 
   const originItems = [...localOrigin, ...surItems.filter((x) => x.scope === 'origin').map((x) => x.it)]
   const destItems = [...localDest, ...surItems.filter((x) => x.scope === 'dest').map((x) => x.it)]
-  if (cartage && cartage.status === 'ok' && cartage.amount > 0) {
+  const sheetHasCartage = o.localCharges.some((c) => !!c.cartageType)
+  if (!sheetHasCartage && cartage && cartage.status === 'ok' && cartage.amount > 0) {
     const cit = mk('cartage', cartage.label, cartage.confidence && cartage.confidence !== 'green' ? `cartage · zone ${cartage.confidence}` : 'cartage', cartage.amount, cartage.amount, 'NZD')
     if (cartage.leg === 'dest') destItems.push(cit); else originItems.push(cit)
   }
   const freightItems = [...(freightItem ? [freightItem] : []), ...surItems.filter((x) => x.scope !== 'origin' && x.scope !== 'dest').map((x) => x.it)]
 
   const legs: { key: LegKey; title: string; word: string; port: string; items: Item[] }[] = [
-    { key: 'origin', title: 'Origin charges', word: 'origin', port: fromCode, items: originItems },
     { key: 'freight', title: 'Freight & surcharges', word: 'freight', port: `${fromCode} → ${toCode}`, items: freightItems },
+    { key: 'origin', title: 'Origin charges', word: 'origin', port: fromCode, items: originItems },
     { key: 'dest', title: 'Destination charges', word: 'destination', port: toCode, items: destItems },
   ]
 
@@ -94,7 +95,7 @@ export default function AirRateOptionCard({ option: o, fromCode, toCode, onUse, 
 
   // Completeness (advisory): what this incoterm/direction requires but we didn't find.
   const found: FoundSources = {
-    freight: o.freightTotal > 0,
+    freight: o.freightTotal > 0 || o.freightSellTotal > 0,
     originCharges: originItems.length > 0,
     destCharges: destItems.length > 0,
     originCartage: o.localCharges.some((c) => c.group === 'origin' && !!c.cartageType),

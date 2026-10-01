@@ -86,8 +86,8 @@ export default function RateOptionCard({ option: o, fromCode, toCode, onUse, bus
   ]
 
   const legs: { key: LegKey; title: string; word: string; port: string; items: Item[] }[] = [
-    { key: 'origin', title: 'Origin charges', word: 'origin', port: fromCode, items: originItems },
     { key: 'freight', title: 'Freight & surcharges', word: 'freight', port: `${fromCode} → ${toCode}`, items: freightItems },
+    { key: 'origin', title: 'Origin charges', word: 'origin', port: fromCode, items: originItems },
     { key: 'dest', title: 'Destination charges', word: 'destination', port: toCode, items: destItems },
   ]
 
