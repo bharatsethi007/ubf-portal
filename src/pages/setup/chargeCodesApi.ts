@@ -13,6 +13,8 @@ export type ChargeCode = {
   charge_group: string
   sort_order: number
   active: boolean
+  /** charge_units.code auto-filled when this code is added to a quote response line. */
+  default_unit: string | null
 }
 
 type GroupRow = {
@@ -28,6 +30,7 @@ type CodeRow = {
   charge_group: string
   sort_order: number | null
   active: boolean | null
+  default_unit?: string | null
 }
 
 function mapGroup(row: GroupRow): ChargeGroup {
@@ -46,6 +49,7 @@ function mapCode(row: CodeRow): ChargeCode {
     charge_group: row.charge_group,
     sort_order: row.sort_order ?? 0,
     active: row.active ?? true,
+    default_unit: row.default_unit ?? null,
   }
 }
 
@@ -63,7 +67,7 @@ export async function fetchChargeGroups(includeInactive = false): Promise<Charge
 export async function fetchChargeCodes(includeInactive = false): Promise<ChargeCode[]> {
   let query = supabase
     .from('charge_codes')
-    .select('code, description, charge_group, sort_order, active')
+    .select('code, description, charge_group, sort_order, active, default_unit')
     .order('charge_group', { ascending: true })
     .order('sort_order', { ascending: true })
   if (!includeInactive) query = query.eq('active', true)
@@ -93,6 +97,7 @@ export async function upsertChargeCode(code: ChargeCode): Promise<void> {
       charge_group: code.charge_group,
       sort_order: code.sort_order,
       active: code.active,
+      default_unit: code.default_unit || null,
     },
     { onConflict: 'code' },
   )
@@ -113,7 +118,7 @@ export function isFkViolation(err: unknown): boolean {
   return typeof err === 'object' && err !== null && 'code' in err && (err as { code: string }).code === '23503'
 }
 
-export async function createChargeCodeAuto(description: string, charge_group: string): Promise<ChargeCode> {
+export async function createChargeCodeAuto(description: string, charge_group: string, default_unit?: string | null): Promise<ChargeCode> {
   const clean = description.trim()
   const base = (clean.toUpperCase().replace(/[^A-Z0-9]+/g, '').slice(0, 8)) || 'CHG'
   let code = base
@@ -123,8 +128,8 @@ export async function createChargeCodeAuto(description: string, charge_group: st
     code = `${base}${i}`
   }
   const { data, error } = await supabase.from('charge_codes')
-    .insert({ code, description: clean, charge_group, sort_order: 0, active: true })
-    .select('code,description,charge_group,sort_order,active')
+    .insert({ code, description: clean, charge_group, sort_order: 0, active: true, default_unit: default_unit || null })
+    .select('code,description,charge_group,sort_order,active,default_unit')
     .single()
   if (error) throw error
   return mapCode(data as CodeRow)

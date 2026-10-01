@@ -235,7 +235,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                 </Field>
               </div>
 
-              <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} onChange={setLines} />
+              <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} mode={quote ? (isAir ? 'air' : 'sea') : undefined} onChange={setLines} />
 
               <div className="qrm-totals">
                 <div className="qrm-totrow"><span>Sub Total</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.subTotal)}</span></div>

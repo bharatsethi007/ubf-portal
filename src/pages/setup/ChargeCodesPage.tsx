@@ -13,6 +13,7 @@ import {
   type ChargeCode,
   type ChargeGroup,
 } from './chargeCodesApi'
+import { useChargeUnits } from '../../hooks/useQuoteRefData'
 
 const ACCENT = '#3B5BFE'
 
@@ -27,7 +28,15 @@ export default function ChargeCodesPage() {
   const [codes, setCodes] = useState<ChargeCode[]>([])
   const [loading, setLoading] = useState(true)
   const [newGroup, setNewGroup] = useState({ code: '', label: '' })
-  const [newCode, setNewCode] = useState({ code: '', description: '', charge_group: 'freight' })
+  const [newCode, setNewCode] = useState({ code: '', description: '', charge_group: 'freight', default_unit: '' })
+  const { items: units } = useChargeUnits()
+  const modeHint = (modes: string[]) => (modes.length === 1 ? ` (${modes[0]} only)` : '')
+  const unitSelect = (value: string | null, onChange: (v: string | null) => void) => (
+    <select className="input input--sm" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
+      <option value="">—</option>
+      {units.map((u) => <option key={u.code} value={u.code}>{u.label}{modeHint(u.modes)}</option>)}
+    </select>
+  )
 
   const reload = useCallback(async () => {
     const [g, c] = await Promise.all([fetchChargeGroups(true), fetchChargeCodes(true)])
@@ -81,10 +90,13 @@ export default function ChargeCodesPage() {
       return
     }
     await run(
-      () => upsertChargeCode({ code, description, charge_group: newCode.charge_group, sort_order: 100, active: true }),
+      () => upsertChargeCode({
+        code, description, charge_group: newCode.charge_group, sort_order: 100, active: true,
+        default_unit: newCode.default_unit || null,
+      }),
       'Charge code added',
     )
-    setNewCode({ code: '', description: '', charge_group: newCode.charge_group })
+    setNewCode({ code: '', description: '', charge_group: newCode.charge_group, default_unit: '' })
   }
 
   const groupOptions = groups.map((g) => ({ value: g.code, label: g.label }))
@@ -152,7 +164,7 @@ export default function ChargeCodesPage() {
               <table className="data-table data-table--compact">
                 <thead>
                   <tr>
-                    <th>Code</th><th>Description</th><th>Group</th><th>Active</th><th>Sort</th><th />
+                    <th>Code</th><th>Description</th><th>Group</th><th title="Auto-filled when this code is added to a quote response">Unit</th><th>Active</th><th>Sort</th><th />
                   </tr>
                 </thead>
                 <tbody>
@@ -164,6 +176,7 @@ export default function ChargeCodesPage() {
                         {groupOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                       </select>
                     </td>
+                    <td>{unitSelect(newCode.default_unit || null, (v) => setNewCode({ ...newCode, default_unit: v ?? '' }))}</td>
                     <td colSpan={2} />
                     <td>
                       <button type="button" className="nqd-btn nqd-btn--accent" style={{ background: ACCENT, borderColor: ACCENT }} onClick={addCodeRow}>
@@ -184,6 +197,9 @@ export default function ChargeCodesPage() {
                           onChange={(e) => run(() => upsertChargeCode({ ...c, charge_group: e.target.value }), 'Charge code saved')}>
                           {groupOptions.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
                         </select>
+                      </td>
+                      <td style={{ width: 170 }}>
+                        {unitSelect(c.default_unit, (v) => run(() => upsertChargeCode({ ...c, default_unit: v }), 'Charge code saved'))}
                       </td>
                       <td>
                         <Toggle checked={c.active} onChange={(active) => run(() => upsertChargeCode({ ...c, active }), 'Charge code saved')} />

@@ -43,7 +43,7 @@ function makeRefHook<T>(table: string, columns: string, map: (r: Row) => T) {
 }
 
 export type Currency = { code: string; name: string; symbol: string | null }
-export type ChargeUnit = { code: string; label: string }
+export type ChargeUnit = { code: string; label: string; modes: string[] }
 export type TaxRate = { code: string; label: string; rate_pct: number }
 export type ShippingLine = { code: string; name: string }
 
@@ -52,8 +52,12 @@ export const useCurrencies = makeRefHook<Currency>(
   (r) => ({ code: String(r.code), name: String(r.name ?? r.code), symbol: r.symbol ? String(r.symbol) : null }),
 )
 export const useChargeUnits = makeRefHook<ChargeUnit>(
-  'charge_units', 'code,label,sort_order',
-  (r) => ({ code: String(r.code), label: String(r.label ?? r.code) }),
+  'charge_units', 'code,label,sort_order,modes',
+  (r) => ({
+    code: String(r.code),
+    label: String(r.label ?? r.code),
+    modes: Array.isArray(r.modes) ? (r.modes as unknown[]).map(String) : ['air', 'sea'],
+  }),
 )
 export const useTaxRates = makeRefHook<TaxRate>(
   'tax_rates', 'code,label,rate_pct,sort_order',
@@ -71,15 +75,20 @@ export const useCoLoaders = makeRefHook<CoLoader>(
 )
 
 export type ChargeGroup = { code: string; label: string }
-export type ChargeCode = { code: string; description: string; charge_group: string }
+export type ChargeCode = { code: string; description: string; charge_group: string; default_unit: string | null }
 
 export const useChargeGroups = makeRefHook<ChargeGroup>(
   'charge_groups', 'code,label,sort_order',
   (r) => ({ code: String(r.code), label: String(r.label ?? r.code) }),
 )
 export const useChargeCodes = makeRefHook<ChargeCode>(
-  'charge_codes', 'code,description,charge_group,sort_order',
-  (r) => ({ code: String(r.code), description: String(r.description ?? ''), charge_group: String(r.charge_group ?? 'freight') }),
+  'charge_codes', 'code,description,charge_group,sort_order,default_unit',
+  (r) => ({
+    code: String(r.code),
+    description: String(r.description ?? ''),
+    charge_group: String(r.charge_group ?? 'freight'),
+    default_unit: r.default_unit ? String(r.default_unit) : null,
+  }),
 )
 
 export type ContainerType = { code: string; label: string }

@@ -14,12 +14,15 @@ import {
 import { fetchEffectiveRates } from '../setup/fxRatesApi'
 import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
 import QuoteResponseTemplateDialogs from './QuoteResponseTemplateDialogs'
+import { useResponseLineUnits } from './useResponseLineUnits'
 import './quoteResponseLinesGrid.css'
 
 type Props = {
   lines: QuoteResponseLine[]
   currency: string
   perKgQty?: number
+  /** Limits the Unit list to units valid for this mode (e.g. no Per 20' on air). Omit to show all. */
+  mode?: 'air' | 'sea'
   onChange: (lines: QuoteResponseLine[]) => void
 }
 
@@ -27,7 +30,7 @@ function fmt(n: number): string {
   return n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, onChange }: Props) {
+export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode, onChange }: Props) {
   const { items: units } = useChargeUnits()
   const { items: taxes } = useTaxRates()
   const { items: currencies } = useCurrencies()
@@ -56,7 +59,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, onCh
     [lines],
   )
 
-  const unitOptions = useMemo(() => units.map((u) => ({ value: u.code, label: u.label })), [units])
+  const { unitOptionsFor, unitPatch, defaultUnitPatch } = useResponseLineUnits(units, chargeCodes, mode, perKgQty)
   const taxOptions = useMemo(() => taxes.map((t) => ({ value: t.code, label: t.label })), [taxes])
   const curOptions = useMemo(() => currencies.map((c) => ({ value: c.code, label: c.code })), [currencies])
   const groupOptions = useMemo(() => groups.map((g) => ({ value: g.code, label: g.label })), [groups])
@@ -236,7 +239,9 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, onCh
                       onChange={(e) => {
                         const v = e.target.value
                         const grp = codeByDesc.get(v.toLowerCase())
-                        update(l.id, grp ? { description: v, charge_group: grp } : { description: v })
+                        if (!grp) { update(l.id, { description: v }); return }
+                        // Picked a known charge code: fill its group, and its default unit when valid for this mode.
+                        update(l.id, { description: v, charge_group: grp, ...defaultUnitPatch(v) })
                       }} />
                     {l.description.trim() && !codeByDesc.has(l.description.trim().toLowerCase()) && (
                       addingFor === l.id ? (
@@ -246,7 +251,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, onCh
                           <button type="button" className="qrl-iconbtn" aria-label="Save charge code"
                             onClick={async () => {
                               try {
-                                await createChargeCodeAuto(l.description, addGroup)
+                                await createChargeCodeAuto(l.description, addGroup, units.some((u) => u.code === l.unit) ? l.unit : null)
                                 await refreshCodes()
                                 update(l.id, { charge_group: addGroup })
                                 setAddingFor(null)
@@ -265,13 +270,8 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, onCh
                     )}
                   </td>
                   <td className="qrl-c-group"><RefSelect className="qrl-in" value={l.charge_group} options={groupOptions} allowEmpty={false} onChange={(v) => update(l.id, { charge_group: v ?? 'freight' })} /></td>
-                  <td className="qrl-c-unit"><RefSelect className="qrl-in" value={l.unit} options={unitOptions} placeholder="Unit"
-                    onChange={(v) => {
-                      const u = v ?? ''
-                      const p: Partial<QuoteResponseLine> = { unit: u }
-                      if (u === 'per_kg' && perKgQty && perKgQty > 0) p.qty = String(perKgQty)
-                      update(l.id, p)
-                    }} /></td>
+                  <td className="qrl-c-unit"><RefSelect className="qrl-in" value={l.unit} options={unitOptionsFor(l.unit)} placeholder="Unit"
+                    onChange={(v) => update(l.id, unitPatch(v ?? ''))} /></td>
                   <td className="qrl-c-num">{numInput(l.qty, (v) => update(l.id, { qty: v }))}</td>
                   <td className="qrl-c-cur"><RefSelect className="qrl-in" value={l.buy_currency} options={curOptions} allowEmpty={false}
                     onChange={(v) => {
