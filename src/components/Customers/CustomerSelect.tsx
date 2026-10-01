@@ -125,7 +125,7 @@ export default function CustomerSelect({ value, onChange, nameClassName, placeho
         </div>
       )}
 
-      <QuickCustomerDialog open={creating} initialName={q} onClose={() => setCreating(false)} onCreated={pick} />
+      <QuickCustomerDialog open={creating} initialName={q} onClose={() => setCreating(false)} onCreated={(c) => pick(c)} />
     </div>
   )
 }

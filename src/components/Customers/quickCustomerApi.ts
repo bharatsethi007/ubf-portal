@@ -43,3 +43,32 @@ export async function createPortalCustomer(input: NewCustomerInput): Promise<Cus
     source: 'portal',
   }
 }
+
+export type NewAgentInput = { name: string; country?: string; contact?: string; email?: string; phone?: string }
+export type CreatedAgent = CustomerPickerValue & { agentId: string }
+
+/**
+ * Creates a portal-only overseas agent (Agents section, "Not on CF") plus its linked P-xxxxx
+ * account so quotes can be raised against it straight away. Staff only.
+ */
+export async function createPortalAgent(input: NewAgentInput): Promise<CreatedAgent> {
+  const { data, error } = await supabase.rpc('create_portal_agent', {
+    p_name: input.name,
+    p_country: input.country || null,
+    p_contact: input.contact || null,
+    p_email: input.email || null,
+    p_phone: input.phone || null,
+  })
+  if (error) throw new Error(error.message)
+  const r = data as Record<string, string | null>
+  return {
+    account_id: String(r.account_id),
+    agentId: String(r.agent_id),
+    name: String(r.name ?? ''),
+    country: r.country ?? undefined,
+    email: r.email ?? undefined,
+    phone: r.phone ?? undefined,
+    contact: r.contact ?? undefined,
+    source: 'portal',
+  }
+}

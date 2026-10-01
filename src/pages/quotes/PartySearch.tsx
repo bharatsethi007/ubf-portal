@@ -102,15 +102,21 @@ export default function PartySearch({ value, agentMode, onSelect, onToggleAgent,
           <button type="button" onMouseDown={(e) => e.preventDefault()}
             onClick={() => { setNewName(term.trim()); setCreating(true); setOpen(false) }}
             style={{ display: 'flex', alignItems: 'center', gap: 6, width: '100%', border: 'none', borderTop: '1px solid #EEF2F6', background: '#FAFBFC', padding: '9px 12px', cursor: 'pointer', fontSize: 13, fontWeight: 500, color: '#2563EB' }}>
-            <Plus size={14} /> New customer{term.trim() ? ` "${term.trim()}"` : ''}
+            <Plus size={14} /> New customer or agent{term.trim() ? ` "${term.trim()}"` : ''}
           </button>
         </div>
       )}
       <QuickCustomerDialog
         open={creating}
         initialName={newName}
+        allowAgent
         onClose={() => setCreating(false)}
-        onCreated={(c) => { onSelect({ ...c, isAgent: false, isCustomer: true, agentId: null }); setTerm('') }}
+        onCreated={(c, meta) => {
+          const isAgent = meta.kind === 'agent'
+          // New portal agents get a linked P- account, so they can be quoted straight away.
+          onSelect({ ...c, isAgent, isCustomer: !isAgent || !!c.account_id, agentId: meta.agentId })
+          setTerm('')
+        }}
       />
     </div>
   )

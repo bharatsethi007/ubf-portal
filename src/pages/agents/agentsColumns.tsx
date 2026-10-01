@@ -62,7 +62,7 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
           <span className="customer-name-cell__name agent-name-row">
             {row.original.name}
             {row.original.trusted && <AgentTrustedTick size={18} />}
-            {!row.original.erp_account_code && (
+            {(!row.original.erp_account_code || row.original.erp_account_code.startsWith('P-')) && (
               <span className="pill agent-notcf-pill" title="Not present in the ERP (CargoFinder)">
                 Not on CF
               </span>

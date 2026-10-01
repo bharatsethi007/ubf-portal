@@ -139,7 +139,7 @@ export default function AgentRecordPage() {
               {agent.trusted && <AgentTrustedTick />}
             </div>
             <div className="cp-sub">
-              {agent.erp_account_code ? (
+              {agent.erp_account_code && !agent.erp_account_code.startsWith('P-') ? (
                 <span className="cp-sub-code">#{agent.erp_account_code}</span>
               ) : (
                 <span className="pill agent-notcf-pill" title="Not present in the ERP (CargoFinder)">
