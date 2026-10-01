@@ -13,6 +13,10 @@ type SyncJob = {
 
 type Props = { userEmail: string }
 
+// A job still pending/running after this long has no worker; stop polling it.
+const STALE_MS = 30 * 60 * 1000
+const isStale = (job: SyncJob) => Date.now() - new Date(job.requested_at).getTime() > STALE_MS
+
 function fmtTime(iso: string | null): string {
   if (!iso) return '—'
   const d = new Date(iso.includes('T') ? iso : `${iso}T00:00:00`)
@@ -67,6 +71,11 @@ export default function SyncButton({ userEmail }: Props) {
   const pollLatest = useCallback(async () => {
     const job = await fetchLatest()
     if (!mountedRef.current || !job) return
+    if ((job.status === 'pending' || job.status === 'running') && isStale(job)) {
+      setActiveJob({ ...job, status: 'error', message: 'No sync worker responded' })
+      setPolling(false)
+      return
+    }
     setActiveJob(job)
     if (job.status === 'done' || job.status === 'error') {
       setPolling(false)
@@ -79,7 +88,7 @@ export default function SyncButton({ userEmail }: Props) {
     fetchLastDone()
     fetchLatest().then((job) => {
       if (!mountedRef.current || !job) return
-      if (job.status === 'pending' || job.status === 'running') {
+      if ((job.status === 'pending' || job.status === 'running') && !isStale(job)) {
         setActiveJob(job)
         setPolling(true)
       }
@@ -92,7 +101,8 @@ export default function SyncButton({ userEmail }: Props) {
   useEffect(() => {
     if (!polling) return
     pollLatest()
-    const id = window.setInterval(pollLatest, 5000)
+    // Skip polls while the tab is hidden so background tabs don't load the database.
+    const id = window.setInterval(() => { if (!document.hidden) pollLatest() }, 10000)
     return () => window.clearInterval(id)
   }, [polling, pollLatest])
 
