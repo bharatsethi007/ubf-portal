@@ -1,0 +1,5 @@
+-- Applied live via MCP 1 Oct 2026 (migration shipments_stats_rpc). Do not re-run blindly; it is idempotent (create or replace).
+-- shipments_stats(p_module, p_from, p_to, p_basis, p_port, p_origin, p_destination, p_vessel) -> jsonb
+-- KPI strip for Shipments page. Consol-level dates mirror v_consols, so houses inherit their consol's ETD.
+-- Returns {cur, prev, series{consols,hbls,weight_kg,volume_m3,customers}, next7, overdue, days}.
+-- Full definition: select pg_get_functiondef('public.shipments_stats'::regproc);
