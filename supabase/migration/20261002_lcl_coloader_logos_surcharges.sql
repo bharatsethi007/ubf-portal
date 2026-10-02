@@ -19,3 +19,9 @@ alter table public.rate_surcharges add column if not exists origin_countries tex
 alter table public.rate_surcharges add column if not exists except_origin_countries text[];
 update public.co_loaders set name='Custom Logistic', logo_url='/coloaders/custom-logistic.png' where code='CLOG';
 notify pgrst, 'reload schema';
+
+-- Third step (same day): UBF sell margins (fixed USD 15/WM ex CN+AU, 25 rest, set on cards/lines),
+-- Oceanbridge ancillary card (draft, no lanes yet), CaroTrans Oct card, seasonal (BMSB) surcharges use
+-- rate_surcharges.valid_from/valid_to. Data only, via MCP. Logos: /coloaders/oceanbridge.png.
+update public.co_loaders set logo_url='/coloaders/oceanbridge.png', name='Oceanbridge' where code='OCB';
+update public.co_loaders set name='CaroTrans' where code='CARO';

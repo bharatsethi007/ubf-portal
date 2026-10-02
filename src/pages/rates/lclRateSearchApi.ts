@@ -136,7 +136,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
 
   const cardIds = [...groups.keys()]
   const { data: surs } = await supabase
-    .from('rate_surcharges').select('rate_card_id, label, amount, sell_amount, basis, scope, currency_code, min_amount, contingent, condition, origin_countries, except_origin_countries').in('rate_card_id', cardIds)
+    .from('rate_surcharges').select('rate_card_id, label, amount, sell_amount, basis, scope, currency_code, min_amount, contingent, condition, origin_countries, except_origin_countries, valid_from, valid_to').in('rate_card_id', cardIds)
   // Country-scoped surcharges (e.g. ex-Australia vs ex-worldwide PSC): UN/LOCODE prefix = country.
   const polCountry = lane.from_port_code.slice(0, 2).toUpperCase()
   const countryOk = (s: Record<string, any>) => {
@@ -149,6 +149,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
   const surByCard = new Map<string, Record<string, any>[]>()
   for (const s of ((surs as Record<string, any>[]) ?? [])) {
     if (!countryOk(s)) continue
+    if (!withinValidity(s.valid_from ?? null, s.valid_to ?? null, today)) continue // seasonal, e.g. BMSB
     const id = String(s.rate_card_id)
     if (!surByCard.has(id)) surByCard.set(id, [])
     surByCard.get(id)!.push(s)
