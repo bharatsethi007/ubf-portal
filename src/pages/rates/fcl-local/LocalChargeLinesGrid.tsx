@@ -5,15 +5,22 @@ import MultiChipSelect from '../../../components/MultiChipSelect'
 import VendorSelect, { type VendorValue } from '../VendorSelect'
 import { groupForDirection, type LocalChargeLineDraft } from './localChargesDetailApi'
 
-const BASES = [
+const FCL_BASES = [
   { v: 'per_container', label: 'Per container' },
+  { v: 'per_bl', label: 'Per B/L' },
+  { v: 'per_shipment', label: 'Per shipment' },
+  { v: 'percent', label: 'Percent of freight' },
+] as const
+const LCL_BASES = [
+  { v: 'per_wm', label: 'Per W/M' },
+  { v: 'per_cbm', label: 'Per CBM' },
   { v: 'per_bl', label: 'Per B/L' },
   { v: 'per_shipment', label: 'Per shipment' },
   { v: 'percent', label: 'Percent of freight' },
 ] as const
 
 let tmpSeq = 0
-export function newLocalChargeLine(defaultCurrency: string): LocalChargeLineDraft {
+export function newLocalChargeLine(defaultCurrency: string, mode: 'fcl' | 'lcl' = 'fcl'): LocalChargeLineDraft {
   tmpSeq += 1
   return {
     key: `tmp-${tmpSeq}`,
@@ -21,7 +28,7 @@ export function newLocalChargeLine(defaultCurrency: string): LocalChargeLineDraf
     charge_code: '',
     label: '',
     container_types: [],
-    basis: 'per_container',
+    basis: mode === 'lcl' ? 'per_wm' : 'per_container',
     buy_amount: '',
     buy_currency: defaultCurrency,
     sell_amount: '',
@@ -39,11 +46,13 @@ type Props = {
   direction: string
   defaultCurrency: string
   onChange: (rows: LocalChargeLineDraft[]) => void
+  mode?: 'fcl' | 'lcl'
 }
 
 const labelStyle = { fontSize: 12, fontWeight: 500, color: 'var(--muted-foreground)' }
 
-export default function LocalChargeLinesGrid({ rows, direction, defaultCurrency, onChange }: Props) {
+export default function LocalChargeLinesGrid({ rows, direction, defaultCurrency, onChange, mode = 'fcl' }: Props) {
+  const BASES = mode === 'lcl' ? LCL_BASES : FCL_BASES
   const { items: chargeCodes } = useChargeCodes()
   const { items: containers } = useContainerTypes()
   const { items: currencies } = useCurrencies()
@@ -65,7 +74,7 @@ export default function LocalChargeLinesGrid({ rows, direction, defaultCurrency,
     onChange(rows.filter((r) => r.key !== key))
   }
   function add() {
-    onChange([...rows, newLocalChargeLine(defaultCurrency)])
+    onChange([...rows, newLocalChargeLine(defaultCurrency, mode)])
   }
   function onCode(key: string, code: string) {
     const cc = chargeCodes.find((c) => c.code === code)
@@ -113,11 +122,13 @@ export default function LocalChargeLinesGrid({ rows, direction, defaultCurrency,
                     <label style={labelStyle}>Label</label>
                     <input className="input input--sm" value={r.label} onChange={(e) => update(r.key, { label: e.target.value })} placeholder="Description" />
                   </div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <label style={labelStyle}>Container types</label>
-                    <MultiChipSelect options={containerOptions} value={r.container_types}
-                      onChange={(v) => update(r.key, { container_types: v })} placeholder="All sizes" />
-                  </div>
+                  {mode === 'fcl' && (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                      <label style={labelStyle}>Container types</label>
+                      <MultiChipSelect options={containerOptions} value={r.container_types}
+                        onChange={(v) => update(r.key, { container_types: v })} placeholder="All sizes" />
+                    </div>
+                  )}
                 </div>
 
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(120px, 1fr))', gap: 12, marginTop: 12 }}>

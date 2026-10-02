@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { attachLclLocalCharges, type OptionLclLocalCharge } from './lclLocalChargeMatch'
 import { applyMargin, cardMargin, lineMargin, resolveMargin, type Margin } from './margin'
 
 export type LclQuoteLane = {
@@ -7,6 +8,7 @@ export type LclQuoteLane = {
   currency: string | null
   wm: number   // chargeable W/M (revenue tonnes)
   cbm: number  // total volume, for per_cbm surcharges; falls back to wm when unknown
+  movement?: string | null  // 'import' | 'export' — scopes LCL local charge sheets
 }
 
 export type LclLaneCharge = { code: string; label: string; perWm: number; sellPerWm: number; min: number | null }
@@ -59,6 +61,7 @@ export type LclRateOption = {
   freightSellTotal: number
   surchargeSellTotal: number
   sellTotal: number
+  localCharges: OptionLclLocalCharge[]  // UBF LCL local/port charge sheets
 }
 
 function round2(n: number): number { return Math.round(n * 100) / 100 }
@@ -88,7 +91,7 @@ export function wmFromCargo(rows: { total_cbm: number | null; gross_wt: number |
 
 export async function fetchLclQuoteLane(quoteId: string): Promise<LclQuoteLane> {
   const { data: q, error } = await supabase
-    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency').eq('id', quoteId).single()
+    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type').eq('id', quoteId).single()
   if (error) throw error
   const { data: cargo } = await supabase.from('quote_cargo_lines').select('total_cbm, gross_wt').eq('quote_id', quoteId)
   const r = q as Record<string, any>
@@ -99,6 +102,7 @@ export async function fetchLclQuoteLane(quoteId: string): Promise<LclQuoteLane> 
     currency: r.cargo_value_currency ?? null,
     wm,
     cbm,
+    movement: r.movement_type ?? null,
   }
 }
 
@@ -237,8 +241,10 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
       freightSellTotal,
       surchargeSellTotal,
       sellTotal: round2(freightSellTotal + surchargeSellTotal),
+      localCharges: [],
     })
   }
   options.sort((a, b) => a.total - b.total)
+  await attachLclLocalCharges(lane, options)
   return options
 }

@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { createLocalChargeSheet } from './localChargesApi'
+import { LOCAL_MODE, type LocalMode } from './localMode'
 
 type Direction = 'origin' | 'dest'
 type Movement = 'import' | 'export'
@@ -29,7 +30,8 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
   )
 }
 
-export default function FclLocalChargeSheetForm() {
+export default function FclLocalChargeSheetForm({ mode = 'fcl' }: { mode?: LocalMode }) {
+  const cfg = LOCAL_MODE[mode]
   const navigate = useNavigate()
   const [direction, setDirection] = useState<Direction>('dest')
   const [movement, setMovement] = useState<Movement>('import')
@@ -47,8 +49,8 @@ export default function FclLocalChargeSheetForm() {
     setSaving(true)
     setError('')
     try {
-      const { id } = await createLocalChargeSheet({ direction, movement, title: title.trim(), valid_from: validFrom, valid_to: validTo })
-      navigate(`/setup/rates/fcl-local/${id}`)
+      const { id } = await createLocalChargeSheet({ direction, movement, title: title.trim(), valid_from: validFrom, valid_to: validTo, mode })
+      navigate(`${cfg.base}/${id}`)
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Failed to create sheet')
       setSaving(false)
@@ -59,12 +61,12 @@ export default function FclLocalChargeSheetForm() {
     <div className="quotes-page">
       <div className="card quotes-page__card">
         <header className="quotes-page__head">
-          <Link to="/setup/rates/fcl-local" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', textDecoration: 'none', marginBottom: 8 }}>
-            <ArrowLeft size={15} /> Sea FCL Local / Port Charges
+          <Link to={cfg.base} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', textDecoration: 'none', marginBottom: 8 }}>
+            <ArrowLeft size={15} /> {cfg.title}
           </Link>
           <h1>New local charge sheet</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--muted-foreground)', fontSize: 14 }}>
-            Set the sheet identity. You&apos;ll add ports, shipping lines, and charge lines next.
+            Set the sheet identity. You&apos;ll add ports, {mode === 'lcl' ? 'co-loaders' : 'shipping lines'}, and charge lines next.
           </p>
         </header>
 
@@ -106,7 +108,7 @@ export default function FclLocalChargeSheetForm() {
           <button type="button" className="btn btn--inline" onClick={onSubmit} disabled={!valid || saving} style={{ opacity: !valid || saving ? 0.5 : 1 }}>
             {saving ? 'Creating…' : 'Create sheet'}
           </button>
-          <Link to="/setup/rates/fcl-local" style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', fontSize: 14, color: 'var(--muted-foreground)', textDecoration: 'none' }}>Cancel</Link>
+          <Link to={cfg.base} style={{ display: 'inline-flex', alignItems: 'center', padding: '8px 14px', fontSize: 14, color: 'var(--muted-foreground)', textDecoration: 'none' }}>Cancel</Link>
         </div>
       </div>
     </div>

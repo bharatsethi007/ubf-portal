@@ -323,6 +323,7 @@ export default function NewQuoteSearch() {
           currency: null,
           wm: wmNum,
           cbm: cbmNum,
+          movement: draft.movement_type ?? null,
         }
         setLclOptions(await searchLclRates(lane))
       } else {

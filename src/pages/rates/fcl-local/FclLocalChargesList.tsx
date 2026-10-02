@@ -6,10 +6,12 @@ import Pagination from '../../../components/Pagination'
 import { useDebouncedValue } from '../../../hooks/useDebouncedValue'
 import { listLocalChargeSheets, type LocalChargeSheetRow } from './localChargesApi'
 import { localChargeSheetsColumns, LOCAL_STATUS_TABS, LOCAL_DIRECTION_TABS } from './localChargeSheetsColumns'
+import { LOCAL_MODE, type LocalMode } from './localMode'
 
 const PAGE_SIZE = 50
 
-export default function FclLocalChargesList() {
+export default function FclLocalChargesList({ mode = 'fcl' }: { mode?: LocalMode }) {
+  const cfg = LOCAL_MODE[mode]
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [statusTab, setStatusTab] = useState<string>('all')
@@ -29,7 +31,7 @@ export default function FclLocalChargesList() {
     setLoading(true)
     ;(async () => {
       try {
-        const res = await listLocalChargeSheets({ page, pageSize: PAGE_SIZE, search: debouncedSearch, status: statusTab, direction: directionFilter })
+        const res = await listLocalChargeSheets({ page, pageSize: PAGE_SIZE, search: debouncedSearch, status: statusTab, direction: directionFilter, mode })
         if (cancelled) return
         setRows(res.rows)
         setTotal(res.total)
@@ -44,7 +46,7 @@ export default function FclLocalChargesList() {
       }
     })()
     return () => { cancelled = true }
-  }, [page, debouncedSearch, statusTab, directionFilter])
+  }, [page, debouncedSearch, statusTab, directionFilter, mode])
 
   const table = useReactTable({ data: rows, columns, getCoreRowModel: getCoreRowModel() })
   const colSpan = columns.length
@@ -56,10 +58,8 @@ export default function FclLocalChargesList() {
           <Link to="/setup/rates" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', textDecoration: 'none', marginBottom: 8 }}>
             <ArrowLeft size={15} /> Rates
           </Link>
-          <h1>Sea FCL Local / Port Charges</h1>
-          <p style={{ margin: '4px 0 0', color: 'var(--muted-foreground)', fontSize: 14 }}>
-            House tariff of origin &amp; destination local charges, keyed by port, movement, and shipping line.
-          </p>
+          <h1>{cfg.title}</h1>
+          <p style={{ margin: '4px 0 0', color: 'var(--muted-foreground)', fontSize: 14 }}>{cfg.blurb}</p>
         </header>
 
         <div className="quotes-tabs" role="tablist" aria-label="Sheet status">
@@ -80,7 +80,7 @@ export default function FclLocalChargesList() {
           <select className="input input--sm" value={directionFilter} onChange={(e) => setDirectionFilter(e.target.value)} aria-label="Direction filter" style={{ maxWidth: 160 }}>
             {LOCAL_DIRECTION_TABS.map(({ key, label }) => (<option key={key} value={key}>{key === 'all' ? 'All directions' : label}</option>))}
           </select>
-          <button type="button" className="btn quotes-page__new-btn" onClick={() => navigate('/setup/rates/fcl-local/new')}>
+          <button type="button" className="btn quotes-page__new-btn" onClick={() => navigate(`${cfg.base}/new`)}>
             <Plus size={16} strokeWidth={2} />
             New sheet
           </button>
@@ -106,7 +106,7 @@ export default function FclLocalChargesList() {
                 <tr><td colSpan={colSpan} className="text-muted-foreground pad-inline">No local charge sheets yet. Create one to get started.</td></tr>
               ) : (
                 table.getRowModel().rows.map((row) => (
-                  <tr key={row.id} className="row-clickable" onClick={() => navigate(`/setup/rates/fcl-local/${row.original.id}`)}>
+                  <tr key={row.id} className="row-clickable" onClick={() => navigate(`${cfg.base}/${row.original.id}`)}>
                     {row.getVisibleCells().map((cell) => (
                       <td key={cell.id}>{flexRender(cell.column.columnDef.cell, cell.getContext())}</td>
                     ))}

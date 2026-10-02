@@ -20,6 +20,7 @@ export type LocalChargeSheetListArgs = {
   search: string
   status: string
   direction: string
+  mode?: 'fcl' | 'lcl'
 }
 
 export type NewLocalChargeSheet = {
@@ -28,12 +29,13 @@ export type NewLocalChargeSheet = {
   movement: 'import' | 'export'
   valid_from: string
   valid_to: string
+  mode?: 'fcl' | 'lcl'
 }
 
 export async function listLocalChargeSheets(
   args: LocalChargeSheetListArgs,
 ): Promise<{ rows: LocalChargeSheetRow[]; total: number }> {
-  const { page, pageSize, search, status, direction } = args
+  const { page, pageSize, search, status, direction, mode = 'fcl' } = args
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
 
@@ -43,6 +45,7 @@ export async function listLocalChargeSheets(
       'id, title, direction, movement, port_codes, shipping_line_codes, valid_from, valid_to, status, created_at, local_charge_lines(count)',
       { count: 'exact' },
     )
+    .eq('mode', mode)
     .order('created_at', { ascending: false })
 
   if (status !== 'all') query = query.eq('status', status)
@@ -84,6 +87,7 @@ export async function createLocalChargeSheet(input: NewLocalChargeSheet): Promis
       valid_from: input.valid_from || null,
       valid_to: input.valid_to || null,
       status: 'draft',
+      mode: input.mode ?? 'fcl',
     })
     .select('id')
     .single()

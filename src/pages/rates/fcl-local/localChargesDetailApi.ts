@@ -7,6 +7,8 @@ export type LocalChargeSheetDetail = {
   movement: string
   port_codes: string[]
   shipping_line_codes: string[]
+  co_loader_codes: string[]
+  mode: 'fcl' | 'lcl'
   valid_from: string | null
   valid_to: string | null
   status: string
@@ -20,7 +22,7 @@ export function groupForDirection(direction: string): string {
 export async function fetchLocalChargeSheet(id: string): Promise<LocalChargeSheetDetail | null> {
   const { data, error } = await supabase
     .from('local_charge_sheets')
-    .select('id, title, direction, movement, port_codes, shipping_line_codes, valid_from, valid_to, status')
+    .select('id, title, direction, movement, port_codes, shipping_line_codes, co_loader_codes, mode, valid_from, valid_to, status')
     .eq('id', id)
     .maybeSingle()
   if (error) throw error
@@ -33,6 +35,8 @@ export async function fetchLocalChargeSheet(id: string): Promise<LocalChargeShee
     movement: String(r.movement),
     port_codes: Array.isArray(r.port_codes) ? r.port_codes.map(String) : [],
     shipping_line_codes: Array.isArray(r.shipping_line_codes) ? r.shipping_line_codes.map(String) : [],
+    co_loader_codes: Array.isArray(r.co_loader_codes) ? r.co_loader_codes.map(String) : [],
+    mode: r.mode === 'lcl' ? 'lcl' : 'fcl',
     valid_from: r.valid_from ? String(r.valid_from) : null,
     valid_to: r.valid_to ? String(r.valid_to) : null,
     status: String(r.status),
@@ -45,6 +49,7 @@ export type LocalChargeHeaderPatch = {
   movement: string
   port_codes: string[]
   shipping_line_codes: string[]
+  co_loader_codes?: string[]
   valid_from: string | null
   valid_to: string | null
   status: string
@@ -59,6 +64,7 @@ export async function updateLocalChargeSheetHeader(id: string, p: LocalChargeHea
       movement: p.movement,
       port_codes: p.port_codes,
       shipping_line_codes: p.shipping_line_codes,
+      ...(p.co_loader_codes ? { co_loader_codes: p.co_loader_codes } : {}),
       valid_from: p.valid_from || null,
       valid_to: p.valid_to || null,
       status: p.status,

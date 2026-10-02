@@ -36,6 +36,13 @@ function buildLegs(o: LclRateOption): Leg[] {
     const it: Item = { label: s.label, meta, buy: a.buy, sell: a.sell, currency: s.currency }
     if (s.scope === 'origin') origin.push(it); else if (s.scope === 'dest') dest.push(it); else freight.push(it)
   }
+  // UBF LCL local/port charge sheets
+  const basisLabel: Record<string, string> = { per_wm: 'Per W/M', per_cbm: 'Per CBM', per_bl: 'Per B/L', per_shipment: 'Per shipment', percent: '% of freight' }
+  for (const c of o.localCharges) {
+    const meta = `${basisLabel[c.basis] ?? c.basis}${c.qty !== 1 ? ` × ${c.qty}` : ''}`
+    const it: Item = { label: c.label, meta, buy: c.buyAmount, sell: c.sellAmount, currency: c.sellCurrency || c.buyCurrency || cur }
+    if (c.group === 'origin') origin.push(it); else dest.push(it)
+  }
   return [
     { key: 'freight', title: 'Freight & surcharges', items: freight },
     { key: 'origin', title: 'Origin charges', items: origin },

@@ -41,6 +41,7 @@ async function fetchSheets(direction: 'origin' | 'dest', port: string, movement:
   let q = supabase
     .from('local_charge_sheets')
     .select('id, shipping_line_codes, created_at')
+    .eq('mode', 'fcl')
     .eq('direction', direction)
     .in('status', ['active', 'validated'])
     .contains('port_codes', [port])

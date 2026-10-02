@@ -244,7 +244,9 @@ export default function App() {
             <Route path="/setup/rates/cartage" element={<StaffRoute><CartageRateCardsList /></StaffRoute>} />
             <Route path="/setup/rates/cartage/new" element={<StaffRoute><CartageRateCardForm /></StaffRoute>} />
             <Route path="/setup/rates/cartage/:id" element={<StaffRoute><CartageRateCardDetail /></StaffRoute>} />
-            <Route path="/setup/rates/lcl-local" element={<StaffRoute><RateModulePage title="Sea LCL Local/Port Charges" /></StaffRoute>} />
+            <Route path="/setup/rates/lcl-local" element={<StaffRoute><FclLocalChargesList mode="lcl" /></StaffRoute>} />
+            <Route path="/setup/rates/lcl-local/new" element={<StaffRoute><FclLocalChargeSheetForm mode="lcl" /></StaffRoute>} />
+            <Route path="/setup/rates/lcl-local/:id" element={<StaffRoute><FclLocalChargeSheetDetail mode="lcl" /></StaffRoute>} />
             <Route path="/setup/rates/air-local" element={<StaffRoute><AirLocalChargesList /></StaffRoute>} />
             <Route path="/setup/rates/air-local/new" element={<StaffRoute><AirLocalChargeSheetForm /></StaffRoute>} />
             <Route path="/setup/rates/air-local/:id" element={<StaffRoute><AirLocalChargeSheetDetail /></StaffRoute>} />

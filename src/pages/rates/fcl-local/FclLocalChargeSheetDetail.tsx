@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
-import { useShippingLines } from '../../../hooks/useQuoteRefData'
+import { useCoLoaders, useShippingLines } from '../../../hooks/useQuoteRefData'
+import { LOCAL_MODE, type LocalMode } from './localMode'
 import { useSeaPorts } from '../../../hooks/useSeaPorts'
 import MultiChipSelect from '../../../components/MultiChipSelect'
 import LocalChargeLinesGrid from './LocalChargeLinesGrid'
@@ -37,7 +38,9 @@ function Segmented<T extends string>({ value, options, onChange }: { value: T; o
   )
 }
 
-export default function FclLocalChargeSheetDetail() {
+export default function FclLocalChargeSheetDetail({ mode = 'fcl' }: { mode?: LocalMode }) {
+  const cfg = LOCAL_MODE[mode]
+  const { items: coLoaders } = useCoLoaders()
   const { id = '' } = useParams()
   const navigate = useNavigate()
   const { items: shippingLines } = useShippingLines()
@@ -54,6 +57,7 @@ export default function FclLocalChargeSheetDetail() {
 
   const portOptions = useMemo(() => ports.map((p) => ({ value: p.code, label: p.name })), [ports])
   const lineOptions = useMemo(() => shippingLines.map((l) => ({ value: l.code, label: l.name })), [shippingLines])
+  const coLoaderOptions = useMemo(() => coLoaders.map((l) => ({ value: l.code, label: l.name })), [coLoaders])
 
   useEffect(() => {
     let cancelled = false
@@ -90,7 +94,7 @@ export default function FclLocalChargeSheetDetail() {
     try {
       await updateLocalChargeSheetHeader(sheet.id, {
         title: sheet.title, direction: sheet.direction, movement: sheet.movement,
-        port_codes: sheet.port_codes, shipping_line_codes: sheet.shipping_line_codes,
+        port_codes: sheet.port_codes, shipping_line_codes: sheet.shipping_line_codes, co_loader_codes: sheet.co_loader_codes,
         valid_from: sheet.valid_from, valid_to: sheet.valid_to, status: sheet.status,
       })
       toast.success('Sheet details saved')
@@ -128,7 +132,7 @@ export default function FclLocalChargeSheetDetail() {
   if (notFound) return (
     <div className="quotes-page"><div className="card quotes-page__card">
       <p>Sheet not found.</p>
-      <button type="button" className="btn" onClick={() => navigate('/setup/rates/fcl-local')}>Back to Sea FCL Local / Port Charges</button>
+      <button type="button" className="btn" onClick={() => navigate(cfg.base)}>Back to {cfg.title}</button>
     </div></div>
   )
   if (!sheet) return null
@@ -137,8 +141,8 @@ export default function FclLocalChargeSheetDetail() {
     <div className="quotes-page">
       <div className="card quotes-page__card">
         <header className="quotes-page__head">
-          <Link to="/setup/rates/fcl-local" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', textDecoration: 'none', marginBottom: 8 }}>
-            <ArrowLeft size={15} /> Sea FCL Local / Port Charges
+          <Link to={cfg.base} style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, color: 'var(--muted-foreground)', textDecoration: 'none', marginBottom: 8 }}>
+            <ArrowLeft size={15} /> {cfg.title}
           </Link>
           <h1>{sheet.title || 'Local charge sheet'}</h1>
         </header>
@@ -169,10 +173,17 @@ export default function FclLocalChargeSheetDetail() {
               <label style={labelStyle}>Ports</label>
               <MultiChipSelect options={portOptions} value={sheet.port_codes} onChange={(v) => setField('port_codes', v)} placeholder="Add ports… (e.g. AKL, LYT)" />
             </div>
-            <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
-              <label style={labelStyle}>Shipping lines</label>
-              <MultiChipSelect options={lineOptions} value={sheet.shipping_line_codes} onChange={(v) => setField('shipping_line_codes', v)} placeholder="Add shipping lines…" />
-            </div>
+            {sheet.mode === 'lcl' ? (
+              <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>Co-loaders</label>
+                <MultiChipSelect options={coLoaderOptions} value={sheet.co_loader_codes} onChange={(v) => setField('co_loader_codes', v)} placeholder="All co-loaders (or pick to limit)…" />
+              </div>
+            ) : (
+              <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
+                <label style={labelStyle}>Shipping lines</label>
+                <MultiChipSelect options={lineOptions} value={sheet.shipping_line_codes} onChange={(v) => setField('shipping_line_codes', v)} placeholder="Add shipping lines…" />
+              </div>
+            )}
             <div style={fieldStyle}>
               <label style={labelStyle}>Valid from</label>
               <input type="date" className="input" value={sheet.valid_from ?? ''} onChange={(e) => setField('valid_from', e.target.value || null)} />
@@ -191,7 +202,7 @@ export default function FclLocalChargeSheetDetail() {
 
         <section>
           <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Charge lines</h2>
-          <LocalChargeLinesGrid rows={lines} direction={sheet.direction} defaultCurrency="" onChange={setLines} />
+          <LocalChargeLinesGrid rows={lines} direction={sheet.direction} defaultCurrency={sheet.mode === 'lcl' ? 'NZD' : ''} onChange={setLines} mode={sheet.mode} />
           <div style={{ marginTop: 14 }}>
             <button type="button" className="btn btn--inline" onClick={saveLines} disabled={savingLines}>
               {savingLines ? 'Saving…' : 'Save lines'}
