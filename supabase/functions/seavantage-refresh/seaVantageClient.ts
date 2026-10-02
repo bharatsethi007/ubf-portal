@@ -1,8 +1,3 @@
-// SeaVantage Insight client + mappers (Basic Auth).
-// Two-step model: POST /cargo registers a cargo (billable — do once) by MBL, booking, or container;
-// GET /cargo/search/past-track returns container events + AIS pastTrack positions for the same ref.
-//   SEAVANTAGE_USERNAME (required), SEAVANTAGE_PASSWORD (required)
-//   SEAVANTAGE_BASE_URL (optional) default https://insight.seavantage.com/api
 export type JsonRecord = Record<string, unknown>
 
 const DEFAULT_BASE = "https://insight.seavantage.com/api"

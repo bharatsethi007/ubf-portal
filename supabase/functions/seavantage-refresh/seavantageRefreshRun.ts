@@ -7,7 +7,7 @@ import {
 export type SvRefreshSummary = {
   ok: boolean; skipped?: boolean; reason?: string; carrier?: string | null; sv_carrier_code?: string | null
   containers_registered: number; containers_found: number; events_written: number; positions_written: number
-  containers_no_data: string[]; last_refreshed_at: string; error?: string; tracked_by?: string
+  containers_no_data: string[]; last_refreshed_at: string; error?: string; tracked_by?: string; vessel_key?: string | null
 }
 
 type CarrierRoute = { line_code: string; sv_carrier_code: string | null; is_maersk: boolean; verified: boolean }
@@ -70,6 +70,8 @@ export async function insertPositions(db: SupabaseClient, rows: VesselPositionRo
   return n
 }
 
+const MAERSK_SV_FALLBACK_CODE = "MAEU"
+
 export async function refreshBookingSeaVantage(
   db: SupabaseClient, creds: SvCreds, bookingId: string,
 ): Promise<SvRefreshSummary> {
@@ -77,6 +79,7 @@ export async function refreshBookingSeaVantage(
   let registered = 0, found = 0, events = 0, positions = 0
   const noData: string[] = []
   let trackedBy = "container"
+  let bestVessel: { key: string; name: string | null; ts: number } | null = null
 
   const fail = (error: string): SvRefreshSummary => ({
     ok: false, containers_registered: registered, containers_found: found,
@@ -89,20 +92,26 @@ export async function refreshBookingSeaVantage(
   })
 
   const { data: tracking } = await db.from("booking_tracking")
-    .select("seavantage_enabled, seavantage_mbl_document_id, seavantage_mbl_registered_at")
+    .select("seavantage_enabled, seavantage_mbl_document_id, seavantage_mbl_registered_at, carrier_fallback_sv")
     .eq("booking_id", bookingId).maybeSingle()
   if (tracking && tracking.seavantage_enabled === false) return skip("SeaVantage tracking disabled for this booking")
+  const fallback = tracking?.carrier_fallback_sv === true
 
   const { data: routeRows } = await db.rpc("resolve_booking_carrier", { p_booking_id: bookingId })
   const route = (Array.isArray(routeRows) ? routeRows[0] : routeRows) as CarrierRoute | null | undefined
   if (!route?.line_code) return fail("No carrier resolved for this booking — pick a shipping line, or the container prefix isn't recognised")
   const lineCode = String(route.line_code)
-  if (route.is_maersk) return skip("Maersk group — tracked via the free Maersk API, not SeaVantage", lineCode)
-  if (!route.verified || !route.sv_carrier_code) return fail(`SeaVantage code for "${lineCode}" is not verified yet`)
-  const svCode = String(route.sv_carrier_code)
+  let svCode: string
+  if (route.is_maersk) {
+    if (!fallback) return skip("Maersk group — tracked via the free Maersk API, not SeaVantage", lineCode)
+    svCode = String(route.sv_carrier_code ?? MAERSK_SV_FALLBACK_CODE)
+  } else {
+    if (!route.verified || !route.sv_carrier_code) return fail(`SeaVantage code for "${lineCode}" is not verified yet`)
+    svCode = String(route.sv_carrier_code)
+  }
 
   const { data: booking } = await db.from("bookings").select("mbl_no").eq("id", bookingId).maybeSingle()
-  const mblNo = String(booking?.mbl_no ?? "").trim().toUpperCase() || null
+  const mblNo = fallback ? null : (String(booking?.mbl_no ?? "").trim().toUpperCase() || null)
 
   const ingest = async (refValue: string, pt: SvResult<Record<string, unknown>>): Promise<boolean> => {
     if (!pt.ok || !pt.data) { noData.push(refValue); return false }
@@ -111,6 +120,13 @@ export async function refreshBookingSeaVantage(
     found += 1
     events += await insertEvents(db, bookingId, evRows)
     positions += await insertPositions(db, posRows)
+    for (const p of posRows) {
+      const key = p.imo ?? p.mmsi
+      if (!key) continue
+      const ts = new Date(p.position_timestamp).getTime()
+      if (!Number.isFinite(ts)) continue
+      if (!bestVessel || ts > bestVessel.ts) bestVessel = { key, name: p.ship_name, ts }
+    }
     return true
   }
   const authOrRate = (r: SvResult<unknown>): SvRefreshSummary | null => {
@@ -138,6 +154,7 @@ export async function refreshBookingSeaVantage(
     const hadData = await ingest(mblNo, pt)
     if (hadData && !mblDoc && !mblRegAt) await setStatus(db, bookingId, { seavantage_mbl_registered_at: ranAt })
   } else {
+    if (fallback) trackedBy = "container (maersk fallback)"
     const { data: containers } = await db.from("booking_containers")
       .select("id, container_no, seavantage_document_id, seavantage_registered_at")
       .eq("booking_id", bookingId).order("sort_order")
@@ -173,15 +190,22 @@ export async function refreshBookingSeaVantage(
     }
   }
 
-  await setStatus(db, bookingId, {
+  const statusPatch: Record<string, unknown> = {
     last_seavantage_sync: ranAt,
     seavantage_error: noData.length && !found ? `No SeaVantage data for: ${noData.join(", ")}` : null,
-  })
+  }
+  const vessel = bestVessel as { key: string; name: string | null; ts: number } | null
+  if (vessel) statusPatch.vessel_key = vessel.key
+  await setStatus(db, bookingId, statusPatch)
+  if (vessel?.name) {
+    await db.from("bookings").update({ vessel: vessel.name }).eq("id", bookingId).is("vessel", null)
+  }
 
   return {
     ok: true, carrier: lineCode, sv_carrier_code: svCode, tracked_by: trackedBy,
     containers_registered: registered, containers_found: found,
     events_written: events, positions_written: positions,
     containers_no_data: noData, last_refreshed_at: ranAt,
+    vessel_key: vessel ? vessel.key : null,
   }
 }
