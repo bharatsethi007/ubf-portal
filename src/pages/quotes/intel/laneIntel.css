@@ -1,0 +1,93 @@
+/* Freight Intelligence v2. White, corporate, quiet motion. */
+.fi-launch { position: fixed; right: 24px; bottom: 24px; z-index: 40; width: 52px; height: 52px; border-radius: 50%;
+  border: none; cursor: pointer; background: #0A2472; color: #fff; display: inline-flex; align-items: center; justify-content: center;
+  box-shadow: 0 8px 22px rgba(10,36,114,.28); transition: transform .2s cubic-bezier(.2,.8,.2,1), box-shadow .2s; animation: fi-pop .45s cubic-bezier(.2,1.4,.4,1) both; }
+.fi-launch:hover { transform: translateY(-2px); box-shadow: 0 12px 28px rgba(10,36,114,.34); }
+.fi-launch__badge { position: absolute; top: -4px; right: -4px; min-width: 20px; height: 20px; padding: 0 5px; border-radius: 10px;
+  background: #D97706; color: #fff; font-size: 11px; font-weight: 600; display: inline-flex; align-items: center; justify-content: center;
+  border: 2px solid #fff; animation: fi-pop .4s cubic-bezier(.2,1.6,.4,1) .3s both; }
+.fi-launch__ring { position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #D97706; opacity: 0; animation: fi-ring 1.6s ease-out .5s 2; }
+
+.fi-drawer { position: fixed; top: 76px; right: 16px; bottom: 16px; width: 404px; max-width: calc(100vw - 32px); z-index: 41; background: #fff;
+  border: 1px solid #e3e7ed; border-radius: 14px; box-shadow: 0 24px 60px rgba(10,36,114,.16); display: flex; flex-direction: column; overflow: hidden;
+  animation: fi-slide .38s cubic-bezier(.2,.8,.2,1) both; }
+.fi-drawer--out { animation: fi-slide-out .24s cubic-bezier(.4,0,1,1) both; }
+.fi-head { display: flex; align-items: center; gap: 8px; padding: 12px 14px; border-bottom: 1px solid #eef2f6; }
+.fi-head__title { font-size: 14px; font-weight: 600; color: #0A2472; }
+.fi-head__lane { font-size: 11.5px; color: #64708a; margin-top: 2px; }
+.fi-icon { width: 30px; height: 30px; border: none; border-radius: 8px; background: transparent; color: #64708a; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; transition: background .15s, color .15s; }
+.fi-icon:hover { background: #f1f4f9; color: #0A2472; }
+.fi-icon--spin svg { animation: fi-spin .8s linear infinite; }
+.fi-body { overflow: auto; padding: 4px 14px 14px; flex: 1; }
+.fi-sec { padding: 12px 0; border-bottom: 1px solid #f0f3f7; animation: fi-rise .45s cubic-bezier(.2,.8,.2,1) both; }
+.fi-sec:last-child { border-bottom: none; }
+.fi-label { font-size: 11px; font-weight: 600; letter-spacing: .4px; text-transform: uppercase; color: #0A2472; margin-bottom: 8px; display: flex; align-items: center; gap: 6px; }
+.fi-label__aside { margin-left: auto; text-transform: none; letter-spacing: 0; font-weight: 500; color: #64708a; }
+.fi-muted { font-size: 11.5px; color: #64708a; }
+
+.fi-kpis { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; }
+.fi-kpi { border: 1px solid #eef2f6; border-radius: 10px; padding: 9px 10px; }
+.fi-kpi__v { font-size: 17px; font-weight: 600; color: #111827; font-variant-numeric: tabular-nums; }
+.fi-kpi__l { font-size: 10.5px; color: #64708a; margin-top: 2px; }
+
+.fi-margin { display: grid; grid-template-columns: 120px 1fr; gap: 12px; align-items: center; }
+.fi-dial { width: 120px; height: 66px; overflow: visible; }
+.fi-dial__track { fill: none; stroke: #eef2f6; stroke-width: 9; stroke-linecap: round; }
+.fi-dial__fill { fill: none; stroke-width: 9; stroke-linecap: round; transition: stroke-dashoffset 1s cubic-bezier(.2,.8,.2,1); }
+.fi-dial__band { fill: none; stroke: #9aa8c4; stroke-width: 2.5; stroke-linecap: round; }
+.fi-dial__needle { stroke: #111827; stroke-width: 2; stroke-linecap: round; transition: all 1s cubic-bezier(.2,.8,.2,1); }
+.fi-dial__hub { fill: #111827; }
+.fi-verdict { font-size: 13px; font-weight: 600; }
+.fi-verdict__sub { font-size: 11.5px; color: #64708a; margin-top: 3px; line-height: 1.4; }
+
+.fi-range { margin-top: 10px; }
+.fi-range__track { position: relative; height: 8px; border-radius: 4px; background: #f1f4f9; }
+.fi-range__band { position: absolute; top: 0; bottom: 0; border-radius: 4px; background: #c9d4ea; transition: width .8s cubic-bezier(.2,.8,.2,1); }
+.fi-range__med { position: absolute; top: -3px; width: 2px; height: 14px; background: #0A2472; transition: opacity .4s .5s; }
+.fi-range__mark { position: absolute; top: -5px; width: 12px; height: 12px; margin-left: -6px; margin-top: 3px; border-radius: 50%; background: #fff;
+  border: 3px solid #D97706; transition: left .9s cubic-bezier(.2,.8,.2,1); }
+.fi-range__labels { display: flex; justify-content: space-between; font-size: 10.5px; color: #64708a; margin-top: 4px; font-variant-numeric: tabular-nums; }
+.fi-range__medlbl { color: #0A2472; }
+
+.fi-row { display: grid; grid-template-columns: 18px 46px 1fr 56px 62px 28px; gap: 6px; align-items: center; padding: 6px 0;
+  border-bottom: 1px solid #f4f6f9; font-size: 12px; animation: fi-rise .4s cubic-bezier(.2,.8,.2,1) both; transition: background .4s; }
+.fi-row--nocheck { grid-template-columns: 46px 1fr 56px 62px; }
+.fi-row--just { background: #ecf8f1; }
+.fi-row__code { font-weight: 600; color: #111827; }
+.fi-row__desc { color: #475064; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fi-row__tag { font-size: 10px; color: #0A2472; background: #eef2fb; border-radius: 4px; padding: 0 4px; margin-left: 4px; }
+.fi-row__amt { text-align: right; font-variant-numeric: tabular-nums; color: #111827; }
+.fi-st { width: 16px; height: 16px; border-radius: 50%; display: inline-flex; align-items: center; justify-content: center; transition: all .3s; }
+.fi-st--covered { background: #1F8A4C; color: #fff; animation: fi-pop .35s cubic-bezier(.2,1.6,.4,1) both; }
+.fi-st--missing { border: 2px solid #D97706; }
+.fi-st--optional { border: 2px dashed #c3cad6; }
+.fi-freq { display: block; height: 5px; border-radius: 3px; background: #f1f4f9; overflow: hidden; }
+.fi-freq__fill { display: block; height: 100%; border-radius: 3px; transition: width .9s cubic-bezier(.2,.8,.2,1); }
+.fi-add { width: 26px; height: 26px; border-radius: 7px; border: 1px solid #d6dce6; background: #fff; color: #0A2472; cursor: pointer;
+  display: inline-flex; align-items: center; justify-content: center; transition: all .15s; }
+.fi-add:hover { background: #0A2472; color: #fff; border-color: #0A2472; }
+.fi-add:disabled { opacity: .5; cursor: default; }
+.fi-addall { display: inline-flex; align-items: center; justify-content: center; width: 28px; height: 26px; border-radius: 7px; border: none;
+  background: #D97706; color: #fff; cursor: pointer; margin-left: 8px; }
+.fi-progress { font-size: 11.5px; color: #475064; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+.fi-progress__bar { display: block; flex: 1; height: 4px; border-radius: 2px; background: #f1f4f9; overflow: hidden; }
+.fi-progress__fill { display: block; height: 100%; background: #1F8A4C; transition: width .7s cubic-bezier(.2,.8,.2,1); }
+
+.fi-job { display: grid; grid-template-columns: 1fr auto auto; gap: 8px; padding: 6px 0; border-bottom: 1px solid #f4f6f9; font-size: 12px;
+  animation: fi-rise .4s cubic-bezier(.2,.8,.2,1) both; }
+.fi-job__main { min-width: 0; }
+.fi-job__cust { color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fi-chip { font-size: 10.5px; font-weight: 600; border-radius: 5px; padding: 1px 6px; font-variant-numeric: tabular-nums; }
+.fi-note { font-size: 11.5px; border-radius: 8px; padding: 8px 10px; background: #fff8eb; color: #8a5a10; margin-top: 8px; }
+.fi-skel { height: 12px; border-radius: 6px; margin: 9px 0; background: linear-gradient(90deg,#f1f4f9 25%,#e6ebf2 50%,#f1f4f9 75%); background-size: 200% 100%; animation: fi-shimmer 1.2s linear infinite; }
+.fi-foot { font-size: 10.5px; color: #8a94a6; padding: 10px 14px; border-top: 1px solid #eef2f6; line-height: 1.4; }
+
+@keyframes fi-slide { from { opacity: 0; transform: translateX(24px) scale(.98); } to { opacity: 1; transform: none; } }
+@keyframes fi-slide-out { to { opacity: 0; transform: translateX(24px) scale(.98); } }
+@keyframes fi-rise { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+@keyframes fi-pop { from { opacity: 0; transform: scale(.6); } to { opacity: 1; transform: none; } }
+@keyframes fi-ring { from { opacity: .7; transform: scale(1); } to { opacity: 0; transform: scale(1.5); } }
+@keyframes fi-spin { to { transform: rotate(360deg); } }
+@keyframes fi-shimmer { to { background-position: -200% 0; } }
+@media (prefers-reduced-motion: reduce) { .fi-drawer, .fi-sec, .fi-row, .fi-job, .fi-launch, .fi-launch__badge { animation: none !important; } }

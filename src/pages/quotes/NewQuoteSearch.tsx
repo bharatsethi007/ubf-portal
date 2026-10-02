@@ -475,6 +475,9 @@ export default function NewQuoteSearch() {
             mode={isAir ? 'air' : 'sea'}
             direction={draft.movement_type ?? null}
             incoterm={draft.incoterms ?? null}
+            loadType={isAir ? null : isLcl ? 'LCL' : 'FCL'}
+            customerId={party?.account_id ?? null}
+            customerName={party?.name ?? null}
           />
         )}
 

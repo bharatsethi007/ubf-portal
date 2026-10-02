@@ -20,7 +20,7 @@ import {
   type QuoteContainerDraft, type ContainerSize, type ContainerType,
 } from './quoteContainersApi'
 import {
-  fetchQuoteCargo, saveQuoteCargo, newQuoteCargoLine, type QuoteCargoLine,
+  fetchQuoteCargo, saveQuoteCargo, newQuoteCargoLine, computeCargoLine, type QuoteCargoLine,
 } from './quoteCargoApi'
 import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
@@ -172,6 +172,16 @@ export default function QuoteDetailPage() {
   const isAir = quoteIsAir(quote?.shipment_type ?? null, quote?.shipment_mode ?? null)
   const isLcl = quoteIsLcl(quote?.shipment_type ?? null)
   const usesCargoLines = isLcl || isAir
+  const [respKey, setRespKey] = useState(0)
+  const cargoSize = useMemo(() => {
+    if (usesCargoLines) {
+      let w = 0, v = 0
+      for (const l of cargoLines) { const c = computeCargoLine(l, isAir ? 'air' : 'sea'); w += c.grossTotal; v += c.totalCbm }
+      return { w: w || null, v: v || null }
+    }
+    const w = groups.reduce((s, g) => s + (g.qty || 0) * (g.weight_per_container_mt || 0) * 1000, 0)
+    return { w: w || null, v: null }
+  }, [usesCargoLines, cargoLines, groups, isAir])
 
   const dirty = useMemo(
     () => Boolean(fields && initial && JSON.stringify(fields) !== JSON.stringify(initial)),
@@ -535,7 +545,7 @@ export default function QuoteDetailPage() {
       </div>
 
       <div className="nqd-band">
-        <QuoteResponsesPanel quoteId={quote.id} />
+        <QuoteResponsesPanel key={respKey} quoteId={quote.id} />
         {quote.from_port_code && quote.to_port_code && (
           <FreightIntelligence
             from={quote.from_port_code}
@@ -543,6 +553,13 @@ export default function QuoteDetailPage() {
             mode={isAir ? 'air' : 'sea'}
             direction={fields.movement_type ?? null}
             incoterm={fields.incoterms ?? null}
+            loadType={isAir ? null : isLcl ? 'LCL' : 'FCL'}
+            quoteId={quote.id}
+            customerId={quote.customer_account_id ?? null}
+            customerName={quote.customer_name ?? null}
+            weightKg={cargoSize.w}
+            volumeM3={cargoSize.v}
+            onLinesChanged={() => setRespKey((k) => k + 1)}
             onAddNote={(line) => {
               const existing = fields.external_notes ?? ''
               const next = existing ? `${line}\n${existing}` : line
