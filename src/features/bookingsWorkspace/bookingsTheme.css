@@ -260,3 +260,15 @@
 .bk-record .data-table th { color: var(--bk-faint); background: #FCFCFD; }
 .bk-record .data-table td { border-bottom-color: var(--bk-line-soft); }
 .bk-record .text-link { color: var(--bk-blue); }
+
+/* Tracking automation auto-stop pills (PC = PortConnect, SL = shipping line) */
+.bk-root .import-sea-auto { display: inline-flex; align-items: center; justify-content: center; min-width: 22px; height: 17px; padding: 0 4px;
+  border-radius: 4px; border: 0; font-size: 9px; font-weight: 600; letter-spacing: .02em; line-height: 1; cursor: pointer; }
+.bk-root .import-sea-auto--done { background: #E8F6EE; color: #1F6B3E; box-shadow: inset 0 0 0 1px #BFE3CC; }
+.bk-root .import-sea-auto--cut { background: var(--bk-amber-soft); color: var(--bk-amber); box-shadow: inset 0 0 0 1px #FCD9A8; }
+.import-sea-auto-pop { width: 240px; padding: 12px; border-radius: 10px; }
+.import-sea-auto-pop__t { font-size: 13px; font-weight: 600; color: #111827; }
+.import-sea-auto-pop__s { font-size: 12px; color: #475064; margin-top: 3px; line-height: 1.4; }
+.import-sea-auto-pop__btn { width: 28px; height: 28px; border-radius: 7px; border: 1px solid #d6dce6; background: #fff; color: #0A2472;
+  display: inline-flex; align-items: center; justify-content: center; cursor: pointer; }
+.import-sea-auto-pop__btn:hover { background: #0A2472; color: #fff; border-color: #0A2472; }

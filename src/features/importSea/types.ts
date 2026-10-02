@@ -49,6 +49,11 @@ export type ImportSeaRow = {
   container_return_date: string | null
   portconnect_last_sync?: string | null
   portconnect_enabled?: boolean
+  /** Tracking automation auto-stop state (from booking_tracking). */
+  pc_auto_stopped_at?: string | null
+  pc_auto_stop_reason?: string | null
+  carrier_auto_stopped_at?: string | null
+  carrier_auto_stop_reason?: string | null
   delivery_mode?: string | null
   hold_reason: string | null
   hold_code: string | null

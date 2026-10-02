@@ -1,12 +1,37 @@
 import { supabase } from '../../supabase'
 import type { ImportSeaBookingPatch, ImportSeaRow } from './types'
 
+type AutoStop = Pick<ImportSeaRow, 'pc_auto_stopped_at' | 'pc_auto_stop_reason' | 'carrier_auto_stopped_at' | 'carrier_auto_stop_reason'>
+
+/** Auto-stop state lives on booking_tracking; only stopped bookings come back, so this stays small. */
+async function fetchAutoStops(bookingId?: string): Promise<Map<string, AutoStop>> {
+  let q = supabase
+    .from('booking_tracking')
+    .select('booking_id, pc_auto_stopped_at, pc_auto_stop_reason, carrier_auto_stopped_at, carrier_auto_stop_reason')
+    .or('pc_auto_stopped_at.not.is.null,carrier_auto_stopped_at.not.is.null')
+  if (bookingId) q = q.eq('booking_id', bookingId)
+  const { data } = await q
+  const out = new Map<string, AutoStop>()
+  for (const r of (data ?? []) as (AutoStop & { booking_id: string })[]) {
+    const { booking_id, ...rest } = r
+    out.set(booking_id, rest)
+  }
+  return out
+}
+
 export async function fetchImportSeaBoard(includeArchived = false): Promise<ImportSeaRow[]> {
-  const { data, error } = await supabase.rpc('get_import_sea_board', {
-    p_include_archived: includeArchived,
-  })
+  const [{ data, error }, stops] = await Promise.all([
+    supabase.rpc('get_import_sea_board', { p_include_archived: includeArchived }),
+    fetchAutoStops().catch(() => new Map<string, AutoStop>()),
+  ])
   if (error) throw error
-  return ((data ?? []) as ImportSeaRow[]).map(normalizeImportSeaRow)
+  return ((data ?? []) as ImportSeaRow[]).map((r) => ({ ...normalizeImportSeaRow(r), ...stops.get(r.id) }))
+}
+
+/** Staff restart of an auto-stopped refresh; the automation picks it up on its next run. */
+export async function restartTrackingAutomation(bookingId: string, kind: 'portconnect' | 'carrier'): Promise<void> {
+  const { error } = await supabase.rpc('import_sea_tracking_restart', { p_booking: bookingId, p_kind: kind })
+  if (error) throw error
 }
 
 function normalizeImportSeaRow(row: ImportSeaRow): ImportSeaRow {
@@ -33,7 +58,9 @@ export async function fetchImportSeaBoardRow(bookingId: string): Promise<ImportS
   })
   if (error) throw error
   const row = (data as ImportSeaRow[] | null)?.[0]
-  return row ? normalizeImportSeaRow(row) : null
+  if (!row) return null
+  const stops = await fetchAutoStops(bookingId).catch(() => new Map<string, AutoStop>())
+  return { ...normalizeImportSeaRow(row), ...stops.get(row.id) }
 }
 
 export async function updateImportSeaBooking(

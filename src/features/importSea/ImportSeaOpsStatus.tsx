@@ -5,6 +5,7 @@ import {
 } from '@/components/ui/tooltip'
 import { clearancePillState } from '@/features/clearance/clearanceLayers'
 import type { ImportSeaRow } from './types'
+import AutoTrackPills from './cells/AutoTrackPills'
 
 const OPS_STEPS = [
   { key: 'swb_released', label: 'SWB' },
@@ -64,6 +65,7 @@ export default function ImportSeaOpsStatus({ row }: Props) {
       <span className={row.truck_booked ? 'import-sea-ops__on' : 'import-sea-ops__off'}>
         TRK
       </span>
+      <AutoTrackPills row={row} />
     </span>
   )
 }
