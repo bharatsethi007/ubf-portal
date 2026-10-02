@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Check, AlertTriangle, ArrowRight, Mail, MessageCircle, MonitorSmartphone, User, Ship, Building2, Anchor } from 'lucide-react'
+import { Check, AlertTriangle, ArrowRight, Mail, MessageCircle, MonitorSmartphone, User, Ship, Building2, Anchor, Sparkles, ChevronDown } from 'lucide-react'
 import { dmy, type BookingProgress, type Milestone } from './progressApi'
 import { actionPlan, type GotoTarget } from './actionPlan'
 import CustomerUpdateDialog from './CustomerUpdateDialog'
@@ -41,6 +41,8 @@ export default function BookingProgressPanel({ progress: p, variant = 'wide', co
   const [channel, setChannel] = useState<Channel | undefined>(undefined)
   const open = (t: TemplateKey, ch?: Channel) => { setChannel(ch); setDialog(t) }
   const [fill, setFill] = useState(0)
+  const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem(`bp-collapsed-${variant}`) === '1' } catch { return false } })
+  const toggle = () => setCollapsed((c) => { try { localStorage.setItem(`bp-collapsed-${variant}`, c ? '0' : '1') } catch { /* ignore */ } return !c })
   const plan = actionPlan(p)
   const vesselName = vessel ?? p.milestones.find((m) => m.key === 'arrived')?.note ?? null
   const currentIdx = p.milestones.findIndex((m) => !m.done)
@@ -56,42 +58,59 @@ export default function BookingProgressPanel({ progress: p, variant = 'wide', co
   const defaultTpl: TemplateKey = plan.customer?.template ?? (plan.primary?.kind === 'notify' ? plan.primary.template : 'status')
 
   return (
-    <section className={`bp bp--${variant}`}>
+    <section className={`bp bp--${variant}${collapsed ? ' bp--collapsed' : ''}`}>
       <div className="bp-top">
-        <div className="bp-count"><b>{p.done}</b> of {p.total} done</div>
+        <div className="bp-count">{p.done} of {p.total} done</div>
         <div className="bp-bar">{p.milestones.map((m, i) => <Seg key={m.key} m={m} i={i} current={i === currentIdx} />)}</div>
         <div className="bp-pct">{fill}%</div>
+        <button type="button" className="bp-toggle" onClick={toggle} title={collapsed ? 'Expand' : 'Collapse'} aria-label={collapsed ? 'Expand progress' : 'Collapse progress'} aria-expanded={!collapsed}>
+          <ChevronDown size={15} />
+        </button>
       </div>
 
-      {variant === 'wide' ? (
-        <div className="bp-track">{p.milestones.map((m, i) => <Step key={m.key} m={m} current={i === currentIdx} />)}</div>
-      ) : left.length > 0 ? (
-        <div className="bp-left">
-          <span className="bp-left__k">Left</span>
-          {left.slice(0, 4).map((m) => <span key={m.key} className={`bp-chip bp-chip--${m.state}`}>{m.label}</span>)}
-          {left.length > 4 && <span className="bp-chip">+{left.length - 4}</span>}
+      {collapsed ? (
+        <div className="bp-mini">
+          <span className="bp-ai__icon bp-ai__icon--sm"><Sparkles size={11} /></span>
+          <span className="bp-mini__t">{plan.title}</span>
+          {plan.why && <span className="bp-mini__w">· {plan.why}</span>}
+          {p.action_due && p.next_action ? <span className={`bp-due bp-due--${plan.tone}`}>{dueText(p)}</span> : null}
+          {plan.primary && <button type="button" className="bp-mini__go" onClick={runPrimary}>{plan.primary.label} <ArrowRight size={12} /></button>}
         </div>
-      ) : null}
+      ) : (
+        <div className="bp-body">
+          {variant === 'wide' ? (
+            <div className="bp-track">{p.milestones.map((m, i) => <Step key={m.key} m={m} current={i === currentIdx} />)}</div>
+          ) : left.length > 0 ? (
+            <div className="bp-left">
+              <span className="bp-left__k">Left</span>
+              {left.slice(0, 4).map((m) => <span key={m.key} className={`bp-chip bp-chip--${m.state}`}>{m.label}</span>)}
+              {left.length > 4 && <span className="bp-chip">+{left.length - 4}</span>}
+            </div>
+          ) : null}
 
-      <div className={`bp-next bp-next--${plan.tone}`}>
-        <div className="bp-next__body">
-          <div className="bp-next__t">{plan.title}{p.action_due && p.next_action ? <span className={`bp-due bp-due--${plan.tone}`}>{dueText(p)}</span> : null}</div>
-          {plan.why && <div className="bp-next__w">{plan.why}</div>}
-          {plan.customer && (
-            <button type="button" className="bp-suggest" onClick={() => open(plan.customer!.template)}>
-              <ArrowRight size={12} /> Suggested: {plan.customer.label}
-            </button>
-          )}
-        </div>
-        <div className="bp-next__cta">
-          {plan.primary && <button type="button" className="bp-primary" onClick={runPrimary}>{plan.primary.label}</button>}
-          <div className="bp-ch">
-            <button type="button" className="bp-ib" title="Email customer" aria-label="Email customer" onClick={() => open(defaultTpl, 'email')}><Mail size={15} /></button>
-            <button type="button" className="bp-ib" title="WhatsApp customer" aria-label="WhatsApp customer" onClick={() => open(defaultTpl, 'whatsapp')}><MessageCircle size={15} /></button>
-            <button type="button" className="bp-ib" title="Post to customer portal" aria-label="Post to customer portal" onClick={() => open(defaultTpl, 'portal')}><MonitorSmartphone size={15} /></button>
+          <div className={`bp-ai bp-ai--${plan.tone}`}>
+            <span className="bp-ai__icon"><Sparkles size={14} /></span>
+            <div className="bp-ai__body">
+              <div className="bp-ai__k">UBF Intelligence{plan.title !== toneLabel(plan.tone) && <><span className={`bp-ai__dot bp-ai__dot--${plan.tone}`} />{toneLabel(plan.tone)}</>}</div>
+              <div className="bp-ai__t">{plan.title}{p.action_due && p.next_action ? <span className={`bp-due bp-due--${plan.tone}`}>{dueText(p)}</span> : null}</div>
+              {plan.why && <div className="bp-ai__w">{plan.why}</div>}
+              {plan.customer && (
+                <button type="button" className="bp-suggest" onClick={() => open(plan.customer!.template)}>
+                  Suggested: {plan.customer.label} <ArrowRight size={12} />
+                </button>
+              )}
+            </div>
+            <div className="bp-next__cta">
+              {plan.primary && <button type="button" className="bp-primary" onClick={runPrimary}>{plan.primary.label}</button>}
+              <div className="bp-ch">
+                <button type="button" className="bp-ib" title="Email customer" aria-label="Email customer" onClick={() => open(defaultTpl, 'email')}><Mail size={15} /></button>
+                <button type="button" className="bp-ib" title="WhatsApp customer" aria-label="WhatsApp customer" onClick={() => open(defaultTpl, 'whatsapp')}><MessageCircle size={15} /></button>
+                <button type="button" className="bp-ib" title="Post to customer portal" aria-label="Post to customer portal" onClick={() => open(defaultTpl, 'portal')}><MonitorSmartphone size={15} /></button>
+              </div>
+            </div>
           </div>
         </div>
-      </div>
+      )}
 
       {dialog && (
         <CustomerUpdateDialog open onClose={() => setDialog(null)} progress={p} initialTemplate={dialog} channel={channel}
@@ -99,6 +118,10 @@ export default function BookingProgressPanel({ progress: p, variant = 'wide', co
       )}
     </section>
   )
+}
+
+function toneLabel(t: string): string {
+  return t === 'red' ? 'Needs attention' : t === 'amber' ? 'Watch' : t === 'blue' ? 'Next step' : 'On track'
 }
 
 function dueText(p: BookingProgress): string {
