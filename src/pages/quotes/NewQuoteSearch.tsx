@@ -17,6 +17,7 @@ import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLin
 import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft } from './quoteContainersApi'
 import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponsesApi'
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
+import { cartageResponseLines, withExtraLines } from './rateOptionCartage'
 import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
 import { buildBuyLinesFromOption, createQuoteWithAirBuyRates, createQuoteWithBuyRates, createQuoteWithLclBuyRates } from '../rates/quoteFromRate'
 import { searchLclRates, type LclRateOption, type LclQuoteLane } from '../rates/lclRateSearchApi'
@@ -245,9 +246,13 @@ export default function NewQuoteSearch() {
             if (!cancelled) {
               if (merged.length) {
                 setCourier({ leg: leg.side, options: merged })
-                setCourierIdx(0)
-                const o = merged[0]
-                setCartage({ leg: leg.side, label: o.carrier === 'UBF' ? 'Cartage' : `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'UBF' ? 'ubf' : o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
+                // Auckland LTL: UBF trucks it whenever our own rate exists; elsewhere cheapest wins.
+                const isAkl = ['NZAKL', 'AKL'].includes((leg.port ?? '').toUpperCase())
+                const ubfIdx = merged.findIndex((x) => x.carrier === 'UBF')
+                const pick = isAkl && ubfIdx >= 0 ? ubfIdx : 0
+                setCourierIdx(pick)
+                const o = merged[pick]
+                setCartage({ leg: leg.side, label: o.carrier === 'UBF' ? 'Cartage' : `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, cost: o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'UBF' ? 'ubf' : o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
               } else {
                 setCartage({ leg: leg.side, label: leg.label, amount: 0, confidence: conf, status })
               }
@@ -342,7 +347,7 @@ export default function NewQuoteSearch() {
     return buildBuyLinesFromOption(o, groups.map((g) => ({ size: g.container_size, qty: g.qty })))
   }
 
-  async function handleCreate(chosen?: RateOption) {
+  async function handleCreate(chosen?: RateOption, opts?: { cartage: boolean }) {
     if (!customer) { toast.error('Enter a customer/agent first to create a quote'); return }
     setBusyId(chosen?.cardId ?? '__plain__')
     try {
@@ -358,7 +363,7 @@ export default function NewQuoteSearch() {
       if (isLcl) { await updateQuote(id, { cargo_entry_mode: lclMode }); await saveQuoteCargo(id, lclLines, 'sea') }
       if (chosen) {
         const { id: responseId } = await createQuoteResponse(id)
-        await saveQuoteResponseLines(responseId, buildBuyLines(chosen))
+        await saveQuoteResponseLines(responseId, withExtraLines(buildBuyLines(chosen), opts?.cartage ? cartageResponseLines(cardCartage) : []))
         if (chosen.currency) await updateQuoteResponseHeader(responseId, { currency: chosen.currency })
       }
       toast.success(chosen ? 'Quote created with buy rates' : 'Quote created')
@@ -384,6 +389,7 @@ export default function NewQuoteSearch() {
         option: o,
         movement: draft.movement_type ?? null,
         incoterm: draft.incoterms ?? null,
+        extraLines: cartageResponseLines(cardCartage),
       })
       await updateQuote(quoteId, { cargo_entry_mode: lclMode, pickup_address: draft.pickup_address ?? null, drop_address: draft.drop_address ?? null })
       await saveQuoteCargo(quoteId, lclLines, 'sea')
@@ -414,6 +420,7 @@ export default function NewQuoteSearch() {
         agentId: agent?.agentId ?? null,
         agentName: agent?.name ?? null,
         freightTerms,
+        extraLines: !selectedKeys || selectedKeys.includes('cartage') ? cartageResponseLines(cardCartage) : [],
       })
       toast.success('Quote created with air buy rates')
       navigate(`/quotes/${quoteId}`)
@@ -439,7 +446,7 @@ export default function NewQuoteSearch() {
     if (!courier) return
     setCourierIdx(i)
     const o = courier.options[i]
-    setCartage({ leg: courier.leg, label: o.carrier === 'UBF' ? 'Cartage' : `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'UBF' ? 'ubf' : o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
+    setCartage({ leg: courier.leg, label: o.carrier === 'UBF' ? 'Cartage' : `Cartage${o.service ? ' \u00b7 ' + o.service : ''}`, amount: o.charge || o.cost, cost: o.cost, confidence: 'green', status: 'ok', source: o.carrier === 'UBF' ? 'ubf' : o.carrier === 'Bascik' ? 'bascik' : 'gss', carrier: o.carrier })
     setCourierPopup(false)
   }
   const cardCartage: RateOptionCartage | undefined = cartage && cartage.status === 'ok'
@@ -643,7 +650,7 @@ export default function NewQuoteSearch() {
                       <LclRateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={() => handleCreateLcl(o)} busy={busyId === o.cardId} cartage={cardCartage ?? undefined} fxRates={fxRates} />
                     ))
                   : options.map((o) => (
-                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel) => handleCreate(sel)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} cartage={cardCartage ?? undefined} />
+                      <RateOptionCard key={o.cardId} option={o} fromCode={draft.from_port_code ?? ''} toCode={draft.to_port_code ?? ''} onUse={(sel, opts) => handleCreate(sel, opts)} busy={busyId === o.cardId} fxRates={fxRates} containers={groups.map((g) => ({ size: g.container_size, qty: g.qty }))} incoterm={draft.incoterms ?? ''} movement={draft.movement_type ?? ''} cartage={cardCartage ?? undefined} />
                     ))}
                 {officeTips.length > 0 && (
                   <div style={{ background: '#eff6ff', border: '1px solid #bfdbfe', borderRadius: 10, padding: '12px 14px', display: 'flex', flexDirection: 'column', gap: 10 }}>

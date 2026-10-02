@@ -7,6 +7,7 @@ import { createQuoteResponse, updateQuoteResponseHeader } from '../quotes/quoteR
 import { containerTotals, normSize, type RateOption } from './rateSearchApi'
 import type { LclRateOption } from './lclRateSearchApi'
 import type { AirRateOption } from './airRateSearchApi'
+import { withExtraLines } from '../quotes/rateOptionCartage'
 
 export function buildBuyLinesFromOption(o: RateOption, containers: { size: string; qty: number }[]): QuoteResponseLine[] {
   const { qtyByCode } = containerTotals(containers)
@@ -169,6 +170,7 @@ export async function createQuoteWithLclBuyRates(args: {
   option: LclRateOption
   movement?: string | null
   incoterm?: string | null
+  extraLines?: QuoteResponseLine[]  // e.g. chosen cartage
 }): Promise<{ quoteId: string }> {
   const draft = {
     ...emptyQuoteDraft(),
@@ -185,7 +187,7 @@ export async function createQuoteWithLclBuyRates(args: {
   const { id: quoteId } = await createQuote(draft)
   // LCL: no container groups
   const { id: responseId } = await createQuoteResponse(quoteId)
-  await saveQuoteResponseLines(responseId, buildLclBuyLinesFromOption(args.option))
+  await saveQuoteResponseLines(responseId, withExtraLines(buildLclBuyLinesFromOption(args.option), args.extraLines))
   await updateQuoteResponseHeader(responseId, {
     ...(args.option.currency ? { currency: args.option.currency } : {}),
     carrier: args.option.coLoaderName || null,
@@ -272,6 +274,7 @@ export async function createQuoteWithAirBuyRates(args: {
   agentId?: string | null
   agentName?: string | null
   freightTerms?: string | null
+  extraLines?: QuoteResponseLine[]  // e.g. chosen cartage
 }): Promise<{ quoteId: string }> {
   const draft = {
     ...emptyQuoteDraft(),
@@ -292,7 +295,7 @@ export async function createQuoteWithAirBuyRates(args: {
   await updateQuote(quoteId, { cargo_entry_mode: args.cargoEntryMode })
   await saveQuoteCargo(quoteId, args.cargoLines, 'air')
   const { id: responseId } = await createQuoteResponse(quoteId)
-  await saveQuoteResponseLines(responseId, buildAirBuyLinesFromOption(args.option, args.selectedKeys))
+  await saveQuoteResponseLines(responseId, withExtraLines(buildAirBuyLinesFromOption(args.option, args.selectedKeys), args.extraLines))
   await updateQuoteResponseHeader(responseId, {
     ...(args.option.currency ? { currency: args.option.currency } : {}),
     carrier: args.option.airlineName || null,

@@ -68,8 +68,9 @@ export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, 
       <div style={{ padding: '14px 18px', display: 'flex', alignItems: 'center', gap: 16 }}>
         <button type="button" onClick={() => setOpen((v) => !v)} style={{ flex: 1, minWidth: 0, textAlign: 'left', border: 'none', background: 'transparent', cursor: 'pointer', padding: 0 }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 10, flexWrap: 'wrap' }}>
-            {o.coLoaderLogo && <img src={o.coLoaderLogo} alt={o.coLoaderName} title={o.coLoaderName} style={{ height: 22, maxWidth: 140, objectFit: 'contain' }} />}
-            <span style={{ fontWeight: 600, fontSize: 15 }}>{o.coLoaderName}</span>
+            {o.coLoaderLogo
+              ? <img src={o.coLoaderLogo} alt={o.coLoaderName} title={o.coLoaderName} style={{ height: 24, maxWidth: 150, objectFit: 'contain' }} />
+              : <span style={{ fontWeight: 600, fontSize: 15 }}>{o.coLoaderName}</span>}
             <span style={{ fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.4, padding: '2px 8px', borderRadius: 999, background: 'rgba(10,36,114,0.08)', color: '#0A2472' }}>{o.status}</span>
             <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, fontSize: 12, color: 'var(--muted-foreground)' }}>
               <Package size={13} /> {o.wm.toLocaleString()} w/m @ {wmRate(o.ratePerWm, o.currency)}

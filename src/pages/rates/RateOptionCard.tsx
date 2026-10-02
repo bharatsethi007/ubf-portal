@@ -34,7 +34,7 @@ type Props = {
   option: RateOption
   fromCode: string
   toCode: string
-  onUse?: (selected: RateOption) => void
+  onUse?: (selected: RateOption, opts?: { cartage: boolean }) => void
   busy?: boolean
   fxRates?: FxRates
   containers?: { size: string; qty: number }[]
@@ -115,7 +115,7 @@ export default function RateOptionCard({ option: o, fromCode, toCode, onUse, bus
       surcharges: o.surcharges.filter((_, i) => isOn(`s:${i}`, legDefault('freight'))),
       localCharges: o.localCharges.filter((c, i) => isOn(`l:${i}`, legDefault(c.group === 'dest' ? 'dest' : 'origin'))),
     }
-    onUse(filtered)
+    onUse(filtered, { cartage: !!cartage && cartage.status === 'ok' && cartage.amount > 0 && isOn('cartage', legDefault(cartage.leg)) })
   }
 
   function payerBubble(leg: LegKey) {
