@@ -138,3 +138,5 @@
 .fi-sail__v { color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .fi-sail__d { color: #475064; font-variant-numeric: tabular-nums; }
 @media (prefers-reduced-motion: reduce) { .fi-sail { animation: none !important; } }
+.fi-cart { align-items: flex-start; margin-bottom: 6px; }
+.fi-cart .fi-add { flex-shrink: 0; align-self: center; }

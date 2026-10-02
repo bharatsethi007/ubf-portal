@@ -95,6 +95,16 @@ export function groupFor(c: IntelCharge, direction: string | null): string {
   return (direction ?? '').startsWith('imp') ? 'destination' : 'origin'
 }
 
+/** Appends ready-made lines to the current option (creates a draft option if none). */
+export async function addLinesToQuote(quoteId: string, option: IntelOption | null, extra: QuoteResponseLine[]): Promise<string> {
+  const responseId = option?.id ?? (await createQuoteResponse(quoteId)).id
+  const existing = option ? await fetchQuoteResponseLines(responseId) : []
+  const all = [...existing, ...extra.map((l, i) => ({ ...l, ord: existing.length + i }))]
+  await saveQuoteResponseLines(responseId, all)
+  await updateResponseTotals(responseId, computeResponseTotals(all))
+  return responseId
+}
+
 /** Appends lane-median charges to the current option (creates a draft option if none). */
 export async function addChargesToQuote(
   quoteId: string, option: IntelOption | null, charges: IntelCharge[], direction: string | null,

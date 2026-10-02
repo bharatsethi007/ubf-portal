@@ -559,6 +559,7 @@ export default function QuoteDetailPage() {
             customerName={quote.customer_name ?? null}
             weightKg={cargoSize.w}
             volumeM3={cargoSize.v}
+            containers={isAir || isLcl ? [] : groups.map((g) => ({ size: g.container_size.startsWith('40') ? '40' as const : '20' as const, qty: g.qty || 0, kgPer: (g.weight_per_container_mt || 0) * 1000 }))}
             onLinesChanged={() => setRespKey((k) => k + 1)}
             onAddNote={(line) => {
               const existing = fields.external_notes ?? ''

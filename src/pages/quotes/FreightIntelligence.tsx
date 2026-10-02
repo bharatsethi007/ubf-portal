@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react'
 import { Sparkles, X, RefreshCw, History } from 'lucide-react'
 import { toast } from 'sonner'
-import { addChargesToQuote, type IntelQuery } from './intel/laneIntelApi'
+import { addChargesToQuote, addLinesToQuote, type IntelQuery } from './intel/laneIntelApi'
 import { checkCharges } from './intel/chargeMatch'
 import { useLaneIntel, nzd } from './intel/useLaneIntel'
 import IntelCharges from './intel/IntelCharges'
@@ -14,6 +14,10 @@ import IntelSignals from './intel/IntelSignals'
 import IntelSailings from './intel/IntelSailings'
 import { buildChecks, legsView } from './intel/quoteChecks'
 import { buildSignals } from './intel/signals'
+import IntelCartage from './intel/IntelCartage'
+import { useCartageSuggest } from './intel/useCartageSuggest'
+import type { FclUnit } from './intel/cartageSuggest'
+import { cartageResponseLines } from './rateOptionCartage'
 import type { QuoteFacts } from './intel/factsApi'
 import './intel/laneIntel.css'
 
@@ -29,6 +33,7 @@ type Props = {
   customerName?: string | null
   weightKg?: number | null
   volumeM3?: number | null
+  containers?: FclUnit[]           // FCL groups, for cartage pricing
   onAddNote?: (line: string) => void
   onLinesChanged?: () => void      // remount the responses panel after we add lines
 }
@@ -70,8 +75,13 @@ export default function FreightIntelligence(p: Props) {
     kind, option: checking ? option : null, rates, otherRates, credit, customerName: p.customerName ?? null,
     checks, cbm: p.volumeM3 ?? null, kg: p.weightKg ?? null,
   }), [kind, checking, option, rates, otherRates, credit, p.customerName, checks, p.volumeM3, p.weightKg])
+  const cartLeg = (merged.movement_type ?? '').toLowerCase() === 'export' ? 'origin' : 'dest'
+  const cartage = useCartageSuggest(checking && option && facts && laneReady ? {
+    kind, from: p.from!, to: p.to!, facts: merged, legBilled: !!scope.find((l) => l.key === cartLeg)?.billed || !scope.some((l) => l.payer),
+    lines: option.lines, kg: p.weightKg ?? null, cbm: p.volumeM3 ?? null, fcl: p.containers ?? [],
+  } : null)
   const likelyMissing = checking ? rows.filter((r) => r.status === 'missing' && (r.pct >= 60 || (r.onCustomer && r.pct >= 30))).length : 0
-  const missing = likelyMissing + signals.filter((x) => x.level === 'warn').length
+  const missing = likelyMissing + signals.filter((x) => x.level === 'warn').length + (cartage?.status === 'ok' ? 1 : 0)
 
   if (!laneReady) return null
 
@@ -89,6 +99,18 @@ export default function FreightIntelligence(p: Props) {
       if (option && option.currency !== 'NZD') toast.warning(`Option is in ${option.currency}. Added lines are NZD, check ex rate.`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not add charges')
+    }
+  }
+
+  async function addCartage() {
+    if (!p.quoteId || cartage?.status !== 'ok') return
+    try {
+      await addLinesToQuote(p.quoteId, option, cartageResponseLines(cartage.cartage))
+      await reloadOption()
+      p.onLinesChanged?.()
+      toast.success(`Added cartage $${Math.round(cartage.cartage.amount).toLocaleString()} (${cartage.cartage.carrier ?? 'UBF'}).`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not add cartage')
     }
   }
 
@@ -135,7 +157,8 @@ export default function FreightIntelligence(p: Props) {
           </div>
         )}
 
-        <IntelSignals signals={signals} quiet={checking && !loading} />
+        {cartage && <div className="fi-sec" style={{ paddingBottom: 0, borderBottom: 'none' }}><IntelCartage s={cartage} canAdd={checking} onAdd={addCartage} /></div>}
+        <IntelSignals signals={signals} quiet={checking && !loading && cartage?.status !== 'ok'} />
         {intel && intel.jobs > 0 && checking && option && <IntelMargin intel={intel} option={option} />}
         {intel && intel.jobs > 0 && rows.length > 0 && <IntelCharges rows={rows} checking={checking} onAdd={add} />}
         <IntelScope incoterm={merged.incoterms} movement={merged.movement_type} legs={scope} />
