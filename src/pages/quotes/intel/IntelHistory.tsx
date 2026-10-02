@@ -23,7 +23,7 @@ export default function IntelHistory({ intel, customerName }: { intel: LaneIntel
       {intel.similar.length > 0 && (
         <div className="fi-sec" style={{ animationDelay: '.24s' }}>
           <div className="fi-label">Similar past jobs<span className="fi-label__aside">sell · GP</span></div>
-          {intel.similar.map((j, i) => (
+          {intel.similar.slice(0, 3).map((j, i) => (
             <div key={`${j.jobNo}-${i}`} className="fi-job" style={{ animationDelay: `${0.26 + i * 0.05}s` }}>
               <div className="fi-job__main">
                 <div className="fi-job__cust">{j.customer || '-'}{j.sameCustomer && <span className="fi-row__tag">same customer</span>}</div>

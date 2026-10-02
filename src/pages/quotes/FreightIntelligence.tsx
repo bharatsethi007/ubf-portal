@@ -1,7 +1,6 @@
 import { useMemo, useState } from 'react'
 import { Sparkles, X, RefreshCw, History } from 'lucide-react'
 import { toast } from 'sonner'
-import { incotermDescription } from './freightIntelligenceApi'
 import { addChargesToQuote, type IntelQuery } from './intel/laneIntelApi'
 import { checkCharges } from './intel/chargeMatch'
 import { useLaneIntel, nzd } from './intel/useLaneIntel'
@@ -9,6 +8,13 @@ import IntelCharges from './intel/IntelCharges'
 import { IntelKpis, IntelMargin } from './intel/IntelSummary'
 import IntelHistory from './intel/IntelHistory'
 import IntelDutyCheck from './intel/IntelDutyCheck'
+import IntelScope from './intel/IntelScope'
+import IntelRates from './intel/IntelRates'
+import IntelSignals from './intel/IntelSignals'
+import IntelSailings from './intel/IntelSailings'
+import { buildChecks, legsView } from './intel/quoteChecks'
+import { buildSignals } from './intel/signals'
+import type { QuoteFacts } from './intel/factsApi'
 import './intel/laneIntel.css'
 
 type Props = {
@@ -27,6 +33,13 @@ type Props = {
   onLinesChanged?: () => void      // remount the responses panel after we add lines
 }
 
+const EMPTY_FACTS: QuoteFacts = {
+  incoterms: null, movement_type: null, service_type: null, agent_id: null, freight_terms: null,
+  pickup_address: null, pickup_postal_code: null, pickup_location: null, drop_address: null, drop_postal_code: null, drop_location: null,
+  shipper: null, consignee: null, need_insurance: false, cargo_value: null, is_hazardous: false, dg_un_number: null, dg_class: null,
+  need_refrigeration: false, reefer_temp_c: null,
+}
+
 export default function FreightIntelligence(p: Props) {
   const [open, setOpen] = useState(false)
   const [closing, setClosing] = useState(false)
@@ -38,11 +51,27 @@ export default function FreightIntelligence(p: Props) {
     customerId: p.customerId ?? null, weightKg: p.weightKg ?? null, volumeM3: p.volumeM3 ?? null, months,
   } : null), [laneReady, p.from, p.to, p.mode, p.direction, p.loadType, p.customerId, p.weightKg, p.volumeM3, months])
 
-  const { intel, option, loading, error, reload, reloadOption } = useLaneIntel(query, p.quoteId ?? null, open)
+  const kind = p.mode === 'air' ? 'air' : p.loadType === 'LCL' ? 'lcl' : 'fcl'
+  const { intel, rates, otherRates, sailings, credit, option, facts, loading, error, reload, reloadOption } = useLaneIntel(query, p.quoteId ?? null, open, laneReady ? kind : null)
   const checking = !!p.quoteId
   const rows = useMemo(() => checkCharges(intel?.charges ?? [], checking ? option?.lines ?? [] : null, intel?.customer?.codes ?? []),
     [intel, option, checking])
-  const missing = checking ? rows.filter((r) => r.status === 'missing').length : 0
+
+  // Live props win over the last saved quote row (autosave lags a few seconds).
+  const merged = useMemo<QuoteFacts>(() => ({
+    ...(facts ?? EMPTY_FACTS), incoterms: p.incoterm ?? facts?.incoterms ?? null, movement_type: p.direction ?? facts?.movement_type ?? null,
+  }), [facts, p.incoterm, p.direction])
+  const scope = useMemo(() => legsView(merged, checking ? option?.lines ?? [] : null).view, [merged, option, checking])
+  const checks = useMemo(() => {
+    const all = buildChecks(merged, checking ? option?.lines ?? null : null)
+    return checking ? all : all.filter((c) => ['inco', 'mv', 'nolegs', 'ddp'].includes(c.id))
+  }, [merged, option, checking])
+  const signals = useMemo(() => buildSignals({
+    kind, option: checking ? option : null, rates, otherRates, credit, customerName: p.customerName ?? null,
+    checks, cbm: p.volumeM3 ?? null, kg: p.weightKg ?? null,
+  }), [kind, checking, option, rates, otherRates, credit, p.customerName, checks, p.volumeM3, p.weightKg])
+  const likelyMissing = checking ? rows.filter((r) => r.status === 'missing' && (r.pct >= 60 || (r.onCustomer && r.pct >= 30))).length : 0
+  const missing = likelyMissing + signals.filter((x) => x.level === 'warn').length
 
   if (!laneReady) return null
 
@@ -66,14 +95,13 @@ export default function FreightIntelligence(p: Props) {
   if (!open) {
     return (
       <button type="button" className="fi-launch" onClick={() => setOpen(true)} aria-label="Freight Intelligence"
-        title={missing ? `Freight Intelligence: ${missing} usual charge${missing === 1 ? '' : 's'} missing` : 'Freight Intelligence'}>
+        title={missing ? `Freight Intelligence: ${missing} item${missing === 1 ? '' : 's'} to review` : 'Freight Intelligence'}>
         <Sparkles size={22} />
         {missing > 0 && <><span className="fi-launch__ring" /><span className="fi-launch__badge">{missing}</span></>}
       </button>
     )
   }
 
-  const incoDesc = incotermDescription(p.incoterm)
   const laneLine = [`${p.from} → ${p.to}`, p.mode === 'air' ? 'Air' : p.loadType ?? 'Sea', p.direction ? p.direction[0].toUpperCase() + p.direction.slice(1) : null, `${months} mo`]
     .filter(Boolean).join(' · ')
 
@@ -107,25 +135,18 @@ export default function FreightIntelligence(p: Props) {
           </div>
         )}
 
-        {intel && intel.jobs > 0 && (
-          <>
-            <IntelKpis intel={intel} />
-            {checking && option && <IntelMargin intel={intel} option={option} />}
-            {rows.length > 0 && <IntelCharges rows={rows} checking={checking} canAdd={checking} onAdd={add} />}
-            <IntelHistory intel={intel} customerName={p.customerName ?? null} />
-          </>
-        )}
-
-        {incoDesc && (
-          <div className="fi-sec" style={{ animationDelay: '.28s' }}>
-            <div className="fi-label">Incoterm · {(p.incoterm || '').toUpperCase()}</div>
-            <div style={{ fontSize: 12, lineHeight: 1.5, color: '#475064' }}>{incoDesc}</div>
-          </div>
-        )}
+        <IntelSignals signals={signals} quiet={checking && !loading} />
+        {intel && intel.jobs > 0 && checking && option && <IntelMargin intel={intel} option={option} />}
+        {intel && intel.jobs > 0 && rows.length > 0 && <IntelCharges rows={rows} checking={checking} onAdd={add} />}
+        <IntelScope incoterm={merged.incoterms} movement={merged.movement_type} legs={scope} />
+        {rates && <IntelRates rs={rates} />}
+        {sailings && <IntelSailings s={sailings} />}
+        {intel && intel.jobs > 0 && <IntelKpis intel={intel} />}
+        {intel && intel.jobs > 0 && <IntelHistory intel={intel} customerName={p.customerName ?? null} />}
         <IntelDutyCheck onAddNote={p.onAddNote} />
       </div>
 
-      <div className="fi-foot">From billed ERP jobs, NZD, GST/duty pass-throughs excluded. Medians per job. A guide, not a price.</div>
+      <div className="fi-foot">Medians from billed ERP jobs, NZD. A guide, not a price.</div>
     </aside>
   )
 }

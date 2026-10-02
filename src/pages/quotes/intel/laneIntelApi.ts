@@ -66,13 +66,13 @@ export async function fetchLaneIntel(q: IntelQuery): Promise<LaneIntel | null> {
 // The option the panel checks against: newest one that is not declined.
 export type IntelOption = {
   id: string; responseNo: string | null; currency: string; lines: QuoteResponseLine[]
-  totalSell: number | null; marginPct: number | null
+  totalSell: number | null; marginPct: number | null; validTill: string | null; carrier: string | null
 }
 
 export async function fetchCurrentOption(quoteId: string): Promise<IntelOption | null> {
   const { data, error } = await supabase
     .from('quote_responses')
-    .select('id, response_no, status, currency, total_sell, margin_pct, created_at')
+    .select('id, response_no, status, currency, total_sell, margin_pct, valid_till, carrier, created_at')
     .eq('quote_id', quoteId)
     .neq('status', 'declined')
     .order('created_at', { ascending: false })
@@ -84,6 +84,7 @@ export async function fetchCurrentOption(quoteId: string): Promise<IntelOption |
   return {
     id: String(r.id), responseNo: r.response_no ?? null, currency: r.currency || 'NZD', lines,
     totalSell: numOrNull(r.total_sell), marginPct: numOrNull(r.margin_pct),
+    validTill: r.valid_till ? String(r.valid_till).slice(0, 10) : null, carrier: r.carrier ?? null,
   }
 }
 

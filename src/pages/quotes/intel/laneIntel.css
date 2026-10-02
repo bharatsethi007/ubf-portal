@@ -91,3 +91,50 @@
 @keyframes fi-spin { to { transform: rotate(360deg); } }
 @keyframes fi-shimmer { to { background-position: -200% 0; } }
 @media (prefers-reduced-motion: reduce) { .fi-drawer, .fi-sec, .fi-row, .fi-job, .fi-launch, .fi-launch__badge { animation: none !important; } }
+
+/* Scope strip */
+.fi-legs { position: relative; display: grid; grid-template-columns: repeat(3, 1fr); margin: 4px 0 12px; }
+.fi-legs__rail { position: absolute; top: 12px; left: 16.6%; right: 16.6%; height: 2px; background: #eef2f6; }
+.fi-legs__rail-fill { display: block; height: 100%; background: #c9d4ea; transition: width .9s cubic-bezier(.2,.8,.2,1); }
+.fi-leg { position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; animation: fi-rise .4s cubic-bezier(.2,.8,.2,1) both; }
+.fi-leg__node { width: 26px; height: 26px; border-radius: 50%; background: #fff; border: 2px solid #d6dce6; color: #64708a; font-size: 11px; font-weight: 600;
+  display: inline-flex; align-items: center; justify-content: center; transition: all .45s cubic-bezier(.2,1.4,.4,1); z-index: 1; }
+.fi-leg__node--on { background: #0A2472; border-color: #0A2472; color: #fff; transform: scale(1.05); }
+.fi-leg__name { font-size: 12px; font-weight: 600; color: #111827; margin-top: 4px; }
+.fi-leg__who { font-size: 10.5px; color: #64708a; }
+.fi-leg__bill { font-size: 10px; font-weight: 600; border-radius: 4px; padding: 1px 6px; margin-top: 2px; background: #f1f4f9; color: #8a94a6; }
+.fi-leg__bill--on { background: #eef2fb; color: #0A2472; }
+.fi-checks { display: flex; flex-direction: column; gap: 6px; }
+.fi-check { display: flex; gap: 8px; padding: 7px 9px; border-radius: 8px; animation: fi-rise .4s cubic-bezier(.2,.8,.2,1) both; }
+.fi-check--warn { background: #fff8eb; }
+.fi-check--info { background: #f3f6fd; }
+.fi-check--ok { background: #f0f9f4; }
+.fi-check__t { font-size: 12px; color: #111827; }
+.fi-check__s { font-size: 11px; color: #64708a; margin-top: 1px; }
+
+/* Rate cards */
+.fi-card { border: 1px solid #eef2f6; border-radius: 10px; padding: 8px 10px; margin-bottom: 6px; animation: fi-rise .4s cubic-bezier(.2,.8,.2,1) both; }
+.fi-card--expired { background: #fafbfc; opacity: .8; }
+.fi-card__head { display: flex; align-items: center; gap: 6px; font-size: 12px; }
+.fi-card__name { font-weight: 600; color: #111827; }
+.fi-card__exp { margin-left: auto; display: inline-flex; align-items: center; gap: 3px; background: #f1f4f9; color: #64708a; }
+.fi-card__exp--soon { background: #fff4e0; color: #8a5a10; }
+.fi-card__rows { margin-top: 6px; display: flex; flex-direction: column; gap: 2px; }
+.fi-card__row { display: grid; grid-template-columns: 1fr auto 14px auto; gap: 6px; font-size: 12px; font-variant-numeric: tabular-nums; color: #475064; }
+.fi-card__k { color: #111827; }
+.fi-card__arrow { color: #b0b8c6; text-align: center; }
+.fi-card__sell { color: #1F6B3E; font-weight: 600; }
+.fi-locals { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 8px; }
+.fi-local { display: flex; gap: 6px; padding: 7px 8px; border-radius: 8px; border: 1px dashed #d6dce6; color: #8a94a6; }
+.fi-local--on { border-style: solid; border-color: #cfe7d9; background: #f0f9f4; color: #1F8A4C; }
+.fi-local__l { font-size: 10.5px; text-transform: uppercase; letter-spacing: .3px; }
+.fi-local__t { font-size: 11.5px; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+@media (prefers-reduced-motion: reduce) { .fi-leg, .fi-check, .fi-card { animation: none !important; } }
+
+.fi-more { display: inline-flex; align-items: center; gap: 4px; margin-top: 8px; border: none; background: transparent; padding: 0;
+  font-size: 11.5px; color: #2563eb; cursor: pointer; }
+.fi-sail { display: grid; grid-template-columns: 16px 1fr auto auto; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid #f4f6f9;
+  font-size: 12px; animation: fi-rise .4s cubic-bezier(.2,.8,.2,1) both; }
+.fi-sail__v { color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.fi-sail__d { color: #475064; font-variant-numeric: tabular-nums; }
+@media (prefers-reduced-motion: reduce) { .fi-sail { animation: none !important; } }
