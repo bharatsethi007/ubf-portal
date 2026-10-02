@@ -1,0 +1,5 @@
+-- REPO PARITY ONLY. Applied live via Supabase MCP on 2026-10-02. Do not re-run.
+-- cartage_rate_quote: LCL priced per CBM only (was greater of kg-band vs cbm); air per chargeable kg. Min on both. FAF on top.
+-- Live function edited in place: 'if p_mode = ''lcl'' then v_base := v_ccost; else v_base := v_wcost; end if;'
+-- Data: AKL Port<->Metro LCL NZD 40/cbm min 50 (import updated, export lane added);
+--       AKL Airport<->Metro air NZD 0.40/kg all bands, min 40. LTL_Sep2026 valid_to extended to 2026-10-31.

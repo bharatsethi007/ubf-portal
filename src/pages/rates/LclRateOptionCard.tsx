@@ -47,6 +47,11 @@ export default function LclRateOptionCard({ option: o, fromCode, toCode, onUse, 
   const [open, setOpen] = useState(false)
   const rates: FxRates = fxRates ?? new Map()
   const legs = buildLegs(o)
+  // Cartage counts in the totals and breakdown (it is added to the quote on Use rate).
+  if (cartage && cartage.status === 'ok' && cartage.amount > 0) {
+    const leg = legs.find((l) => l.key === (cartage.leg === 'origin' ? 'origin' : 'dest'))
+    leg?.items.push({ label: `Cartage${cartage.carrierShort ? ` · ${cartage.carrierShort}` : ''}`, meta: 'cartage', buy: cartage.cost != null && cartage.cost > 0 ? cartage.cost : cartage.amount, sell: cartage.amount, currency: 'NZD' })
+  }
   const all = legs.flatMap((l) => l.items)
 
   let buyNzd = 0, sellNzd = 0, convertible = true
