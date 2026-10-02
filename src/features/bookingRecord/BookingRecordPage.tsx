@@ -18,6 +18,9 @@ import BookingRecordSkeleton from './BookingRecordSkeleton'
 import BookingRecordErrorBoundary from './BookingRecordErrorBoundary'
 import PortalRequestPanel from './portalRequest/PortalRequestPanel'
 import { useBookingRecord } from './useBookingRecord'
+import BookingProgressPanel from './progress/BookingProgressPanel'
+import { useBookingProgress } from './progress/useBookingProgress'
+import type { GotoTarget } from './progress/actionPlan'
 import { PortConnectDetailProvider } from './portConnect/PortConnectDetailProvider'
 import { aggregatePortConnectBookingFields } from './portConnect/bookingPortConnectCoalesce'
 import {
@@ -52,6 +55,15 @@ function BookingRecordPageContent({
     reload: reloadContainers,
     resolveBusy: containerResolveBusy,
   } = useBookingContainers(id ?? '', initialContainers, bumpHistory)
+
+  const [tab, setTab] = useState<string>(searchParams.get('tab') ?? 'details')
+  const { progress, reload: reloadProgress } = useBookingProgress(id, historyTick)
+  const tabsRef = useRef<HTMLDivElement | null>(null)
+  const goto = useCallback((t: GotoTarget) => {
+    if (t === 'portal_request') { window.scrollTo({ top: 0, behavior: 'smooth' }); return }
+    setTab(t)
+    window.setTimeout(() => tabsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }), 50)
+  }, [])
 
   const { flashFields, isFlashing } = usePortConnectFieldFlash()
   const snapshotBuilderRef = useRef<(containers: ContainerTrackingRow[]) => ReturnType<typeof buildPortConnectSnapshot>>(() => ({
@@ -144,7 +156,17 @@ function BookingRecordPageContent({
           />
         )}
 
-        <Tabs defaultValue="details" className="booking-record-tabs">
+        {progress && (
+          <BookingProgressPanel
+            progress={progress}
+            containers={containerNumbers}
+            onGoto={goto}
+            onChanged={() => { bumpHistory(); void reloadProgress() }}
+          />
+        )}
+
+        <div ref={tabsRef} />
+        <Tabs value={tab} onValueChange={(v) => setTab(String(v))} className="booking-record-tabs">
           <TabsList variant="line" className="booking-record-tabs__list">
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>

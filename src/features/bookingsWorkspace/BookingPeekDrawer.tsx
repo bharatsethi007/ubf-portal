@@ -1,10 +1,12 @@
 import { useEffect } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ArrowUpRight, FileText, Truck, X } from 'lucide-react'
 import type { ImportSeaRow } from '@/features/importSea/types'
 import { containerSizeSummary } from '@/features/importSea/containerSize'
 import { STAGES, ddmm, dueLabel, stageIndex, urgencyTone, whyText } from './flowText'
 import type { BookingFlow } from './useBookingFlow'
+import BookingProgressPanel from '@/features/bookingRecord/progress/BookingProgressPanel'
+import { useBookingProgress } from '@/features/bookingRecord/progress/useBookingProgress'
 
 type Props = {
   row: ImportSeaRow | undefined
@@ -27,6 +29,8 @@ function Chip({ on, label, warn }: { on: boolean; label: string; warn?: boolean 
 }
 
 export default function BookingPeekDrawer({ row, flow, recordHref, onClose }: Props) {
+  const navigate = useNavigate()
+  const { progress, reload } = useBookingProgress(row?.id, `${flow?.next_action}|${flow?.priority}`)
   useEffect(() => {
     if (!row) return
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -75,30 +79,42 @@ export default function BookingPeekDrawer({ row, flow, recordHref, onClose }: Pr
           </div>
         </header>
 
-        <section className="bk-peek__sec">
-          <div className="bk-steps">
-            {STAGES.map((s, i) => {
-              const state = i < current ? 'done' : i === current ? 'now' : 'todo'
-              return (
-                <div key={s.key} className={`bk-step bk-step--${state}`}>
-                  <span className="bk-step__bar" />
-                  <span className="bk-step__label">{s.label}</span>
-                </div>
-              )
-            })}
-          </div>
-        </section>
-
-        <section className={`bk-next bk-next--${tone}`}>
-          <div className="bk-next__body">
-            <div className="bk-next__title">
-              <span>{flow?.next_action ?? 'On track'}</span>
-              {flow?.next_action ? <span className={`bk-due bk-due--${tone}`}>{dueLabel(flow)}</span> : null}
+        {progress ? (
+          <BookingProgressPanel
+            progress={progress}
+            variant="compact"
+            containers={containers.map((c) => c.container_no!.trim())}
+            onGoto={(t) => navigate(`${recordHref}${recordHref.includes('?') ? '&' : '?'}tab=${t === 'portal_request' ? 'details' : t}`)}
+            onChanged={() => { void reload() }}
+          />
+        ) : (
+          <>
+          <section className="bk-peek__sec">
+            <div className="bk-steps">
+              {STAGES.map((s, i) => {
+                const state = i < current ? 'done' : i === current ? 'now' : 'todo'
+                return (
+                  <div key={s.key} className={`bk-step bk-step--${state}`}>
+                    <span className="bk-step__bar" />
+                    <span className="bk-step__label">{s.label}</span>
+                  </div>
+                )
+              })}
             </div>
-            <div className="bk-next__why">{whyText(flow, row)}</div>
-          </div>
-          <Link to={recordHref} className="bk-btn bk-btn--p">Open booking</Link>
-        </section>
+          </section>
+
+          <section className={`bk-next bk-next--${tone}`}>
+            <div className="bk-next__body">
+              <div className="bk-next__title">
+                <span>{flow?.next_action ?? 'On track'}</span>
+                {flow?.next_action ? <span className={`bk-due bk-due--${tone}`}>{dueLabel(flow)}</span> : null}
+              </div>
+              <div className="bk-next__why">{whyText(flow, row)}</div>
+            </div>
+            <Link to={recordHref} className="bk-btn bk-btn--p">Open booking</Link>
+          </section>
+          </>
+        )}
 
         <section className="bk-peek__sec bk-peek__facts">
           <Fact label="ETA" value={ddmm(row.eta)} tone={row.eta_source === 'portconnect' ? 'pc' : undefined} />
