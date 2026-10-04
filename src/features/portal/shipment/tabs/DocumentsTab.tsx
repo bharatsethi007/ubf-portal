@@ -58,10 +58,8 @@ export default function DocumentsTab({ bookingId }: Props) {
   }
 
   async function remove(doc: PortalDocument) {
-    const msg = doc.uploaded_via === 'customer'
-      ? `Delete ${doc.file_name}? This removes it for UB Freight too.`
-      : `Remove ${doc.file_name} from your documents? UB Freight keeps its copy.`
-    if (!window.confirm(msg)) return
+    if (doc.uploaded_via !== 'customer') return
+    if (!window.confirm(`Delete ${doc.file_name}? This removes it for UB Freight too.`)) return
     setDocs((prev) => prev.filter((d) => d.id !== doc.id))
     try { await removePortalDocument(doc) }
     catch (e) {
@@ -125,12 +123,12 @@ export default function DocumentsTab({ bookingId }: Props) {
                     <button type="button" style={iconBtn} title="Download" aria-label="Download" onClick={() => void open(d, true)}>
                       <Download size={14} />
                     </button>
-                    <button type="button" style={{ ...iconBtn, marginLeft: 6 }}
-                      title={d.uploaded_via === 'customer' ? 'Delete' : 'Remove from my documents'}
-                      aria-label={d.uploaded_via === 'customer' ? 'Delete' : 'Remove from my documents'}
-                      onClick={() => void remove(d)}>
-                      <Trash2 size={14} />
-                    </button>
+                    {d.uploaded_via === 'customer' && (
+                      <button type="button" style={{ ...iconBtn, marginLeft: 6 }} title="Delete" aria-label="Delete"
+                        onClick={() => void remove(d)}>
+                        <Trash2 size={14} />
+                      </button>
+                    )}
                   </td>
                 </tr>
               ))}

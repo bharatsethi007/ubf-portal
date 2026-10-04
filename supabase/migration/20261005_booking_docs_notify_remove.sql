@@ -2,7 +2,7 @@
 -- 1) portal_notifications: allow kind 'document_shared'.
 -- 2) booking_docs_notify trigger: staff share -> customer notification + digest; customer upload -> portal-doc-notify (team email).
 -- 3) portal_doc_notify_payload (service only) for the staff email.
--- 4) portal_remove_document: customer deletes own upload, or hides a UBF doc from their list.
+-- 4) portal_remove_document: customer deletes own upload only. UBF docs cannot be removed from the portal.
 
 alter table public.portal_notifications drop constraint if exists portal_notifications_kind_check;
 alter table public.portal_notifications add constraint portal_notifications_kind_check
@@ -75,15 +75,11 @@ returns jsonb language plpgsql security definer set search_path = public as $$
 declare d record;
 begin
   select * into d from booking_documents where id = p_doc;
-  if d.id is null or not d.customer_visible or not portal_can_see_booking(d.booking_id) then
-    raise exception 'not found';
+  if d.id is null or d.uploaded_via <> 'customer' or not portal_can_see_booking(d.booking_id) then
+    raise exception 'not allowed';
   end if;
-  if d.uploaded_via = 'customer' then
-    delete from booking_documents where id = p_doc;
-    return jsonb_build_object('deleted', true, 'storage_path', d.storage_path);
-  end if;
-  update booking_documents set customer_visible = false where id = p_doc;
-  return jsonb_build_object('deleted', false);
+  delete from booking_documents where id = p_doc;
+  return jsonb_build_object('deleted', true, 'storage_path', d.storage_path);
 end $$;
 revoke all on function public.portal_remove_document(uuid) from public, anon;
 grant execute on function public.portal_remove_document(uuid) to authenticated;

@@ -53,9 +53,10 @@ export async function uploadPortalDocument(bookingId: string, file: File): Promi
   return data as PortalDocument
 }
 
-/** Own upload: deleted for good (S3 + record). UB Freight doc: removed from the customer's list only. */
+/** Customers delete only their own uploads (S3 + record). UB Freight docs cannot be removed here. */
 export async function removePortalDocument(doc: PortalDocument): Promise<void> {
-  if (doc.uploaded_via === 'customer') await removeFiles([fileKey('booking-documents', doc.storage_path)])
+  if (doc.uploaded_via !== 'customer') throw new Error('Only your own uploads can be deleted.')
+  await removeFiles([fileKey('booking-documents', doc.storage_path)])
   const { error } = await supabase.rpc('portal_remove_document', { p_doc: doc.id })
   if (error) throw new Error('Could not remove the document. Try again.')
 }
