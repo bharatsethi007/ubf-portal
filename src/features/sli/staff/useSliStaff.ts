@@ -1,6 +1,7 @@
 // Staff-side SLI management for one booking. Uses the app's authenticated supabase client.
 import { useState, useEffect, useCallback } from 'react'
 import { supabase } from '../../../supabase'
+import { fileKey, signedUrl as s3SignedUrl } from '../../../lib/fileStore'
 
 const FN = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1`;
 
@@ -90,8 +91,7 @@ export function useSliStaff(bookingId: string, isConsolidation: boolean) {
   }, []);
 
   const signedUrl = useCallback(async (path: string) => {
-    const { data } = await supabase.storage.from("sli-uploads").createSignedUrl(path, 300);
-    return data?.signedUrl ?? null;
+    return s3SignedUrl(fileKey("sli-uploads", path), { expires: 300 }).catch(() => null);
   }, []);
 
   return { rows, loading, busyId, generate, acceptEdits, fetchEvents, signedUrl, reload: load };

@@ -2,6 +2,7 @@
 // Public SLI page logic: load, upload, validate, submit. Uses anon Supabase client.
 import { useState, useEffect, useCallback } from "react";
 import { createClient } from "@supabase/supabase-js";
+import { fileKey, uploadFile as s3Upload } from "../../lib/fileStore";
 
 const supabase = createClient(
   import.meta.env.VITE_SUPABASE_URL,
@@ -50,8 +51,7 @@ export function useSli(token: string) {
 
   const uploadFile = useCallback(async (file: File, docType: string) => {
     const path = `${token}/${Date.now()}_${file.name}`;
-    const { error } = await supabase.storage.from("sli-uploads").upload(path, file);
-    if (error) throw error;
+    await s3Upload(fileKey("sli-uploads", path), file, { anon: true });
     const rec = { doc_type: docType, file_name: file.name, storage_path: path };
     setAttachments((p) => [...p, rec]);
     return rec;

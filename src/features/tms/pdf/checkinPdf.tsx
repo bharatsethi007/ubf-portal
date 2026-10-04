@@ -1,5 +1,6 @@
 import { pdf } from '@react-pdf/renderer'
 import { supabase } from '@/supabase'
+import { fileKey, signedUrl } from '@/lib/fileStore'
 import { registerConsignmentPdfFonts } from './consignmentPdfShared'
 import CheckinSheetPdf, { type CheckinPdfData, type CheckinPdfLine } from './CheckinSheetPdf'
 
@@ -41,10 +42,10 @@ async function loadPdfData(sheetId: string): Promise<{ data: CheckinPdfData; fil
 
   let signatureDataUrl: string | null = null
   if (d.received_by_signature_url) {
-    const { data: signed } = await supabase.storage.from('checkin').createSignedUrl(d.received_by_signature_url, 600)
-    if (signed?.signedUrl) {
-      try { signatureDataUrl = await blobToDataUrl(await (await fetch(signed.signedUrl)).blob()) } catch { signatureDataUrl = null }
-    }
+    try {
+      const url = await signedUrl(fileKey('checkin', d.received_by_signature_url), { expires: 600 })
+      signatureDataUrl = await blobToDataUrl(await (await fetch(url)).blob())
+    } catch { signatureDataUrl = null }
   }
 
   const receivedByName = await resolveReceivedBy(d.received_by ?? null)

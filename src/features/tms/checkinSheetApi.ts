@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase'
+import { fileKey, signedUrls, uploadFile } from '@/lib/fileStore'
 
 export type ScreenVal = 'yes' | 'no' | ''
 export type PortMode = '' | 'air' | 'sea'
@@ -112,8 +113,7 @@ async function dataUrlToBlob(dataUrl: string): Promise<Blob> { return (await fet
 export async function uploadCheckinSignature(dataUrl: string): Promise<string> {
   const blob = await dataUrlToBlob(dataUrl)
   const path = `signatures/${crypto.randomUUID()}.png`
-  const { error } = await supabase.storage.from('checkin').upload(path, blob, { contentType: 'image/png', upsert: true })
-  if (error) throw error
+  await uploadFile(fileKey('checkin', path), blob, { contentType: 'image/png' })
   return path
 }
 
@@ -122,8 +122,7 @@ export async function uploadCheckinPhotos(files: File[]): Promise<string[]> {
   for (const f of files) {
     const ext = (f.name.split('.').pop() || 'jpg').toLowerCase()
     const path = `photos/${crypto.randomUUID()}.${ext}`
-    const { error } = await supabase.storage.from('checkin').upload(path, f, { upsert: true })
-    if (error) throw error
+    await uploadFile(fileKey('checkin', path), f)
     out.push(path)
   }
   return out
@@ -133,9 +132,9 @@ export async function uploadCheckinPhotos(files: File[]): Promise<string[]> {
 export async function signCheckinPaths(paths: string[]): Promise<Record<string, string>> {
   const clean = paths.filter(Boolean)
   if (!clean.length) return {}
-  const { data } = await supabase.storage.from('checkin').createSignedUrls(clean, 3600)
+  const signed = await signedUrls(clean.map((p) => fileKey('checkin', p)), 3600)
   const map: Record<string, string> = {}
-  for (const row of data ?? []) if (row.path && row.signedUrl) map[row.path] = row.signedUrl
+  for (const p of clean) { const u = signed[fileKey('checkin', p)]; if (u) map[p] = u }
   return map
 }
 

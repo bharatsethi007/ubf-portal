@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { fileKey, signedUrl } from '../../lib/fileStore'
 import type { CourierShipment } from './courierShipmentTypes'
 
 const LIST_SELECT =
@@ -73,10 +74,7 @@ export async function getCourierShipment(id: string): Promise<CourierShipment> {
 }
 
 export async function getCourierLabelUrl(labelPath: string): Promise<string> {
-  const { data, error } = await supabase.storage.from('courier-labels').createSignedUrl(labelPath, 300)
-  if (error) throw error
-  if (!data?.signedUrl) throw new Error('No signed URL returned')
-  return data.signedUrl
+  return signedUrl(fileKey('courier-labels', labelPath), { expires: 300 })
 }
 
 export type CourierTrackEvent = Record<string, unknown>
