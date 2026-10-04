@@ -15,6 +15,7 @@ import { messageBodyText } from "./htmlStrip.ts";
 import { extractPdfText } from "./pdfText.ts";
 import type { GraphAttachment, GraphMessage } from "./types.ts";
 import { BUCKET, MAILBOX } from "./types.ts";
+import { putObject } from "../_shared/s3.ts";
 
 const MAX_ATTEMPTS = 3;
 
@@ -102,12 +103,10 @@ async function storeAttachments(
       continue;
     }
 
-    const { error } = await db.storage.from(BUCKET).upload(storagePath, bytes, {
-      contentType: att.contentType ?? "application/octet-stream",
-      upsert: true,
-    });
-    if (error) {
-      notes.push(`Storage upload failed for ${att.name}: ${error.message}`);
+    try {
+      await putObject(`${BUCKET}/${storagePath}`, bytes, att.contentType ?? "application/octet-stream");
+    } catch (e) {
+      notes.push(`Storage upload failed for ${att.name}: ${e instanceof Error ? e.message : String(e)}`);
       continue;
     }
     paths.push(storagePath);

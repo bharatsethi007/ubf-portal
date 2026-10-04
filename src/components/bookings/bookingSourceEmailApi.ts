@@ -1,6 +1,6 @@
 import { supabase } from '../../supabase'
+import { fileKey, signedUrl } from '../../lib/fileStore'
 
-const BUCKET = 'booking-emails'
 
 export type BookingSourceEmail = {
   id: string
@@ -25,9 +25,7 @@ export async function loadBookingSourceEmail(bookingId: string): Promise<Booking
 }
 
 export async function signedEmailAttachmentUrl(storagePath: string): Promise<string> {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(storagePath, 3600)
-  if (error || !data?.signedUrl) throw new Error(error?.message ?? 'Failed to create attachment link')
-  return data.signedUrl
+  return signedUrl(fileKey('booking-emails', storagePath), { expires: 3600 })
 }
 
 export function attachmentFileName(storagePath: string): string {
