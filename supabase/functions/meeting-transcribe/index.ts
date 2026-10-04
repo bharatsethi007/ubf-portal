@@ -1,8 +1,9 @@
 // meeting-transcribe — signed audio URL -> Deepgram Nova-3 (diarized) -> Claude summary
 // -> append summary to the meeting's Discussion field + store transcript/ai_summary.
-// Invoked from the browser via supabase.functions.invoke (verify_jwt = true).
+// Audio source: body.audio_key (S3 key, web) or body.audio_path (legacy Supabase bucket, mobile app).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { presign, deleteObject } from "../_shared/s3.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -49,16 +50,23 @@ Deno.serve(async (req) => {
   try {
     const body = await req.json().catch(() => ({}));
     meetingId = body.meeting_id ?? "";
+    const audioKey: string = typeof body.audio_key === "string" && body.audio_key.startsWith(`${BUCKET}/`) ? body.audio_key : "";
     const audioPath: string = body.audio_path ?? "";
-    if (!meetingId || !audioPath) throw new Error("meeting_id and audio_path required");
+    if (!meetingId || (!audioKey && !audioPath)) throw new Error("meeting_id and audio_key or audio_path required");
     if (!DEEPGRAM_API_KEY) throw new Error("DEEPGRAM_API_KEY not set");
     if (!ANTHROPIC_API_KEY) throw new Error("ANTHROPIC_API_KEY not set");
 
     await db.from("conference_meetings").update({ transcribe_status: "processing" }).eq("id", meetingId);
 
-    // 1. signed URL for the uploaded audio
-    const { data: signed, error: signErr } = await db.storage.from(BUCKET).createSignedUrl(audioPath, 600);
-    if (signErr || !signed?.signedUrl) throw new Error(`sign audio: ${signErr?.message ?? "no url"}`);
+    // 1. signed URL for the uploaded audio (S3 first, legacy Supabase bucket fallback)
+    let audioUrl = "";
+    if (audioKey) {
+      audioUrl = await presign(audioKey, "GET", 600);
+    } else {
+      const { data: signed, error: signErr } = await db.storage.from(BUCKET).createSignedUrl(audioPath, 600);
+      if (signErr || !signed?.signedUrl) throw new Error(`sign audio: ${signErr?.message ?? "no url"}`);
+      audioUrl = signed.signedUrl;
+    }
 
     // 2. Deepgram transcribe + diarize
     const dgRes = await fetch(
@@ -66,7 +74,7 @@ Deno.serve(async (req) => {
       {
         method: "POST",
         headers: { Authorization: `Token ${DEEPGRAM_API_KEY}`, "Content-Type": "application/json" },
-        body: JSON.stringify({ url: signed.signedUrl }),
+        body: JSON.stringify({ url: audioUrl }),
       },
     );
     if (!dgRes.ok) throw new Error(`deepgram ${dgRes.status}: ${await dgRes.text()}`);
@@ -122,7 +130,8 @@ Deno.serve(async (req) => {
     if (upErr) throw new Error(`save notes: ${upErr.message}`);
 
     // 5. delete audio (best effort)
-    await db.storage.from(BUCKET).remove([audioPath]);
+    if (audioKey) await deleteObject(audioKey).catch(() => {});
+    else await db.storage.from(BUCKET).remove([audioPath]);
 
     return json({ ok: true, summary });
   } catch (e) {

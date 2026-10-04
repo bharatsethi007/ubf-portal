@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase'
+import { fileKey, uploadFile } from '../../../lib/fileStore'
 
 export type MeetingStatus = 'upcoming' | 'completed' | 'cancelled' | 'no_show'
 
@@ -269,16 +270,15 @@ export async function uploadMeetingAudio(meetingId: string, blob: Blob): Promise
   const type = blob.type || 'audio/webm'
   const ext = type.includes('mp4') ? 'mp4' : type.includes('aac') ? 'aac' : 'webm'
   const path = `${meetingId}/${Date.now()}.${ext}`
-  const { error } = await supabase.storage
-    .from('meeting-audio')
-    .upload(path, blob, { contentType: type, upsert: true })
-  if (error) throw error
-  return path
+  // Returns the S3 key (meeting-audio/<path>); meeting-transcribe reads it as audio_key.
+  const key = fileKey('meeting-audio', path)
+  await uploadFile(key, blob, { contentType: type })
+  return key
 }
 
 export async function transcribeMeeting(meetingId: string, audioPath: string): Promise<void> {
   const { data, error } = await supabase.functions.invoke('meeting-transcribe', {
-    body: { meeting_id: meetingId, audio_path: audioPath },
+    body: { meeting_id: meetingId, audio_key: audioPath },
   })
   if (error) throw error
   if (data && (data as { ok?: boolean }).ok === false) {

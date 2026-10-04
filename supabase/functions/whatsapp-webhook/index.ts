@@ -3,6 +3,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { routeInbound } from "./router.ts";
+import { putObject } from "../_shared/s3.ts";
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 const MEDIA_BUCKET = "whatsapp-media";
@@ -71,10 +72,8 @@ async function fetchMediaToStorage(
     const bytes = new Uint8Array(await bin.arrayBuffer());
     const ext = media.filename?.split(".").pop() || meta.mime_type?.split("/").pop() || "bin";
     const path = `${waId}/${msgId}.${ext}`;
-    const up = await sb.storage.from(MEDIA_BUCKET).upload(path, bytes, {
-      contentType: meta.mime_type ?? media.mime_type ?? "application/octet-stream", upsert: true,
-    });
-    if (up.error) return null;
+    // S3 key: whatsapp-media/<path>. DB keeps plain path.
+    await putObject(`${MEDIA_BUCKET}/${path}`, bytes, meta.mime_type ?? media.mime_type ?? "application/octet-stream");
     return path;
   } catch { return null; }
 }

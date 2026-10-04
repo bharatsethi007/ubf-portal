@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { fileKey, signedUrl } from '../../lib/fileStore'
 
 export type WhatsAppConversation = {
   contact_id: string
@@ -46,9 +47,7 @@ export async function listMessages(contactId: string): Promise<WhatsAppMessage[]
 }
 
 export async function signedMediaUrl(path: string): Promise<string | null> {
-  const { data, error } = await supabase.storage.from('whatsapp-media').createSignedUrl(path, 3600)
-  if (error) throw error
-  return data?.signedUrl ?? null
+  return signedUrl(fileKey('whatsapp-media', path), { expires: 3600 })
 }
 
 export async function sendReply(contactId: string, text: string): Promise<void> {
