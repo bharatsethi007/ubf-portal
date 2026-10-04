@@ -1,7 +1,7 @@
 // Customer portal: booking documents shared by UBF + customer uploads. Files live in S3.
 // RLS on booking_documents returns only shared docs on the customer's own bookings.
 import { supabase } from '../../../supabase'
-import { fileKey, signedUrl, uploadFile } from '../../../lib/fileStore'
+import { fileKey, removeFiles, signedUrl, uploadFile } from '../../../lib/fileStore'
 
 export type PortalDocument = {
   id: string
@@ -51,6 +51,13 @@ export async function uploadPortalDocument(bookingId: string, file: File): Promi
     .single()
   if (error || !data) throw new Error(error?.message ?? 'Could not save document')
   return data as PortalDocument
+}
+
+/** Own upload: deleted for good (S3 + record). UB Freight doc: removed from the customer's list only. */
+export async function removePortalDocument(doc: PortalDocument): Promise<void> {
+  if (doc.uploaded_via === 'customer') await removeFiles([fileKey('booking-documents', doc.storage_path)])
+  const { error } = await supabase.rpc('portal_remove_document', { p_doc: doc.id })
+  if (error) throw new Error('Could not remove the document. Try again.')
 }
 
 export function portalDocumentUrl(doc: PortalDocument, download = false): Promise<string> {

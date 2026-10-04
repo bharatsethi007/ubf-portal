@@ -70,6 +70,11 @@ async function allowed(who: Who, client: ReturnType<typeof createClient>, op: Op
       const { data } = await client.rpc("portal_can_see_booking", { p_booking_id: rest[1] });
       return data === true;
     }
+    if (op === "delete") {
+      // Customers may delete only files they uploaded themselves (row still visible to them).
+      const { data } = await client.from("booking_documents").select("uploaded_via").eq("storage_path", rest.join("/")).limit(1);
+      return data?.[0]?.uploaded_via === "customer";
+    }
     return false;
   }
   if (area === "sli-uploads" && op !== "delete") {

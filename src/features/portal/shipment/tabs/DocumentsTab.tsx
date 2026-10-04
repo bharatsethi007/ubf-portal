@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Download, Loader2, Plus } from 'lucide-react'
+import { Download, Loader2, Plus, Trash2 } from 'lucide-react'
 import { formatShortDate } from '../../dashboard/portalFormat'
 import {
   listPortalDocuments,
   portalDocumentUrl,
+  removePortalDocument,
   uploadPortalDocument,
   type PortalDocument,
 } from '../portalDocumentsApi'
@@ -56,6 +57,19 @@ export default function DocumentsTab({ bookingId }: Props) {
     }
   }
 
+  async function remove(doc: PortalDocument) {
+    const msg = doc.uploaded_via === 'customer'
+      ? `Delete ${doc.file_name}? This removes it for UB Freight too.`
+      : `Remove ${doc.file_name} from your documents? UB Freight keeps its copy.`
+    if (!window.confirm(msg)) return
+    setDocs((prev) => prev.filter((d) => d.id !== doc.id))
+    try { await removePortalDocument(doc) }
+    catch (e) {
+      setDocs((prev) => [doc, ...prev])
+      setError(e instanceof Error ? e.message : 'Could not remove the document')
+    }
+  }
+
   async function open(doc: PortalDocument, download: boolean) {
     try { window.open(await portalDocumentUrl(doc, download), '_blank', 'noopener,noreferrer') }
     catch (e) { setError(e instanceof Error ? e.message : 'Could not open file') }
@@ -92,7 +106,7 @@ export default function DocumentsTab({ bookingId }: Props) {
           <table className="portal-table">
             <thead>
               <tr>
-                <th>File</th><th>From</th><th>Size</th><th>Added</th><th aria-label="Download" />
+                <th>File</th><th>From</th><th>Size</th><th>Added</th><th aria-label="Actions" />
               </tr>
             </thead>
             <tbody>
@@ -107,9 +121,15 @@ export default function DocumentsTab({ bookingId }: Props) {
                   <td>{d.uploaded_via === 'customer' ? 'You' : 'UB Freight'}</td>
                   <td className="nums">{size(d.size_bytes)}</td>
                   <td className="nums">{formatShortDate(d.created_at)}</td>
-                  <td style={{ textAlign: 'right' }}>
+                  <td style={{ textAlign: 'right', whiteSpace: 'nowrap' }}>
                     <button type="button" style={iconBtn} title="Download" aria-label="Download" onClick={() => void open(d, true)}>
                       <Download size={14} />
+                    </button>
+                    <button type="button" style={{ ...iconBtn, marginLeft: 6 }}
+                      title={d.uploaded_via === 'customer' ? 'Delete' : 'Remove from my documents'}
+                      aria-label={d.uploaded_via === 'customer' ? 'Delete' : 'Remove from my documents'}
+                      onClick={() => void remove(d)}>
+                      <Trash2 size={14} />
                     </button>
                   </td>
                 </tr>
