@@ -138,15 +138,26 @@ export function buildQuotePdfData(
   let commodities: QuotePdfData['commodities'] = []
   let commTotal = { units: '', gross: '', vol: '', chg: '' }
   const nonEmptyCargo = cargo.filter((c) => c.cargo_description || c.gross_wt || c.total_cbm || c.chargeable_wt)
+  const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
+  const fmt = (n: number, dp: number) => n.toLocaleString('en-NZ', { maximumFractionDigits: dp })
+  const chgUnit = mode === 'sea' ? 'W/M' : 'KG'
   if (nonEmptyCargo.length) {
     commodities = nonEmptyCargo.map((c) => ({
       desc: c.cargo_description || '',
       pkg: [c.packages ? `${c.packages} X` : '', c.package_type].filter(Boolean).join(' ') || '\u2014',
       gross: c.gross_wt ? `${c.gross_wt} KG` : '',
       vol: c.total_cbm || c.volume_cbm || '',
-      chg: c.chargeable_wt ? `${c.chargeable_wt} KG` : '',
+      chg: c.chargeable_wt ? `${c.chargeable_wt} ${chgUnit}` : '',
     }))
-    commTotal = { units: `${nonEmptyCargo.length} LINE(S)`, gross: '', vol: '', chg: '' }
+    const tGross = nonEmptyCargo.reduce((s, c) => s + num(c.gross_wt), 0)
+    const tVol = nonEmptyCargo.reduce((s, c) => s + num(c.total_cbm || c.volume_cbm), 0)
+    const tChg = nonEmptyCargo.reduce((s, c) => s + num(c.chargeable_wt), 0)
+    commTotal = {
+      units: `${nonEmptyCargo.length} LINE(S)`,
+      gross: tGross ? `${fmt(tGross, 2)} KG` : '',
+      vol: tVol ? fmt(tVol, 3) : '',
+      chg: tChg ? `${fmt(tChg, mode === 'sea' ? 3 : 2)} ${chgUnit}` : '',
+    }
   } else if (containers.length) {
     commodities = containers.map((c) => ({
       desc: (c.commodity || '').toUpperCase(),
@@ -156,7 +167,8 @@ export function buildQuotePdfData(
       chg: '',
     }))
     const totalCtrs = containers.reduce((s, c) => s + (c.qty || 0), 0)
-    commTotal = { units: `${totalCtrs} CONTAINER(S)`, gross: '', vol: '', chg: '' }
+    const tMt = containers.reduce((s, c) => s + num(c.qty) * num(c.weight_per_container_mt), 0)
+    commTotal = { units: `${totalCtrs} CONTAINER(S)`, gross: tMt ? `${fmt(tMt, 2)} MT` : '', vol: '', chg: '' }
   }
   const isFcl = !nonEmptyCargo.length && containers.length > 0
 
