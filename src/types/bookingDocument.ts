@@ -8,4 +8,6 @@ export type BookingDocument = {
   tag_id?: string | null
   uploaded_by?: string | null
   created_at?: string
+  customer_visible?: boolean
+  uploaded_via?: 'staff' | 'customer'
 }

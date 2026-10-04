@@ -228,7 +228,7 @@ export default function PortalShipmentDetailV3() {
           </div>
         )}
         {tab === 'Cargo & containers' && <div className="pv3-card pv3-tabcard"><CargoContainersTab shipment={s} containers={data.containers} /></div>}
-        {tab === 'Documents' && <div className="pv3-card pv3-tabcard"><DocumentsTab /></div>}
+        {tab === 'Documents' && <div className="pv3-card pv3-tabcard"><DocumentsTab bookingId={data.booking?.id ?? null} /></div>}
         {tab === 'Invoices' && <div className="pv3-card pv3-tabcard"><InvoicesTab invoices={data.invoices}
           onOpen={(i) => setOpenInv(toBillInvoice(i, { shipment_no: shipmentNo(s), customer_ref: s.customer_ref, origin: s.origin, destination: s.destination }))} /></div>}
         {tab === 'Tasks' && <div className="pv3-card pv3-tabcard"><TaskTab tasks={data.tasks} /></div>}

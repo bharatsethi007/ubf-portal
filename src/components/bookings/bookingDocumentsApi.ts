@@ -5,7 +5,7 @@ import type { BookingDocument } from '../../types/bookingDocument'
 // Files live in S3 under booking-documents/<storage_path>. DB keeps storage_path unchanged.
 const key = (storagePath: string) => fileKey('booking-documents', storagePath)
 const DOC_SELECT =
-  'id, booking_id, file_name, storage_path, mime_type, size_bytes, tag_id, uploaded_by, created_at'
+  'id, booking_id, file_name, storage_path, mime_type, size_bytes, tag_id, uploaded_by, created_at, customer_visible, uploaded_via'
 
 export function formatFileSize(bytes: number | null | undefined): string {
   if (bytes == null || bytes <= 0) return '—'
@@ -66,6 +66,12 @@ export async function deleteBookingDocument(doc: BookingDocument): Promise<void>
 
 export async function signedDownloadUrl(storagePath: string): Promise<string> {
   return signedUrl(key(storagePath), { expires: 3600 })
+}
+
+/** Share or hide a staff document in the customer portal. Customer uploads stay visible (DB trigger). */
+export async function setBookingDocumentShared(docId: string, shared: boolean): Promise<void> {
+  const { error } = await supabase.from('booking_documents').update({ customer_visible: shared }).eq('id', docId)
+  if (error) throw new Error(error.message)
 }
 
 export async function updateBookingDocumentTag(

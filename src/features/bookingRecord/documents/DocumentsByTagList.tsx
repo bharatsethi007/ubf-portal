@@ -1,4 +1,4 @@
-import { Download, Loader2, Trash2 } from 'lucide-react'
+import { Download, Eye, EyeOff, Loader2, Trash2, UserRound } from 'lucide-react'
 import { formatFileSize } from '@/components/bookings/bookingDocumentsApi'
 import { fmtDate } from '@/utils/format'
 import DocumentTagMenu from './DocumentTagMenu'
@@ -12,6 +12,7 @@ type Props = {
   onDownload: (doc: BookingDocumentRow) => void
   onDelete: (doc: BookingDocumentRow) => void
   onTagChange: (doc: BookingDocumentRow, tagId: string | null) => void
+  onToggleShare: (doc: BookingDocumentRow) => void
   onCreateTag: (name: string) => Promise<DocumentTag>
 }
 
@@ -37,6 +38,7 @@ export default function DocumentsByTagList({
   onDownload,
   onDelete,
   onTagChange,
+  onToggleShare,
   onCreateTag,
 }: Props) {
   const groups = groupByTag(documents, tags)
@@ -59,6 +61,7 @@ export default function DocumentsByTagList({
                   <th>Size</th>
                   <th>Uploaded by</th>
                   <th>Uploaded</th>
+                  <th>Customer</th>
                   <th aria-label="Actions" />
                 </tr>
               </thead>
@@ -89,6 +92,7 @@ export default function DocumentsByTagList({
                     <td className="mono">{formatFileSize(doc.size_bytes)}</td>
                     <td>{doc.uploader_email ?? '—'}</td>
                     <td className="mono">{doc.created_at ? fmtDate(doc.created_at, true) : '—'}</td>
+                    <td><ShareCell doc={doc} onToggle={onToggleShare} /></td>
                     <td>
                       <div className="booking-docs-actions">
                         <button type="button" className="icon-btn" aria-label="Download" onClick={() => void onDownload(doc)}>
@@ -107,6 +111,33 @@ export default function DocumentsByTagList({
         </section>
       ))}
     </div>
+  )
+}
+
+/** Customer column: customer uploads show a fixed badge; staff docs get a share toggle. */
+function ShareCell({ doc, onToggle }: { doc: BookingDocumentRow; onToggle: (doc: BookingDocumentRow) => void }) {
+  if (doc.uploaded_via === 'customer') {
+    return (
+      <span className="portal-pill" title="Uploaded by the customer. Always visible to them."
+        style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 11, padding: '2px 8px', borderRadius: 999, background: '#eef2ff', color: '#0A2472' }}>
+        <UserRound size={12} /> From customer
+      </span>
+    )
+  }
+  const shared = doc.customer_visible
+  const label = shared ? 'Shared with customer. Click to hide.' : 'Hidden from customer. Click to share.'
+  return (
+    <button
+      type="button"
+      className="icon-btn"
+      title={label}
+      aria-label={label}
+      aria-pressed={shared}
+      onClick={() => onToggle(doc)}
+      style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', color: shared ? '#16a34a' : '#94a3b8' }}
+    >
+      {shared ? <Eye size={14} /> : <EyeOff size={14} />}
+    </button>
   )
 }
 

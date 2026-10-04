@@ -6,6 +6,7 @@ import {
   deleteBookingDocument,
   fetchBookingDocumentRows,
   fetchDocumentTags,
+  setBookingDocumentShared,
   signedDownloadUrl,
   updateBookingDocumentTag,
   uploadTaggedBookingFile,
@@ -112,6 +113,19 @@ export function useBookingRecordDocuments(bookingId: string, accountId: string |
     }
   }, [tags])
 
+  const toggleShare = useCallback(async (doc: BookingDocumentRow) => {
+    if (doc.uploaded_via === 'customer') return
+    const next = !doc.customer_visible
+    setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, customer_visible: next } : d)))
+    try {
+      await setBookingDocumentShared(doc.id, next)
+      toast.success(next ? 'Shared with customer' : 'Hidden from customer')
+    } catch (err) {
+      setDocuments((prev) => prev.map((d) => (d.id === doc.id ? { ...d, customer_visible: !next } : d)))
+      toast.error(err instanceof Error ? err.message : 'Failed to update sharing')
+    }
+  }, [])
+
   const remove = useCallback(async (doc: BookingDocumentRow) => {
     setDocuments((prev) => prev.filter((d) => d.id !== doc.id))
     try {
@@ -145,6 +159,7 @@ export function useBookingRecordDocuments(bookingId: string, accountId: string |
     setPendingTag,
     addTag,
     changeTag,
+    toggleShare,
     remove,
     getSignedUrl,
     download,

@@ -2,6 +2,7 @@ import { supabase } from '@/supabase'
 import {
   deleteBookingDocument,
   loadBookingDocuments,
+  setBookingDocumentShared,
   signedDownloadUrl,
   updateBookingDocumentTag,
   uploadBookingFile,
@@ -13,18 +14,24 @@ async function mapDocuments(rows: BookingDocument[]): Promise<BookingDocumentRow
   const tagIds = [...new Set(rows.map((r) => r.tag_id).filter(Boolean))] as string[]
   const userIds = [...new Set(rows.map((r) => r.uploaded_by).filter(Boolean))] as string[]
 
-  const [tagsRes, staffRes] = await Promise.all([
+  const [tagsRes, staffRes, portalRes] = await Promise.all([
     tagIds.length
       ? supabase.from('document_tags').select('id, name').in('id', tagIds)
       : Promise.resolve({ data: [] }),
     userIds.length
       ? supabase.from('staff_users').select('user_id, email').in('user_id', userIds)
       : Promise.resolve({ data: [] }),
+    userIds.length
+      ? supabase.from('portal_users').select('user_id, email').in('user_id', userIds)
+      : Promise.resolve({ data: [] }),
   ])
 
   const tagMap = new Map((tagsRes.data as { id: string; name: string }[] | null)?.map((t) => [t.id, t.name]))
   const staffMap = new Map(
     (staffRes.data as { user_id: string; email: string }[] | null)?.map((s) => [s.user_id, s.email]),
+  )
+  const portalMap = new Map(
+    (portalRes.data as { user_id: string; email: string }[] | null)?.map((s) => [s.user_id, s.email]),
   )
 
   return rows.map((row) => ({
@@ -38,7 +45,11 @@ async function mapDocuments(rows: BookingDocument[]): Promise<BookingDocumentRow
     tag_id: row.tag_id ?? null,
     uploaded_by: row.uploaded_by ?? null,
     tag_name: row.tag_id ? tagMap.get(row.tag_id) ?? null : null,
-    uploader_email: row.uploaded_by ? staffMap.get(row.uploaded_by) ?? null : null,
+    uploader_email: row.uploaded_by
+      ? staffMap.get(row.uploaded_by) ?? portalMap.get(row.uploaded_by) ?? null
+      : null,
+    customer_visible: row.customer_visible === true,
+    uploaded_via: row.uploaded_via === 'customer' ? 'customer' : 'staff',
   }))
 }
 
@@ -80,4 +91,4 @@ export async function uploadTaggedBookingFile(
   return row
 }
 
-export { deleteBookingDocument, signedDownloadUrl, updateBookingDocumentTag }
+export { deleteBookingDocument, setBookingDocumentShared, signedDownloadUrl, updateBookingDocumentTag }

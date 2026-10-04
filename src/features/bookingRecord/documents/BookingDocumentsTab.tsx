@@ -27,6 +27,7 @@ export default function BookingDocumentsTab({ bookingId, accountId }: Props) {
     setPendingTag,
     addTag,
     changeTag,
+    toggleShare,
     remove,
     getSignedUrl,
     download,
@@ -91,6 +92,7 @@ export default function BookingDocumentsTab({ bookingId, accountId }: Props) {
           onDownload={download}
           onDelete={remove}
           onTagChange={changeTag}
+          onToggleShare={(doc) => void toggleShare(doc)}
           onCreateTag={addTag}
         />
       )}

@@ -16,6 +16,8 @@ export type BookingDocumentRow = {
   uploaded_by: string | null
   tag_name: string | null
   uploader_email: string | null
+  customer_visible: boolean
+  uploaded_via: 'staff' | 'customer'
 }
 
 export type PendingUpload = {

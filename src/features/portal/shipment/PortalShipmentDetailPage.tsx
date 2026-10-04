@@ -68,7 +68,7 @@ export default function PortalShipmentDetailPage() {
         {tab === 'Cargo & containers' && (
           <CargoContainersTab shipment={data.shipment} containers={data.containers} />
         )}
-        {tab === 'Documents' && <DocumentsTab />}
+        {tab === 'Documents' && <DocumentsTab bookingId={data.booking?.id ?? null} />}
         {tab === 'Additional services' && <AdditionalServicesTab />}
       </div>
     </div>

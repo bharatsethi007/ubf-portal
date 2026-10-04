@@ -59,7 +59,18 @@ async function allowed(who: Who, client: ReturnType<typeof createClient>, op: Op
   if (who.kind === "service" || who.kind === "staff") return true;
   if (op === "get" && PUBLIC_READ.has(area)) return true;
   if (area === "booking-documents" && who.kind === "customer") {
-    return op !== "delete" && !!who.account && rest[0] === who.account;
+    if (op === "get") {
+      // RLS on booking_documents only returns shared docs on the customer's bookings.
+      const { data } = await client.from("booking_documents").select("id").eq("storage_path", rest.join("/")).limit(1);
+      return (data?.length ?? 0) > 0;
+    }
+    if (op === "put") {
+      // Own folder: <account>/<booking_id>/<file>, booking must be theirs.
+      if (!who.account || rest[0] !== who.account || rest.length < 3) return false;
+      const { data } = await client.rpc("portal_can_see_booking", { p_booking_id: rest[1] });
+      return data === true;
+    }
+    return false;
   }
   if (area === "sli-uploads" && op !== "delete") {
     const fn = op === "put" ? "sli_token_is_live" : "sli_token_exists";
