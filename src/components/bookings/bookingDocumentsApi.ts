@@ -1,7 +1,9 @@
 import { supabase } from '../../supabase'
+import { fileKey, removeFiles, signedUrl, uploadFile } from '../../lib/fileStore'
 import type { BookingDocument } from '../../types/bookingDocument'
 
-const BUCKET = 'booking-documents'
+// Files live in S3 under booking-documents/<storage_path>. DB keeps storage_path unchanged.
+const key = (storagePath: string) => fileKey('booking-documents', storagePath)
 const DOC_SELECT =
   'id, booking_id, file_name, storage_path, mime_type, size_bytes, tag_id, uploaded_by, created_at'
 
@@ -33,11 +35,7 @@ export async function uploadBookingFile(
   opts?: { tagId?: string | null; uploadedBy?: string | null },
 ): Promise<BookingDocument> {
   const path = buildStoragePath(accountId, bookingId, file.name)
-  const { error: uploadErr } = await supabase.storage.from(BUCKET).upload(path, file, {
-    contentType: file.type || undefined,
-    upsert: false,
-  })
-  if (uploadErr) throw new Error(uploadErr.message)
+  await uploadFile(key(path), file, { contentType: file.type || undefined })
 
   const { data, error: insertErr } = await supabase
     .from('booking_documents')
@@ -54,23 +52,20 @@ export async function uploadBookingFile(
     .single()
 
   if (insertErr || !data) {
-    await supabase.storage.from(BUCKET).remove([path])
+    await removeFiles([key(path)]).catch(() => {})
     throw new Error(insertErr?.message ?? 'Failed to save document record')
   }
   return data as BookingDocument
 }
 
 export async function deleteBookingDocument(doc: BookingDocument): Promise<void> {
-  const { error: storageErr } = await supabase.storage.from(BUCKET).remove([doc.storage_path])
-  if (storageErr) throw new Error(storageErr.message)
+  await removeFiles([key(doc.storage_path)])
   const { error } = await supabase.from('booking_documents').delete().eq('id', doc.id)
   if (error) throw new Error(error.message)
 }
 
 export async function signedDownloadUrl(storagePath: string): Promise<string> {
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(storagePath, 3600)
-  if (error || !data?.signedUrl) throw new Error(error?.message ?? 'Failed to create download link')
-  return data.signedUrl
+  return signedUrl(key(storagePath), { expires: 3600 })
 }
 
 export async function updateBookingDocumentTag(
