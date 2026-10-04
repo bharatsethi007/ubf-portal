@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase'
+import { fileKey, publicUrl, uploadFile } from '../../../lib/fileStore'
 import { createAgent } from '../agentsApi'
 import { addAgentContact } from './meetingsApi'
 
@@ -43,10 +44,9 @@ export async function scanBusinessCard(
 
 export async function uploadCardImage(meetingId: string, file: File): Promise<string> {
   const path = `cards/${meetingId}/${Date.now()}-${file.name}`
-  const { error } = await supabase.storage.from('conferences').upload(path, file, { upsert: true })
-  if (error) throw error
-  const { data } = supabase.storage.from('conferences').getPublicUrl(path)
-  return data.publicUrl
+  const key = fileKey('conferences', path)
+  await uploadFile(key, file)
+  return publicUrl(key)
 }
 
 export async function addMeetingCard(

@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { fileKey, publicUrl, removeFiles, uploadFile } from '../../lib/fileStore'
 
 // Hardcoded for now. Move to a table when branches need managing.
 export const BRANCHES = ['New Zealand', 'Australia', 'Fiji'] as const
@@ -29,7 +30,7 @@ export function displayName(p: Pick<StaffProfile, 'first_name' | 'last_name' | '
 
 export function avatarUrl(path: string | null): string | null {
   if (!path) return null
-  return supabase.storage.from('avatars').getPublicUrl(path).data.publicUrl
+  return publicUrl(fileKey('avatars', path))
 }
 
 export async function getStaffProfile(userId: string): Promise<StaffProfile | null> {
@@ -67,13 +68,12 @@ export async function uploadAvatar(userId: string, file: File): Promise<string> 
   canvas.getContext('2d')!.drawImage(bmp, (bmp.width - side) / 2, (bmp.height - side) / 2, side, side, 0, 0, 256, 256)
   const blob = await new Promise<Blob>((res, rej) => canvas.toBlob((b) => (b ? res(b) : rej(new Error('Image failed'))), 'image/jpeg', 0.88))
   const path = `${userId}/${Date.now()}.jpg`
-  const { error } = await supabase.storage.from('avatars').upload(path, blob, { contentType: 'image/jpeg', upsert: false })
-  if (error) throw new Error(error.message)
+  await uploadFile(fileKey('avatars', path), blob, { contentType: 'image/jpeg' })
   return path
 }
 
 export async function removeAvatarFile(path: string | null): Promise<void> {
-  if (path) await supabase.storage.from('avatars').remove([path]).catch(() => {})
+  if (path) await removeFiles([fileKey('avatars', path)]).catch(() => {})
 }
 
 async function invokeFn<T>(name: string, body: Record<string, unknown>): Promise<T> {

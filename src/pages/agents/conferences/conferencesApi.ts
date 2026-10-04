@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase'
+import { fileKey, publicUrl, uploadFile } from '../../../lib/fileStore'
 
 export type Conference = {
   id: string
@@ -224,8 +225,7 @@ export async function uploadConferenceImage(
   kind: 'cover' | 'header' | 'gallery',
 ): Promise<string> {
   const path = `${conferenceId}/${kind}-${Date.now()}-${file.name}`
-  const { error } = await supabase.storage.from('conferences').upload(path, file, { upsert: true })
-  if (error) throw error
-  const { data } = supabase.storage.from('conferences').getPublicUrl(path)
-  return data.publicUrl
+  const key = fileKey('conferences', path)
+  await uploadFile(key, file)
+  return publicUrl(key)
 }

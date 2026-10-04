@@ -1,4 +1,5 @@
 import { supabase } from '@/supabase'
+import { fileKey, publicUrl, signedUrl, uploadFile } from '@/lib/fileStore'
 
 export type VehicleIssue = { id: string; label: string; severity: 'info' | 'warn' | 'critical'; status: 'open' | 'resolved' }
 export type FleetVehicle = {
@@ -110,10 +111,9 @@ export type VehicleInput = {
 export async function uploadVehiclePhoto(file: File): Promise<string> {
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
   const path = `vehicles/${crypto.randomUUID()}.${ext}`
-  const { error } = await supabase.storage.from('fleet').upload(path, file, { upsert: true })
-  if (error) throw error
-  const { data } = supabase.storage.from('fleet').getPublicUrl(path)
-  return data.publicUrl
+  const key = fileKey('fleet', path)
+  await uploadFile(key, file)
+  return publicUrl(key)
 }
 
 export async function createVehicle(input: VehicleInput): Promise<void> {
@@ -129,10 +129,9 @@ export async function updateVehicle(id: string, input: VehicleInput): Promise<vo
 export async function uploadDriverPhoto(file: File): Promise<string> {
   const ext = (file.name.split('.').pop() || 'jpg').toLowerCase()
   const path = `drivers/${crypto.randomUUID()}.${ext}`
-  const { error } = await supabase.storage.from('fleet').upload(path, file, { upsert: true })
-  if (error) throw error
-  const { data } = supabase.storage.from('fleet').getPublicUrl(path)
-  return data.publicUrl
+  const key = fileKey('fleet', path)
+  await uploadFile(key, file)
+  return publicUrl(key)
 }
 
 export type DriverInput = {
@@ -163,13 +162,10 @@ export async function logOffDriver(driverId: string): Promise<void> {
 export async function uploadDriverLicenseDoc(file: File): Promise<string> {
   const ext = (file.name.split('.').pop() || 'pdf').toLowerCase()
   const path = `licences/${crypto.randomUUID()}.${ext}`
-  const { error } = await supabase.storage.from('fleet-docs').upload(path, file, { upsert: true })
-  if (error) throw error
+  await uploadFile(fileKey('fleet-docs', path), file)
   return path
 }
 
 export async function getLicenseDocSignedUrl(path: string): Promise<string | null> {
-  const { data, error } = await supabase.storage.from('fleet-docs').createSignedUrl(path, 300)
-  if (error) return null
-  return data?.signedUrl ?? null
+  return signedUrl(fileKey('fleet-docs', path), { expires: 300 }).catch(() => null)
 }

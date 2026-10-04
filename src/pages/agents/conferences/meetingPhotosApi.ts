@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase'
+import { fileKey, publicUrl, uploadFile } from '../../../lib/fileStore'
 
 export type MeetingPhoto = {
   id: string
@@ -22,9 +23,9 @@ export async function listMeetingPhotos(meetingId: string): Promise<MeetingPhoto
 export async function uploadMeetingPhoto(meetingId: string, file: File): Promise<MeetingPhoto> {
   const safeName = file.name.replace(/[^\w.\-]+/g, '_')
   const path = `meeting-photos/${meetingId}/${Date.now()}-${safeName}`
-  const up = await supabase.storage.from('conferences').upload(path, file, { upsert: true })
-  if (up.error) throw up.error
-  const { data: pub } = supabase.storage.from('conferences').getPublicUrl(path)
+  const key = fileKey('conferences', path)
+  await uploadFile(key, file)
+  const pub = { publicUrl: publicUrl(key) }
 
   const { data: existing } = await supabase
     .from('meeting_photos')
