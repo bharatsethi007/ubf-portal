@@ -9,6 +9,33 @@ import { isLytteltonPort } from '../tracking/portconnectUtils'
 import TriSourceDateField from './TriSourceDateField'
 import ImportSeaDateField from '@/features/importSea/ImportSeaDateField'
 import FormCard from './FormCard'
+import BookingFieldShell from './BookingFieldShell'
+import PortConnectSourcePill from '../portConnect/PortConnectSourcePill'
+
+/** "02 Oct 2026, 14:14" in NZ time, same day format as the other date fields. */
+function fmtGate(ts: string): string {
+  const d = new Date(ts)
+  const day = d.toLocaleDateString('en-GB', { timeZone: 'Pacific/Auckland', day: '2-digit', month: 'short', year: 'numeric' })
+  const time = d.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland', hour: '2-digit', minute: '2-digit', hour12: false })
+  return `${day}, ${time}`
+}
+
+/** Read-only: latest PortConnect gate-out across the booking's containers; per-box times on hover. */
+function GateOutField({ rows, lastSync }: { rows: ContainerTrackingRow[] | null | undefined; lastSync: string | null | undefined }) {
+  const all = rows ?? []
+  const out = all.filter((r) => r.gate_out_at).sort((a, b) => (b.gate_out_at ?? '').localeCompare(a.gate_out_at ?? ''))
+  const latest = out[0]?.gate_out_at ?? null
+  const partial = all.length > 1 && out.length > 0 && out.length < all.length
+  const title = out.map((r) => `${r.container_no}: ${fmtGate(r.gate_out_at as string)}`).join('\n')
+  return (
+    <BookingFieldShell label="Gate out" provenance={latest ? <PortConnectSourcePill lastSync={lastSync} /> : null}>
+      <div className="booking-erp-readonly" title={title || undefined} style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+        <span className={latest ? 'mono' : 'muted'}>{latest ? fmtGate(latest) : 'Not yet'}</span>
+        {partial ? <span style={{ fontSize: 10.5, color: '#B54708' }}>{out.length} of {all.length} out</span> : null}
+      </div>
+    </BookingFieldShell>
+  )
+}
 
 type PatchFn = (ui: Partial<BookingRecord>, db: BookingRecordPatch) => void
 
@@ -81,6 +108,7 @@ export default function BookingDatesColumn({
           flash={isFlashing?.('discharge_date')}
           onPatch={patchDb}
         />
+        <GateOutField rows={trackingContainers} lastSync={lastSync} />
         <TriSourceDateField
           label="Container return"
           portConnectValue={pc?.containerReturnDate ?? null}
