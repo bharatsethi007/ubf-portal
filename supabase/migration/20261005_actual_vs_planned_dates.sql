@@ -1,0 +1,6 @@
+-- APPLIED LIVE 5 Oct 2026 via Supabase MCP. Repo parity only. DO NOT RE-RUN.
+-- container_dates_planned_return: bookings.container_return_date in the future = planned return, not returned.
+-- booking_flow_actual_vs_planned: same for v_booking_flow; typed delivery_date counts as delivered only when
+--   PortConnect isn't tracking the boxes (otherwise gate-out / delivered_at decides).
+-- staff_tasks_autoclose_actual_return: 'Container dehired' ticks only on a past/today return date.
+-- Data fix: reopened 6 checklist items auto-ticked on planned dates (0052 Delivered + Dehired; 0055/56/57/59 Dehired).
