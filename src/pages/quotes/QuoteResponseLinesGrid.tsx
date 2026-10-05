@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X, LayoutTemplate, Save, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
@@ -15,6 +15,7 @@ import { fetchEffectiveRates } from '../setup/fxRatesApi'
 import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
 import QuoteResponseTemplateDialogs from './QuoteResponseTemplateDialogs'
 import CartageSearchDialog from './CartageSearchDialog'
+import { qtyForUnit, type UnitQty } from './quoteUnitQty'
 import { useResponseLineUnits } from './useResponseLineUnits'
 import './quoteResponseLinesGrid.css'
 
@@ -24,6 +25,8 @@ type Props = {
   perKgQty?: number
   /** Limits the Unit list to units valid for this mode (e.g. no Per 20' on air). Omit to show all. */
   mode?: 'air' | 'sea'
+  /** Quote quantities; fills Qty by unit on templates and unit changes. */
+  unitQty?: UnitQty
   /** When set, shows Cartage search (dims/pcs read from this quote). */
   quoteId?: string
   onChange: (lines: QuoteResponseLine[]) => void
@@ -33,13 +36,13 @@ function fmt(n: number): string {
   return n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode, quoteId, onChange }: Props) {
+export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode, quoteId, unitQty, onChange }: Props) {
   const { items: units } = useChargeUnits()
   const { items: taxes } = useTaxRates()
   const { items: currencies } = useCurrencies()
   const { items: groups } = useChargeGroups()
   const { items: chargeCodes, refresh: refreshCodes } = useChargeCodes()
-  const { rates: fxRates, loading: fxLoading, reload: reloadFx } = useEffectiveRates(currency)
+  const { rates: fxRates, loading: fxLoading, base: fxBase, reload: reloadFx } = useEffectiveRates(currency)
   const [addingFor, setAddingFor] = useState<string | null>(null)
   const [addGroup, setAddGroup] = useState('freight')
   const [templates, setTemplates] = useState<ChargeTemplate[]>([])
@@ -63,7 +66,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
     [lines],
   )
 
-  const { unitOptionsFor, unitPatch, defaultUnitPatch } = useResponseLineUnits(units, chargeCodes, mode, perKgQty)
+  const { unitOptionsFor, unitPatch, defaultUnitPatch } = useResponseLineUnits(units, chargeCodes, mode, perKgQty, unitQty)
   const taxOptions = useMemo(() => taxes.map((t) => ({ value: t.code, label: t.label })), [taxes])
   const curOptions = useMemo(() => currencies.map((c) => ({ value: c.code, label: c.code })), [currencies])
   const groupOptions = useMemo(() => groups.map((g) => ({ value: g.code, label: g.label })), [groups])
@@ -85,29 +88,35 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }
 
-  // Auto-apply live FX: once rates load, fill the ex-rate for any line whose
-  // currency differs from the response currency and hasn't been set yet (still
-  // at the default 1). Manually-entered ex-rates (anything other than 1) are
-  // left untouched. Removes the need to click "Apply live FX" for the common case.
+  // Auto FX, no button needed:
+  // - lines in the response currency always get 1
+  // - foreign lines still at default (blank / 1) get the live rate
+  // - when the response currency changes, every line is re-rated
+  // Manual ex-rates survive otherwise. Waits until rates for this currency have loaded.
+  const fxAppliedFor = useRef(currency)
   useEffect(() => {
-    if (fxLoading || fxRates.size === 0) return
+    if (fxLoading || fxBase !== currency) return
+    const full = fxAppliedFor.current !== currency
     let changed = false
     const next = lines.map((l) => {
       const p: Partial<QuoteResponseLine> = {}
-      if (l.buy_currency && l.buy_currency !== currency && (l.ex_rate_buy === '' || l.ex_rate_buy === '1')) {
-        const e = exFor(l.buy_currency, 'buy')
-        if (e != null && e !== '1') p.ex_rate_buy = e
+      const fix = (cur: string, side: 'buy' | 'sell', cur0: string) => {
+        if (!cur) return
+        const e = exFor(cur, side)
+        if (e == null || e === cur0) return
+        if (full || e === '1' || cur0 === '' || cur0 === '1') {
+          if (side === 'buy') p.ex_rate_buy = e; else p.ex_rate_sell = e
+        }
       }
-      if (l.sell_currency && l.sell_currency !== currency && (l.ex_rate_sell === '' || l.ex_rate_sell === '1')) {
-        const e = exFor(l.sell_currency, 'sell')
-        if (e != null && e !== '1') p.ex_rate_sell = e
-      }
+      fix(l.buy_currency, 'buy', l.ex_rate_buy)
+      fix(l.sell_currency, 'sell', l.ex_rate_sell)
       if (Object.keys(p).length) { changed = true; return { ...l, ...p } }
       return l
     })
+    fxAppliedFor.current = currency
     if (changed) onChange(next)
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [fxRates, fxLoading, lines, currency])
+  }, [fxRates, fxLoading, fxBase, lines, currency])
 
   function addLine() {
     onChange([...lines, newQuoteResponseLine(lines.length, currency)])
@@ -147,6 +156,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
       }
       const withFx = tplLines.map((l) => ({
         ...l,
+        qty: qtyForUnit(l.unit, unitQty) ?? l.qty,
         ex_rate_buy: exForRates(l.buy_currency, 'buy') ?? l.ex_rate_buy,
         ex_rate_sell: exForRates(l.sell_currency, 'sell') ?? l.ex_rate_sell,
       }))

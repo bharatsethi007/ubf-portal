@@ -7,10 +7,10 @@ import {
   fetchQuoteResponses,
   sendQuoteForApproval,
   withdrawQuoteApproval,
-  updateQuoteResponseHeader,
   type QuoteResponseSummary,
 } from './quoteResponsesApi'
 import { canSendToPortal, fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
+import { withLiveFx } from './responseFx'
 import QuoteResponseModal from './QuoteResponseModal'
 import QuoteVendorRates from './QuoteVendorRates'
 import QuoteRequestRates from './QuoteRequestRates'
@@ -128,8 +128,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
 
   async function useRateFromChat(o: RateOption, lane: QuoteLane) {
     const { id: responseId } = await createQuoteResponse(quoteId)
-    await saveQuoteResponseLines(responseId, buildBuyLinesFromOption(o, lane.containers))
-    if (o.currency) await updateQuoteResponseHeader(responseId, { currency: o.currency })
+    await saveQuoteResponseLines(responseId, await withLiveFx(buildBuyLinesFromOption(o, lane.containers)))
     await reload()
     setSearchOpen(false)
     setTab('responses')
@@ -138,8 +137,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
 
   async function useLclRateFromChat(o: LclRateOption, _lane: LclQuoteLane) {
     const { id: responseId } = await createQuoteResponse(quoteId)
-    await saveQuoteResponseLines(responseId, buildLclBuyLinesFromOption(o))
-    if (o.currency) await updateQuoteResponseHeader(responseId, { currency: o.currency })
+    await saveQuoteResponseLines(responseId, await withLiveFx(buildLclBuyLinesFromOption(o)))
     await reload()
     setSearchOpen(false)
     setTab('responses')

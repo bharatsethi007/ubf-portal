@@ -1,6 +1,7 @@
 import { useMemo } from 'react'
 import type { ChargeCode, ChargeUnit } from '../../hooks/useQuoteRefData'
 import type { QuoteResponseLine } from './quoteResponseLinesApi'
+import { qtyForUnit, type UnitQty } from './quoteUnitQty'
 
 type Opt = { value: string; label: string }
 
@@ -10,6 +11,7 @@ type Opt = { value: string; label: string }
  */
 export function useResponseLineUnits(
   units: ChargeUnit[], chargeCodes: ChargeCode[], mode: 'air' | 'sea' | undefined, perKgQty: number | undefined,
+  unitQty?: UnitQty,
 ) {
   const unitOptions = useMemo<Opt[]>(
     () => units.filter((u) => !mode || u.modes.includes(mode)).map((u) => ({ value: u.code, label: u.label })),
@@ -30,10 +32,12 @@ export function useResponseLineUnits(
     return [...unitOptions, { value: unit, label: known ? `${known.label} (not for ${mode})` : unit }]
   }
 
-  /** Unit + qty patch for a unit choice: per KG pulls the chargeable weight. */
+  /** Unit + qty patch for a unit choice: qty comes from the quote (kg, W/M, CBM, containers, 1 per B/L...). */
   const unitPatch = (u: string): Partial<QuoteResponseLine> => {
     const p: Partial<QuoteResponseLine> = { unit: u }
     if (u === 'per_kg' && perKgQty && perKgQty > 0) p.qty = String(perKgQty)
+    const q = qtyForUnit(u, unitQty)
+    if (q) p.qty = q
     return p
   }
 

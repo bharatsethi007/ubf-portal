@@ -4,14 +4,18 @@ import { fetchEffectiveRates } from '../pages/setup/fxRatesApi'
 export function useEffectiveRates(base: string): {
   rates: Map<string, { buy: number; sell: number }>
   loading: boolean
+  /** Base currency the current `rates` belong to (lags `base` until loaded). */
+  base: string
   reload: () => void
 } {
   const [rates, setRates] = useState<Map<string, { buy: number; sell: number }>>(new Map())
   const [loading, setLoading] = useState(!!base)
+  const [loadedBase, setLoadedBase] = useState('')
 
   const load = useCallback(async () => {
     if (!base) {
       setRates(new Map())
+      setLoadedBase('')
       setLoading(false)
       return
     }
@@ -21,6 +25,7 @@ export function useEffectiveRates(base: string): {
     } catch {
       setRates(new Map())
     } finally {
+      setLoadedBase(base)
       setLoading(false)
     }
   }, [base])
@@ -33,5 +38,5 @@ export function useEffectiveRates(base: string): {
     void load()
   }, [load])
 
-  return { rates, loading, reload }
+  return { rates, loading, base: loadedBase, reload }
 }

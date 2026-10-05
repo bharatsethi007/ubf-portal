@@ -9,13 +9,14 @@ import AirCargoPanel from './AirCargoPanel'
 import CourierCargoPanel, { newCourierPiece, type CourierPiece } from './CourierCargoPanel'
 import CartageCourierSelector from './CartageCourierSelector'
 import { type AddressComponents } from '../../components/bookings/AddressAutocomplete'
+import { withLiveFx } from './responseFx'
 import { runCartageRate, runBascikCartage, runGssCartage, carrierLogo, type CartageQuoteResult, type GssOption } from './cartageSearchApi'
 import type { RateOptionCartage } from './rateOptionCartage'
 import { type CargoEntryMode } from './QuoteCargoEntry'
 import { createQuote, emptyQuoteDraft, updateQuote, type QuoteDraft } from './quotesApi'
 import { computeCargoLine, newQuoteCargoLine, saveQuoteCargo, type QuoteCargoLine } from './quoteCargoApi'
 import { emptyContainerGroup, replaceQuoteContainers, type QuoteContainerDraft } from './quoteContainersApi'
-import { createQuoteResponse, updateQuoteResponseHeader } from './quoteResponsesApi'
+import { createQuoteResponse } from './quoteResponsesApi'
 import { saveQuoteResponseLines, type QuoteResponseLine } from './quoteResponseLinesApi'
 import { cartageResponseLines, withExtraLines } from './rateOptionCartage'
 import { searchFclRates, type RateOption, type QuoteLane } from '../rates/rateSearchApi'
@@ -364,8 +365,7 @@ export default function NewQuoteSearch() {
       if (isLcl) { await updateQuote(id, { cargo_entry_mode: lclMode }); await saveQuoteCargo(id, lclLines, 'sea') }
       if (chosen) {
         const { id: responseId } = await createQuoteResponse(id)
-        await saveQuoteResponseLines(responseId, withExtraLines(buildBuyLines(chosen), opts?.cartage ? cartageResponseLines(cardCartage) : []))
-        if (chosen.currency) await updateQuoteResponseHeader(responseId, { currency: chosen.currency })
+        await saveQuoteResponseLines(responseId, await withLiveFx(withExtraLines(buildBuyLines(chosen), opts?.cartage ? cartageResponseLines(cardCartage) : [])))
       }
       toast.success(chosen ? 'Quote created with buy rates' : 'Quote created')
       navigate(`/quotes/${id}`)

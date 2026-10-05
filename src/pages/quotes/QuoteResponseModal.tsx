@@ -14,6 +14,8 @@ import {
 } from './quoteResponsesApi'
 import { fetchQuote, type QuoteRecord } from './quotesApi'
 import { fetchQuoteCargo, computeCargoLine } from './quoteCargoApi'
+import { fetchQuoteContainers } from './quoteContainersApi'
+import { buildUnitQty, type UnitQty } from './quoteUnitQty'
 import QuoteResponseLinesGrid from './QuoteResponseLinesGrid'
 import {
   fetchQuoteResponseLines,
@@ -61,6 +63,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
   // Quote chargeable weight (air) / gross weight (other) — used to auto-fill the
   // Qty of any Per-KG charge line.
   const [perKgQty, setPerKgQty] = useState(0)
+  const [unitQty, setUnitQty] = useState<UnitQty | undefined>(undefined)
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
 
@@ -94,11 +97,12 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [q, r, ls, cargo] = await Promise.all([
+      const [q, r, ls, cargo, ctrs] = await Promise.all([
         fetchQuote(quoteId),
         fetchQuoteResponse(responseId),
         fetchQuoteResponseLines(responseId),
         fetchQuoteCargo(quoteId),
+        fetchQuoteContainers(quoteId),
       ])
       setQuote(q)
       setResponse(r)
@@ -114,6 +118,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
           : cc.grossTotal
       }
       setPerKgQty(Math.round(ck * 100) / 100)
+      setUnitQty(buildUnitQty(cargo, ctrs, airQ))
     } catch {
       toast.error('Failed to load response')
     } finally {
@@ -235,7 +240,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                 </Field>
               </div>
 
-              <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} mode={quote ? (isAir ? 'air' : 'sea') : undefined} quoteId={quoteId} onChange={setLines} />
+              <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} mode={quote ? (isAir ? 'air' : 'sea') : undefined} quoteId={quoteId} unitQty={unitQty} onChange={setLines} />
 
               <div className="qrm-totals">
                 <div className="qrm-totrow"><span>Sub Total</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.subTotal)}</span></div>
