@@ -52,7 +52,9 @@ export async function searchCartage(i: CartageSearchInput): Promise<CartageSearc
       const portAddr = DEPOT[port] ?? { suburb: city, city }
       const door = { suburb: i.door.suburb || undefined, city: i.door.suburb || undefined, postcode: i.door.postcode || undefined, street: i.door.address || undefined }
       const [o, d] = dir === 'import' ? [portAddr, door] : [door, portAddr]
-      const [fromS, toS] = dir === 'import' ? [city, doorCity] : [doorCity, city]
+      // Bascik rates by town: send suburb + full address so it can find the city (e.g. Harewood -> Christchurch).
+      const doorTown = [i.door.suburb, i.door.address].filter(Boolean).join(', ')
+      const [fromS, toS] = dir === 'import' ? [city, doorTown] : [doorTown, city]
       const pcs = Math.max(1, i.pcs || 1)
       const [gss, bas] = await Promise.all([
         runGssCartage({ origin: o, destination: d, pieces: pcs, weight_kg: i.kg, volume_m3: i.cbm }),

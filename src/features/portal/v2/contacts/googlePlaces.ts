@@ -12,6 +12,8 @@ export type PlaceValue = {
   lat: number | null
   lng: number | null
   name: string | null
+  /** Suburb (sublocality), when Google returns one. */
+  suburb?: string | null
 }
 
 export type Prediction = { place_id: string; main: string; secondary: string; description: string }
@@ -62,11 +64,11 @@ export function loadPlaces(): Promise<boolean> {
 let token: object | null = null
 const session = () => { const l = lib(); if (l && !token) token = new l.AutocompleteSessionToken(); return token }
 
-export function predict(input: string): Promise<Prediction[]> {
+export function predict(input: string, country?: string): Promise<Prediction[]> {
   const l = lib()
   if (!l || input.trim().length < 3) return Promise.resolve([])
   return new Promise((resolve) => {
-    new l.AutocompleteService().getPlacePredictions({ input, sessionToken: session() }, (r, status) => {
+    new l.AutocompleteService().getPlacePredictions({ input, sessionToken: session(), ...(country ? { componentRestrictions: { country } } : {}) }, (r, status) => {
       if (status !== 'OK' || !r) { resolve([]); return }
       resolve(r.slice(0, 6).map((p) => ({
         place_id: p.place_id, description: p.description,
@@ -100,6 +102,7 @@ export function details(placeId: string): Promise<PlaceValue | null> {
           country: part(c, 'country'), country_code: part(c, 'country', true),
           place_id: placeId, lat: d.geometry?.location?.lat() ?? null, lng: d.geometry?.location?.lng() ?? null,
           name: isBusiness ? d.name ?? null : null,
+          suburb: part(c, 'sublocality_level_1') ?? part(c, 'sublocality') ?? part(c, 'neighborhood'),
         })
       },
     )

@@ -8,6 +8,7 @@ import { learnCartageAliases } from '../rates/cartage/cartageRatesApi'
 import { carrierLogo } from './cartageSearchApi'
 import { cartageResponseLines } from './rateOptionCartage'
 import type { QuoteResponseLine } from './quoteResponseLinesApi'
+import CartageAddressSearch from './CartageAddressSearch'
 import { loadCartagePrefill, type CartagePrefill } from './cartageSearchPrefill'
 import { searchCartage, type CartageKind, type CartageLeg, type CartageOpt, type CartageSearchResult } from './cartageSearchRun'
 
@@ -76,9 +77,12 @@ export default function CartageSearchDialog({ quoteId, open, onOpenChange, onAdd
   )
   const doorBox = (
     <div className="grid grid-cols-2 gap-2">
+      <div className="col-span-2">
+        <CartageAddressSearch label="Street address" value={door.address} onText={(v) => setDoor('address', v)}
+          onPick={(g) => set({ doors: { ...p.doors, [leg]: { address: g.address, suburb: g.suburb || g.city || door.suburb, postcode: g.postcode || '' } } })} />
+      </div>
       <div><label className={lbl}>Suburb / city</label><input className="nqd-input" value={door.suburb} onChange={(e) => setDoor('suburb', e.target.value)} /></div>
       <div><label className={lbl}>Postcode</label><input className="nqd-input" value={door.postcode} onChange={(e) => setDoor('postcode', e.target.value)} /></div>
-      <div className="col-span-2"><label className={lbl}>Street address</label><input className="nqd-input" value={door.address} onChange={(e) => setDoor('address', e.target.value)} /></div>
     </div>
   )
   const legBtn = (v: CartageLeg, t: string) => (
