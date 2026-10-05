@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import Logo from '../components/Logo'
 import SyncButton from '../components/SyncButton'
 import UserMenu from '../components/staff/UserMenu'
+import StaffNotificationBell from '../components/staff/notifications/StaffNotificationBell'
 import { needsActionTotal } from '../pages/whatsapp/whatsappInboxApi'
 import { waitingTotal } from '../pages/messages/portalMessagesApi'
 import { supabase } from '../supabase'
@@ -178,6 +179,7 @@ export default function AppShell({ session, search, onSearch }: Props) {
             <input className="input search-input" placeholder="Quick search" value={search} onChange={(e) => onSearch(e.target.value)} aria-label="Quick search" />
           </div>
           <div className="topbar__actions">
+            <StaffNotificationBell userId={session.user.id} />
             <button
               type="button"
               className="sync-btn wa-topbar-btn"
