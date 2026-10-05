@@ -205,7 +205,7 @@ export function buildQuotePdfData(
       port: fromP ? `${fromP.code} - ${fromP.name.toUpperCase()}` : quote.from_port_code || '',
     },
     destination: {
-      consignee: (quote.consignee || quote.customer_name || '').toUpperCase(),
+      consignee: (quote.consignee || '').toUpperCase(),
       address: destIsDoor ? (quote.consignee_address || '') : '',
       port: toP ? `${toP.code} - ${toP.name.toUpperCase()}` : quote.to_port_code || '',
     },
