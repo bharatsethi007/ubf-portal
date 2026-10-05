@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import {
-  cancelCustomerTask, fetchContainerDates, fetchCustomerTasks, pushCustomerTasks, reopenCustomerTask,
+  cancelCustomerTask, fetchContainerDates, fetchCustomerTasks, isSystemCancelled, pushCustomerTasks, reopenCustomerTask,
   type ContainerDates, type CustomerTask, type PushTaskInput,
 } from './customerTasksApi'
 
@@ -18,7 +18,7 @@ export function useCustomerTasks(bookingId: string) {
   const reload = useCallback(async () => {
     try {
       const [t, d] = await Promise.all([fetchCustomerTasks(bookingId), fetchContainerDates(bookingId)])
-      setTasks(t)
+      setTasks(t.filter((x) => !isSystemCancelled(x)))
       setDates(d)
     } catch (e) {
       toast.error(errText(e, 'Could not load customer tasks'))

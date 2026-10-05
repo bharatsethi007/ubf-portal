@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Plus } from 'lucide-react'
+import { supabase } from '@/supabase'
 import type { BookingRecord, BookingRecordPatch } from '../bookingRecordTypes'
 import ContainerDatesTable from './ContainerDatesTable'
 import CustomerTaskList from './CustomerTaskList'
@@ -22,6 +23,15 @@ export default function CustomerTasksCard({ booking, onPatch }: Props) {
     setDays(booking.detention_free_days != null ? String(booking.detention_free_days) : '')
   }, [booking.detention_free_days])
 
+  // Tasks only reach customers who can log in to the portal.
+  const acct = booking.importer_account_id ?? booking.account_id ?? booking.consignee_account_id
+  const [onPortal, setOnPortal] = useState<boolean | null>(null)
+  useEffect(() => {
+    if (!acct) { setOnPortal(false); return }
+    void supabase.from('portal_users').select('user_id', { count: 'exact', head: true }).eq('account_id', acct).eq('status', 'active')
+      .then(({ count }) => setOnPortal((count ?? 0) > 0))
+  }, [acct])
+
   const containers = useMemo(() => dates.map((d) => d.container_no), [dates])
   const openCount = tasks.filter((t) => t.status === 'open').length
 
@@ -43,11 +53,17 @@ export default function CustomerTasksCard({ booking, onPatch }: Props) {
             title="Send task to customer"
             aria-label="Send task to customer"
             onClick={() => setOpen(true)}
-            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 30, padding: 0 }}
+            disabled={onPortal === false}
+            style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 30, padding: 0, opacity: onPortal === false ? 0.4 : 1 }}
           >
             <Plus size={15} />
           </button>
           <h3 style={head}>Customer tasks{openCount ? ` (${openCount} open)` : ''}</h3>
+          {onPortal === false ? (
+            <span style={{ fontSize: 11, color: '#B54708', background: '#FEF4E6', borderRadius: 10, padding: '1px 8px' }}>
+              Customer has no portal login, tasks can't be sent
+            </span>
+          ) : null}
         </div>
         <label style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 12 }} title="Blank uses shipping line default">
           <span className="text-muted-foreground">Detention free days</span>

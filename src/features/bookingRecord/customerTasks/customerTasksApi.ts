@@ -116,10 +116,23 @@ export async function reopenCustomerTask(id: string): Promise<void> {
   if (error) throw error
 }
 
+const AUTO_REASON: Record<string, string> = {
+  delivery_set: 'Closed: delivery date set or containers collected',
+  empty_handled: 'Closed: empty marked ready or returned',
+  docs_received: 'Closed: commercial docs on file',
+  no_portal_login: 'Cancelled: customer has no portal login',
+  stale_eta: 'Cancelled: ETA was out of date',
+}
+
+/** Tasks the system cancelled (not staff) add nothing to the record view. */
+export function isSystemCancelled(t: CustomerTask): boolean {
+  return t.status === 'cancelled' && typeof t.response?.auto === 'string'
+}
+
 export function responseSummary(t: CustomerTask): string | null {
   const r = t.response
   if (!r) return null
-  if (typeof r.auto === 'string') return 'Auto-closed (fact recorded)'
+  if (typeof r.auto === 'string') return AUTO_REASON[r.auto] ?? 'Closed automatically'
   if (r.ready === 'now') return 'Empty ready now'
   if (typeof r.ready_on === 'string') return `Ready on ${fmtDay(r.ready_on)}`
   if (typeof r.date === 'string') return `Delivery ${fmtDay(r.date)}${r.window ? ` ${String(r.window)}` : ''}`
