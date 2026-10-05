@@ -1,0 +1,8 @@
+-- APPLIED LIVE 5 Oct 2026 via Supabase MCP. Repo parity only. DO NOT RE-RUN.
+-- booking_flow_customer_tasks: v_booking_flow reads customer tasks + container answers.
+--   New next actions: 'Book cartage for DD/MM', 'Waiting on customer: delivery date',
+--   'Book empty pickup', 'Book empty pickup for DD/MM', 'Waiting on customer: empty ready'.
+--   All containers gated out now counts as delivered (moves stage to invoicing).
+-- gate_out_task_portal_only: gate-out creates customer notice + empty task only when the account has an active portal login.
+-- Data fix: 8 open customer tasks on accounts with no portal login cancelled (response.auto = 'no_portal_login').
+-- Body: select pg_get_viewdef('public.v_booking_flow', true);
