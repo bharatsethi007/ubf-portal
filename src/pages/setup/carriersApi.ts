@@ -1,22 +1,29 @@
 import { supabase } from '../../supabase'
 
 export type CarrierTable = 'shipping_lines' | 'airlines'
-export type Carrier = { code: string; name: string; sort_order: number; active: boolean }
+export type Carrier = { code: string; name: string; sort_order: number; active: boolean; detention_free_days?: number }
 
-type Row = { code: string; name: string; sort_order: number | null; active: boolean | null }
-const map = (r: Row): Carrier => ({ code: r.code, name: r.name, sort_order: r.sort_order ?? 0, active: r.active ?? true })
+type Row = { code: string; name: string; sort_order: number | null; active: boolean | null; detention_free_days?: number | null }
+const map = (r: Row): Carrier => ({
+  code: r.code, name: r.name, sort_order: r.sort_order ?? 0, active: r.active ?? true,
+  ...(r.detention_free_days != null ? { detention_free_days: r.detention_free_days } : {}),
+})
+const cols = (table: CarrierTable) => table === 'shipping_lines' ? 'code, name, sort_order, active, detention_free_days' : 'code, name, sort_order, active'
 
 export async function fetchCarriers(table: CarrierTable, includeInactive = true): Promise<Carrier[]> {
-  let q = supabase.from(table).select('code, name, sort_order, active').order('sort_order', { ascending: true })
+  let q = supabase.from(table).select(cols(table)).order('sort_order', { ascending: true })
   if (!includeInactive) q = q.eq('active', true)
   const { data, error } = await q
   if (error) throw error
-  return ((data ?? []) as Row[]).map(map)
+  return ((data ?? []) as unknown as Row[]).map(map)
 }
 
 export async function upsertCarrier(table: CarrierTable, c: Carrier): Promise<void> {
   const { error } = await supabase.from(table).upsert(
-    { code: c.code, name: c.name, sort_order: c.sort_order, active: c.active },
+    {
+      code: c.code, name: c.name, sort_order: c.sort_order, active: c.active,
+      ...(table === 'shipping_lines' ? { detention_free_days: c.detention_free_days ?? 7 } : {}),
+    },
     { onConflict: 'code' },
   )
   if (error) throw error

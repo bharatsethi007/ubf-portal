@@ -36,7 +36,7 @@ function CarrierSection({ title, table, inUseMessage }: { title: string; table: 
     const name = draft.name.trim()
     if (!code || !name) { toast.error('Code and name are required'); return }
     if (rows.some((r) => r.code === code)) { toast.error('Code already exists'); return }
-    await run(() => upsertCarrier(table, { code, name, sort_order: (rows.length + 1) * 10, active: true }), `${title} added`)
+    await run(() => upsertCarrier(table, { code, name, sort_order: (rows.length + 1) * 10, active: true, detention_free_days: 7 }), `${title} added`)
     setDraft({ code: '', name: '' })
   }
 
@@ -56,6 +56,7 @@ function CarrierSection({ title, table, inUseMessage }: { title: string; table: 
             <thead>
               <tr>
                 <th style={{ width: 120 }}>Code</th><th>Name</th>
+                {table === 'shipping_lines' ? <th style={{ width: 96 }} title="Free detention days from discharge">Detention days</th> : null}
                 <th style={{ width: 72 }}>Sort</th><th style={{ width: 60 }}>Active</th><th style={{ width: 44 }} />
               </tr>
             </thead>
@@ -63,7 +64,7 @@ function CarrierSection({ title, table, inUseMessage }: { title: string; table: 
               <tr style={{ background: 'var(--color-canvas)' }}>
                 <td><input className="input input--sm" placeholder="CODE" value={draft.code} onChange={(e) => setDraft({ ...draft, code: e.target.value })} /></td>
                 <td><input className="input input--sm" placeholder="Name" value={draft.name} onChange={(e) => setDraft({ ...draft, name: e.target.value })} /></td>
-                <td colSpan={2} />
+                <td colSpan={table === 'shipping_lines' ? 3 : 2} />
                 <td><button type="button" className="nqd-btn nqd-btn--accent" style={{ background: ACCENT, borderColor: ACCENT }} onClick={add}><Plus size={14} /> Add</button></td>
               </tr>
               {rows.map((r) => (
@@ -74,6 +75,13 @@ function CarrierSection({ title, table, inUseMessage }: { title: string; table: 
                       onChange={(e) => setRows((rs) => rs.map((x) => x.code === r.code ? { ...x, name: e.target.value } : x))}
                       onBlur={(e) => run(() => upsertCarrier(table, { ...r, name: e.target.value }), 'Saved')} />
                   </td>
+                  {table === 'shipping_lines' ? (
+                    <td>
+                      <input className="input input--sm" type="number" min={0} max={60} value={r.detention_free_days ?? 7}
+                        onChange={(e) => setRows((rs) => rs.map((x) => x.code === r.code ? { ...x, detention_free_days: Number(e.target.value) || 0 } : x))}
+                        onBlur={(e) => run(() => upsertCarrier(table, { ...r, detention_free_days: Math.max(0, Math.min(60, Number(e.target.value) || 0)) }), 'Saved')} />
+                    </td>
+                  ) : null}
                   <td>
                     <input className="input input--sm" type="number" value={r.sort_order}
                       onChange={(e) => setRows((rs) => rs.map((x) => x.code === r.code ? { ...x, sort_order: Number(e.target.value) || 0 } : x))}

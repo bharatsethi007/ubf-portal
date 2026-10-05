@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X, LayoutTemplate, Save } from 'lucide-react'
+import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X, LayoutTemplate, Save, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
 import { useChargeUnits, useTaxRates, useCurrencies, useChargeGroups, useChargeCodes } from '../../hooks/useQuoteRefData'
@@ -14,6 +14,7 @@ import {
 import { fetchEffectiveRates } from '../setup/fxRatesApi'
 import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
 import QuoteResponseTemplateDialogs from './QuoteResponseTemplateDialogs'
+import CartageSearchDialog from './CartageSearchDialog'
 import { useResponseLineUnits } from './useResponseLineUnits'
 import './quoteResponseLinesGrid.css'
 
@@ -23,6 +24,8 @@ type Props = {
   perKgQty?: number
   /** Limits the Unit list to units valid for this mode (e.g. no Per 20' on air). Omit to show all. */
   mode?: 'air' | 'sea'
+  /** When set, shows Cartage search (dims/pcs read from this quote). */
+  quoteId?: string
   onChange: (lines: QuoteResponseLine[]) => void
 }
 
@@ -30,7 +33,7 @@ function fmt(n: number): string {
   return n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 }
 
-export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode, onChange }: Props) {
+export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode, quoteId, onChange }: Props) {
   const { items: units } = useChargeUnits()
   const { items: taxes } = useTaxRates()
   const { items: currencies } = useCurrencies()
@@ -45,6 +48,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
   const [newTplName, setNewTplName] = useState('')
   const [savingTpl, setSavingTpl] = useState(false)
   const [applyingTpl, setApplyingTpl] = useState(false)
+  const [cartageOpen, setCartageOpen] = useState(false)
 
   const loadTemplates = useCallback(async () => {
     setTemplates(await fetchChargeTemplates())
@@ -182,6 +186,12 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
     <div className="qrl-wrap">
       <div className="qrl-table-head">
         <div className="qrl-tpl-actions">
+          {quoteId && (
+            <button type="button" className="qrl-tpl-btn" onClick={() => setCartageOpen(true)}>
+              <Truck size={12} aria-hidden />
+              Cartage search
+            </button>
+          )}
           <button type="button" className="qrl-tpl-btn" onClick={() => setUseTplOpen(true)}>
             <LayoutTemplate size={12} aria-hidden />
             Use template
@@ -323,6 +333,14 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
         </button>
       </div>
 
+      {quoteId && (
+        <CartageSearchDialog
+          quoteId={quoteId}
+          open={cartageOpen}
+          onOpenChange={setCartageOpen}
+          onAdd={(add) => onChange([...lines, ...add.map((l, i) => ({ ...l, ord: lines.length + i }))])}
+        />
+      )}
       <QuoteResponseTemplateDialogs
         templates={templates}
         useTplOpen={useTplOpen}

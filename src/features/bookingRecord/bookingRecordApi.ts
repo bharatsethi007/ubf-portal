@@ -12,7 +12,7 @@ import type {
 
 const BOOKING_SELECT = `
   id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, os_agent_account_id, mode, load_type, incoterm, shipment_id,
-  m_eta, m_atf, m_shipping_line, shipping_line_code, mbl_no, m_discharge_port,
+  m_eta, m_atf, m_shipping_line, shipping_line_code, detention_free_days, mbl_no, m_discharge_port,
   swb_released, tlx_release_on_hand, doc_handover_at,
       bacc_sent, cleared, truck_booked, inv_approved, inv_sent,
   last_free_day, discharge_date, delivery_date, door_direction, pickup_peak, ubf_bay, ubf_time_slot, ubf_devanner, drop_off_depot, cartage_instructions_full, cartage_instructions_empty, empty_pickup_date, container_return_date,
@@ -95,6 +95,7 @@ export async function fetchBookingTasks(bookingId: string): Promise<BookingTask[
       assigned_to, due_date, completed_at, completed_by, billable, invoice_no
     `)
     .eq('booking_id', bookingId)
+    .eq('audience', 'staff')
     .order('sort_order')
   if (error) throw error
 

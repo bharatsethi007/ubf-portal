@@ -26,7 +26,6 @@ import { quoteStatusPill } from './quotesTableColumns'
 import { DG_CLASS_OPTIONS } from './quoteDgClasses'
 import QuoteResponsesPanel from './QuoteResponsesPanel'
 import FreightIntelligence from './FreightIntelligence'
-import CartageRateSearch from './CartageRateSearch'
 import { serviceTypeForIncoterm } from '../rates/incotermLegs'
 import PartyPicker from './PartyPicker'
 import QuoteContactSelect from './QuoteContactSelect'
@@ -577,10 +576,6 @@ export default function QuoteDetailPage() {
             }}
           />
         )}
-      </div>
-
-      <div className="nqd-band nqd-band--pad">
-        <CartageRateSearch quoteId={quote.id} />
       </div>
 
       <div className="nqd-band nqd-band--pad">

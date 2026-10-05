@@ -14,11 +14,11 @@ export type CartageSuggestion =
   | { status: 'no_zone' | 'no_lane'; door: string; port: string; leg: 'origin' | 'dest' }
 
 // Port city + depot street for courier rating (goods clear at the port city).
-const PORT_CITY: Record<string, string> = {
+export const PORT_CITY: Record<string, string> = {
   NZAKL: 'Auckland', AKL: 'Auckland', NZTRG: 'Tauranga', NZWLG: 'Wellington', WLG: 'Wellington',
   NZLYT: 'Christchurch', CHC: 'Christchurch', NZNPE: 'Napier', NZNPL: 'New Plymouth', NZNSN: 'Nelson', NZDUD: 'Dunedin', NZBLU: 'Invercargill',
 }
-const DEPOT: Record<string, { street: string; suburb: string; city: string; postcode: string }> = {
+export const DEPOT: Record<string, { street: string; suburb: string; city: string; postcode: string }> = {
   AKL: { street: '173 Montgomerie Road', suburb: 'Mangere', city: 'Auckland', postcode: '2022' },
   NZAKL: { street: '173 Montgomerie Road', suburb: 'Mangere', city: 'Auckland', postcode: '2022' },
 }

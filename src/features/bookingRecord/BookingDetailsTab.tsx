@@ -6,6 +6,7 @@ import BookingInvoicesTab from './invoices/BookingInvoicesTab'
 import BookingLeftColumn from './form/BookingLeftColumn'
 import BookingMiddleColumn from './form/BookingMiddleColumn'
 import BookingTaskPanel from './tasks/BookingTaskPanel'
+import CustomerTasksCard from './customerTasks/CustomerTasksCard'
 import { aggregatePortConnectBookingFields } from './portConnect/bookingPortConnectCoalesce'
 import type { ContainerConflictResolution } from './containers/bookingContainerTypes'
 import type { ContainerListItem } from './containers/useBookingContainers'
@@ -112,6 +113,7 @@ export default function BookingDetailsTab({
         onPatch={onPatch}
       />
       </div>
+      {booking.mode === 'sea_import' ? <CustomerTasksCard booking={booking} onPatch={onPatch} /> : null}
       {booking.shipment_id != null ? (
         <div style={{ marginTop: 16 }}>
           <BookingInvoicesTab shipmentId={booking.shipment_id} />

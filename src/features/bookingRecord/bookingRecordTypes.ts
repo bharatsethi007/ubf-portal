@@ -23,6 +23,7 @@ export type BookingRecord = {
   m_atf: string | null
   m_shipping_line: string | null
   shipping_line_code: string | null
+  detention_free_days: number | null
   mbl_no: string | null
   m_discharge_port: string | null
   swb_released: boolean | null
@@ -133,6 +134,7 @@ export type BookingRecordPatch = {
   m_atf?: string | null
   m_shipping_line?: string | null
   shipping_line_code?: string | null
+  detention_free_days?: number | null
   mbl_no?: string | null
   m_discharge_port?: string | null
   swb_released?: boolean
