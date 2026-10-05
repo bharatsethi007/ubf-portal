@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronUp, ChevronDown, Copy, Trash2, Plus, Check, X, LayoutTemplate, Save, Truck } from 'lucide-react'
+import { ChevronUp, ChevronDown, Copy, Trash2, Plus, LayoutTemplate, Save, Truck } from 'lucide-react'
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
 import { useChargeUnits, useTaxRates, useCurrencies, useChargeGroups, useChargeCodes } from '../../hooks/useQuoteRefData'
@@ -44,7 +44,6 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
   const { items: chargeCodes, refresh: refreshCodes } = useChargeCodes()
   const { rates: fxRates, loading: fxLoading, base: fxBase, reload: reloadFx } = useEffectiveRates(currency)
   const [addingFor, setAddingFor] = useState<string | null>(null)
-  const [addGroup, setAddGroup] = useState('freight')
   const [templates, setTemplates] = useState<ChargeTemplate[]>([])
   const [useTplOpen, setUseTplOpen] = useState(false)
   const [saveTplOpen, setSaveTplOpen] = useState(false)
@@ -264,29 +263,20 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
                         update(l.id, { description: v, charge_group: grp, ...defaultUnitPatch(v) })
                       }} />
                     {l.description.trim() && !codeByDesc.has(l.description.trim().toLowerCase()) && (
-                      addingFor === l.id ? (
-                        <div className="qrl-addcode-row">
-                          <RefSelect className="qrl-in" value={addGroup} options={groupOptions} allowEmpty={false}
-                            onChange={(v) => setAddGroup(v ?? 'freight')} />
-                          <button type="button" className="qrl-iconbtn" aria-label="Save charge code"
-                            onClick={async () => {
-                              try {
-                                await createChargeCodeAuto(l.description, addGroup, units.some((u) => u.code === l.unit) ? l.unit : null)
-                                await refreshCodes()
-                                update(l.id, { charge_group: addGroup })
-                                setAddingFor(null)
-                                toast.success('Charge code added to Setup')
-                              } catch { toast.error('Could not add charge code') }
-                            }}><Check size={14} /></button>
-                          <button type="button" className="qrl-iconbtn" aria-label="Cancel"
-                            onClick={() => setAddingFor(null)}><X size={14} /></button>
-                        </div>
-                      ) : (
-                        <button type="button" className="qrl-addcode-btn"
-                          onClick={() => { setAddingFor(l.id); setAddGroup(l.charge_group || 'freight') }}>
-                          + Add &ldquo;{l.description.trim()}&rdquo; to charge codes
-                        </button>
-                      )
+                      <button type="button" className="qrl-addcode-btn" disabled={addingFor === l.id}
+                        onClick={async () => {
+                          // One click: saves with this line's Group and Unit (pick those first).
+                          setAddingFor(l.id)
+                          try {
+                            await createChargeCodeAuto(l.description, l.charge_group || 'freight', units.some((u) => u.code === l.unit) ? l.unit : null)
+                            await refreshCodes()
+                            toast.success(`"${l.description.trim()}" added to charge codes`)
+                          } catch (e) {
+                            toast.error(`Could not add charge code: ${e instanceof Error ? e.message : (e as { message?: string })?.message ?? 'unknown error'}`)
+                          } finally { setAddingFor(null) }
+                        }}>
+                        {addingFor === l.id ? 'Adding\u2026' : <>+ Add &ldquo;{l.description.trim()}&rdquo; to charge codes</>}
+                      </button>
                     )}
                   </td>
                   <td className="qrl-c-group"><RefSelect className="qrl-in" value={l.charge_group} options={groupOptions} allowEmpty={false} onChange={(v) => update(l.id, { charge_group: v ?? 'freight' })} /></td>

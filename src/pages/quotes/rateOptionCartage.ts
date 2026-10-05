@@ -22,7 +22,7 @@ export function cartageResponseLines(c: RateOptionCartage | null | undefined): Q
   const l = newQuoteResponseLine(0, 'NZD')
   const who = c.carrierShort || (c.source === 'ubf' ? 'UBF' : c.carrier) || ''
   l.description = who && !c.label.includes(who) ? `${c.label} · ${who}` : c.label
-  l.charge_group = c.leg
+  l.charge_group = c.leg === 'dest' ? 'destination' : 'origin' // charge_groups codes
   l.vendor = c.source === 'ubf' ? 'UB Freight' : (c.carrier || who)
   l.unit = 'Flat'
   l.qty = '1'
