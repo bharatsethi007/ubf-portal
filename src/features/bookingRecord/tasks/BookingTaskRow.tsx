@@ -10,9 +10,10 @@ type Props = {
   onToggle: (done: boolean, invoiceNo?: string | null) => void
   onAssign: (userId: string | null) => void
   onDelete?: () => void
+  onOpen?: () => void
 }
 
-export default function BookingTaskRow({ task, staff, onToggle, onAssign, onDelete }: Props) {
+export default function BookingTaskRow({ task, staff, onToggle, onAssign, onDelete, onOpen }: Props) {
   const done = task.status === 'done'
   const [assignOpen, setAssignOpen] = useState(false)
   const [invoicePrompt, setInvoicePrompt] = useState(false)
@@ -48,7 +49,8 @@ export default function BookingTaskRow({ task, staff, onToggle, onAssign, onDele
         onChange={(e) => handleToggle(e.target.checked)}
         aria-label={`Mark ${task.title} done`}
       />
-      <span className={`booking-task-row__title${done ? ' booking-task-row__title--done' : ''}`}>
+      <span className={`booking-task-row__title${done ? ' booking-task-row__title--done' : ''}`}
+        onClick={onOpen} role={onOpen ? 'button' : undefined} style={onOpen ? { cursor: 'pointer' } : undefined} title={onOpen ? 'Open task' : undefined}>
         {task.billable ? (
           <span className="booking-task-row__billable" title="Billable — invoice required">$</span>
         ) : null}

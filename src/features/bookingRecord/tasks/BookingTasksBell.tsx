@@ -4,6 +4,7 @@ import { useBookingTasks } from '../useBookingTasks'
 import { useBookingNotes } from '../notes/useBookingNotes'
 import BookingTaskRow, { taskProgressLabel } from './BookingTaskRow'
 import BookingNotesSection from './BookingNotesSection'
+import TaskDrawer from '@/features/tasks/TaskDrawer'
 
 type Tab = 'tasks' | 'mentions' | 'notes'
 
@@ -12,9 +13,10 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
   const [tab, setTab] = useState<Tab>('tasks')
   const [text, setText] = useState('')
   const [billable, setBillable] = useState(false)
+  const [openId, setOpenId] = useState<string | null>(null)
   const ref = useRef<HTMLDivElement>(null)
 
-  const { tasks, doneCount, toggleDone, addTask, removeTask, staff, assignTask } = useBookingTasks(bookingId)
+  const { tasks, doneCount, toggleDone, addTask, removeTask, staff, assignTask, reload } = useBookingTasks(bookingId)
   const { notes, loading: notesLoading, addNote } = useBookingNotes(bookingId)
 
   const openCount = tasks.length - doneCount
@@ -47,6 +49,7 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
           onToggle={(done, inv) => toggleDone(task, done, inv ?? null)}
           onAssign={(uid) => assignTask(task, uid)}
           onDelete={() => removeTask(task)}
+          onOpen={() => { setOpen(false); setOpenId(task.id) }}
         />
       ))}
     </div>
@@ -116,6 +119,7 @@ export default function BookingTasksBell({ bookingId }: { bookingId: string }) {
           </div>
         </div>
       ) : null}
+      <TaskDrawer taskId={openId} staff={staff} onClose={() => setOpenId(null)} onChanged={() => void reload()} />
     </div>
   )
 }

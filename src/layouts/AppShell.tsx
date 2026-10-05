@@ -2,7 +2,7 @@
 import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronsLeft, ChevronsRight, ClipboardList,
-  FileText, Handshake, Inbox, Menu, MessageCircle, Package, PackageCheck, Search, Settings,
+  FileText, Handshake, Inbox, ListChecks, Menu, MessageCircle, Package, PackageCheck, Search, Settings,
   TowerControl, Truck, Users, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -22,6 +22,7 @@ const NAV = [
   { to: '/', label: 'Control Tower', icon: TowerControl, end: true, module: 'control_tower' },
   { to: '/quotes', label: 'Quotes', icon: FileText, module: 'quotes' },
   { to: '/shipments', label: 'Shipments', icon: Package, module: 'shipments' },
+  { to: '/tasks', label: 'Tasks', icon: ListChecks, module: 'bookings' },
   { to: '/tms', label: 'TMS', icon: Truck, module: 'tms' },
 ]
 const NAV2 = [

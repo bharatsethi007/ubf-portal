@@ -17,6 +17,7 @@ import ConferenceRecordPage from './pages/agents/conferences/ConferenceRecordPag
 import AgentRecordPage from './pages/agents/AgentRecordPage'
 import ReviewQueuePage from './pages/agents/review/ReviewQueuePage'
 import QuotesPage from './pages/quotes/QuotesPage'
+import MyTasksPage from './features/tasks/MyTasksPage'
 import NewQuoteSearch from './pages/quotes/NewQuoteSearch'
 import QuoteDetailPage from './pages/quotes/QuoteDetailPage'
 import QuoteResponsePage from './pages/quotes/QuoteResponsePage'
@@ -173,6 +174,7 @@ export default function App() {
             <Route path="/new-booking" element={<NewBookingPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
             <Route path="/quotes" element={<StaffRoute><QuotesPage /></StaffRoute>} />
+            <Route path="/tasks" element={<StaffRoute><MyTasksPage /></StaffRoute>} />
             <Route path="/whatsapp" element={<StaffRoute><WhatsAppInboxPage /></StaffRoute>} />
             <Route path="/messages" element={<StaffRoute><PortalMessagesInbox /></StaffRoute>} />
             <Route path="/quotes/new" element={<StaffRoute><NewQuoteSearch /></StaffRoute>} />

@@ -72,6 +72,7 @@ const PATH_MODULE: Array<[string, string]> = [
   ['/shipments', 'shipments'],
   ['/tms', 'tms'],
   ['/bookings', 'bookings'],
+  ['/tasks', 'bookings'],
   ['/customers', 'customers'],
   ['/agents', 'agents'],
   ['/schedules', 'schedules'],

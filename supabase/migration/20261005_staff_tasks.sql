@@ -1,0 +1,7 @@
+-- APPLIED LIVE 5 Oct 2026 via Supabase MCP. Repo parity only. DO NOT RE-RUN.
+-- staff_tasks_autoclose(): ticks default checklist items from facts (ERP link, customs/MPI/line release,
+--   cartage, delivered, empty returned, invoiced); marks checklist on archived bookings 'na'.
+--   pg_cron 'staff-tasks-autoclose' at :12 and :42. First run: 89 done, 328 na.
+-- task_comments_notify: trigger on booking_task_comments -> staff_notify to assignee, creator,
+--   earlier commenters (and booking handler for customer comments). Kind 'task_comment'.
+-- Bodies: pg_get_functiondef('public.staff_tasks_autoclose'::regproc), ('public.booking_task_comments_notify'::regproc).
