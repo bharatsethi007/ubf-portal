@@ -5,6 +5,11 @@ import {
   type ContainerDates, type CustomerTask, type PushTaskInput,
 } from './customerTasksApi'
 
+// Supabase errors are plain objects, not Error instances.
+const errText = (e: unknown, fallback: string) =>
+  (typeof e === 'object' && e && 'message' in e && typeof (e as { message: unknown }).message === 'string')
+    ? (e as { message: string }).message : fallback
+
 export function useCustomerTasks(bookingId: string) {
   const [tasks, setTasks] = useState<CustomerTask[]>([])
   const [dates, setDates] = useState<ContainerDates[]>([])
@@ -16,7 +21,7 @@ export function useCustomerTasks(bookingId: string) {
       setTasks(t)
       setDates(d)
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not load customer tasks')
+      toast.error(errText(e, 'Could not load customer tasks'))
     } finally {
       setLoading(false)
     }
@@ -31,19 +36,19 @@ export function useCustomerTasks(bookingId: string) {
       await reload()
       return true
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Could not send task')
+      toast.error(errText(e, 'Could not send task'))
       return false
     }
   }, [bookingId, reload])
 
   const cancel = useCallback(async (id: string) => {
     try { await cancelCustomerTask(id); await reload() }
-    catch (e) { toast.error(e instanceof Error ? e.message : 'Could not cancel task') }
+    catch (e) { toast.error(errText(e, 'Could not cancel task')) }
   }, [reload])
 
   const reopen = useCallback(async (id: string) => {
     try { await reopenCustomerTask(id); await reload() }
-    catch (e) { toast.error(e instanceof Error ? e.message : 'Could not reopen task') }
+    catch (e) { toast.error(errText(e, 'Could not reopen task')) }
   }, [reload])
 
   return { tasks, dates, loading, reload, push, cancel, reopen }
