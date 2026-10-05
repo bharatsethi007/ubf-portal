@@ -1,0 +1,7 @@
+-- Applied via Supabase MCP 6 Oct 2026. Repo parity note, do not re-run.
+-- 1. cron_failure_is_transient(msg): 'server restarted' / 'job startup timeout' are not real job failures.
+-- 2. system_alert_candidates: job alert ignores transient failures; db_conn counts client backends only.
+-- 3. system_overview / system_backend: failed counts exclude transient (backend adds cron_24h.transient), connections = client backends.
+-- 4. system_log_rows: transient cron failures logged as warn.
+-- 5. archive_fetch('cron_runs'): keep 3 days in cron.job_run_details (was 7); older rows archived to S3 nightly.
+-- Full definitions: see Supabase migrations system_health_transient_cron + archive_cron_runs_3_days.

@@ -53,7 +53,7 @@ export type Backend = {
   long_queries: number; cache_hit: number | null
   tables: { name: string; bytes: number; rows: number }[]
   cron: { name: string; schedule: string; active: boolean; last_status: string | null; last_start: string | null; last_secs: number | null; last_msg: string | null }[]
-  cron_24h: { ok: number; failed: number }
+  cron_24h: { ok: number; failed: number; transient?: number }
   cron_failures: { name: string; at: string; msg: string | null }[]
   http_24h: { total: number; errors: number }
   http_errors: { at: string; status: number | null; msg: string | null }[]

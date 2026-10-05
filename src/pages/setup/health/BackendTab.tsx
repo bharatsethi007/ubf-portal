@@ -22,13 +22,13 @@ export default function BackendTab() {
       <div className="tw-card" style={{ padding: '18px 20px' }}>
         <div className="sh-gauges">
           <Gauge pct={dbPct} tone={pctTone(dbPct)} label="Database size" sub={`${fmtBytes(b.db_bytes)} of ${fmtBytes(b.db_limit_bytes)}`} />
-          <Gauge pct={connPct} tone={pctTone(connPct)} label="Connections"
+          <Gauge pct={connPct} tone={pctTone(connPct)} label="Client connections"
             sub={`${b.conn_total} of ${b.conn_max} · ${b.conn_active} active`} />
           <Gauge pct={b.cache_hit ?? 0} tone={(b.cache_hit ?? 0) >= 99 ? 'ok' : (b.cache_hit ?? 0) >= 95 ? 'warn' : 'bad'}
             label="Cache hit rate" sub="Reads served from memory" />
           <Gauge pct={b.cron_24h.ok + b.cron_24h.failed ? (b.cron_24h.ok / (b.cron_24h.ok + b.cron_24h.failed)) * 100 : 100}
             tone={b.cron_24h.failed ? 'warn' : 'ok'} label="Scheduled jobs 24h"
-            sub={`${b.cron_24h.ok.toLocaleString()} ok · ${b.cron_24h.failed} failed`} />
+            sub={`${b.cron_24h.ok.toLocaleString()} ok · ${b.cron_24h.failed} failed${b.cron_24h.transient ? ` · ${b.cron_24h.transient} restarts` : ''}`} />
         </div>
         {b.long_queries > 0 && (
           <div className="tw-note"><Dot tone="warn" />{b.long_queries} quer{b.long_queries === 1 ? 'y' : 'ies'} running over 30 seconds</div>
