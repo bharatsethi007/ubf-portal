@@ -6,17 +6,15 @@ import {
   portConnectContainerType,
   portConnectContainerWeight,
 } from '../portConnect/bookingPortConnectCoalesce'
-import ContainerHazardChip from './ContainerHazardChip'
+import { HazardBang, ROW_GRID, WeightCell } from './ContainerRowBits'
 import BookingContainerConflictActions from './BookingContainerConflictActions'
 import {
   CONTAINER_TYPE_OPTIONS,
   type BookingContainerSource,
 } from './bookingContainerTypes'
 import ManualOverridePill from '../portConnect/ManualOverridePill'
-import PortConnectSourcePill from '../portConnect/PortConnectSourcePill'
 import { usePortConnectDetail } from '../portConnect/PortConnectDetailProvider'
 import ContainerSourceDot from './ContainerSourceDot'
-import { weightFlag } from './weightFlag'
 import {
   containerConflictMessage,
   isUnresolvedContainerConflict,
@@ -113,71 +111,33 @@ export default function BookingContainerRowEditor({
         )
     const weightKg = tracking ? portConnectContainerWeight(tracking) : null
     return (
-      <div className={`booking-container-row booking-container-row--readonly${hasConflict ? ' booking-container-row--conflict' : ''}`}>
-        {rowSource(row) !== 'portconnect' ? <ContainerSourceDot source={rowSource(row)} /> : <span />}
-        <span className="mono booking-container-row__no">
-          {row.container_no}
-          {!isDraftContainer(row) && (row.hazard_count ?? 0) > 0 ? (
-            <ContainerHazardChip
-              hazards={row.hazards}
-              hazardCount={row.hazard_count}
-              className="booking-container-row__hazard"
-            />
-          ) : null}
+      <div
+        className={`booking-container-row booking-container-row--readonly${hasConflict ? ' booking-container-row--conflict' : ''}`}
+        style={{ ...ROW_GRID, gridTemplateColumns: '10px minmax(0, 1fr) 66px 86px auto' }}
+      >
+        <ContainerSourceDot source={rowSource(row)} />
+        <span className="mono booking-container-row__no" style={{ display: 'inline-flex', alignItems: 'center', gap: 5, minWidth: 0 }}>
+          <span style={{ overflow: 'hidden', textOverflow: 'ellipsis' }}>{row.container_no}</span>
+          <HazardBang hazards={tracking?.hazards ?? row.hazards} hazardCount={tracking?.hazard_count ?? row.hazard_count} />
         </span>
-        <span className={`booking-container-row__type${flashType ? ' booking-field--flash' : ''}`}>
-          {isPortConnect ? (
-            <PortConnectSourcePill
-              lastSync={lastSync}
-              onClick={() => openDetail('container_type', row.container_no)}
-            />
-          ) : null}
-          {typeLabel ? (
-            <span className={containerTypePillClass(typeLabel)}>{typeLabel}</span>
-          ) : (
-            row.container_type ?? '—'
-          )}
+        <span
+          className={flashType ? 'booking-field--flash' : undefined}
+          onClick={isPortConnect ? () => openDetail('container_type', row.container_no) : undefined}
+          style={{ cursor: isPortConnect ? 'pointer' : undefined, minWidth: 0 }}
+          title={isPortConnect ? 'From PortConnect, click for detail' : undefined}
+        >
+          {typeLabel ? <span className={containerTypePillClass(typeLabel)}>{typeLabel}</span> : (row.container_type ?? '—')}
         </span>
-        <span className="booking-container-row__weight">
-          {isPortConnect ? (
-            <PortConnectSourcePill
-              lastSync={lastSync}
-              onClick={() => openDetail('container_type', row.container_no)}
-            />
-          ) : null}
-          {weightKg != null ? `${weightKg.toLocaleString()} kg` : '—'}
-        </span>
-        {(() => {
-          const f = weightFlag(weightKg)
-          if (!f) return null
-          return (
-            <button
-              type="button"
-              className={`wflag ${f.className}${acknowledged ? ' wflag--ack' : ''}`}
-              title={acknowledged ? 'Acknowledged — click to un-flag' : 'Click to acknowledge'}
-              onClick={(e) => { e.stopPropagation(); onToggleAck?.() }}
-            >
-              {f.label}
-            </button>
-          )
-        })()}
+        <WeightCell kg={weightKg} acknowledged={acknowledged} onToggleAck={onToggleAck} />
         {isPortConnect && onOverride ? (
-          <button type="button" className="text-link booking-field-override-link" onClick={onOverride}>
-            Override
-          </button>
+          <button type="button" className="text-link booking-field-override-link" onClick={onOverride}>Override</button>
         ) : overridden && onRevert ? (
           <ManualOverridePill onRevert={onRevert} />
-        ) : null}
+        ) : <span />}
         {hasConflict && conflictMessage ? (
           <div className="booking-container-conflict">
             <p className="booking-container-conflict__msg">{conflictMessage}</p>
-            {onResolve ? (
-              <BookingContainerConflictActions
-                row={row}
-                busy={resolveBusy}
-                onResolve={onResolve}
-              />
-            ) : null}
+            {onResolve ? <BookingContainerConflictActions row={row} busy={resolveBusy} onResolve={onResolve} /> : null}
           </div>
         ) : null}
       </div>
@@ -187,7 +147,7 @@ export default function BookingContainerRowEditor({
   const wkg = tracking ? portConnectContainerWeight(tracking) : null
 
   return (
-    <div className={`booking-container-row${hasConflict ? ' booking-container-row--conflict' : ''}`}>
+    <div className={`booking-container-row${hasConflict ? ' booking-container-row--conflict' : ''}`} style={ROW_GRID}>
       {overridden && onRevert ? (
         <span className="booking-container-row__override">
           <ManualOverridePill onRevert={onRevert} />
@@ -195,14 +155,20 @@ export default function BookingContainerRowEditor({
       ) : (
         <ContainerSourceDot source="manual" />
       )}
-      <div className="booking-container-row__no-wrap">
-        <Input
-          className="input--xs mono booking-container-row__no-input"
-          value={containerNo}
-          placeholder="ABCD1234567"
-          onChange={(e) => handleNoChange(e.target.value)}
-          onBlur={commit}
-        />
+      <div className="booking-container-row__no-wrap" style={{ minWidth: 0 }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 5 }}>
+          <Input
+            className="input--xs mono booking-container-row__no-input"
+            value={containerNo}
+            placeholder="ABCD1234567"
+            onChange={(e) => handleNoChange(e.target.value)}
+            onBlur={commit}
+            style={{ minWidth: 0, flex: 1 }}
+          />
+          {!isDraftContainer(row) ? (
+            <HazardBang hazards={tracking?.hazards ?? row.hazards} hazardCount={tracking?.hazard_count ?? row.hazard_count} />
+          ) : null}
+        </div>
         {warning ? <p className="booking-container-row__warn">{warning}</p> : null}
       </div>
       <select
@@ -210,29 +176,14 @@ export default function BookingContainerRowEditor({
         value={containerType}
         onChange={(e) => setContainerType(e.target.value)}
         onBlur={commit}
+        style={{ minWidth: 0, paddingRight: 2 }}
       >
         <option value="">Type…</option>
         {CONTAINER_TYPE_OPTIONS.map((opt) => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>
         ))}
       </select>
-      <span className={`booking-container-row__weight${wkg != null ? '' : ' muted'}`}>
-        {wkg != null ? `${wkg.toLocaleString()} kg` : '—'}
-      </span>
-      {(() => {
-        const f = weightFlag(wkg)
-        if (!f) return null
-        return (
-          <button
-            type="button"
-            className={`wflag ${f.className}${acknowledged ? ' wflag--ack' : ''}`}
-            title={acknowledged ? 'Acknowledged — click to un-flag' : 'Click to acknowledge'}
-            onClick={(e) => { e.stopPropagation(); onToggleAck?.() }}
-          >
-            {f.label}
-          </button>
-        )
-      })()}
+      <WeightCell kg={wkg} acknowledged={acknowledged} onToggleAck={onToggleAck} />
       <Button
         type="button"
         variant="ghost"
@@ -240,6 +191,7 @@ export default function BookingContainerRowEditor({
         className="booking-container-row__remove"
         onClick={onRemove}
         aria-label="Remove container"
+        title="Remove container"
       >
         <Trash2 size={14} />
       </Button>

@@ -1,6 +1,7 @@
 import { Plus } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import BookingContainerRowEditor from './BookingContainerRowEditor'
+import { ROW_GRID } from './ContainerRowBits'
 import type { ContainerConflictResolution } from './bookingContainerTypes'
 import type { ContainerListItem } from './useBookingContainers'
 import type { ContainerTrackingRow } from '../tracking/trackingTypes'
@@ -56,11 +57,11 @@ export default function BookingContainersField({
         </p>
       ) : (
         <div className="booking-containers-field__list">
-          <div className="booking-container-row booking-container-row--head" aria-hidden>
+          <div className="booking-container-row booking-container-row--head" aria-hidden style={ROW_GRID}>
             <span />
             <span>Number</span>
             <span>Type</span>
-            <span>Weight</span>
+            <span style={{ textAlign: 'right' }}>Weight</span>
             <span />
           </div>
           {rows.map((row) => (
