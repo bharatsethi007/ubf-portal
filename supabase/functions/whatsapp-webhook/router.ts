@@ -2,11 +2,10 @@
 // - opt-out/opt-in keywords (STOP/START)
 // - CSAT rating reply (1-5) when a whatsapp csat_request is pending for this sender
 // - tracking fast-path (deterministic ref/container detect) with strict account gate
-// - unbound sender: nudge once toward portal binding, then silent + flagged for staff
+// - unbound sender: generic ack once, flagged + team bell alert (once per contact per NZ day)
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
 
 const GRAPH = "https://graph.facebook.com/v25.0";
-const PORTAL_WHATSAPP_URL = `${(Deno.env.get("PORTAL_PUBLIC_URL") ?? "https://portal.ubfreight.com").replace(/\/$/, "")}/portal/settings/notifications`;
 
 type Booking = {
   id: string; booking_ref: string | null;
@@ -118,8 +117,23 @@ async function maybeNudge(sb: SupabaseClient, token: string, phoneId: string, ms
     .eq("contact_id", msg.contact_id).eq("direction", "outbound");
   if ((count ?? 0) > 0) return; // already contacted this number
   await sendText(sb, token, phoneId, msg.wa_id,
-    "\ud83d\udc4b Thanks for messaging UB Freight. To track shipments and get updates here, link your " +
-    `WhatsApp number in your portal: ${PORTAL_WHATSAPP_URL}\n\nOur team has been notified and will assist.`);
+    "Thanks for messaging UB Freight. A team member will get back to you shortly.");
+}
+
+// Team bell alert (user_id null = all staff). One per contact per NZ day via dedupe_key.
+async function alertStaffUnknown(sb: SupabaseClient, msg: { contact_id: string; wa_id: string; body: string | null }) {
+  const { data: c } = await sb.from("whatsapp_contacts").select("display_name").eq("id", msg.contact_id).maybeSingle();
+  const who = c?.display_name ? `${c.display_name} (+${msg.wa_id})` : `+${msg.wa_id}`;
+  const day = new Date().toLocaleDateString("en-CA", { timeZone: "Pacific/Auckland" });
+  const text = (msg.body ?? "").replace(/\s+/g, " ").trim();
+  const { error } = await sb.from("staff_notifications").insert({
+    user_id: null, kind: "whatsapp_inbound", actor_kind: "customer",
+    title: `WhatsApp from unknown number: ${who}`,
+    body: text ? (text.length > 160 ? text.slice(0, 157) + "..." : text) : "(media message)",
+    link: "/whatsapp", facts: { wa_id: msg.wa_id, contact_id: msg.contact_id },
+    dedupe_key: `wa_unknown:${msg.contact_id}:${day}`,
+  });
+  if (error && error.code !== "23505") console.error("staff alert failed", error);
 }
 
 // CSAT: if the sender has a pending whatsapp csat_request and replies with 1-5, capture it.
@@ -183,6 +197,7 @@ export async function routeInbound(
   // Unbound sender: never disclose shipment status. Nudge once, flag for staff.
   if (!accountId) {
     await maybeNudge(sb, token, phoneId, msg);
+    await alertStaffUnknown(sb, { contact_id: msg.contact_id, wa_id: msg.wa_id, body });
     await sb.from("whatsapp_messages").update({ intent: ref || cnt ? "tracking" : "other", status: "flagged" }).eq("id", msg.id);
     return;
   }

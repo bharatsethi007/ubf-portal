@@ -1,4 +1,4 @@
-import { AtSign, CheckSquare, FileUp, FileText, Inbox, MessageSquare, PackageCheck, Truck, type LucideIcon } from 'lucide-react'
+import { AtSign, CheckSquare, FileUp, FileText, Inbox, MessageCircle, MessageSquare, PackageCheck, Truck, type LucideIcon } from 'lucide-react'
 import { supabase } from '../../../supabase'
 
 export type StaffNote = {
@@ -24,6 +24,7 @@ export const KIND_META: Record<string, { label: string; icon: LucideIcon; color:
   quote_decision: { label: 'Quote', icon: FileText, color: '#F7941D' },
   gated_out: { label: 'Gate out', icon: Truck, color: '#475467' },
   task_comment: { label: 'Comment', icon: MessageSquare, color: '#7C3AED' },
+  whatsapp_inbound: { label: 'WhatsApp', icon: MessageCircle, color: '#067647' },
 }
 
 export const metaFor = (k: string) => KIND_META[k] ?? { label: 'Update', icon: Inbox, color: '#475467' }

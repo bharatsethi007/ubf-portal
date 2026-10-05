@@ -30,7 +30,7 @@ type WaMessage = {
 };
 type WaStatus = { id: string; status: string };
 type WaValue = {
-  metadata?: { phone_number_id?: string };
+  metadata?: { phone_number_id?: string; display_phone_number?: string };
   contacts?: WaContact[]; messages?: WaMessage[]; statuses?: WaStatus[];
 };
 
@@ -90,7 +90,8 @@ async function processValue(sb: SupabaseClient, token: string, phoneId: string, 
     const body = bodyOf(m);
     const { data: row, error } = await sb.from("whatsapp_messages").insert({
       wa_message_id: m.id, contact_id: contactId, direction: "inbound",
-      msg_type: m.type, body, status: "received", raw: m,
+      msg_type: m.type, body, status: "received",
+      raw: { ...m, to_display_phone: v.metadata?.display_phone_number ?? null },
     }).select("id").single();
     if (error || !row?.id) continue;
     if (media) {
