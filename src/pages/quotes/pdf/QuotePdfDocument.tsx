@@ -71,9 +71,9 @@ const s = StyleSheet.create({
 })
 
 const CH: { k: 'desc' | 'qty' | 'unit' | 'min' | 'price' | 'ex' | 'tax' | 'frcr' | 'amt'; f: number; a: 'left' | 'right' }[] = [
-  { k: 'desc', f: 2.7, a: 'left' }, { k: 'qty', f: 0.7, a: 'left' }, { k: 'unit', f: 1.8, a: 'left' },
+  { k: 'desc', f: 2.7, a: 'left' }, { k: 'qty', f: 0.7, a: 'left' }, { k: 'unit', f: 1.5, a: 'left' },
   { k: 'min', f: 1.0, a: 'left' }, { k: 'price', f: 1.0, a: 'left' }, { k: 'ex', f: 0.8, a: 'left' },
-  { k: 'tax', f: 0.6, a: 'left' }, { k: 'frcr', f: 1.1, a: 'right' }, { k: 'amt', f: 1.15, a: 'right' },
+  { k: 'tax', f: 0.9, a: 'left' }, { k: 'frcr', f: 1.1, a: 'right' }, { k: 'amt', f: 1.15, a: 'right' },
 ]
 const CHLABEL: Record<string, string> = { desc: 'DESCRIPTION', qty: 'QTY', unit: 'UNIT', min: 'MINIMUM', price: 'PRICE', ex: 'EX. RATE', tax: 'TAX', frcr: 'FR.CR', amt: 'AMOUNT' }
 
@@ -130,7 +130,7 @@ function CargoTags({ tags }: { tags: string[] }) {
   )
 }
 
-function OptionBlock({ opt }: { opt: PdfOption }) {
+function OptionBlock({ opt, showCarrier, mode }: { opt: PdfOption; showCarrier: boolean; mode: 'air' | 'sea' }) {
   return (
     <View style={s.optWrap} wrap={false}>
       <View style={s.optHead}>
@@ -139,7 +139,7 @@ function OptionBlock({ opt }: { opt: PdfOption }) {
         <Text style={s.optHeadRight}>Valid till {opt.validTill}</Text>
       </View>
       <View style={s.optMeta}>
-        <View style={s.optMetaItem}><Text style={s.optMetaK}>SHIPPING LINE</Text><Text style={s.optMetaV}>{opt.shippingLine || '\u2014'}</Text></View>
+        {showCarrier && <View style={s.optMetaItem}><Text style={s.optMetaK}>{mode === 'air' ? 'AIRLINE' : 'SHIPPING LINE'}</Text><Text style={s.optMetaV}>{opt.shippingLine || '\u2014'}</Text></View>}
         <View style={s.optMetaItem}><Text style={s.optMetaK}>VIA</Text><Text style={s.optMetaV}>{opt.via || '\u2014'}</Text></View>
         <View style={s.optMetaItem}><Text style={s.optMetaK}>TRANSIT TIME</Text><Text style={s.optMetaV}>{opt.transitTime || '\u2014'}</Text></View>
         <View style={s.optMetaItem}><Text style={s.optMetaK}>FREE DAYS</Text><Text style={s.optMetaV}>{opt.freeDays || '\u2014'}</Text></View>
@@ -280,7 +280,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           </>
         )}
 
-        {data.options.map((opt) => <OptionBlock key={opt.optionNo} opt={opt} />)}
+        {data.options.map((opt) => <OptionBlock key={opt.optionNo} opt={opt} showCarrier={data.showCarrier} mode={data.mode} />)}
 
         {data.externalNote ? (
           <View style={s.extNoteWrap} wrap>

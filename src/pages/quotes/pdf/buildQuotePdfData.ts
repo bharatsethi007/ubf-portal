@@ -37,6 +37,7 @@ export type QuotePdfData = {
   commodities: { desc: string; pkg: string; gross: string; vol: string; chg: string }[]
   commTotal: { units: string; gross: string; vol: string; chg: string }
   isFcl: boolean
+  showCarrier: boolean
   cargoTags: string[]
   quoteDate: string
   options: PdfOption[]
@@ -173,7 +174,11 @@ export function buildQuotePdfData(
   const isFcl = !nonEmptyCargo.length && containers.length > 0
 
   const quoteDate = responses.length ? upDate(responses[0].record.quotation_date) : '\u2014'
-  const options = responses.map((r, i) => buildOption(r, i, refs))
+  // Sea LCL options are co-loader rates (Carotrans, Oceanbridge, Custom Logistics). Never print the co-loader.
+  // FCL and Air show the actual carrier.
+  const isLcl = /lcl/i.test(quote.shipment_type || '') || (!isFcl && !/fcl/i.test(quote.shipment_type || ''))
+  const showCarrier = !(mode === 'sea' && isLcl)
+  const options = responses.map((r, i) => buildOption(r, i, refs)).map((o) => (showCarrier ? o : { ...o, shippingLine: '' }))
 
   const st = (quote.service_type || '').toLowerCase()
   const parts = st.split(' to ')
@@ -213,6 +218,7 @@ export function buildQuotePdfData(
     commodities,
     commTotal,
     isFcl,
+    showCarrier,
     cargoTags: buildCargoTags(quote),
     quoteDate,
     options,
