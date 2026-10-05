@@ -35,7 +35,7 @@ export function providerFor(host: string): string {
   return "other";
 }
 
-const SECRET_KEYS = /("?(?:password|pass|secret|client_secret|access_token|refresh_token|api[_-]?key|token|authorization)"?\s*[:=]\s*)("[^"]*"|[^&\s,}]+)/gi;
+const SECRET_KEYS = /("?(?:password|pass|secret|client_id|client_secret|consumer[_-]?key|access_token|refresh_token|id_token|api[_-]?key|token|authorization)"?\s*[:=]\s*)("[^"]*"|[^&\s,}]+)/gi;
 export function mask(s: string): string {
   return s.replace(SECRET_KEYS, "$1\"***\"").replace(/Bearer\s+[A-Za-z0-9._\-]+/g, "Bearer ***");
 }
@@ -64,11 +64,11 @@ function bodySize(b: BodyInit | null | undefined): number {
 }
 
 function fnName(): string | null {
+  // Deployed entry is <slug>/index.ts, so the entry file's folder is the function slug.
   try {
-    const u = new URL(import.meta.url);
-    const parts = u.pathname.split("/").filter(Boolean);
-    const i = parts.indexOf("functions");
-    return i >= 0 && parts[i + 1] && parts[i + 1] !== "_shared" ? parts[i + 1] : Deno.env.get("SB_FUNCTION_NAME") ?? null;
+    const parts = new URL(Deno.mainModule).pathname.split("/").filter(Boolean);
+    const dir = parts[parts.length - 2];
+    return dir && !["source", "functions"].includes(dir) ? dir : null;
   } catch { return null; }
 }
 
@@ -95,6 +95,8 @@ export async function apiFetch(input: string | URL | Request, init: RequestInit 
   const req = input instanceof Request ? input : null;
   const u = new URL(req ? req.url : String(input));
   const provider = providerFor(u.host);
+  // Our own Supabase calls and unknown hosts pass straight through, unlogged.
+  if (provider === "other") return fetch(input, init);
   const method = (init.method ?? req?.method ?? "GET").toUpperCase();
   const logBodies = BODY_PROVIDERS.has(provider);
   const t0 = performance.now();
