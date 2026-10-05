@@ -11,7 +11,7 @@ import type {
 } from './bookingRecordTypes'
 
 const BOOKING_SELECT = `
-  id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, os_agent_account_id, mode, load_type, incoterm, shipment_id,
+  id, booking_ref, job_no, account_id, consignee_account_id, importer_account_id, os_agent_account_id, os_agent_id, mode, load_type, incoterm, shipment_id,
   m_eta, m_atf, m_shipping_line, shipping_line_code, detention_free_days, mbl_no, m_discharge_port,
   swb_released, tlx_release_on_hand, doc_handover_at,
       bacc_sent, cleared, truck_booked, inv_approved, inv_sent,
@@ -21,7 +21,8 @@ const BOOKING_SELECT = `
   customers!bookings_account_id_fkey ( name, account_terms, customs_payment_type, credit_limit ),
   consignee:customers!bookings_consignee_account_id_fkey ( name ),
   importer:customers!bookings_importer_account_id_fkey ( name ),
-  os_agent:customers!bookings_os_agent_account_id_fkey ( name )
+  os_agent:customers!bookings_os_agent_account_id_fkey ( name ),
+  os_agent_ref:agents!bookings_os_agent_id_fkey ( name )
 `
 
 type BookingRow = Omit<BookingRecord, 'customer_name' | 'consignee_name' | 'importer_name' | 'os_agent_name'> & {
@@ -29,6 +30,7 @@ type BookingRow = Omit<BookingRecord, 'customer_name' | 'consignee_name' | 'impo
   consignee: { name: string | null } | null
   importer: { name: string | null } | null
   os_agent: { name: string | null } | null
+  os_agent_ref: { name: string | null } | null
 }
 
 export async function fetchBookingRecord(id: string): Promise<BookingRecord | null> {
@@ -40,7 +42,7 @@ export async function fetchBookingRecord(id: string): Promise<BookingRecord | nu
   if (error) throw error
   if (!data) return null
   const row = data as BookingRow
-  const { customers, consignee, importer, os_agent, ...rest } = row
+  const { customers, consignee, importer, os_agent, os_agent_ref, ...rest } = row
   return {
     ...rest,
     customer_name: customers?.name ?? null,
@@ -49,7 +51,7 @@ export async function fetchBookingRecord(id: string): Promise<BookingRecord | nu
     customs_payment_type: customers?.customs_payment_type ?? null,
     consignee_name: consignee?.name ?? null,
     importer_name: importer?.name ?? null,
-    os_agent_name: os_agent?.name ?? null,
+    os_agent_name: os_agent_ref?.name ?? os_agent?.name ?? null,
     field_overrides: rest.field_overrides ?? {},
     weight_flags_ack: rest.weight_flags_ack ?? [],
   }

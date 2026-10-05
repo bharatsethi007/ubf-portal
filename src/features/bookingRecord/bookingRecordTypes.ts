@@ -65,6 +65,7 @@ export type BookingRecord = {
   consignee_account_id: string | null
   importer_account_id: string | null
   os_agent_account_id: string | null
+  os_agent_id: string | null
   customer_name: string | null
   consignee_name: string | null
   importer_name: string | null
@@ -123,6 +124,7 @@ export type BookingRecordPatch = {
   consignee_account_id?: string | null
   importer_account_id?: string | null
   os_agent_account_id?: string | null
+  os_agent_id?: string | null
   mode?: string | null
   load_type?: 'FCL' | 'LCL' | null
   incoterm?: string | null

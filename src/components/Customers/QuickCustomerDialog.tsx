@@ -17,6 +17,8 @@ type Props = {
   initialName?: string
   /** Show the Customer / Agent switch (agents go to the Agents section). */
   allowAgent?: boolean
+  /** Start on Agent instead of Customer. */
+  initialKind?: QuickPartyKind
   onClose: () => void
   /** New or picked-existing party. For agents, agentId is set. */
   onCreated: (c: CustomerPickerValue, meta: { kind: QuickPartyKind; agentId: string | null }) => void
@@ -37,7 +39,7 @@ const segBtn = (on: boolean) => ({
 
 type Similar = { key: string; name: string; code: string; source?: string; pick: () => void }
 
-export default function QuickCustomerDialog({ open, initialName = '', allowAgent = false, onClose, onCreated }: Props) {
+export default function QuickCustomerDialog({ open, initialName = '', allowAgent = false, initialKind = 'customer', onClose, onCreated }: Props) {
   const [kind, setKind] = useState<QuickPartyKind>('customer')
   const [form, setForm] = useState<NewCustomerInput>(EMPTY)
   const [busy, setBusy] = useState(false)
@@ -47,8 +49,8 @@ export default function QuickCustomerDialog({ open, initialName = '', allowAgent
   const { data: custHits } = useCustomerSearch(open && !isAgent ? debouncedName : '')
 
   useEffect(() => {
-    if (open) { setForm({ ...EMPTY, name: initialName }); setKind('customer') }
-  }, [open, initialName])
+    if (open) { setForm({ ...EMPTY, name: initialName, country: initialKind === 'agent' ? '' : 'NZ' }); setKind(initialKind) }
+  }, [open, initialName, initialKind])
 
   useEffect(() => {
     if (form.country === 'NZ' && isAgent) setForm((f) => ({ ...f, country: '' }))

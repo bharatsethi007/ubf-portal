@@ -18,6 +18,7 @@ import type { ContainerListItem } from '../containers/useBookingContainers'
 import ShipmentLinkModal from '../link/ShipmentLinkModal'
 import { unlinkBookingShipment } from '../link/shipmentLinkApi'
 import CustomerField, { customerPickerValue } from './CustomerField'
+import OsAgentField from './OsAgentField'
 import IncotermSelect from '@/components/bookings/IncotermSelect'
 import FormCard from './FormCard'
 import StaffField from './StaffField'
@@ -34,7 +35,6 @@ type Props = {
 export default function BookingLeftColumn({ booking, staff, containerRows, onPatch }: Props) {
   const client = customerPickerValue(booking.account_id, booking.customer_name)
   const consignee = customerPickerValue(booking.consignee_account_id, booking.consignee_name)
-  const osAgent = customerPickerValue(booking.os_agent_account_id, booking.os_agent_name)
 
   const [linkOpen, setLinkOpen] = useState(false)
   const [confirmUnsync, setConfirmUnsync] = useState(false)
@@ -90,13 +90,12 @@ export default function BookingLeftColumn({ booking, staff, containerRows, onPat
             )
           }
         />
-        <CustomerField
-          label="OS Agent"
-          value={osAgent}
-          onChange={(c) =>
+        <OsAgentField
+          value={{ id: booking.os_agent_id, name: booking.os_agent_name }}
+          onChange={(a) =>
             patchCustomer(
-              { os_agent_account_id: c?.account_id ?? null, os_agent_name: c?.name ?? null },
-              { os_agent_account_id: c?.account_id ?? null },
+              { os_agent_id: a?.id ?? null, os_agent_account_id: a?.accountId ?? null, os_agent_name: a?.name ?? null },
+              { os_agent_id: a?.id ?? null, os_agent_account_id: a?.accountId ?? null },
             )
           }
         />
