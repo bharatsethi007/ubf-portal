@@ -26,6 +26,7 @@ export type ContainerDates = {
   port_last_free_day: string | null
   port_status: 'collected' | 'unknown' | 'overdue' | 'today' | 'soon' | 'ok'
   gated_out_on: string | null
+  gated_out_at: string | null
   detention_free_days: number
   last_detention_day: string | null
   detention_is_estimate: boolean
@@ -67,7 +68,7 @@ export async function fetchContainerDates(bookingId: string): Promise<ContainerD
   const { data, error } = await supabase
     .from('v_container_dates')
     .select(`container_no, container_type, arrival_on, discharged_on, port_free_days, port_last_free_day, port_status,
-      gated_out_on, detention_free_days, last_detention_day, detention_is_estimate, days_to_detention, detention_status,
+      gated_out_on, gated_out_at, detention_free_days, last_detention_day, detention_is_estimate, days_to_detention, detention_status,
       planned_delivery_date, delivery_window, planned_return_date, empty_ready_at, empty_returned_on, return_after_free_time`)
     .eq('booking_id', bookingId)
     .order('container_no')
@@ -118,6 +119,7 @@ export async function reopenCustomerTask(id: string): Promise<void> {
 export function responseSummary(t: CustomerTask): string | null {
   const r = t.response
   if (!r) return null
+  if (typeof r.auto === 'string') return 'Auto-closed (fact recorded)'
   if (r.ready === 'now') return 'Empty ready now'
   if (typeof r.ready_on === 'string') return `Ready on ${fmtDay(r.ready_on)}`
   if (typeof r.date === 'string') return `Delivery ${fmtDay(r.date)}${r.window ? ` ${String(r.window)}` : ''}`
@@ -130,4 +132,10 @@ export function fmtDay(iso: string | null): string {
   if (!iso) return ''
   const d = new Date(`${iso.slice(0, 10)}T00:00:00`)
   return d.toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })
+}
+
+export function fmtDayTime(ts: string | null): string {
+  if (!ts) return ''
+  const d = new Date(ts)
+  return `${d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', day: 'numeric', month: 'short' })} ${d.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland', hour: '2-digit', minute: '2-digit', hour12: false })}`
 }

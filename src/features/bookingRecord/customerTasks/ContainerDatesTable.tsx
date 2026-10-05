@@ -1,4 +1,4 @@
-import { fmtDay, type ContainerDates } from './customerTasksApi'
+import { fmtDay, fmtDayTime, type ContainerDates } from './customerTasksApi'
 
 const TONE: Record<string, { bg: string; fg: string }> = {
   overdue: { bg: '#FDECEC', fg: '#B42318' },
@@ -44,7 +44,7 @@ export default function ContainerDatesTable({ rows }: { rows: ContainerDates[] }
               <td className="mono">{r.container_no}<span className="text-muted-foreground" style={{ marginLeft: 6, fontSize: 11 }}>{r.container_type ?? ''}</span></td>
               <td>{r.port_free_days ?? '-'}</td>
               <td><DayPill date={r.port_last_free_day} status={r.port_status} /></td>
-              <td>{r.gated_out_on ? fmtDay(r.gated_out_on) : '-'}</td>
+              <td style={{ whiteSpace: 'nowrap' }}>{r.gated_out_at ? fmtDayTime(r.gated_out_at) : '-'}</td>
               <td>{r.detention_free_days}</td>
               <td>
                 <DayPill

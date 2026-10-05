@@ -1,6 +1,6 @@
 import { CheckCircle2, Package } from 'lucide-react'
 import TaskActionRow from './TaskActionRow'
-import { responseText, shortDay, type PortalContainerDates } from './portalActionsApi'
+import { dayTime, responseText, shortDay, type PortalContainerDates } from './portalActionsApi'
 import { usePortalActions } from './usePortalActions'
 
 const TONE: Record<string, string> = {
@@ -78,7 +78,7 @@ export default function ContainerDatesCard({ bookingId, docsTo }: { bookingId: s
                   <tr key={d.container_no} style={{ cursor: 'default' }}>
                     <td><span className="pv3-mono pv3-strong">{d.container_no}</span>{d.container_type ? <span className="pv3-cell-sub">{d.container_type}</span> : null}</td>
                     <td><Day iso={d.port_last_free_day} status={d.gated_out_on ? 'collected' : d.port_status} title="Last free day at the port" /></td>
-                    <td><Day iso={d.gated_out_on} /></td>
+                    <td>{d.gated_out_at ? <span className="whitespace-nowrap text-xs text-slate-700">{dayTime(d.gated_out_at)}</span> : <span className="text-slate-400">—</span>}</td>
                     <td>{d.planned_delivery_date ? <><Day iso={d.planned_delivery_date} />{d.delivery_window ? <span className="pv3-cell-sub">{d.delivery_window}</span> : null}</> : <span className="text-slate-400">—</span>}</td>
                     <td>{d.detention_free_days}</td>
                     <td><Day iso={d.last_detention_day} status={d.detention_status} est={d.detention_is_estimate} title="Last day to return the empty before detention" /></td>

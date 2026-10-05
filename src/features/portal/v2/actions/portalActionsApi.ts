@@ -32,6 +32,7 @@ export type PortalContainerDates = {
   port_last_free_day: string | null
   port_status: 'collected' | 'unknown' | 'overdue' | 'today' | 'soon' | 'ok'
   gated_out_on: string | null
+  gated_out_at: string | null
   detention_free_days: number
   last_detention_day: string | null
   detention_is_estimate: boolean
@@ -117,10 +118,20 @@ export function suggestDelivery(dates: PortalContainerDates[], today = nzToday()
 export function responseText(t: PortalTask): string | null {
   const r = t.response
   if (!r) return null
+  if (typeof r.auto === 'string') return 'Closed by UB Freight'
   if (r.ready === 'now') return 'Empty ready for pickup'
   if (typeof r.ready_on === 'string') return `Empty ready ${shortDay(r.ready_on)}`
   if (typeof r.date === 'string') return `Delivery ${shortDay(r.date)}${r.window ? `, ${String(r.window).toLowerCase()}` : ''}`
   if (typeof r.approved === 'boolean') return r.approved ? 'Approved' : 'Declined'
   if (typeof r.answer === 'string') return r.answer
   return 'Done'
+}
+
+/** "5 Oct, 2:14pm" in NZ time. */
+export function dayTime(ts: string | null | undefined): string {
+  if (!ts) return ''
+  const d = new Date(ts)
+  const day = d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', day: 'numeric', month: 'short' })
+  const time = d.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s/g, '').toLowerCase()
+  return `${day}, ${time}`
 }
