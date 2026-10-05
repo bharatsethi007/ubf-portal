@@ -29,6 +29,7 @@ import FreightIntelligence from './FreightIntelligence'
 import CartageRateSearch from './CartageRateSearch'
 import { serviceTypeForIncoterm } from '../rates/incotermLegs'
 import PartyPicker from './PartyPicker'
+import QuoteContactSelect from './QuoteContactSelect'
 import ExternalNotesField from './ExternalNotesField'
 import './quoteDetailPage.css'
 
@@ -219,8 +220,9 @@ export default function QuoteDetailPage() {
   async function onCustomerChange(v: CustomerPickerValue | null) {
     if (!v || !id) return
     try {
-      await updateQuote(id, { customer_account_id: v.account_id, customer_name: v.name })
-      setQuote((q) => (q ? { ...q, customer_account_id: v.account_id, customer_name: v.name } : q))
+      const p = { customer_account_id: v.account_id, customer_name: v.name, contact_name: null, contact_email: null, contact_phone: null }
+      await updateQuote(id, p)
+      setQuote((q) => (q ? { ...q, ...p } : q))
       toast.success('Customer updated')
     } catch { toast.error('Failed to update customer') }
   }
@@ -320,6 +322,12 @@ export default function QuoteDetailPage() {
                 source: quote.customer_account_id.startsWith('P-') ? 'portal' : undefined,
               } : null}
               onChange={(c) => void onCustomerChange(c)}
+            />
+            <QuoteContactSelect
+              quoteId={quote.id}
+              accountId={quote.customer_account_id}
+              value={{ contact_name: quote.contact_name ?? null, contact_email: quote.contact_email ?? null, contact_phone: quote.contact_phone ?? null }}
+              onSaved={(v) => setQuote((q) => (q ? { ...q, ...v } : q))}
             />
             {quoteStatusPill(status)}
             <span className="nqd-sep" />

@@ -11,6 +11,9 @@ export type QuoteDraft = {
   customer_account_id: string | null
   customer_name: string | null
   customer_po: string | null
+  contact_name?: string | null
+  contact_email?: string | null
+  contact_phone?: string | null
   shipper: string | null
   consignee: string | null
   movement_type: string | null

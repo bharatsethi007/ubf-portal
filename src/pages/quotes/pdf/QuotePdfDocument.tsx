@@ -197,7 +197,7 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           <View style={s.col}>
             <Text style={s.colLabel}>REQUESTED BY</Text>
             <Field k="NAME / COMPANY" v={data.requestedBy.company} />
-            <Field k="PRIMARY CONTACT" v={data.requestedBy.contact} />
+            <Field k="CONTACT" v={data.requestedBy.contact} />
             <Field k="ADDRESS" v={data.requestedBy.address} />
             <Field k="PHONE" v={data.requestedBy.phone} />
             <Field k="EMAIL" v={data.requestedBy.email} />

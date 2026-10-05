@@ -194,10 +194,10 @@ export function buildQuotePdfData(
     portLabel,
     requestedBy: {
       company: customer?.name || quote.customer_name || '',
-      contact: customer?.contact || '',
+      contact: quote.contact_name || (quote.contact_email ? '' : customer?.contact || ''),
       address: customer?.address || '',
-      phone: customer?.phone || '',
-      email: customer?.email || '',
+      phone: quote.contact_phone || (quote.contact_name || quote.contact_email ? '' : customer?.phone || ''),
+      email: quote.contact_email || (quote.contact_name ? '' : customer?.email || ''),
     },
     origin: {
       shipper: (quote.shipper || '').toUpperCase(),
