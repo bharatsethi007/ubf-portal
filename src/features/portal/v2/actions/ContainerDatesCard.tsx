@@ -1,6 +1,6 @@
-import { Package } from 'lucide-react'
+import { CheckCircle2, Package } from 'lucide-react'
 import TaskActionRow from './TaskActionRow'
-import { shortDay, type PortalContainerDates } from './portalActionsApi'
+import { responseText, shortDay, type PortalContainerDates } from './portalActionsApi'
 import { usePortalActions } from './usePortalActions'
 
 const TONE: Record<string, string> = {
@@ -26,8 +26,8 @@ function emptyCell(d: PortalContainerDates) {
 
 /** Shipment page: free time per container plus anything we need from the customer on this booking. */
 export default function ContainerDatesCard({ bookingId, docsTo }: { bookingId: string; docsTo?: string | null }) {
-  const { tasks, dates, loading, busy, respond } = usePortalActions(bookingId)
-  if (loading || (dates.length === 0 && tasks.length === 0)) return null
+  const { tasks, done, dates, loading, busy, respond } = usePortalActions(bookingId)
+  if (loading || (dates.length === 0 && tasks.length === 0 && done.length === 0)) return null
 
   return (
     <section className="pv3-card pv3-rise" style={{ padding: 20, marginBottom: 16 }}>
@@ -40,6 +40,23 @@ export default function ContainerDatesCard({ bookingId, docsTo }: { bookingId: s
             ))}
           </div>
         </>
+      )}
+
+      {done.length > 0 && (
+        <div className="mb-4">
+          <div className="mb-1 text-xs font-medium uppercase tracking-wide text-slate-400">Done</div>
+          {done.map((t) => (
+            <div key={t.id} className="flex items-start gap-3 border-b border-slate-100 py-2 last:border-b-0">
+              <CheckCircle2 size={16} className="mt-0.5 shrink-0 text-emerald-600" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-sm text-slate-700">{t.title}</div>
+                <div className="text-xs text-slate-500">
+                  {responseText(t)}{t.responded_at ? ` · ${shortDay(t.responded_at)}` : ''}
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
       )}
 
       {dates.length > 0 && (

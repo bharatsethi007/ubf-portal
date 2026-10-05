@@ -47,9 +47,10 @@ export type PortalContainerDates = {
 
 const TASK_COLS = 'id, booking_id, title, kind, container_no, description, status, due_date, payload, response, responded_at, created_at'
 
+/** Open tasks; on a single booking also the completed ones, so customers keep the record. */
 export async function fetchOpenTasks(bookingId?: string): Promise<PortalTask[]> {
-  let q = supabase.from('booking_tasks').select(TASK_COLS).eq('audience', 'customer').eq('status', 'open')
-  if (bookingId) q = q.eq('booking_id', bookingId)
+  let q = supabase.from('booking_tasks').select(TASK_COLS).eq('audience', 'customer')
+  q = bookingId ? q.eq('booking_id', bookingId).in('status', ['open', 'done']) : q.eq('status', 'open')
   const { data, error } = await q.order('due_date', { ascending: true, nullsFirst: false }).limit(200)
   if (error) throw error
   return (data ?? []) as PortalTask[]
@@ -111,4 +112,15 @@ export function suggestDelivery(dates: PortalContainerDates[], today = nzToday()
     if (dow(pick) === 0) pick = plusDays(pick, 1)
   }
   return pick
+}
+
+export function responseText(t: PortalTask): string | null {
+  const r = t.response
+  if (!r) return null
+  if (r.ready === 'now') return 'Empty ready for pickup'
+  if (typeof r.ready_on === 'string') return `Empty ready ${shortDay(r.ready_on)}`
+  if (typeof r.date === 'string') return `Delivery ${shortDay(r.date)}${r.window ? `, ${String(r.window).toLowerCase()}` : ''}`
+  if (typeof r.approved === 'boolean') return r.approved ? 'Approved' : 'Declined'
+  if (typeof r.answer === 'string') return r.answer
+  return 'Done'
 }

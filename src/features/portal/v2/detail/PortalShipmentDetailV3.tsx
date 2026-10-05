@@ -234,7 +234,7 @@ export default function PortalShipmentDetailV3() {
         {tab === 'Invoices' && <div className="pv3-card pv3-tabcard"><InvoicesTab invoices={data.invoices}
           onOpen={(i) => setOpenInv(toBillInvoice(i, { shipment_no: shipmentNo(s), customer_ref: s.customer_ref, origin: s.origin, destination: s.destination }))} /></div>}
         {tab === 'Tasks' && data.booking?.id && <ContainerDatesCard bookingId={data.booking.id} docsTo={detailPath(s, 'Documents')} />}
-        {tab === 'Tasks' && <div className="pv3-card pv3-tabcard"><TaskTab tasks={data.tasks} /></div>}
+        {tab === 'Tasks' && (data.tasks.length > 0 || !data.booking?.id) && <div className="pv3-card pv3-tabcard"><TaskTab tasks={data.tasks} /></div>}
         {tab === 'Additional services' && <div className="pv3-card pv3-tabcard"><AdditionalServicesTab /></div>}
       </div>
       {openInv && <InvoiceDrawer inv={openInv} fromShipment onClose={() => setOpenInv(null)} />}

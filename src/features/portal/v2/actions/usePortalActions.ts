@@ -54,11 +54,16 @@ export function usePortalActions(bookingId?: string | null) {
       if (t.due_date === today) return 1
       return 2
     }
-    return [...tasks].sort((a, b) =>
+    return tasks.filter((t) => t.status === 'open').sort((a, b) =>
       rank(a) - rank(b)
       || (a.due_date ?? '9999').localeCompare(b.due_date ?? '9999')
       || a.created_at.localeCompare(b.created_at))
   }, [tasks])
 
-  return { tasks: sorted, dates, refs, loading, busy, respond, reload: load }
+  const done = useMemo(
+    () => tasks.filter((t) => t.status === 'done').sort((a, b) => (b.responded_at ?? b.created_at).localeCompare(a.responded_at ?? a.created_at)),
+    [tasks],
+  )
+
+  return { tasks: sorted, done, dates, refs, loading, busy, respond, reload: load }
 }
