@@ -49,7 +49,7 @@ type Props = {
 function GateOutCell({ at, count, total }: { at: string | null; count: number; total: number }) {
   if (!at) return <span className="muted">–</span>
   const d = new Date(at)
-  const day = d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', day: 'numeric', month: 'short' })
+  const day = d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', day: '2-digit', month: '2-digit' })
   const time = d.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland', hour: '2-digit', minute: '2-digit', hour12: false })
   return (
     <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
