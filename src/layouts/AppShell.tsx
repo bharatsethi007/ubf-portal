@@ -2,7 +2,7 @@
 import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronsLeft, ChevronsRight, ClipboardList,
-  FileText, Handshake, Inbox, ListChecks, Menu, MessageCircle, Package, PackageCheck, Search, Settings,
+  FileText, Handshake, ListChecks, Menu, MessageCircle, Package, PackageCheck, Search, Settings,
   TowerControl, Truck, Users, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -10,8 +10,7 @@ import Logo from '../components/Logo'
 import SyncButton from '../components/SyncButton'
 import UserMenu from '../components/staff/UserMenu'
 import StaffNotificationBell from '../components/staff/notifications/StaffNotificationBell'
-import { needsActionTotal } from '../pages/whatsapp/whatsappInboxApi'
-import { waitingTotal } from '../pages/messages/portalMessagesApi'
+import { fetchCounts } from '../pages/inbox/inboxApi'
 import { supabase } from '../supabase'
 import { ModuleGuard, usePermissions } from '../access/PermissionsProvider'
 
@@ -50,8 +49,7 @@ type Props = { session: Session; search: string; onSearch: (q: string) => void }
 export default function AppShell({ session, search, onSearch }: Props) {
   const navigate = useNavigate()
   const [navOpen, setNavOpen] = useState(false)
-  const [waNeedsAction, setWaNeedsAction] = useState(0)
-  const [portalWaiting, setPortalWaiting] = useState(0)
+  const [inboxAwaiting, setInboxAwaiting] = useState(0)
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try { return localStorage.getItem(COLLAPSE_KEY) === '1' } catch { return false }
   })
@@ -82,10 +80,9 @@ export default function AppShell({ session, search, onSearch }: Props) {
   useEffect(() => {
     let cancelled = false
     const load = () => {
-      void needsActionTotal()
-        .then((n) => { if (!cancelled) setWaNeedsAction(n) })
-        .catch(() => { if (!cancelled) setWaNeedsAction(0) })
-      void waitingTotal().then((n) => { if (!cancelled) setPortalWaiting(n) })
+      void fetchCounts()
+        .then((c) => { if (!cancelled) setInboxAwaiting(c?.awaiting ?? 0) })
+        .catch(() => { if (!cancelled) setInboxAwaiting(0) })
     }
     load()
     const id = window.setInterval(load, 60_000)
@@ -181,21 +178,9 @@ export default function AppShell({ session, search, onSearch }: Props) {
           </div>
           <div className="topbar__actions">
             <StaffNotificationBell userId={session.user.id} />
-            <button
-              type="button"
-              className="sync-btn wa-topbar-btn"
-              title="WhatsApp inbox"
-              aria-label="WhatsApp inbox"
-              onClick={() => navigate('/whatsapp')}
-            >
+            <button type="button" className="sync-btn wa-topbar-btn" title="Inbox" aria-label="Inbox" onClick={() => navigate('/inbox')}>
               <MessageCircle size={16} strokeWidth={2} />
-              {waNeedsAction > 0 ? (
-                <span className="wa-topbar-btn__badge">{waNeedsAction > 99 ? '99+' : waNeedsAction}</span>
-              ) : null}
-            </button>
-            <button type="button" className="sync-btn wa-topbar-btn" title="Portal messages" aria-label="Portal messages" onClick={() => navigate('/messages')}>
-              <Inbox size={16} strokeWidth={2} />
-              {portalWaiting > 0 ? <span className="wa-topbar-btn__badge">{portalWaiting > 99 ? '99+' : portalWaiting}</span> : null}
+              {inboxAwaiting > 0 ? <span className="wa-topbar-btn__badge">{inboxAwaiting > 99 ? '99+' : inboxAwaiting}</span> : null}
             </button>
             <SyncButton userEmail={session.user.email ?? ''} />
             <UserMenu session={session} />

@@ -39,7 +39,7 @@ Deno.serve(async (req: Request) => {
   const uid = await staffUid(req);
   if (!uid) return json({ error: "forbidden" }, 403);
 
-  let body: { contact_id?: string; wa_id?: string; text?: string };
+  let body: { contact_id?: string; wa_id?: string; text?: string; conversation_id?: string };
   try { body = await req.json(); } catch { body = {}; }
   const text = String(body.text ?? "").trim();
   if (!text) return json({ error: "empty_text" }, 400);
@@ -65,12 +65,20 @@ Deno.serve(async (req: Request) => {
     body: JSON.stringify({ messaging_product: "whatsapp", to: waId, type: "text", text: { body: text, preview_url: false } }),
   });
   const data = await res.json().catch(() => ({}));
-  if (!res.ok) return json({ ok: false, error: "send_failed", detail: data }, 502);
+  if (!res.ok) {
+    const code = data?.error?.code;
+    // 131047 / 131026: outside the 24h customer service window, needs an approved template.
+    const msg = code === 131047 || code === 131026
+      ? "WhatsApp reply window closed (24h). Use a template or reply via Portal."
+      : (data?.error?.message ?? "WhatsApp send failed");
+    return json({ ok: false, error: "send_failed", message: msg, detail: data }, 502);
+  }
 
   const waMsgId = data?.messages?.[0]?.id ?? null;
   await sb.from("whatsapp_messages").insert({
     wa_message_id: waMsgId, contact_id: contactId, direction: "outbound", msg_type: "text",
-    body: text, status: "sent", raw: { response: data, staff_uid: uid },
+    body: text, status: "sent",
+    raw: { response: data, staff_uid: uid, inbox_conversation_id: body.conversation_id ?? null },
   });
   // clear needs-action on this thread
   await sb.from("whatsapp_messages").update({ status: "handled" })

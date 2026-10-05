@@ -3,10 +3,9 @@
 --   inbox_conversations  one row per conversation (portal thread 1:1, or WhatsApp contact / account general)
 --   inbox_messages       unified timeline: message | note | event, tagged with channel
 --   inbox_reads          per staff read marker
--- STATUS: NOT YET APPLIED (approval pending). Idempotent.
+-- Applied via MCP 6 Oct 2026 (first-run form, no drop guards). Repo parity file, do not re-run.
 
 alter table public.whatsapp_contacts add column if not exists contact_type text;
-alter table public.whatsapp_contacts drop constraint if exists whatsapp_contacts_contact_type_check;
 alter table public.whatsapp_contacts add constraint whatsapp_contacts_contact_type_check
   check (contact_type is null or contact_type in ('customer', 'lead', 'carrier', 'shipper', 'agent', 'spam'));
 alter table public.whatsapp_contacts add column if not exists company text;
@@ -68,11 +67,8 @@ create table if not exists public.inbox_reads (
 alter table public.inbox_conversations enable row level security;
 alter table public.inbox_messages enable row level security;
 alter table public.inbox_reads enable row level security;
-drop policy if exists staff_read on public.inbox_conversations;
 create policy staff_read on public.inbox_conversations for select to authenticated using (public.is_staff());
-drop policy if exists staff_read on public.inbox_messages;
 create policy staff_read on public.inbox_messages for select to authenticated using (public.is_staff());
-drop policy if exists own_reads on public.inbox_reads;
 create policy own_reads on public.inbox_reads for select to authenticated using (user_id = auth.uid());
 
 -- ---------- helpers ----------
@@ -134,7 +130,6 @@ begin
   exception when others then raise warning 'inbox portal mirror failed: %', sqlerrm; end;
   return new;
 end $$;
-drop trigger if exists trg_inbox_portal_message on public.portal_messages;
 create trigger trg_inbox_portal_message after insert on public.portal_messages
   for each row execute function public.trg_inbox_portal_message();
 
@@ -194,7 +189,6 @@ begin
   exception when others then raise warning 'inbox wa mirror failed: %', sqlerrm; end;
   return new;
 end $$;
-drop trigger if exists trg_inbox_wa_message on public.whatsapp_messages;
 create trigger trg_inbox_wa_message after insert or update of media_path, status on public.whatsapp_messages
   for each row execute function public.trg_inbox_wa_message();
 
