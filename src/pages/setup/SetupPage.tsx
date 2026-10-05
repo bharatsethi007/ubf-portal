@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowLeftRight, Coins, Layers, ListOrdered, MapPin, Percent, Ruler, Scale, Ship, Smile, Table2, Truck } from 'lucide-react'
+import { Activity, ArrowLeftRight, Coins, Layers, ListOrdered, MapPin, Percent, Ruler, Scale, Ship, Smile, Table2, Truck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
 type ActiveSection = {
@@ -15,6 +15,12 @@ type ComingSection = {
 }
 
 const ACTIVE: ActiveSection[] = [
+  {
+    icon: Activity,
+    title: 'System health',
+    description: 'API status and call logs, TWF sync, database, jobs, and S3 storage',
+    to: '/setup/system-health',
+  },
   {
     icon: Table2,
     title: 'Rates',

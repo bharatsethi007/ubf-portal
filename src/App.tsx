@@ -67,6 +67,7 @@ import PortsPage from './pages/setup/PortsPage'
 import ChargeTemplatesPage from './pages/setup/ChargeTemplatesPage'
 import ExchangeRatesPage from './pages/setup/ExchangeRatesPage'
 import EmailSignatureCsat from './pages/setup/EmailSignatureCsat'
+import SystemHealthPage from './pages/setup/health/SystemHealthPage'
 import WhatsAppInboxPage from './pages/whatsapp/WhatsAppInboxPage'
 import PortalMessagesInbox from './pages/messages/PortalMessagesInbox'
 import { Toaster } from './components/ui/sonner'
@@ -261,6 +262,7 @@ export default function App() {
             <Route path="/setup/charge-templates" element={<StaffRoute><ChargeTemplatesPage /></StaffRoute>} />
             <Route path="/setup/exchange-rates" element={<StaffRoute><ExchangeRatesPage /></StaffRoute>} />
             <Route path="/setup/email-signature-csat" element={<StaffRoute><EmailSignatureCsat /></StaffRoute>} />
+            <Route path="/setup/system-health" element={<StaffRoute><SystemHealthPage /></StaffRoute>} />
             <Route path="*" element={<Navigate to="/" replace />} />
           </Route>
         </Route>
