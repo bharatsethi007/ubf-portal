@@ -2,14 +2,11 @@ import type { SupabaseClient } from "jsr:@supabase/supabase-js@2"
 import type { JsonRecord } from "./portconnectClient.ts"
 import { fetchContainerVisitsImport } from "./portconnectClient.ts"
 import {
-  bookingPatchFromVisitFields,
-  completePortConnectTask,
-  containerPatchFromVisit,
-  emptyVisitBookingFields,
-  taskTriggersFromEvents,
-  taskTriggersFromVisitTransition,
-  visitBookingFieldsFromVisit,
-} from "./portconnectBookingAutomation.ts"
+  bookingPatchFromVisit,
+  countChangedFields,
+  deriveRefreshEvents,
+  type DerivedRefreshEvent,
+} from "./portconnectVisitDiff.ts"
 import {
   mapVisitToContainerRow,
   timestampsFromStored,
@@ -131,7 +128,6 @@ export async function refreshBookingPortConnect(
 
   const overrides = parseOverrides(booking?.field_overrides)
   const bookingPatch: Record<string, unknown> = {}
-  const taskTriggersDone = new Set<string>()
 
   for (const containerNo of containerNos) {
     const fetchResult = await fetchContainerVisitsImport(apiKey, containerNo)
@@ -227,47 +223,9 @@ export async function refreshBookingPortConnect(
       }
     }
 
-    const beforeFields = existingRow?.raw
-      ? visitBookingFieldsFromVisit(existingRow.raw as JsonRecord)
-      : emptyVisitBookingFields()
-    const afterFields = visitBookingFieldsFromVisit(visit)
-    const visitPatch = bookingPatchFromVisitFields(visit, afterFields, overrides)
+    const visitPatch = bookingPatchFromVisit(visit, after, overrides)
     for (const [k, v] of Object.entries(visitPatch)) {
-      bookingPatch[k] = v
-    }
-
-    const { data: bcRow } = await db
-      .from("booking_containers")
-      .select("id, source")
-      .eq("booking_id", bookingId)
-      .eq("container_no", containerNo)
-      .maybeSingle()
-
-    if (bcRow) {
-      const cPatch = containerPatchFromVisit(
-        visit,
-        containerNo,
-        overrides,
-        bcRow.source as string | null,
-      )
-      if (cPatch) {
-        const { error: bcErr } = await db
-          .from("booking_containers")
-          .update(cPatch)
-          .eq("id", bcRow.id)
-        if (bcErr) throw new Error(bcErr.message)
-      }
-    }
-
-    const triggers = new Set([
-      ...taskTriggersFromEvents(events.map((e) => e.event_type_code)),
-      ...taskTriggersFromVisitTransition(beforeFields, afterFields),
-    ])
-    for (const trigger of triggers) {
-      const key = `${bookingId}:${trigger}`
-      if (taskTriggersDone.has(key)) continue
-      taskTriggersDone.add(key)
-      await completePortConnectTask(db, bookingId, trigger)
+      if (!overrides[k]) bookingPatch[k] = v
     }
 
     await logSync(db, {

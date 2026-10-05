@@ -1,6 +1,7 @@
 import type { BookingExtract } from "./types.ts";
 import { CLAUDE_MODEL } from "./types.ts";
 import { FIELD_SCHEMA, PARTY_GOODS_RULES, SYSTEM_PROMPT, USER_PREAMBLE } from "./extractionPrompt.ts";
+import { apiFetch } from "../_shared/apiFetch.ts";
 
 function parseJsonPayload(text: string): BookingExtract {
   const trimmed = text.trim();
@@ -24,7 +25,7 @@ export async function extractBooking(
     USER_PREAMBLE + FIELD_SCHEMA + PARTY_GOODS_RULES +
     "--- EMAIL BODY ---\n" + emailBody + attachmentBlock;
 
-  const res = await fetch("https://api.anthropic.com/v1/messages", {
+  const res = await apiFetch("https://api.anthropic.com/v1/messages", {
     method: "POST",
     headers: {
       "Content-Type": "application/json",

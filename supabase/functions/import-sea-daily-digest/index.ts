@@ -3,6 +3,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { renderDigest, type DigestRow } from "./digestEmail.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("import-sea-daily-digest");
 
 const CORS = {
   "Access-Control-Allow-Origin": "*",
@@ -47,7 +49,7 @@ async function send(to: { email: string; name?: string }[], subject: string, htm
   let ok = true;
   // One message per recipient so staff never see each other's addresses.
   for (const r of to) {
-    const resp = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const resp = await apiFetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ sender: { email: from, name: "UBF Import Sea" }, to: [r], subject, htmlContent: html, textContent: text }),

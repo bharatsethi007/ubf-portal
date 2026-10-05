@@ -1,4 +1,6 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("marketing-brevo-sync");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -15,7 +17,7 @@ async function isStaff(req: Request): Promise<boolean> {
   const url = Deno.env.get("SUPABASE_URL");
   const anon = Deno.env.get("SUPABASE_ANON_KEY");
   if (!url || !anon || !auth) return false;
-  const r = await fetch(`${url}/rest/v1/rpc/is_staff`, {
+  const r = await apiFetch(`${url}/rest/v1/rpc/is_staff`, {
     method: "POST",
     headers: { apikey: anon, Authorization: auth, "Content-Type": "application/json" },
     body: "{}",
@@ -28,7 +30,7 @@ async function isStaff(req: Request): Promise<boolean> {
 async function brevo(path: string, init: RequestInit) {
   const key = Deno.env.get("BREVO_API_KEY");
   if (!key) throw new Error("BREVO_API_KEY not set");
-  const r = await fetch(`${BREVO}${path}`, {
+  const r = await apiFetch(`${BREVO}${path}`, {
     ...init,
     headers: { "api-key": key, "Content-Type": "application/json", accept: "application/json", ...(init.headers ?? {}) },
   });
@@ -61,21 +63,25 @@ Deno.serve(async (req) => {
     if (action === "sync") {
       const raw = Array.isArray(body?.contacts) ? body.contacts : [];
       const clean = raw
-        .map((c: { email?: string; name?: string | null; phone?: string | null; contact_name?: string | null }) => ({
+        .map((c: { email?: string; name?: string | null; phone?: string | null; contact_name?: string | null; shipment_count?: number | null; last_shipment?: string | null }) => ({
           email: String(c?.email ?? "").trim().toLowerCase(),
           name: c?.name ?? null,
           phone: c?.phone ? String(c.phone).trim() : null,
           contact_name: c?.contact_name ? String(c.contact_name).trim() : null,
+          shipment_count: typeof c?.shipment_count === "number" ? c.shipment_count : null,
+          last_shipment: c?.last_shipment ? String(c.last_shipment).trim() : null,
         }))
         .filter((c: { email: string }) => c.email.includes("@"));
       if (!clean.length) return json({ error: "no valid contacts" }, 400);
       if (clean.length > 5000) return json({ error: "too many contacts (max 5000)" }, 400);
 
-      const jsonBody = clean.map((c: { email: string; name: string | null; phone: string | null; contact_name: string | null }) => {
-        const attributes: Record<string, string> = {};
+      const jsonBody = clean.map((c: { email: string; name: string | null; phone: string | null; contact_name: string | null; shipment_count: number | null; last_shipment: string | null }) => {
+        const attributes: Record<string, string | number> = {};
         if (c.name) attributes.FNAME = c.name;
         if (c.phone) attributes.PHONE = c.phone;
         if (c.contact_name) attributes.CONTACT = c.contact_name;
+        if (c.shipment_count != null) attributes.SHIPMENTS = c.shipment_count;
+        if (c.last_shipment) attributes.LAST_SHIPMENT = c.last_shipment;
         return Object.keys(attributes).length ? { email: c.email, attributes } : { email: c.email };
       });
 

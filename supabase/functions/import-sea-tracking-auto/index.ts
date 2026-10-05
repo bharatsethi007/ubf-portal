@@ -9,6 +9,8 @@ import { refreshBookingCarrier } from "../carrier-refresh/carrierRefreshRun.ts"
 import { fetchMaerskToken, readMaerskCreds } from "../carrier-refresh/maerskClient.ts"
 import { refreshBookingSeaVantage } from "../seavantage-refresh/seavantageRefreshRun.ts"
 import { readSeaVantageCreds } from "../seavantage-refresh/seaVantageClient.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("import-sea-tracking-auto");
 
 const BUDGET_MS = 130_000
 const json = (b: unknown, s = 200) => new Response(JSON.stringify(b), { status: s, headers: { "Content-Type": "application/json" } })

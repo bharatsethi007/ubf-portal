@@ -1,3 +1,4 @@
+import { apiFetch } from "../_shared/apiFetch.ts";
 export type JsonRecord = Record<string, unknown>
 
 const DEFAULT_BASE = "https://insight.seavantage.com/api"
@@ -67,7 +68,7 @@ export async function registerCargo(
   if (ref.mblNo) payload.mblNo = ref.mblNo
   else if (ref.bookingNo) payload.bookingNo = ref.bookingNo
   else if (ref.containerNo) payload.containerNo = ref.containerNo
-  const res = await fetch(`${baseUrl()}/cargo`, {
+  const res = await apiFetch(`${baseUrl()}/cargo`, {
     method: "POST",
     headers: { Authorization: authHeader(creds), "Content-Type": "application/json", Accept: "application/json" },
     body: JSON.stringify(payload),
@@ -83,7 +84,7 @@ export async function fetchPastTrack(creds: SvCreds, ref: SvRef): Promise<SvResu
   if (ref.mblNo) url.searchParams.set("mblNo", ref.mblNo)
   else if (ref.bookingNo) url.searchParams.set("bookingNo", ref.bookingNo)
   else if (ref.containerNo) url.searchParams.set("containerNo", ref.containerNo)
-  const res = await fetch(url.toString(), { headers: { Authorization: authHeader(creds), Accept: "application/json" } })
+  const res = await apiFetch(url.toString(), { headers: { Authorization: authHeader(creds), Accept: "application/json" } })
   const body = (await res.json().catch(() => ({}))) as JsonRecord
   const candidates = [body.response, body.data, body.result, body]
   let payload: JsonRecord | null = null

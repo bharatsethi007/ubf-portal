@@ -42,12 +42,12 @@ function fmtDate(d: string | null): string | null {
   if (isNaN(dt.getTime())) return d;
   return dt.toLocaleDateString("en-NZ", { day: "2-digit", month: "short", year: "numeric", timeZone: "Pacific/Auckland" });
 }
-function flag(b: boolean | null): string { return b ? "\u2705" : "\u2b1c"; }
+function flag(b: boolean | null): string { return b ? "✅" : "⬜"; }
 
 export function buildMilestoneSummary(b: Booking): string {
   const lines: string[] = [];
-  lines.push(`\ud83d\udce6 *${b.booking_ref ?? "Shipment"}*`);
-  if (b.origin || b.destination) lines.push(`${b.origin ?? "?"} \u2192 ${b.destination ?? "?"}`);
+  lines.push(`📦 *${b.booking_ref ?? "Shipment"}*`);
+  if (b.origin || b.destination) lines.push(`${b.origin ?? "?"} → ${b.destination ?? "?"}`);
   const vessel = [b.vessel, b.voyage].filter(Boolean).join(" / ");
   if (vessel) lines.push(`Vessel: ${vessel}${b.shipping_line_code ? ` (${b.shipping_line_code})` : ""}`);
   else if (b.shipping_line_code) lines.push(`Line: ${b.shipping_line_code}`);
@@ -68,7 +68,7 @@ export function buildMilestoneSummary(b: Booking): string {
   const ret = fmtDate(b.container_return_date); if (ret) dates.push(`Container returned: ${ret}`);
   if (dates.length) lines.push("", ...dates);
 
-  if (b.hold_reason) lines.push("", `\u26a0\ufe0f On hold: ${b.hold_reason}`);
+  if (b.hold_reason) lines.push("", `⚠️ On hold: ${b.hold_reason}`);
   lines.push("", "_Reply here and our team will assist further._");
   return lines.join("\n");
 }
@@ -158,7 +158,7 @@ async function maybeHandleCsatReply(
   await sendText(sb, token, phoneId, msg.wa_id,
     score >= 4
       ? "Thank you for the great feedback! \u{1F64F}"
-      : "Thanks for your feedback \u2014 we\u2019ll use it to improve. A team member may follow up.",
+      : "Thanks for your feedback — we’ll use it to improve. A team member may follow up.",
     reqRow.booking_id ?? undefined);
   await sb.from("whatsapp_messages")
     .update({ intent: "csat", status: "answered", related_booking_id: reqRow.booking_id ?? null })

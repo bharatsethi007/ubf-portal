@@ -10,6 +10,8 @@
 // }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("sli-submit");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
       const to = opsMailbox(sf.module ?? "");
       const ref = sf.booking_ref ?? sli.booking_id;
       if (key) {
-        await fetch("https://api.brevo.com/v3/smtp/email", {
+        await apiFetch("https://api.brevo.com/v3/smtp/email", {
           method: "POST",
           headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
           body: JSON.stringify({

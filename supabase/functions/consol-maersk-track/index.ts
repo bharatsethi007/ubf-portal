@@ -4,6 +4,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { readMaerskCreds } from "../carrier-refresh/maerskClient.ts"
 import { runMaerskConsolRefresh } from "./maerskRun.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("consol-maersk-track");
 
 const json = (b: unknown, status = 200) => new Response(JSON.stringify(b), { status, headers: { "content-type": "application/json" } })
 

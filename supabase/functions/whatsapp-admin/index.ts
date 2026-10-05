@@ -3,6 +3,8 @@
 // Actions: subscribe_waba, list_subscribed, create_verify_template, create_update_template, list_templates, phone_info.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { isServiceCaller } from "../_shared/serviceAuth.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("whatsapp-admin");
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 const VERIFY_TEMPLATE = "ubf_verify_code";
@@ -30,12 +32,12 @@ Deno.serve(async (req: Request) => {
   const authHdr = { Authorization: `Bearer ${token}` };
 
   if (body.action === "subscribe_waba") {
-    const r = await fetch(`${GRAPH}/${waba}/subscribed_apps`, { method: "POST", headers: authHdr });
+    const r = await apiFetch(`${GRAPH}/${waba}/subscribed_apps`, { method: "POST", headers: authHdr });
     return json({ action: "subscribe_waba", ok: r.ok, status: r.status, response: await r.json().catch(() => ({})) }, r.ok ? 200 : 502);
   }
 
   if (body.action === "list_subscribed") {
-    const r = await fetch(`${GRAPH}/${waba}/subscribed_apps`, { headers: authHdr });
+    const r = await apiFetch(`${GRAPH}/${waba}/subscribed_apps`, { headers: authHdr });
     return json({ action: "list_subscribed", ok: r.ok, status: r.status, response: await r.json().catch(() => ({})) }, r.ok ? 200 : 502);
   }
 
@@ -50,7 +52,7 @@ Deno.serve(async (req: Request) => {
         { type: "BUTTONS", buttons: [{ type: "OTP", otp_type: "COPY_CODE" }] },
       ],
     };
-    const r = await fetch(`${GRAPH}/${waba}/message_templates`, {
+    const r = await apiFetch(`${GRAPH}/${waba}/message_templates`, {
       method: "POST", headers: { ...authHdr, "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -72,7 +74,7 @@ Deno.serve(async (req: Request) => {
         { type: "BUTTONS", buttons: [{ type: "URL", text: "Open portal", url: `${PORTAL_URL}/portal` }] },
       ],
     };
-    const r = await fetch(`${GRAPH}/${waba}/message_templates`, {
+    const r = await apiFetch(`${GRAPH}/${waba}/message_templates`, {
       method: "POST", headers: { ...authHdr, "Content-Type": "application/json" },
       body: JSON.stringify(payload),
     });
@@ -82,14 +84,14 @@ Deno.serve(async (req: Request) => {
   if (body.action === "phone_info") {
     const phoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
     const [p, w] = await Promise.all([
-      fetch(`${GRAPH}/${phoneId}?fields=display_phone_number,verified_name,name_status,quality_rating,code_verification_status,platform_type,throughput,messaging_limit_tier,status`, { headers: authHdr }),
-      fetch(`${GRAPH}/${waba}?fields=name,account_review_status,business_verification_status`, { headers: authHdr }),
+      apiFetch(`${GRAPH}/${phoneId}?fields=display_phone_number,verified_name,name_status,quality_rating,code_verification_status,platform_type,throughput,messaging_limit_tier,status`, { headers: authHdr }),
+      apiFetch(`${GRAPH}/${waba}?fields=name,account_review_status,business_verification_status`, { headers: authHdr }),
     ]);
     return json({ action: "phone_info", phone: await p.json().catch(() => ({})), waba: await w.json().catch(() => ({})) });
   }
 
   if (body.action === "list_templates") {
-    const r = await fetch(`${GRAPH}/${waba}/message_templates?fields=name,status,category&limit=50`, { headers: authHdr });
+    const r = await apiFetch(`${GRAPH}/${waba}/message_templates?fields=name,status,category&limit=50`, { headers: authHdr });
     return json({ action: "list_templates", ok: r.ok, status: r.status, response: await r.json().catch(() => ({})) }, r.ok ? 200 : 502);
   }
 

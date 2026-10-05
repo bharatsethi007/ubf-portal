@@ -7,6 +7,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { isServiceCaller } from "../_shared/serviceAuth.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("portal-wa-send");
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 const TEMPLATE = "ubf_shipment_update";
@@ -46,7 +48,7 @@ async function sendTemplate(sb: SupabaseClient, m: Msg): Promise<boolean> {
     messaging_product: "whatsapp", to: m.to, type: "template",
     template: { name: TEMPLATE, language: { code: "en_US" }, components: [{ type: "body", parameters: m.params.map((text) => ({ type: "text", text })) }] },
   };
-  const r = await fetch(`${GRAPH}/${phoneId}/messages`, {
+  const r = await apiFetch(`${GRAPH}/${phoneId}/messages`, {
     method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" }, body: JSON.stringify(payload),
   });
   const data = await r.json().catch(() => ({}));

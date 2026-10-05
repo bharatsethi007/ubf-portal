@@ -2,6 +2,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { cors, json, requireStaff } from "../_shared/portalCommon.ts"
 import { refreshBookingPortConnect } from "../_shared/portconnectRefreshRun.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("portconnect-refresh");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors })

@@ -1,5 +1,7 @@
 // RETIRED — replaced by portal-activate (staff set-password link flow).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("invite-portal-user");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",

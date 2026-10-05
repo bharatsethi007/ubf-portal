@@ -3,6 +3,8 @@
 // their portal_users row (NEVER from the client). Actions: start | confirm | status.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("whatsapp-verify");
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 const VERIFY_TEMPLATE = "ubf_verify_code";
@@ -84,7 +86,7 @@ Deno.serve(async (req: Request) => {
       code_hash: codeHash, expires_at: new Date(Date.now() + CODE_TTL_MS).toISOString(),
     });
 
-    const send = await fetch(`${GRAPH}/${phoneId}/messages`, {
+    const send = await apiFetch(`${GRAPH}/${phoneId}/messages`, {
       method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         messaging_product: "whatsapp", to: wa, type: "template",

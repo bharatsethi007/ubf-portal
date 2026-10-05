@@ -2,8 +2,10 @@
 // Mirrors portconnect-refresh: staff-gated, service-role writes, summary response.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { cors, json, requireStaff } from "../_shared/portalCommon.ts"
-import { readMaerskCreds } from "../_shared/maerskClient.ts"
-import { refreshBookingCarrier } from "../_shared/carrierRefreshRun.ts"
+import { readMaerskCreds } from "./maerskClient.ts"
+import { refreshBookingCarrier } from "./carrierRefreshRun.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("carrier-refresh");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors })

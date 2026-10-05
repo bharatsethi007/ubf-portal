@@ -3,6 +3,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { esc, renderNotify } from "../portal-booking-notify/notifyEmail.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("portal-message-notify");
 
 const CONSOLE_URL = "https://console.ubfreight.com";
 const INBOX: Record<string, { email: string; team: string }> = {
@@ -61,7 +63,7 @@ Deno.serve(async (req) => {
     const key = Deno.env.get("BREVO_API_KEY");
     if (!key) return json({ error: "BREVO_API_KEY not set" }, 500);
     const { html, text } = renderNotify(email);
-    const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const r = await apiFetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({

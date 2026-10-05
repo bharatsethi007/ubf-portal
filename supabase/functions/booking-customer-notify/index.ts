@@ -3,6 +3,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { cors, json, requireStaff } from "./staffGate.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("booking-customer-notify");
 
 type Body = {
   booking_id: string
@@ -77,7 +79,7 @@ Deno.serve(async (req) => {
       else if (!key) results.push({ channel: "email", ok: false, detail: "BREVO_API_KEY not configured" })
       else {
         const from = Deno.env.get("BOOKING_FROM_EMAIL") ?? Deno.env.get("TMS_FROM_EMAIL") ?? "no-reply@ubfreight.com"
-        const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+        const r = await apiFetch("https://api.brevo.com/v3/smtp/email", {
           method: "POST",
           headers: { "api-key": key, "Content-Type": "application/json", Accept: "application/json" },
           body: JSON.stringify({
@@ -102,7 +104,7 @@ Deno.serve(async (req) => {
       const svc = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
       for (const c of allowed) {
         const first = String(c.display_name ?? "there").split(" ")[0] || "there"
-        const r = await fetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-send`, {
+        const r = await apiFetch(`${Deno.env.get("SUPABASE_URL")}/functions/v1/whatsapp-send`, {
           method: "POST",
           headers: { Authorization: `Bearer ${svc}`, "Content-Type": "application/json" },
           body: JSON.stringify({

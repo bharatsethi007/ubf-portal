@@ -1,13 +1,15 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
+import { createClient } from "@supabase/supabase-js";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("navman-refresh");
 
-// Navman TN360 fleet tracking poller (cron: every minute, service-role writes).
+// Navman TN360 fleet tracking poller.
 //
 // POSITIONS ENDPOINT QUIRK (verified 27 Aug 2026 via live probe):
 //   /vehicles/{id}/positions returns fixes OLDEST-FIRST, hard-capped at 100 rows.
 //   `order`/`sort` params are IGNORED; there is no descending/latest mode.
 //   With NO window the platform applies a WIDE default window, so a truck that has emitted
-//   >100 fixes returns the OLDEST 100 -> computed 'latest' frozen hours behind (the old bug:
+//   >100 fixes returns the OLDEST 100 -> computed 'latest' frozen hours behind (the v6 bug:
 //   busy trucks looked stuck). FIX: request a NARROW recent window via from/to (ISO8601 only;
 //   epoch ms -> 400).
 //
@@ -30,7 +32,7 @@ const supabase = createClient(
 );
 
 async function tn(path: string): Promise<any> {
-  const res = await fetch(`${BASE}${path}`, {
+  const res = await apiFetch(`${BASE}${path}`, {
     headers: { Authorization: `Bearer ${KEY}`, Accept: "application/json" },
   });
   if (!res.ok) {

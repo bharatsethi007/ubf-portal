@@ -1,10 +1,8 @@
 // supabase/functions/sli-create/index.ts
-// STAFF (verify_jwt = true). Creates/regenerates an SLI for a supplier on a booking.
-// Body: { booking_id: uuid, booking_supplier_id?: uuid|null }
-// - consolidation: pass booking_supplier_id (one SLI per supplier)
-// - single shipper: omit booking_supplier_id (supplier = booking.account_id)
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("sli-create");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -22,7 +20,6 @@ Deno.serve(async (req) => {
     const anon = Deno.env.get("SUPABASE_ANON_KEY")!;
     const service = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 
-    // verify caller is a staff user (RLS-scoped client using their JWT)
     const userClient = createClient(url, anon, { global: { headers: { Authorization: authHeader } } });
     const { data: ures } = await userClient.auth.getUser();
     if (!ures?.user) return json({ error: "unauthorized" }, 401);
@@ -32,15 +29,13 @@ Deno.serve(async (req) => {
     const { booking_id, booking_supplier_id = null } = await req.json();
     if (!booking_id) return json({ error: "booking_id required" }, 400);
 
-    const db = createClient(url, service); // service role for the writes/snapshot
+    const db = createClient(url, service);
 
-    // load booking header (staff read-only fields)
     const { data: bk, error: bkErr } = await db.from("bookings")
       .select("id, booking_ref, module, origin, destination, incoterm, airline_name, flight_no, is_consolidation, account_id, consignee_account_id")
       .eq("id", booking_id).single();
     if (bkErr || !bk) return json({ error: "booking not found" }, 404);
 
-    // resolve supplier source row + account id
     let supplierAcct: string | null = null;
     let supplierSnap: Record<string, unknown> = {};
     if (booking_supplier_id) {
@@ -62,7 +57,6 @@ Deno.serve(async (req) => {
       supplierSnap = { supplier_name: cust?.name ?? null, supplier_account_id: supplierAcct };
     }
 
-    // recipient email (prime contact -> any contact -> customer email; skip internal)
     let recipient: string | null = (supplierSnap.supplier_email as string) ?? null;
     if (!recipient && supplierAcct) {
       const { data: c } = await db.from("contacts")
@@ -71,14 +65,12 @@ Deno.serve(async (req) => {
       recipient = c?.find((r) => r.email && !/@ubfreight\.com/i.test(r.email))?.email ?? null;
     }
 
-    // country-of-origin auto-suggest: supplier_country -> origin port country
     let originCountry: string | null = (supplierSnap.supplier_country as string) ?? null;
     if (!originCountry && bk.origin) {
       const { data: port } = await db.from("ports").select("country_code").eq("code", bk.origin).maybeSingle();
       originCountry = port?.country_code ?? null;
     }
 
-    // expire any existing active SLI for this supplier-per-booking
     const expireMatch = db.from("sli_documents").update({ status: "expired" })
       .eq("booking_id", booking_id).neq("status", "expired");
     await (booking_supplier_id
@@ -91,7 +83,7 @@ Deno.serve(async (req) => {
       airline_name: bk.airline_name, flight_no: bk.flight_no,
       is_consolidation: bk.is_consolidation, consignee_account_id: bk.consignee_account_id,
     };
-    const sli_answers = { country_of_origin: originCountry }; // pre-suggested, customer can change
+    const sli_answers = { country_of_origin: originCountry };
 
     const { data: created, error: insErr } = await db.from("sli_documents").insert({
       booking_id, booking_supplier_id, supplier_account_id: supplierAcct,
@@ -103,14 +95,13 @@ Deno.serve(async (req) => {
     const base = Deno.env.get("SLI_PUBLIC_BASE_URL") ?? "";
     const link = base ? `${base}/sli/${created.token}` : `/sli/${created.token}`;
 
-    // ── outbound email to customer via Brevo (canonical SLI subject) ──
     let emailStatus: "sent" | "skipped" | "failed" = "skipped";
-    if (recipient && base) { // need an absolute link to email
+    if (recipient && base) {
       try {
         const key = Deno.env.get("BREVO_API_KEY");
         const from = Deno.env.get("SLI_FROM_EMAIL") ?? "no-reply@ubfreight.com";
         if (key) {
-          const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+          const r = await apiFetch("https://api.brevo.com/v3/smtp/email", {
             method: "POST",
             headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
             body: JSON.stringify({
@@ -132,9 +123,9 @@ Deno.serve(async (req) => {
       } catch { emailStatus = "failed"; }
     }
 
-    // log email outcome
+    const { data: sliRow } = await db.from("sli_documents").select("id").eq("token", created.token).single();
     await db.from("sli_events").insert({
-      sli_id: (await db.from("sli_documents").select("id").eq("token", created.token).single()).data?.id,
+      sli_id: sliRow?.id,
       event: emailStatus === "sent" ? "email_sent" : emailStatus === "failed" ? "email_failed" : "created",
       actor: ures.user.id,
       detail: { recipient, email_status: emailStatus },

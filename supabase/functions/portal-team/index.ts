@@ -7,6 +7,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { inviteEmail } from "./inviteEmail.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("portal-team");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -51,7 +53,7 @@ async function sendInvite(db: SupabaseClient, me: Me, userId: string, email: str
   const mail = inviteEmail({ inviter: me.display_name || me.email, company: cust?.name ?? null, name, link });
   const key = Deno.env.get("BREVO_API_KEY");
   if (!key) { console.error("BREVO_API_KEY not set"); return false; }
-  const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+  const r = await apiFetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({

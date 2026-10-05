@@ -2,6 +2,8 @@
 // verify_jwt=true + staff_users gate. Sends text via Graph, logs outbound, clears needs-action on the thread.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("whatsapp-reply");
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 const cors = {
@@ -58,7 +60,7 @@ Deno.serve(async (req: Request) => {
   const phoneId = Deno.env.get("WHATSAPP_PHONE_NUMBER_ID");
   if (!token || !phoneId) return json({ error: "whatsapp_not_configured" }, 500);
 
-  const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
+  const res = await apiFetch(`${GRAPH}/${phoneId}/messages`, {
     method: "POST", headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ messaging_product: "whatsapp", to: waId, type: "text", text: { body: text, preview_url: false } }),
   });

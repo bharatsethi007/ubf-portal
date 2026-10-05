@@ -17,14 +17,15 @@ export async function refreshIfStale(
 ): Promise<void> {
   if (status === "delivered") return
   const { data: bt } = await db.from("booking_tracking")
-    .select("seavantage_enabled,portconnect_enabled,last_seavantage_sync,last_portconnect_sync,seavantage_mbl_registered_at")
+    .select("seavantage_enabled,portconnect_enabled,last_seavantage_sync,last_portconnect_sync,seavantage_mbl_registered_at,carrier_fallback_sv")
     .eq("booking_id", bookingId).maybeSingle()
 
   // SeaVantage registration is billable: public views only refresh cargo staff already registered
   // (MBL registered when the booking has an MBL, else every container registered).
   const { data: bk } = await db.from("bookings").select("mbl_no").eq("id", bookingId).maybeSingle()
   let svRegistered = false
-  if (String(bk?.mbl_no ?? "").trim()) {
+  // Maersk fallback bookings register per container, never by MBL.
+  if (String(bk?.mbl_no ?? "").trim() && bt?.carrier_fallback_sv !== true) {
     svRegistered = Boolean(bt?.seavantage_mbl_registered_at)
   } else {
     const { data: boxes } = await db.from("booking_containers").select("seavantage_registered_at,seavantage_document_id").eq("booking_id", bookingId)

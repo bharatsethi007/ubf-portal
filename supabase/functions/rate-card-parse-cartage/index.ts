@@ -4,6 +4,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { SYSTEM_PROMPT, buildUserContent } from "./prompt.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("rate-card-parse-cartage");
 
 const CLAUDE_MODEL = "claude-sonnet-4-6"
 const cors = {
@@ -80,7 +82,7 @@ Deno.serve(async (req) => {
       aliases: aliasList,
     })
 
-    const res = await fetch("https://api.anthropic.com/v1/messages", {
+    const res = await apiFetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: { "Content-Type": "application/json", "x-api-key": apiKey, "anthropic-version": "2023-06-01" },
       body: JSON.stringify({ model: CLAUDE_MODEL, max_tokens: 16000, system: SYSTEM_PROMPT, messages: [{ role: "user", content: userContent }] }),

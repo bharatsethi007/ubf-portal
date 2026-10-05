@@ -4,6 +4,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { cors, issueStaffInviteToken, json, normalizeEmail, serviceClient } from "../_shared/portalCommon.ts";
 import { sendStaffEmail } from "../_shared/staffEmail.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("staff-forgot-password");
 
 const TTL_MS = 60 * 60 * 1000; // 1 hour
 const COOLDOWN_MS = 60 * 1000; // one email per minute per user

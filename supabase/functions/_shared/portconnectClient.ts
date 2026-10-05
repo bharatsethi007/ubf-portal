@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch.ts";
 export type JsonRecord = Record<string, unknown>
 
 const API_BASE = "https://api.portconnect.io"
@@ -66,7 +67,7 @@ export async function portconnectSubscribeChunk(
     facilityCode: null,
   }
 
-  const res = await fetch(`${API_BASE}/v2/subscriptions`, {
+  const res = await apiFetch(`${API_BASE}/v2/subscriptions`, {
     method: "POST",
     headers: portconnectHeaders(apiKey),
     body: JSON.stringify(body),
@@ -110,7 +111,7 @@ export async function portconnectDeleteContainer(
   containerNumber: string,
 ): Promise<void> {
   const encoded = encodeURIComponent(containerNumber)
-  const res = await fetch(
+  const res = await apiFetch(
     `${API_BASE}/v2/subscriptions/${subscriptionId}/containers/${encoded}`,
     { method: "DELETE", headers: portconnectHeaders(apiKey) },
   )
@@ -134,7 +135,7 @@ export async function fetchContainerVisitsImport(
   url.searchParams.set("containerNumber", containerNumber)
   url.searchParams.set("category", "IMPORT")
 
-  const res = await fetch(url.toString(), {
+  const res = await apiFetch(url.toString(), {
     headers: { Accept: "application/json", "Ocp-Apim-Subscription-Key": apiKey },
   })
 

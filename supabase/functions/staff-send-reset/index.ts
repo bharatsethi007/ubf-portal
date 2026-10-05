@@ -5,6 +5,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { cors, json, issueStaffInviteToken } from "../_shared/portalCommon.ts";
 import { sendStaffEmail } from "../_shared/staffEmail.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("staff-send-reset");
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response("ok", { headers: cors });

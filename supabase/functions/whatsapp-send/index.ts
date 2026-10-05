@@ -4,6 +4,8 @@
 // Logs every send to whatsapp_messages (direction=outbound).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("whatsapp-send");
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 
@@ -75,7 +77,7 @@ Deno.serve(async (req: Request) => {
     apiPayload.text = { body: body.text, preview_url: false };
   }
 
-  const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
+  const res = await apiFetch(`${GRAPH}/${phoneId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify(apiPayload),

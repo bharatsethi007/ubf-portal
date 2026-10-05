@@ -1,5 +1,6 @@
 // booking-email-ingest — poll Bookings.AI mailbox, extract via Claude, write draft bookings.
 // Invoked by pg_cron every 5 min (service_role bearer). verify_jwt = false.
+// Attachments -> S3 booking-emails/<message_id>/<file>; attachment_paths keep plain paths.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { extractBooking } from "./extraction.ts";
@@ -16,6 +17,8 @@ import { extractPdfText } from "./pdfText.ts";
 import type { GraphAttachment, GraphMessage } from "./types.ts";
 import { BUCKET, MAILBOX } from "./types.ts";
 import { putObject } from "../_shared/s3.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("booking-email-ingest");
 
 const MAX_ATTEMPTS = 3;
 
@@ -85,7 +88,7 @@ async function beginAttempt(
 }
 
 async function storeAttachments(
-  db: ReturnType<typeof createClient>,
+  _db: ReturnType<typeof createClient>,
   token: string,
   msg: GraphMessage,
 ): Promise<{ paths: string[]; pdfTexts: string[]; notes: string[] }> {

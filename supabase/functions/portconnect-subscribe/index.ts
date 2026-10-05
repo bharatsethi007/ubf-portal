@@ -1,6 +1,8 @@
 // STAFF — enable PortConnect polling for a booking (manual refresh only; no webhooks).
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { cors, json, requireStaff } from "../_shared/portalCommon.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("portconnect-subscribe");
 
 function normalizeContainerNos(raw: unknown): string[] {
   if (!Array.isArray(raw)) return []

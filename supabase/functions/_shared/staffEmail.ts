@@ -1,3 +1,4 @@
+import { apiFetch } from "./apiFetch.ts";
 // Branded transactional email for staff accounts (invite, password reset).
 // Table layout + inline styles + VML button so it renders cleanly in Outlook, Gmail and Apple Mail.
 
@@ -98,7 +99,7 @@ export async function sendStaffEmail(to: string, subject: string, email: StaffEm
   const from = Deno.env.get("STAFF_INVITE_FROM_EMAIL") ?? "no-reply@ubfreight.com";
   const { html, text } = renderStaffEmail(email);
   try {
-    const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+    const r = await apiFetch("https://api.brevo.com/v3/smtp/email", {
       method: "POST",
       headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
       body: JSON.stringify({ sender: { email: from, name: SENDER_NAME }, to: [{ email: to }], subject, htmlContent: html, textContent: text }),

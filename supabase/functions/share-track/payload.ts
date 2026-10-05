@@ -84,6 +84,13 @@ export async function buildPayload(db: SupabaseClient, link: { booking_id: strin
     const from = deps.at(-1)?.at
     if (from) windows.set(vesselKey, { from, to: eta.actual ?? nowIso })
   }
+  if (vesselKey && !windows.size) {
+    // No carrier/SeaVantage events (e.g. PortConnect-only): same voyage window as the staff map
+    // (last AIS fix near POL -> arrival + 12h).
+    const { data: rt } = await db.rpc("get_booking_vessel_route", { p_booking_id: bid })
+    const w = (rt as { window?: { from?: string; to?: string } } | null)?.window
+    if (w?.from && w?.to) windows.set(vesselKey, { from: w.from, to: w.to })
+  }
   const trackPts: { t: string; c: LngLat }[] = []
   await Promise.all([...windows].map(async ([k, w]) => {
     const { data } = await db.from("vessel_positions").select("latitude,longitude,position_timestamp")

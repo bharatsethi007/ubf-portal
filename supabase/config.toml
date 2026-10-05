@@ -1,0 +1,243 @@
+# Edge function settings, mirrored from the live project (6 Oct 2026).
+# verify_jwt must match production. Functions with verify_jwt = false do their own auth.
+project_id = "cpnkudbdzgnzmodhsrbf"
+
+[functions.booking-commit]
+verify_jwt = false
+
+[functions.booking-customer-notify]
+verify_jwt = true
+
+[functions.booking-email-ingest]
+verify_jwt = false
+
+[functions.booking-extract]
+verify_jwt = false
+
+[functions.business-card-ocr]
+verify_jwt = true
+
+[functions.carrier-refresh]
+verify_jwt = true
+
+[functions.cartage-bascik-quote]
+verify_jwt = true
+
+[functions.cartage-gss-quote]
+verify_jwt = true
+
+[functions.conference-schedule-parse]
+verify_jwt = true
+
+[functions.consol-maersk-track]
+verify_jwt = false
+
+[functions.consol-track]
+verify_jwt = false
+
+[functions.courier-dhl-book]
+verify_jwt = true
+
+[functions.courier-dhl-quote]
+verify_jwt = true
+
+[functions.courier-dhl-track]
+verify_jwt = false
+
+[functions.courier-fedex-book]
+verify_jwt = true
+
+[functions.courier-fedex-quote]
+verify_jwt = true
+
+[functions.create-staff-user]
+verify_jwt = true
+
+[functions.csat-rate]
+verify_jwt = false
+
+[functions.csat-test]
+verify_jwt = false
+
+[functions.csat-whatsapp-send]
+verify_jwt = false
+
+[functions.db-archive]
+verify_jwt = false
+
+[functions.delete-staff-user]
+verify_jwt = true
+
+[functions.dispatch-route]
+verify_jwt = true
+import_map = "./functions/dispatch-route/deno.json"
+
+[functions.duty-check]
+verify_jwt = true
+
+[functions.entity-search]
+verify_jwt = false
+
+[functions.files-sign]
+verify_jwt = false
+
+[functions.fleet-reminders-digest]
+verify_jwt = true
+
+[functions.import-sea-daily-digest]
+verify_jwt = true
+
+[functions.import-sea-tracking-auto]
+verify_jwt = false
+
+[functions.invite-portal-user]
+verify_jwt = true
+
+[functions.marketing-brevo-sync]
+verify_jwt = true
+
+[functions.meeting-transcribe]
+verify_jwt = true
+
+[functions.navman-probe]
+verify_jwt = true
+import_map = "./functions/navman-probe/deno.json"
+
+[functions.navman-refresh]
+verify_jwt = true
+import_map = "./functions/navman-refresh/deno.json"
+
+[functions.portal-activate]
+verify_jwt = true
+
+[functions.portal-booking-notify]
+verify_jwt = true
+
+[functions.portal-doc-notify]
+verify_jwt = false
+
+[functions.portal-message-notify]
+verify_jwt = false
+
+[functions.portal-notify-send]
+verify_jwt = false
+
+[functions.portal-redeem-token]
+verify_jwt = false
+
+[functions.portal-regenerate-link]
+verify_jwt = true
+
+[functions.portal-revoke-user]
+verify_jwt = true
+
+[functions.portal-team]
+verify_jwt = true
+
+[functions.portal-wa-send]
+verify_jwt = false
+
+[functions.portconnect-refresh]
+verify_jwt = true
+
+[functions.portconnect-subscribe]
+verify_jwt = true
+
+[functions.portconnect-unsubscribe]
+verify_jwt = true
+
+[functions.portconnect-webhook]
+verify_jwt = false
+
+[functions.quote-commit]
+verify_jwt = false
+
+[functions.quote-extract]
+verify_jwt = false
+
+[functions.quote-from-email]
+verify_jwt = false
+
+[functions.rate-card-parse]
+verify_jwt = true
+
+[functions.rate-card-parse-air]
+verify_jwt = true
+
+[functions.rate-card-parse-cartage]
+verify_jwt = true
+
+[functions.rate-card-parse-lcl]
+verify_jwt = true
+
+[functions.rate-request-send]
+verify_jwt = false
+
+[functions.rate-search]
+verify_jwt = false
+
+[functions.reset-user-mfa]
+verify_jwt = true
+
+[functions.seavantage-refresh]
+verify_jwt = true
+
+[functions.set-staff-active]
+verify_jwt = true
+
+[functions.share-track]
+verify_jwt = false
+
+[functions.similar-quotes]
+verify_jwt = false
+
+[functions.sli-accept-edits]
+verify_jwt = true
+
+[functions.sli-create]
+verify_jwt = true
+
+[functions.sli-get]
+verify_jwt = false
+
+[functions.sli-submit]
+verify_jwt = false
+
+[functions.staff-forgot-password]
+verify_jwt = false
+
+[functions.staff-redeem-token]
+verify_jwt = false
+
+[functions.staff-send-reset]
+verify_jwt = true
+
+[functions.system-alerts]
+verify_jwt = false
+
+[functions.system-probe]
+verify_jwt = false
+
+[functions.tms-commit]
+verify_jwt = false
+
+[functions.tms-doc-email]
+verify_jwt = true
+
+[functions.tms-extract]
+verify_jwt = false
+
+[functions.whatsapp-admin]
+verify_jwt = false
+
+[functions.whatsapp-reply]
+verify_jwt = true
+
+[functions.whatsapp-send]
+verify_jwt = false
+
+[functions.whatsapp-verify]
+verify_jwt = true
+
+[functions.whatsapp-webhook]
+verify_jwt = false

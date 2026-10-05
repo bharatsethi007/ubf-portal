@@ -9,6 +9,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { renderNotify, type Fact, type NotifyEmail } from "./notifyEmail.ts";
 import { quoteDecisionAlert } from "./quoteDecision.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("portal-booking-notify");
 
 const CONSOLE_URL = "https://console.ubfreight.com";
 const PORTAL_URL = Deno.env.get("PORTAL_PUBLIC_URL") ?? "https://portal.ubfreight.com";
@@ -188,7 +190,7 @@ async function send(to: string, replyTo: string | undefined, senderName: string,
   if (!key) { console.error("BREVO_API_KEY not set"); return false; }
   const from = Deno.env.get("STAFF_INVITE_FROM_EMAIL") ?? "no-reply@ubfreight.com";
   const { html, text } = renderNotify(e);
-  const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+  const r = await apiFetch("https://api.brevo.com/v3/smtp/email", {
     method: "POST",
     headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
     body: JSON.stringify({

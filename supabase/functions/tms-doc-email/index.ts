@@ -12,6 +12,8 @@
 // }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("tms-doc-email");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -76,7 +78,7 @@ Deno.serve(async (req) => {
     let emailStatus: "sent" | "failed" = "failed";
     let detail: string | undefined;
     try {
-      const r = await fetch("https://api.brevo.com/v3/smtp/email", {
+      const r = await apiFetch("https://api.brevo.com/v3/smtp/email", {
         method: "POST",
         headers: { "api-key": key, "content-type": "application/json", accept: "application/json" },
         body: JSON.stringify(payload),
