@@ -7,12 +7,13 @@ type Props = {
   tasks: PortalTask[]
   dates: PortalContainerDates[]
   refs: Map<string, PortalBookingRef>
+  shipNos: Map<number, string>
   busy: string | null
   onRespond: (t: PortalTask, r: Record<string, unknown>) => Promise<boolean>
 }
 
 /** Home: what UB Freight needs from you, one tap each. Hidden when nothing is open. */
-export default function ActionCenter({ tasks, dates, refs, busy, onRespond }: Props) {
+export default function ActionCenter({ tasks, dates, refs, shipNos, busy, onRespond }: Props) {
   const [all, setAll] = useState(false)
   if (tasks.length === 0) return null
   const shown = all ? tasks : tasks.slice(0, 5)
@@ -30,7 +31,9 @@ export default function ActionCenter({ tasks, dates, refs, busy, onRespond }: Pr
             <TaskActionRow
               key={t.id}
               task={t}
-              bookingRef={[ref?.booking_ref, ref?.customer_ref ? `PO ${ref.customer_ref}` : null].filter(Boolean).join(' · ') || null}
+              ship={ship != null ? { no: shipNos.get(ship) ?? ref?.booking_ref ?? 'Shipment', to: detailPath({ job_unique: ship }) } : null}
+              po={ref?.customer_ref ?? null}
+              bookingRef={ship == null ? ref?.booking_ref ?? null : null}
               dates={dates}
               busy={busy === t.id}
               docsTo={ship != null ? detailPath({ job_unique: ship }, 'Documents') : null}

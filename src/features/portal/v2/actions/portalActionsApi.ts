@@ -1,4 +1,5 @@
 import { supabase } from '../../../../supabase'
+import { shipmentNo } from '../homeModel'
 
 export type TaskKind = 'empty_ready' | 'upload_docs' | 'confirm_delivery' | 'approve' | 'question' | 'todo'
 
@@ -134,4 +135,14 @@ export function dayTime(ts: string | null | undefined): string {
   const day = d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', day: 'numeric', month: 'short' })
   const time = d.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland', hour: 'numeric', minute: '2-digit', hour12: true }).replace(/\s/g, '').toLowerCase()
   return `${day}, ${time}`
+}
+
+/** Customer-facing shipment numbers (e.g. FIS-10156) for ERP jobs. */
+export async function fetchShipmentNos(ids: number[]): Promise<Map<number, string>> {
+  if (ids.length === 0) return new Map()
+  const { data, error } = await supabase.from('portal_shipments')
+    .select('job_unique, module, job_no, shipment_no, house_bill').in('job_unique', ids)
+  if (error) throw error
+  type R = { job_unique: number; module: string | null; job_no: string | null; shipment_no: string | null; house_bill: string | null }
+  return new Map(((data ?? []) as R[]).map((r) => [r.job_unique, shipmentNo(r)]))
 }

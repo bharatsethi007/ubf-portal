@@ -1,11 +1,15 @@
 import { useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Container, FileUp, HelpCircle, ThumbsUp, Truck, Upload } from 'lucide-react'
+import { Check, Container, FileUp, HelpCircle, Sparkles, ThumbsUp, Truck, Upload } from 'lucide-react'
 import DateField from '../../../../components/DateField'
 import { dayDiff, nzToday, shortDay, suggestDelivery, type PortalContainerDates, type PortalTask } from './portalActionsApi'
+import { actionInsight } from './actionInsight'
 
 type Props = {
   task: PortalTask
+  /** Customer-facing shipment number + link. Omit on the shipment page itself. */
+  ship?: { no: string; to: string } | null
+  po?: string | null
   bookingRef?: string | null
   dates: PortalContainerDates[]
   busy: boolean
@@ -26,7 +30,7 @@ function dueLine(due: string | null, today: string): { text: string; tone: strin
   return { text: `Due ${shortDay(due)}`, tone: 'text-slate-500' }
 }
 
-export default function TaskActionRow({ task, bookingRef, dates, busy, docsTo, onRespond }: Props) {
+export default function TaskActionRow({ task, ship, po, bookingRef, dates, busy, docsTo, onRespond }: Props) {
   const today = nzToday()
   const mine = dates.filter((d) => d.booking_id === task.booking_id && (!task.container_no || d.container_no === task.container_no))
   const ldd = (task.payload?.last_detention_day as string | undefined) ?? mine[0]?.last_detention_day ?? null
@@ -41,6 +45,8 @@ export default function TaskActionRow({ task, bookingRef, dates, busy, docsTo, o
   const portLfd = mine.map((d) => d.port_last_free_day).filter((x): x is string => !!x).sort()[0] ?? null
   const limit = task.kind === 'confirm_delivery' ? portLfd : ldd
   const lateDate = Boolean(date && limit && date > limit)
+  const boxes = [...new Set(mine.map((d) => d.container_no))]
+  const tip = actionInsight(task, mine, task.kind === 'confirm_delivery' ? date : null, today)
 
   const send = (r: Record<string, unknown>) => void onRespond(r).then((ok) => { if (ok) { setMode('idle'); setText('') } })
   const btn = 'pv3-btn'
@@ -52,17 +58,18 @@ export default function TaskActionRow({ task, bookingRef, dates, busy, docsTo, o
       <div className="flex min-w-0 flex-1 items-start gap-3">
         <span className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-slate-100 text-slate-600"><Icon size={16} /></span>
         <div className="min-w-0">
-          <div className="truncate text-sm font-medium text-slate-900">{task.title}</div>
-          <div className="text-xs text-slate-500">
-            {[bookingRef, task.description].filter(Boolean).join(' · ')}
-            {due ? <span className={`ml-1 ${due.tone}`}>{bookingRef || task.description ? '· ' : ''}{due.text}</span> : null}
+          {ship
+            ? <Link to={ship.to} className="block truncate text-sm font-medium text-slate-900 hover:underline">{task.title}</Link>
+            : <div className="truncate text-sm font-medium text-slate-900">{task.title}</div>}
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-slate-500">
+            {ship ? <Link to={ship.to} className="pv3-mono font-medium text-slate-800 hover:underline">{ship.no}</Link>
+              : bookingRef ? <span className="pv3-mono">{bookingRef}</span> : null}
+            {po ? <span>PO <span className="pv3-mono text-slate-700">{po}</span></span> : null}
+            {boxes.length > 0 ? <span className="pv3-mono text-slate-700">{boxes.join(', ')}</span> : null}
+            {task.description ? <span>{task.description}</span> : null}
+            {due ? <span className={due.tone}>{due.text}</span> : null}
           </div>
-          {task.kind === 'empty_ready' && ldd ? (
-            <div className="text-xs text-slate-500">
-              Free time ends <b className="font-medium text-slate-700">{shortDay(ldd)}</b>
-              {plannedOn ? <> · you said ready <b className="font-medium text-slate-700">{shortDay(plannedOn)}</b></> : null}
-            </div>
-          ) : null}
+          {plannedOn ? <div className="text-xs text-slate-500">You said ready <b className="font-medium text-slate-700">{shortDay(plannedOn)}</b></div> : null}
           {docs.length > 0 ? <div className="text-xs text-slate-500">Needed: {docs.join(', ')}</div> : null}
         </div>
       </div>
@@ -120,6 +127,13 @@ export default function TaskActionRow({ task, bookingRef, dates, busy, docsTo, o
           <button type="button" className={primary} disabled={busy} onClick={() => send({})}><Check size={14} /> Mark done</button>
         )}
       </div>
+
+      {tip ? (
+        <div className="flex w-full items-start gap-2 rounded-lg border border-indigo-100 bg-indigo-50/60 px-3 py-2 text-xs leading-5 text-indigo-900 sm:order-last">
+          <Sparkles size={14} className="mt-0.5 shrink-0 text-indigo-500" aria-hidden />
+          <span>{tip}</span>
+        </div>
+      ) : null}
 
       {lateDate && (task.kind === 'empty_ready' || task.kind === 'confirm_delivery') ? (
         <p className="w-full text-xs text-amber-700 sm:order-last">

@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import {
-  completeTask, fetchBookingRefs, fetchContainerDates, fetchOpenTasks, nzToday,
+  completeTask, fetchBookingRefs, fetchContainerDates, fetchOpenTasks, fetchShipmentNos, nzToday,
   type PortalBookingRef, type PortalContainerDates, type PortalTask,
 } from './portalActionsApi'
 
@@ -10,6 +10,7 @@ export function usePortalActions(bookingId?: string | null) {
   const [tasks, setTasks] = useState<PortalTask[]>([])
   const [dates, setDates] = useState<PortalContainerDates[]>([])
   const [refs, setRefs] = useState<Map<string, PortalBookingRef>>(new Map())
+  const [shipNos, setShipNos] = useState<Map<number, string>>(new Map())
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState<string | null>(null)
   const scoped = bookingId ?? undefined
@@ -22,7 +23,10 @@ export function usePortalActions(bookingId?: string | null) {
       const ids = [...new Set(t.map((x) => x.booking_id))]
       setTasks(t)
       setDates(d)
-      setRefs(await fetchBookingRefs(ids))
+      const r = await fetchBookingRefs(ids)
+      setRefs(r)
+      const jobs = [...new Set([...r.values()].map((b) => b.shipment_id).filter((x): x is number => x != null))]
+      setShipNos(await fetchShipmentNos(jobs))
     } catch {
       // Portal hides the panel when this fails; Home already shows a load error banner.
     } finally {
@@ -65,5 +69,5 @@ export function usePortalActions(bookingId?: string | null) {
     [tasks],
   )
 
-  return { tasks: sorted, done, dates, refs, loading, busy, respond, reload: load }
+  return { tasks: sorted, done, dates, refs, shipNos, loading, busy, respond, reload: load }
 }

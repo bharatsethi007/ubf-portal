@@ -98,7 +98,7 @@ export default function PortalHomePage() {
 
       {error && <div className="pv3-error">{error}</div>}
 
-      <ActionCenter tasks={acts.tasks} dates={acts.dates} refs={acts.refs} busy={acts.busy} onRespond={acts.respond} />
+      <ActionCenter tasks={acts.tasks} dates={acts.dates} refs={acts.refs} shipNos={acts.shipNos} busy={acts.busy} onRespond={acts.respond} />
 
       <div className="pv3-kpis">
         <Kpi label="Active shipments" value={String(Math.round(cActive))} sub={`${Math.round(cTransit)} in transit`} delay={0.04} to="/portal/shipments" />
