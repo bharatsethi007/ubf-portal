@@ -23,6 +23,9 @@ export type ImportSeaRow = {
   atf_source?: string | null
   m_atf: string | null
   ubf_devanner: string | null
+  /** Latest PortConnect gate-out across the booking's containers. */
+  gate_out_at?: string | null
+  gate_out_count?: number
   load_type: 'FCL' | 'LCL' | null
   shipping_line: string | null
   shipping_line_source?: string | null

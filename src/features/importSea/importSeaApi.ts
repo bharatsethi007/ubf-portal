@@ -19,13 +19,32 @@ async function fetchAutoStops(bookingId?: string): Promise<Map<string, AutoStop>
   return out
 }
 
+type GateOut = Pick<ImportSeaRow, 'gate_out_at' | 'gate_out_count'>
+
+/** Latest gate-out per booking from PortConnect tracking. Small: only gated containers come back. */
+async function fetchGateOuts(bookingId?: string): Promise<Map<string, GateOut>> {
+  let q = supabase.from('container_tracking').select('booking_id, gate_out_at').not('gate_out_at', 'is', null)
+  if (bookingId) q = q.eq('booking_id', bookingId)
+  const { data } = await q
+  const out = new Map<string, GateOut>()
+  for (const r of (data ?? []) as { booking_id: string; gate_out_at: string }[]) {
+    const cur = out.get(r.booking_id)
+    out.set(r.booking_id, {
+      gate_out_at: !cur?.gate_out_at || r.gate_out_at > cur.gate_out_at ? r.gate_out_at : cur.gate_out_at,
+      gate_out_count: (cur?.gate_out_count ?? 0) + 1,
+    })
+  }
+  return out
+}
+
 export async function fetchImportSeaBoard(includeArchived = false): Promise<ImportSeaRow[]> {
-  const [{ data, error }, stops] = await Promise.all([
+  const [{ data, error }, stops, gates] = await Promise.all([
     supabase.rpc('get_import_sea_board', { p_include_archived: includeArchived }),
     fetchAutoStops().catch(() => new Map<string, AutoStop>()),
+    fetchGateOuts().catch(() => new Map<string, GateOut>()),
   ])
   if (error) throw error
-  return ((data ?? []) as ImportSeaRow[]).map((r) => ({ ...normalizeImportSeaRow(r), ...stops.get(r.id) }))
+  return ((data ?? []) as ImportSeaRow[]).map((r) => ({ ...normalizeImportSeaRow(r), ...stops.get(r.id), ...gates.get(r.id) }))
 }
 
 /** Staff restart of an auto-stopped refresh; the automation picks it up on its next run. */
@@ -59,8 +78,11 @@ export async function fetchImportSeaBoardRow(bookingId: string): Promise<ImportS
   if (error) throw error
   const row = (data as ImportSeaRow[] | null)?.[0]
   if (!row) return null
-  const stops = await fetchAutoStops(bookingId).catch(() => new Map<string, AutoStop>())
-  return { ...normalizeImportSeaRow(row), ...stops.get(row.id) }
+  const [stops, gates] = await Promise.all([
+    fetchAutoStops(bookingId).catch(() => new Map<string, AutoStop>()),
+    fetchGateOuts(bookingId).catch(() => new Map<string, GateOut>()),
+  ])
+  return { ...normalizeImportSeaRow(row), ...stops.get(row.id), ...gates.get(row.id) }
 }
 
 export async function updateImportSeaBooking(

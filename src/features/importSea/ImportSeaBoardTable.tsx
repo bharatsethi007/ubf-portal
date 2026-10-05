@@ -45,6 +45,23 @@ type Props = {
   peekId: string | null
 }
 
+/** Date with small NZ time below; shows 1/2 when only some containers are out. */
+function GateOutCell({ at, count, total }: { at: string | null; count: number; total: number }) {
+  if (!at) return <span className="muted">–</span>
+  const d = new Date(at)
+  const day = d.toLocaleDateString('en-NZ', { timeZone: 'Pacific/Auckland', day: 'numeric', month: 'short' })
+  const time = d.toLocaleTimeString('en-NZ', { timeZone: 'Pacific/Auckland', hour: '2-digit', minute: '2-digit', hour12: false })
+  return (
+    <span style={{ display: 'inline-flex', flexDirection: 'column', lineHeight: 1.15 }}>
+      <span style={{ whiteSpace: 'nowrap' }}>
+        {day}
+        {total > 1 && count < total ? <span title={`${count} of ${total} containers out`} style={{ marginLeft: 5, fontSize: 10, color: '#B54708' }}>{count}/{total}</span> : null}
+      </span>
+      <span style={{ fontSize: 10.5, color: '#98A2B3' }}>{time}</span>
+    </span>
+  )
+}
+
 function flashClass(active: boolean): string {
   return active ? ' import-sea-board-cell--flash' : ''
 }
@@ -92,7 +109,7 @@ export default function ImportSeaBoardTable({
                 <SortableTh label="ETA" columnKey="eta" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <th>Container</th>
                 <SortableTh label="ATF" columnKey="atf" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
-                <th>Devanner</th>
+                <th>Gate out</th>
                 <SortableTh label="LFD" columnKey="last_free_day" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortableTh label="Delivery" columnKey="delivery_date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
                 <SortableTh label="Return" columnKey="container_return_date" sortKey={sortKey} sortDir={sortDir} onSort={onSort} />
@@ -189,17 +206,7 @@ export default function ImportSeaBoardTable({
                         })()}
                       </td>
                       <td>
-                        {row.m_atf?.trim() === '31853'
-                          ? (row.ubf_devanner?.trim()
-                              ? <span
-                                  style={{
-                                    display: 'inline-flex', padding: '2px 8px', borderRadius: 999,
-                                    fontSize: 11, fontWeight: 600,
-                                    background: '#F2F4F7', color: '#344054',
-                                  }}
-                                >{row.ubf_devanner}</span>
-                              : <span className="muted">–</span>)
-                          : <span className="muted">–</span>}
+                        <GateOutCell at={row.gate_out_at ?? null} count={row.gate_out_count ?? 0} total={row.containers?.length ?? 0} />
                       </td>
                       <td className={flashClass(isCellFlashing(row.id, 'last_free_day'))}>
                         <BoardSourcedDateCell
