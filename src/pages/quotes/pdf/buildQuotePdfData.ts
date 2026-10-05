@@ -142,10 +142,11 @@ export function buildQuotePdfData(
   const num = (v: unknown) => { const n = Number(v); return Number.isFinite(n) ? n : 0 }
   const fmt = (n: number, dp: number) => n.toLocaleString('en-NZ', { maximumFractionDigits: dp })
   const chgUnit = mode === 'sea' ? 'W/M' : 'KG'
+  const pcs = (c: QuoteCargoLine) => num(c.quantity) || num(c.packages)
   if (nonEmptyCargo.length) {
     commodities = nonEmptyCargo.map((c) => ({
       desc: c.cargo_description || '',
-      pkg: [c.packages ? `${c.packages} X` : '', c.package_type].filter(Boolean).join(' ') || '\u2014',
+      pkg: [pcs(c) ? `${pcs(c)} X` : '', c.package_type].filter(Boolean).join(' ') || '\u2014',
       gross: c.gross_wt ? `${c.gross_wt} KG` : '',
       vol: c.total_cbm || c.volume_cbm || '',
       chg: c.chargeable_wt ? `${c.chargeable_wt} ${chgUnit}` : '',
@@ -153,8 +154,10 @@ export function buildQuotePdfData(
     const tGross = nonEmptyCargo.reduce((s, c) => s + num(c.gross_wt), 0)
     const tVol = nonEmptyCargo.reduce((s, c) => s + num(c.total_cbm || c.volume_cbm), 0)
     const tChg = nonEmptyCargo.reduce((s, c) => s + num(c.chargeable_wt), 0)
+    const tPcs = nonEmptyCargo.reduce((s, c) => s + pcs(c), 0)
+    const lines = `${nonEmptyCargo.length} LINE(S)`
     commTotal = {
-      units: `${nonEmptyCargo.length} LINE(S)`,
+      units: tPcs ? `${fmt(tPcs, 0)} PCS (${lines})` : lines,
       gross: tGross ? `${fmt(tGross, 2)} KG` : '',
       vol: tVol ? fmt(tVol, 3) : '',
       chg: tChg ? `${fmt(tChg, mode === 'sea' ? 3 : 2)} ${chgUnit}` : '',
