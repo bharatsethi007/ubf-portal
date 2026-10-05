@@ -3,6 +3,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { putObject } from "../_shared/s3.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("courier-dhl-book");
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" }
 const json = (b, st = 200) => new Response(JSON.stringify(b), { status: st, headers: { ...cors, "Content-Type": "application/json" } })
@@ -87,7 +89,7 @@ Deno.serve(async (req) => {
     }
 
     const auth = "Basic " + btoa(`${user}:${secret}`)
-    const res = await fetch(`${base}/shipments`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: auth, "Message-Reference": crypto.randomUUID() }, body: JSON.stringify(payload) })
+    const res = await apiFetch(`${base}/shipments`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: auth, "Message-Reference": crypto.randomUUID() }, body: JSON.stringify(payload) })
     const text = await res.text()
     if (!res.ok) { console.error("dhl ship FAIL", res.status, text.slice(0, 800)); let dj; try { dj = JSON.parse(text) } catch { dj = null }; const detail = (Array.isArray(dj?.additionalDetails) ? dj.additionalDetails.join("; ") : null) || dj?.detail || dj?.message || text.slice(0, 300); return json({ ok: false, reason: `dhl_${res.status}`, detail }) }
     const data = JSON.parse(text)

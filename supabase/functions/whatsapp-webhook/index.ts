@@ -4,6 +4,8 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient, SupabaseClient } from "jsr:@supabase/supabase-js@2";
 import { routeInbound } from "./router.ts";
 import { putObject } from "../_shared/s3.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("whatsapp-webhook");
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 const MEDIA_BUCKET = "whatsapp-media";
@@ -63,11 +65,11 @@ async function fetchMediaToStorage(
   sb: SupabaseClient, token: string, waId: string, msgId: string, media: WaMedia,
 ): Promise<string | null> {
   try {
-    const metaRes = await fetch(`${GRAPH}/${media.id}`, { headers: { Authorization: `Bearer ${token}` } });
+    const metaRes = await apiFetch(`${GRAPH}/${media.id}`, { headers: { Authorization: `Bearer ${token}` } });
     if (!metaRes.ok) return null;
     const meta = await metaRes.json() as { url?: string; mime_type?: string };
     if (!meta.url) return null;
-    const bin = await fetch(meta.url, { headers: { Authorization: `Bearer ${token}` } });
+    const bin = await apiFetch(meta.url, { headers: { Authorization: `Bearer ${token}` } });
     if (!bin.ok) return null;
     const bytes = new Uint8Array(await bin.arrayBuffer());
     const ext = media.filename?.split(".").pop() || meta.mime_type?.split("/").pop() || "bin";

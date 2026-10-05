@@ -26,5 +26,7 @@ supabase/config.toml                    verify_jwt per function (must match prod
 
 ## Known differences from live (git is ahead)
 
+- `consol-track`: live bundle uses older shared SeaVantage files; redeploying from git upgrades it to the shared versions. Not yet redeployed.
+
 - `portconnect-webhook/*` and `_shared/portconnectBookingAutomation.ts`: git has PortConnect task automation (Jul 24) that was never deployed. Webhook subscriptions are off, so nothing runs it.
 - `_shared/portconnectRefreshRun.ts`: live version adopted. The Jul 24 automation variant is in git history (commit `248af05`).

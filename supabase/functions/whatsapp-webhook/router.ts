@@ -4,6 +4,7 @@
 // - tracking fast-path (deterministic ref/container detect) with strict account gate
 // - unbound sender: generic ack once, flagged + team bell alert (once per contact per NZ day)
 import type { SupabaseClient } from "jsr:@supabase/supabase-js@2";
+import { apiFetch } from "../_shared/apiFetch.ts";
 
 const GRAPH = "https://graph.facebook.com/v25.0";
 
@@ -88,7 +89,7 @@ async function findBookingByContainer(sb: SupabaseClient, cnt: string): Promise<
 async function sendText(
   sb: SupabaseClient, token: string, phoneId: string, to: string, textBody: string, bookingId?: string,
 ) {
-  const res = await fetch(`${GRAPH}/${phoneId}/messages`, {
+  const res = await apiFetch(`${GRAPH}/${phoneId}/messages`, {
     method: "POST",
     headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
     body: JSON.stringify({ messaging_product: "whatsapp", to, type: "text", text: { body: textBody, preview_url: false } }),

@@ -3,6 +3,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from "jsr:@supabase/supabase-js@2"
 import { putObject } from "../_shared/s3.ts"
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("courier-fedex-book");
 
 const cors = { "Access-Control-Allow-Origin": "*", "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type", "Access-Control-Allow-Methods": "POST, OPTIONS" }
 const json = (b, st = 200) => new Response(JSON.stringify(b), { status: st, headers: { ...cors, "Content-Type": "application/json" } })
@@ -55,7 +57,7 @@ Deno.serve(async (req) => {
     if (!s(shipper?.countryCode) || !s(receiver?.countryCode)) return json({ ok: false, reason: "shipper/receiver countryCode required" })
 
     // OAuth token
-    const tokRes = await fetch(`${base}/oauth/token`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec }) })
+    const tokRes = await apiFetch(`${base}/oauth/token`, { method: "POST", headers: { "Content-Type": "application/x-www-form-urlencoded" }, body: new URLSearchParams({ grant_type: "client_credentials", client_id: cid, client_secret: csec }) })
     const tokText = await tokRes.text()
     if (!tokRes.ok) { console.error("fedex token FAIL", tokRes.status, tokText.slice(0, 300)); return json({ ok: false, reason: `fedex_auth_${tokRes.status}`, detail: tokText.slice(0, 200) }) }
     const token = JSON.parse(tokText)?.access_token
@@ -111,7 +113,7 @@ Deno.serve(async (req) => {
       }
     }
 
-    const res = await fetch(`${base}/ship/v1/shipments`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "X-locale": "en_NZ" }, body: JSON.stringify(payload) })
+    const res = await apiFetch(`${base}/ship/v1/shipments`, { method: "POST", headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}`, "X-locale": "en_NZ" }, body: JSON.stringify(payload) })
     const text = await res.text()
     if (!res.ok) { console.error("fedex ship FAIL", res.status, text.slice(0, 800)); let ej; try { ej = JSON.parse(text) } catch { ej = null }; const detail = Array.isArray(ej?.errors) ? ej.errors.map((x) => `${x?.code}: ${x?.message}`).join("; ") : (ej?.message || text.slice(0, 300)); return json({ ok: false, reason: `fedex_${res.status}`, detail }) }
     const data = JSON.parse(text)

@@ -4,6 +4,8 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { presign, deleteObject } from "../_shared/s3.ts";
+import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+setApiFn("meeting-transcribe");
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -69,7 +71,7 @@ Deno.serve(async (req) => {
     }
 
     // 2. Deepgram transcribe + diarize
-    const dgRes = await fetch(
+    const dgRes = await apiFetch(
       "https://api.deepgram.com/v1/listen?model=nova-3&diarize=true&punctuate=true&smart_format=true&utterances=true&mip_opt_out=true",
       {
         method: "POST",
@@ -88,7 +90,7 @@ Deno.serve(async (req) => {
     if (!transcript.trim()) throw new Error("empty transcript");
 
     // 3. Claude summary
-    const claudeRes = await fetch("https://api.anthropic.com/v1/messages", {
+    const claudeRes = await apiFetch("https://api.anthropic.com/v1/messages", {
       method: "POST",
       headers: {
         "x-api-key": ANTHROPIC_API_KEY,
