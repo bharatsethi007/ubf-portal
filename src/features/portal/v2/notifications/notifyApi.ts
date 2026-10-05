@@ -1,6 +1,6 @@
 import { supabase } from '../../../../supabase'
 
-export type Kind = 'shipment_created' | 'departed' | 'eta_changed' | 'arrived' | 'released' | 'invoice_issued' | 'message' | 'quote_ready' | 'document_shared'
+export type Kind = 'shipment_created' | 'departed' | 'eta_changed' | 'arrived' | 'released' | 'invoice_issued' | 'message' | 'quote_ready' | 'document_shared' | 'gated_out' | 'task_assigned'
 
 export type Note = {
   id: number; kind: Kind; title: string; body: string | null; created_at: string
@@ -17,6 +17,8 @@ export const KINDS: { kind: Kind; label: string; help: string; tone: 'blue' | 'a
   { kind: 'message', label: 'Messages', help: 'Our team replies to one of your messages.', tone: 'navy' },
   { kind: 'quote_ready', label: 'Quote ready', help: 'We price a quote for you to approve.', tone: 'amber' },
   { kind: 'document_shared', label: 'New documents', help: 'We share a document on one of your bookings.', tone: 'navy' },
+  { kind: 'gated_out', label: 'Collected from port', help: 'A container leaves the port, with the date free time ends.', tone: 'green' },
+  { kind: 'task_assigned', label: 'Action needed', help: 'We need something from you, like a delivery date or documents.', tone: 'amber' },
 ]
 export const kindMeta = (k: string) => KINDS.find((x) => x.kind === k) ?? { kind: k as Kind, label: 'Update', help: '', tone: 'blue' as const }
 
@@ -56,6 +58,7 @@ export function noteLink(n: Note): string {
   if (n.kind === 'message' && typeof n.facts?.thread_id === 'string') return `/portal/messages?t=${encodeURIComponent(n.facts.thread_id)}`
   if (n.kind === 'quote_ready' && typeof n.facts?.response_id === 'string') return `/portal/rates?tab=quotes&q=${encodeURIComponent(n.facts.response_id)}`
   if (n.kind === 'invoice_issued' && n.invoice_no) return `/portal/billing?tab=all&inv=${encodeURIComponent(n.invoice_no)}`
+  if (n.kind === 'task_assigned' || n.kind === 'gated_out') return n.job_unique != null ? `/portal/shipments/${encodeURIComponent(`#${n.job_unique}`)}` : '/portal#actions'
   if (n.kind === 'document_shared' && n.job_unique != null) return `/portal/shipments/${encodeURIComponent(`#${n.job_unique}`)}?tab=Documents`
   if (n.job_unique != null) return `/portal/shipments/${encodeURIComponent(`#${n.job_unique}`)}`
   return '/portal'

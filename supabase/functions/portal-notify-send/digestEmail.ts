@@ -20,6 +20,9 @@ export const KIND: Record<string, { label: string; color: string }> = {
   invoice_issued: { label: "Invoice", color: "#0A2472" },
   message: { label: "Message", color: "#7C3AED" },
   quote_ready: { label: "Quote ready", color: "#F7941D" },
+  document_shared: { label: "New documents", color: "#0A2472" },
+  gated_out: { label: "Collected from port", color: "#15803D" },
+  task_assigned: { label: "Action needed", color: "#D97706" },
 };
 
 export const esc = (s: string) => s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
@@ -29,6 +32,7 @@ export function itemUrl(portal: string, i: Item): string {
   if (i.kind === "quote_ready" && typeof i.facts?.response_id === "string") return `${portal}/portal/rates?tab=quotes&q=${encodeURIComponent(i.facts.response_id)}`;
   if (i.kind === "invoice_issued" && i.invoice_no) return `${portal}/portal/billing?tab=all&inv=${encodeURIComponent(i.invoice_no)}`;
   if (i.job_unique != null) return `${portal}/portal/shipments/${encodeURIComponent(`#${i.job_unique}`)}`;
+  if (i.kind === "task_assigned" || i.kind === "gated_out") return `${portal}/portal#actions`;
   return `${portal}/portal`;
 }
 
@@ -43,7 +47,7 @@ function card(portal: string, i: Item): string {
 <p style="margin:0 0 4px;font-family:${FONT};font-size:16px;font-weight:600;line-height:22px;color:${INK};">${esc(i.title)}</p>
 ${i.body ? `<p style="margin:0 0 4px;font-family:${FONT};font-size:14px;line-height:21px;color:${BODY};">${esc(i.body)}</p>` : ""}
 ${sub ? `<p style="margin:0 0 6px;font-family:${FONT};font-size:12px;line-height:18px;color:${MUTED};">${esc(sub)}</p>` : ""}
-<a href="${esc(itemUrl(portal, i))}" target="_blank" style="font-family:${FONT};font-size:13px;font-weight:600;color:${NAVY};text-decoration:none;">${i.kind === "invoice_issued" ? "View invoice" : i.kind === "message" ? "Read and reply" : i.kind === "quote_ready" ? "Review and approve" : "Track shipment"} &rarr;</a>
+<a href="${esc(itemUrl(portal, i))}" target="_blank" style="font-family:${FONT};font-size:13px;font-weight:600;color:${NAVY};text-decoration:none;">${i.kind === "invoice_issued" ? "View invoice" : i.kind === "message" ? "Read and reply" : i.kind === "quote_ready" ? "Review and approve" : i.kind === "task_assigned" || i.kind === "gated_out" ? "Respond in portal" : "Track shipment"} &rarr;</a>
 </td></tr></table></td></tr>`;
 }
 

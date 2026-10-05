@@ -1,10 +1,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Link, useNavigate, useOutletContext } from 'react-router-dom'
+import { Link, useLocation, useNavigate, useOutletContext } from 'react-router-dom'
 import { ArrowRight, Plane, Plus, Search, Ship, Tag } from 'lucide-react'
 import { usePorts } from '../../../hooks/usePorts'
 import GlobalMap from './GlobalMap'
 import { CalendarCard, ExceptionsCard } from './HomeCards'
 import ShipmentPeek from './ShipmentPeek'
+import ActionCenter from './actions/ActionCenter'
+import { actionExceptions } from './actions/actionExceptions'
+import { usePortalActions } from './actions/usePortalActions'
 import { useCountUp } from './useCountUp'
 import { usePortalHome, type HomeShipment } from './usePortalHome'
 import {
@@ -37,12 +40,20 @@ export default function PortalHomePage() {
   const { account, openSearch } = useOutletContext<PortalOutletContext>()
   const { ports } = usePorts()
   const { pool, active, invoices, analytics, positions, loading, error } = usePortalHome()
+  const acts = usePortalActions()
+  const { hash } = useLocation()
   const today = todayIso()
 
   const m = useMemo(() => money(invoices), [invoices])
   const inTransit = useMemo(() => active.filter((s) => s.stage === 2).length, [active])
   const arriving = useMemo(() => pool.filter((s) => s.stage < 3 && s.eta && s.eta >= today && s.eta <= addDays(today, 7)).length, [pool, today])
-  const exc = useMemo(() => exceptions(pool, active, m, ports), [pool, active, m, ports])
+  const exc = useMemo(
+    () => [...exceptions(pool, active, m, ports), ...actionExceptions(acts.dates, acts.tasks, acts.refs)].sort((a, b) => b.sort - a.sort),
+    [pool, active, m, ports, acts.dates, acts.tasks, acts.refs],
+  )
+  useEffect(() => {
+    if (hash === '#actions' && !acts.loading) document.getElementById('actions')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [hash, acts.loading])
   const events = useMemo(() => calendarEvents(pool, ports), [pool, ports])
   const rows = useMemo(() => [...active].sort((a, b) => (a.eta ?? '9999').localeCompare(b.eta ?? '9999')), [active])
 
@@ -86,6 +97,8 @@ export default function PortalHomePage() {
       </div>
 
       {error && <div className="pv3-error">{error}</div>}
+
+      <ActionCenter tasks={acts.tasks} dates={acts.dates} refs={acts.refs} busy={acts.busy} onRespond={acts.respond} />
 
       <div className="pv3-kpis">
         <Kpi label="Active shipments" value={String(Math.round(cActive))} sub={`${Math.round(cTransit)} in transit`} delay={0.04} to="/portal/shipments" />

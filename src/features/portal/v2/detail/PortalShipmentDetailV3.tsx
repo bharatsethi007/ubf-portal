@@ -13,11 +13,12 @@ import InvoicesTab from '../../shipment/tabs/InvoicesTab'
 import TaskTab from '../../shipment/tabs/TaskTab'
 import AdditionalServicesTab from '../../shipment/tabs/AdditionalServicesTab'
 import ShipmentCsatWidget from '../../../../pages/portal/ShipmentCsatWidget'
-import { fmtDay, fmtNum, placeName, shipmentNo, shortCode, titleCase } from '../homeModel'
+import { detailPath, fmtDay, fmtNum, placeName, shipmentNo, shortCode, titleCase } from '../homeModel'
 import InvoiceDrawer from '../billing/InvoiceDrawer'
 import { toBillInvoice, type BillInvoice } from '../billing/billingApi'
 import { usePortalTrack } from './usePortalTrack'
 import { useMessageDock } from '../messages/MessagesDock'
+import ContainerDatesCard from '../actions/ContainerDatesCard'
 
 const TABS = ['Overview', 'Cargo & containers', 'Documents', 'Invoices', 'Tasks', 'Additional services'] as const
 type Tab = (typeof TABS)[number]
@@ -196,6 +197,7 @@ export default function PortalShipmentDetailV3() {
       </div>
 
       <div className="pv3-tabpanel pv3-rise" key={tab}>
+        {tab === 'Overview' && data.booking?.id && <ContainerDatesCard bookingId={data.booking.id} docsTo={detailPath(s, 'Documents')} />}
         {tab === 'Overview' && (
           <div className="pv3-overview">
             <section className="pv3-card pv3-overview__timeline">
@@ -231,6 +233,7 @@ export default function PortalShipmentDetailV3() {
         {tab === 'Documents' && <div className="pv3-card pv3-tabcard"><DocumentsTab bookingId={data.booking?.id ?? null} /></div>}
         {tab === 'Invoices' && <div className="pv3-card pv3-tabcard"><InvoicesTab invoices={data.invoices}
           onOpen={(i) => setOpenInv(toBillInvoice(i, { shipment_no: shipmentNo(s), customer_ref: s.customer_ref, origin: s.origin, destination: s.destination }))} /></div>}
+        {tab === 'Tasks' && data.booking?.id && <ContainerDatesCard bookingId={data.booking.id} docsTo={detailPath(s, 'Documents')} />}
         {tab === 'Tasks' && <div className="pv3-card pv3-tabcard"><TaskTab tasks={data.tasks} /></div>}
         {tab === 'Additional services' && <div className="pv3-card pv3-tabcard"><AdditionalServicesTab /></div>}
       </div>
