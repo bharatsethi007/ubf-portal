@@ -50,7 +50,7 @@ export default function SyncTab() {
   const [openRun, setOpenRun] = useState<number | null>(null)
 
   if (error) return <Empty title="Could not load sync status">{error}</Empty>
-  if (loading && !data) return <div style={{ display: 'grid', gap: 12 }}><Skeleton h={90} /><Skeleton h={260} /></div>
+  if (!data) return <div style={{ display: 'grid', gap: 12 }}><Skeleton h={90} /><Skeleton h={260} /></div>
   const d = data!
   const last = d.modules.reduce<string | null>((m, x) => (!m || (x.last_run && x.last_run > m) ? x.last_run : m), null)
   const tone = freshTone(last)
@@ -105,7 +105,7 @@ export default function SyncTab() {
         <div style={{ gridColumn: 'span 4', display: 'flex', flexDirection: 'column', gap: 16 }}>
           <Widget title="Other feeds">
             <div className="tw-wb">
-              <div className="tw-rowx"><span><Dot tone={freshTone(d.fx?.last_applied_at)} />Exchange rates</span><span className="m">{ago(d.fx?.last_applied_at)}</span></div>
+              <div className="tw-rowx"><span><Dot tone={hoursSince(d.fx?.last_applied_at) > 26 ? 'warn' : d.fx?.last_applied_at ? 'ok' : 'idle'} />Exchange rates (daily)</span><span className="m">{ago(d.fx?.last_applied_at)}</span></div>
               <div className="tw-rowx">
                 <span><Dot tone={d.portconnect_24h.total ? (d.portconnect_24h.ok === d.portconnect_24h.total ? 'ok' : 'warn') : 'idle'} />PortConnect refresh 24h</span>
                 <span className="tw-num">{d.portconnect_24h.ok}/{d.portconnect_24h.total}</span>

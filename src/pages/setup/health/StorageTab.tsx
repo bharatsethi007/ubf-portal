@@ -40,7 +40,7 @@ export default function StorageTab() {
   }
 
   if (error) return <Empty title="Could not load storage">{error}</Empty>
-  if (loading && !data) return <div style={{ display: 'grid', gap: 12 }}><Skeleton h={110} /><Skeleton h={260} /></div>
+  if (!data) return <div style={{ display: 'grid', gap: 12 }}><Skeleton h={110} /><Skeleton h={260} /></div>
   const s = data!
   const total = s.areas.reduce((a, x) => a + x.bytes, 0)
   const objects = s.areas.reduce((a, x) => a + x.objects, 0)

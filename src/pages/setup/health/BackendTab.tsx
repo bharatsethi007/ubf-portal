@@ -10,7 +10,7 @@ export default function BackendTab() {
   const [tab, setTab] = useState(0)
 
   if (error) return <Empty title="Could not load backend">{error}</Empty>
-  if (loading && !data) return <div style={{ display: 'grid', gap: 12 }}><Skeleton h={130} /><Skeleton h={300} /></div>
+  if (!data) return <div style={{ display: 'grid', gap: 12 }}><Skeleton h={130} /><Skeleton h={300} /></div>
   const b = data!
   const dbPct = (b.db_bytes / b.db_limit_bytes) * 100
   const connPct = (b.conn_total / b.conn_max) * 100
