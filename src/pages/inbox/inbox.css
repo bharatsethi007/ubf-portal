@@ -125,3 +125,35 @@ a.ibx-card:hover { border-color: #C7D2FE; }
 
 .ibx-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 300px; background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,23,42,.14); padding: 12px; }
 .ibx-pop .ibx-seg button { height: 30px; }
+
+/* Outlook 365 style email cards */
+.ibx-mail { align-self: stretch; max-width: 980px; width: 100%; background: #fff; border: 1px solid #E1DFDD; border-radius: 8px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04); font-family: 'Segoe UI', 'Aptos', system-ui, sans-serif; color: #242424; }
+.ibx-mail--closed { display: flex; align-items: center; gap: 10px; padding: 9px 14px; font: inherit; font-family: 'Segoe UI', 'Aptos', system-ui, sans-serif;
+  font-size: 13.5px; text-align: left; cursor: pointer; min-width: 0; }
+.ibx-mail--closed:hover { background: #FAF9F8; }
+.ibx-mail__head { display: flex; align-items: flex-start; gap: 12px; padding: 14px 16px 10px; }
+.ibx-mail__from { font-size: 14.5px; font-weight: 500; color: #242424; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.ibx-mail__addr { font-weight: 400; color: #605E5C; font-size: 13px; }
+.ibx-mail__rcpt { font-size: 12.5px; color: #605E5C; margin-top: 2px; }
+.ibx-mail__date { font-size: 12.5px; color: #605E5C; white-space: nowrap; flex: none; }
+.ibx-mail__icon { width: 32px; height: 32px; display: inline-flex; align-items: center; justify-content: center; border: 0; border-radius: 4px;
+  background: transparent; color: #424242; cursor: pointer; }
+.ibx-mail__icon:hover { background: #F3F2F1; color: #0F6CBD; }
+.ibx-mail__atts { display: flex; flex-wrap: wrap; gap: 8px; padding: 0 16px 4px 68px; }
+.ibx-mail__att { display: flex; align-items: center; gap: 8px; width: 210px; padding: 8px 10px; border: 1px solid #E1DFDD; border-radius: 4px;
+  background: #fff; font: inherit; font-size: 13px; color: #242424; text-align: left; cursor: pointer; }
+.ibx-mail__att:hover { background: #F5F5F5; border-color: #C8C6C4; }
+.ibx-mail__body { padding: 8px 20px 16px 68px; font-size: 14.5px; line-height: 1.55; white-space: pre-wrap; overflow-wrap: anywhere; }
+.ibx-mail__body p { margin: 0 0 10px; }
+.ibx-mail__body p:last-child { margin-bottom: 0; }
+.ibx-mail__body--quoted { color: #605E5C; border-top: 1px solid #EDEBE9; margin: 0 20px 0 68px; padding: 10px 0 16px; }
+.ibx-mail__more { margin: -6px 0 12px 68px; height: 18px; padding: 0 8px; border: 1px solid #E1DFDD; border-radius: 4px; background: #F3F2F1;
+  font-size: 13px; line-height: 1; color: #424242; cursor: pointer; }
+.ibx-menu { position: absolute; right: 0; top: calc(100% + 4px); z-index: 30; min-width: 200px; padding: 4px; background: #fff;
+  border: 1px solid #E1DFDD; border-radius: 6px; box-shadow: 0 8px 24px rgba(0,0,0,.14); }
+.ibx-menu button { display: flex; align-items: center; gap: 10px; width: 100%; height: 34px; padding: 0 10px; border: 0; border-radius: 4px;
+  background: none; font: inherit; font-size: 13.5px; color: #242424; text-align: left; cursor: pointer; }
+.ibx-menu button:hover { background: #F3F2F1; }
+.ibx-menu button svg { color: #605E5C; }
+@media (max-width: 720px) { .ibx-mail__atts, .ibx-mail__body { padding-left: 16px; } .ibx-mail__body--quoted, .ibx-mail__more { margin-left: 16px; } }

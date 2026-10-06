@@ -21,6 +21,11 @@ export default function CreateBookingMenu({ detail }: { detail: InboxDetail }) {
 
   useEffect(() => { setMod(MODULES.some((m) => m.code === team) ? team! : 'IS') }, [detail.conversation.id, team])
   useEffect(() => {
+    const on = () => { setOpen(true); box.current?.scrollIntoView({ block: 'nearest' }) }
+    window.addEventListener('ibx:create-booking', on)
+    return () => window.removeEventListener('ibx:create-booking', on)
+  }, [])
+  useEffect(() => {
     if (!open) return
     const close = (e: MouseEvent) => { if (box.current && !box.current.contains(e.target as Node)) setOpen(false) }
     document.addEventListener('mousedown', close)

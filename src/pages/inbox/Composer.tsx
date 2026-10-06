@@ -34,6 +34,18 @@ export default function Composer({ detail, who, me, onSent }: Props) {
 
   useEffect(() => { setVia(preferred); setText(''); setMode('reply') }, [conv.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Per-email "Reply all" / "Add note" actions focus this composer.
+  useEffect(() => {
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ mode?: Mode; via?: Via }>).detail ?? {}
+      if (d.mode) setMode(d.mode)
+      if (d.via && options.some((o) => o.key === d.via)) setVia(d.via)
+      requestAnimationFrame(() => { box.current?.scrollIntoView({ block: 'nearest' }); box.current?.focus() })
+    }
+    window.addEventListener('ibx:compose', on)
+    return () => window.removeEventListener('ibx:compose', on)
+  }, [options])
+
   const name = who
   const canReply = mode === 'note' || (via === 'whatsapp' ? !!waLeft : via === 'portal' || via === 'email')
 
