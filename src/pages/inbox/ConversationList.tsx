@@ -11,7 +11,7 @@ type Props = {
 function orgLine(r: InboxRow): string {
   if (r.account_name) return r.account_name
   if (r.contact_type) return r.contact_type[0].toUpperCase() + r.contact_type.slice(1)
-  return 'Unknown'
+  return r.contact_email ?? 'Unknown'
 }
 
 export default function ConversationList({ rows, loading, error, view, selectedId, search, onSearch, onSelect }: Props) {

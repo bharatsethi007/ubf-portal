@@ -43,7 +43,7 @@ export default function InboxNav({ counts, view, channel, team, onView, onChanne
 
       <div className="ibx-sect">Channels</div>
       {CHANNELS.map((c) => {
-        const soon = c === 'wechat' || c === 'email'
+        const soon = c === 'wechat'
         const on = channel === c
         const n = counts?.channels?.[c]
         return (

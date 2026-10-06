@@ -1,12 +1,12 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { Clock, Send } from 'lucide-react'
 import { toast } from 'sonner'
-import { addNote, replyPortal, replyWhatsApp, type InboxDetail } from './inboxApi'
+import { addNote, replyEmail, replyPortal, replyWhatsApp, type InboxDetail } from './inboxApi'
 import { windowLeft } from './inboxFormat'
 import SuggestionBar from './SuggestionBar'
 
 type Mode = 'reply' | 'note'
-type Via = 'whatsapp' | 'portal'
+type Via = 'whatsapp' | 'portal' | 'email'
 
 type Props = { detail: InboxDetail; who: string; me: string; onSent: () => void }
 
@@ -21,19 +21,21 @@ export default function Composer({ detail, who, me, onSent }: Props) {
   const options = useMemo(() => {
     const o: { key: Via; label: string }[] = []
     if (detail.contact) o.push({ key: 'whatsapp', label: waLeft ? 'WhatsApp' : 'WhatsApp (window closed)' })
+    if (detail.email) o.push({ key: 'email', label: `Email (${detail.email.mailbox})` })
     if (detail.account) o.push({ key: 'portal', label: 'Portal' })
     return o
-  }, [detail.contact, detail.account, waLeft])
+  }, [detail.contact, detail.account, detail.email, waLeft])
 
   const lastIn = [...detail.messages].reverse().find((m) => m.kind === 'message' && m.direction === 'in')
-  const preferred: Via | null = lastIn?.channel === 'whatsapp' && detail.contact && waLeft ? 'whatsapp'
-    : detail.account ? 'portal' : detail.contact ? 'whatsapp' : null
+  const preferred: Via | null = lastIn?.channel === 'email' && detail.email ? 'email'
+    : lastIn?.channel === 'whatsapp' && detail.contact && waLeft ? 'whatsapp'
+    : detail.email ? 'email' : detail.account ? 'portal' : detail.contact ? 'whatsapp' : null
   const [via, setVia] = useState<Via | null>(preferred)
 
   useEffect(() => { setVia(preferred); setText(''); setMode('reply') }, [conv.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
   const name = who
-  const canReply = mode === 'note' || (via === 'whatsapp' ? !!waLeft : via === 'portal')
+  const canReply = mode === 'note' || (via === 'whatsapp' ? !!waLeft : via === 'portal' || via === 'email')
 
   async function send() {
     const body = text.trim()
@@ -43,6 +45,7 @@ export default function Composer({ detail, who, me, onSent }: Props) {
       if (mode === 'note') await addNote(conv.id, body)
       else if (via === 'whatsapp' && detail.contact) await replyWhatsApp(conv.id, detail.contact.id, body)
       else if (via === 'portal') await replyPortal(conv.id, body)
+      else if (via === 'email') await replyEmail(conv.id, body)
       setText('')
       onSent()
     } catch (e) {

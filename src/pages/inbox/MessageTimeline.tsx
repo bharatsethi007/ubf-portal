@@ -3,6 +3,7 @@ import { Check, CheckCheck, Lock, Monitor, Paperclip } from 'lucide-react'
 import { fileKey, signedUrl } from '../../lib/fileStore'
 import type { InboxMessage } from './inboxApi'
 import { avatarColors, CHANNEL_META, clock, dayLabel, initials } from './inboxFormat'
+import { EmailBody, OutlookLink } from './EmailParts'
 
 function ChannelTag({ m }: { m: InboxMessage }) {
   if (m.channel === 'portal') return <><Monitor size={12} strokeWidth={2} />Portal</>
@@ -37,6 +38,7 @@ export default function MessageTimeline({ messages, who }: { messages: InboxMess
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [messages.length])
   const av = avatarColors(who)
   let lastDay = ''
+  let lastSubject = ''
 
   return (
     <div className="ibx-msgs">
@@ -50,6 +52,9 @@ export default function MessageTimeline({ messages, who }: { messages: InboxMess
           && Date.parse(m.created_at) - Date.parse(prev.created_at) < 5 * 60000 && !divider
 
         let node: ReactNode
+        const subj = (m.email?.subject ?? '').replace(/^\s*((re|fw|fwd)\s*:\s*)+/i, '').trim()
+        const showSubject = m.channel === 'email' && !!subj && subj !== lastSubject
+        if (m.channel === 'email' && subj) lastSubject = subj
         if (m.kind === 'event') {
           node = <div className="ibx-event">{m.body} · {m.sender_name ? `${m.sender_name} · ` : ''}{clock(m.created_at)}</div>
         } else if (m.kind === 'note') {
@@ -67,10 +72,17 @@ export default function MessageTimeline({ messages, who }: { messages: InboxMess
               {grouped ? <span style={{ width: 28, flex: 'none' }} /> : <span className="ibx-av ibx-av--sm" style={av}>{initials(m.sender_name ?? who)}</span>}
               <div style={{ minWidth: 0 }}>
                 <div className="ibx-bubble ibx-bubble--in">
-                  {m.media_path ? <Media path={m.media_path} /> : null}
-                  {m.body ?? (m.media_path ? null : `[${m.msg_type ?? 'message'}]`)}
+                  {m.channel === 'email' ? <EmailBody m={m} showSubject={showSubject} /> : (
+                    <>
+                      {m.media_path ? <Media path={m.media_path} /> : null}
+                      {m.body ?? (m.media_path ? null : `[${m.msg_type ?? 'message'}]`)}
+                    </>
+                  )}
                 </div>
-                <div className="ibx-meta"><ChannelTag m={m} /> · {clock(m.created_at)}</div>
+                <div className="ibx-meta">
+                  {m.channel === 'email' && m.sender_name ? `${m.sender_name} · ` : ''}<ChannelTag m={m} /> · {clock(m.created_at)}
+                  {m.channel === 'email' ? <> · <OutlookLink m={m} /></> : null}
+                </div>
               </div>
             </div>
           )
@@ -78,10 +90,13 @@ export default function MessageTimeline({ messages, who }: { messages: InboxMess
           const auto = m.sender_kind === 'system'
           node = (
             <div className="ibx-row ibx-row--out">
-              <div className={`ibx-bubble ${auto ? 'ibx-bubble--auto' : 'ibx-bubble--out'}`}>{m.body}</div>
+              <div className={`ibx-bubble ${auto ? 'ibx-bubble--auto' : 'ibx-bubble--out'}`}>
+                {m.channel === 'email' ? <EmailBody m={m} showSubject={showSubject} /> : m.body}
+              </div>
               <div className="ibx-meta">
                 {auto ? 'Auto-reply' : m.sender_name ?? 'UB Freight'} · <ChannelTag m={m} /> · {clock(m.created_at)}
                 {m.channel === 'whatsapp' ? <Ticks status={m.status} /> : null}
+                {m.channel === 'email' ? <> · <OutlookLink m={m} /></> : null}
               </div>
             </div>
           )

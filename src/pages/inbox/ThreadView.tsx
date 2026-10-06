@@ -4,7 +4,7 @@ import { Check, Package, Phone, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import Composer from './Composer'
 import MessageTimeline from './MessageTimeline'
-import { assign, setStatus, type InboxDetail, type StaffOption } from './inboxApi'
+import { assign, contactTypeOf, isUnknown, setStatus, type InboxDetail, type StaffOption } from './inboxApi'
 import { avatarColors, CHANNEL_META, initials } from './inboxFormat'
 
 type Props = { detail: InboxDetail; staff: StaffOption[]; me: string; onChanged: () => void }
@@ -21,17 +21,17 @@ export function whoOf(d: InboxDetail): string {
   const sender = [...d.messages].reverse().find((m) => m.direction === 'in' && m.sender_name)?.sender_name
   return sender
     ?? (d.conversation.contact_linked ? d.contact?.display_name : null)
-    ?? d.account?.name ?? d.contact?.display_name ?? 'Unknown'
+    ?? d.conversation.contact_name ?? d.account?.name ?? d.contact?.display_name ?? d.conversation.contact_email ?? 'Unknown'
 }
 
 export default function ThreadView({ detail, staff, me, onChanged }: Props) {
   const c = detail.conversation
   const [busy, setBusy] = useState(false)
   const who = whoOf(detail)
-  const unknown = !detail.account && !detail.contact?.contact_type
+  const unknown = isUnknown(detail)
   const channels = Array.from(new Set(detail.messages.filter((m) => m.kind === 'message').map((m) => m.channel)))
   const focus = detail.shipments.find((s) => s.focus)
-  const typeLabel = detail.account ? 'Customer' : detail.contact?.contact_type ?? 'Unknown number'
+  const typeLabel = detail.account ? 'Customer' : contactTypeOf(detail) ?? (detail.email ? 'Unknown sender' : 'Unknown number')
 
   async function run(fn: () => Promise<void>, ok?: string) {
     setBusy(true)
@@ -50,7 +50,7 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
             <span className={`ibx-chip ${unknown ? 'ibx-chip--late' : 'ibx-chip--done'}`} style={{ textTransform: 'capitalize' }}>{typeLabel}</span>
           </div>
           <div className="ibx-ellip" style={{ fontSize: 12.5, color: '#64748B', marginTop: 2 }}>
-            {detail.account?.name ?? (detail.contact ? `+${detail.contact.wa_id}` : '')}
+            {detail.account?.name ?? detail.email?.contact_email ?? (detail.contact ? `+${detail.contact.wa_id}` : '')}
             {channels.length ? ` · via ${channels.map((ch) => CHANNEL_META[ch].label).join(' and ')}` : ''}
             {c.subject && c.subject !== 'WhatsApp' ? ` · ${c.subject}` : ''}
           </div>

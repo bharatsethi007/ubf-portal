@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import type { InboxDetail } from './inboxApi'
+import { contactTypeOf, isUnknown, type InboxDetail } from './inboxApi'
 import { avatarColors, CHANNEL_META, initials, TEAM_LABEL } from './inboxFormat'
 import TriagePanel from './TriagePanel'
 import { whoOf } from './ThreadView'
@@ -19,7 +19,7 @@ function mins(a: string, b: string): string {
 }
 
 export default function DetailsPanel({ detail, onChanged }: { detail: InboxDetail; onChanged: () => void }) {
-  if (!detail.account && !detail.contact?.contact_type) return <TriagePanel detail={detail} onChanged={onChanged} />
+  if (isUnknown(detail)) return <TriagePanel detail={detail} onChanged={onChanged} />
 
   const c = detail.conversation
   const who = whoOf(detail)
@@ -33,11 +33,14 @@ export default function DetailsPanel({ detail, onChanged }: { detail: InboxDetai
         {detail.account ? (
           <Link to={`/customers/${detail.account.account_id}`} style={{ fontSize: 13, fontWeight: 500 }}>{detail.account.name}</Link>
         ) : (
-          <span style={{ fontSize: 13, color: '#64748B', textTransform: 'capitalize' }}>{detail.contact?.contact_type}</span>
+          <span style={{ fontSize: 13, color: '#64748B', textTransform: 'capitalize' }}>{contactTypeOf(detail)}</span>
         )}
         <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', justifyContent: 'center', marginTop: 4 }}>
           {detail.contact ? (
             <span className="ibx-chip ibx-chip--done"><span className="ibx-dot" style={{ background: CHANNEL_META.whatsapp.color, width: 6, height: 6 }} />+{detail.contact.wa_id}</span>
+          ) : null}
+          {detail.email?.contact_email ? (
+            <span className="ibx-chip" style={{ background: '#F1F5F9', color: '#334155' }}>{detail.email.contact_email}</span>
           ) : null}
           {detail.account?.portal_users ? (
             <span className="ibx-chip" style={{ background: '#EEF3FF', color: '#0A2472' }}>{detail.account.portal_users} portal users</span>

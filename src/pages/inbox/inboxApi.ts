@@ -16,6 +16,7 @@ export type InboxRow = {
   team: string | null; assignee_id: string | null; assignee_name: string | null
   last_message_at: string; last_preview: string | null; last_channel: Channel | null; last_sender: string | null
   reply_due_at: string | null; wa_id: string | null; contact_type: ContactType | null; booking_ref: string | null
+  contact_email: string | null
   unread: number; channels: Channel[]
 }
 
@@ -23,6 +24,14 @@ export type InboxMessage = {
   id: number; channel: Channel; kind: 'message' | 'note' | 'event'; direction: 'in' | 'out' | null
   sender_kind: 'customer' | 'contact' | 'staff' | 'system'; sender_name: string | null; body: string | null
   msg_type: string | null; media_path: string | null; status: string | null; created_at: string
+  email: EmailMeta | null
+}
+
+export type EmailAttachment = { name: string; size: number | null; s3_key: string; content_type: string | null }
+export type EmailMeta = {
+  subject: string | null; from: string | null; web_link: string | null
+  to: { name: string | null; address: string | null }[]; cc: { name: string | null; address: string | null }[]
+  attachments: EmailAttachment[]
 }
 
 export type InboxShipment = {
@@ -37,16 +46,20 @@ export type InboxDetail = {
     booking_id: string | null; subject: string | null; team: string | null; assignee_id: string | null
     assignee_name: string | null; eff_status: 'open' | 'snoozed' | 'closed'; snoozed_until: string | null
     reply_due_at: string | null; first_reply_at: string | null; created_at: string; booking_ref: string | null
-    contact_linked: boolean
+    contact_linked: boolean; contact_type: ContactType | null; contact_email: string | null; contact_name: string | null
   }
   account: { account_id: string; name: string; portal_users: number } | null
   contact: {
     id: string; wa_id: string; display_name: string | null; contact_type: ContactType | null; company: string | null
     verified: boolean; opted_in: boolean; last_inbound_at: string | null; window_ends_at: string | null
   } | null
+  email: { mailbox: string; contact_email: string | null; contact_name: string | null } | null
   messages: InboxMessage[]
   shipments: InboxShipment[]
 }
+
+export const contactTypeOf = (d: InboxDetail): ContactType | null => d.contact?.contact_type ?? d.conversation.contact_type ?? null
+export const isUnknown = (d: InboxDetail) => !d.account && !contactTypeOf(d)
 
 export type StaffOption = { user_id: string; name: string; initials: string | null }
 
@@ -84,6 +97,20 @@ export async function replyWhatsApp(conversationId: string, contactId: string, t
   }
   const payload = (data ?? {}) as { error?: string; message?: string }
   if (payload.error) throw new Error(payload.message ?? payload.error)
+}
+
+export async function replyEmail(conversationId: string, text: string): Promise<void> {
+  const { data, error } = await supabase.functions.invoke('email-reply', { body: { conversation_id: conversationId, text } })
+  if (error) {
+    let msg = error.message
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try { const j = await ctx.json(); msg = j?.error ?? msg } catch { /* keep default */ }
+    }
+    throw new Error(msg)
+  }
+  const payload = (data ?? {}) as { error?: string }
+  if (payload.error) throw new Error(payload.error)
 }
 
 export async function searchAccounts(q: string): Promise<{ account_id: string; name: string }[]> {
