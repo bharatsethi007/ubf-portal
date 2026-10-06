@@ -7,7 +7,7 @@ import ConversationList from './ConversationList'
 import InboxNav from './InboxNav'
 import ThreadView from './ThreadView'
 import {
-  fetchCounts, fetchDetail, fetchList, fetchStaff, markRead,
+  bulk, fetchCounts, fetchDetail, fetchList, fetchStaff, markRead,
   type Channel, type InboxCounts, type InboxDetail, type InboxRow, type StaffOption, type View,
 } from './inboxApi'
 import './inbox.css'
@@ -29,6 +29,7 @@ export default function InboxPage() {
   const [staff, setStaff] = useState<StaffOption[]>([])
   const [me, setMe] = useState('')
   const [loading, setLoading] = useState(true)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
   const [error, setError] = useState('')
   const selRef = useRef<string | null>(selectedId)
   selRef.current = selectedId
@@ -61,6 +62,7 @@ export default function InboxPage() {
   }, [])
 
   useEffect(() => { setLoading(true); void loadList() }, [loadList])
+  useEffect(() => { setPicked(new Set()) }, [view, channel, team])
   useEffect(() => {
     void fetchStaff().then((s) => setStaff(s ?? [])).catch(() => {})
     void supabase.auth.getUser().then(({ data }) => setMe(data.user?.id ?? ''))
@@ -92,6 +94,22 @@ export default function InboxPage() {
     return () => { clearInterval(poll); void supabase.removeChannel(ch) }
   }, [loadDetail])
 
+  const onPick = useCallback((ids: string[], on: boolean) => {
+    setPicked((p) => { const n = new Set(p); ids.forEach((id) => (on ? n.add(id) : n.delete(id))); return n })
+  }, [])
+  async function onBulk(action: 'close' | 'ignore' | 'assign_me' | 'open') {
+    const ids = [...picked]
+    try {
+      await bulk(ids, action)
+      const label = { close: 'Closed', ignore: 'Ignored', assign_me: 'Assigned to you', open: 'Reopened' }[action]
+      toast.success(`${label}: ${ids.length} conversation${ids.length > 1 ? 's' : ''}`, action === 'close' || action === 'ignore'
+        ? { action: { label: 'Undo', onClick: () => void bulk(ids, 'open').then(() => loadList()) } } : undefined)
+      setPicked(new Set())
+      void loadList()
+      if (selRef.current && ids.includes(selRef.current)) void loadDetail(selRef.current, false)
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
+  }
+
   const refresh = useCallback(() => {
     void loadList()
     if (selRef.current) void loadDetail(selRef.current)
@@ -104,7 +122,8 @@ export default function InboxPage() {
         onChannel={(c) => patch({ channel: c })}
         onTeam={(t) => patch({ team: t })} />
       <ConversationList rows={rows} loading={loading} error={error} view={view}
-        selectedId={selectedId} search={search} onSearch={setSearch} onSelect={(id) => patch({ c: id })} />
+        selectedId={selectedId} search={search} onSearch={setSearch} onSelect={(id) => patch({ c: id })}
+        picked={picked} onPick={onPick} onBulk={(a) => void onBulk(a)} />
       {detail ? (
         <ThreadView detail={detail} staff={staff} me={me} onChanged={refresh} />
       ) : (

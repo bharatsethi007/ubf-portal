@@ -82,6 +82,9 @@ export const replyPortal = (id: string, body: string) => rpc<void>('inbox_reply_
 export const linkContact = (id: string, type: ContactType, accountId?: string | null) =>
   rpc<void>('inbox_link_contact', { p_id: id, p_type: type, p_account: accountId ?? null })
 export const fetchStaff = () => rpc<StaffOption[]>('inbox_staff_list')
+export const bulk = (ids: string[], action: 'close' | 'ignore' | 'assign_me' | 'open') => rpc<number>('inbox_bulk', { p_ids: ids, p_action: action })
+export const linkDomain = (id: string, type: ContactType, accountId?: string | null) =>
+  rpc<{ domain: string; updated: number }>('inbox_link_domain', { p_id: id, p_type: type, p_account: accountId ?? null })
 export const ignore = (id: string, sender = false) => rpc<{ blocked: string | null }>('inbox_ignore', { p_id: id, p_sender: sender })
 
 export type JobHit = {

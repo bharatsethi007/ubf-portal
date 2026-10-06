@@ -2,7 +2,10 @@
 import { useEffect, useState } from 'react'
 import { Boxes, Plus, Search, Truck, X } from 'lucide-react'
 import { toast } from 'sonner'
-import { linkContact, searchAccounts, type ContactType, type InboxDetail } from './inboxApi'
+import { linkContact, linkDomain, searchAccounts, type ContactType, type InboxDetail } from './inboxApi'
+
+const PUBLIC = new Set(['gmail.com', 'hotmail.com', 'outlook.com', 'yahoo.com', 'xtra.co.nz', 'icloud.com', 'live.com', 'outlook.co.nz',
+  'yahoo.co.nz', 'hotmail.co.nz', 'qq.com', '163.com', '126.com', 'ubfreight.com', 'me.com', 'msn.com', 'protonmail.com'])
 
 const TYPES: { key: ContactType; label: string; hint: string; icon: typeof Plus; bg: string; fg: string }[] = [
   { key: 'lead', label: 'New lead', hint: 'Potential customer, start a quote', icon: Plus, bg: '#ECFDF3', fg: '#067647' },
@@ -15,10 +18,14 @@ export default function ContactDialog({ detail, onChanged }: { detail: InboxDeta
   const [q, setQ] = useState('')
   const [hits, setHits] = useState<{ account_id: string; name: string }[]>([])
   const [busy, setBusy] = useState(false)
+  const [wholeDomain, setWholeDomain] = useState(false)
   const id = detail.conversation.id
+  const email = (detail.email?.contact_email ?? detail.conversation.contact_email ?? '').toLowerCase()
+  const domain = email.includes('@') ? email.split('@')[1] : ''
+  const canDomain = !!domain && !PUBLIC.has(domain)
 
   useEffect(() => {
-    const on = () => { setOpen(true); setQ(''); setHits([]) }
+    const on = () => { setOpen(true); setQ(''); setHits([]); setWholeDomain(false) }
     window.addEventListener('ibx:contact', on)
     return () => window.removeEventListener('ibx:contact', on)
   }, [])
@@ -34,7 +41,10 @@ export default function ContactDialog({ detail, onChanged }: { detail: InboxDeta
     setBusy(true)
     try {
       await linkContact(id, type, account?.account_id)
-      toast.success(account ? `Linked to ${account.name}` : 'Contact saved')
+      if (wholeDomain && canDomain) {
+        const r = await linkDomain(id, type, account?.account_id)
+        toast.success(`Everyone at @${r.domain} saved${r.updated ? `, ${r.updated} more conversation${r.updated > 1 ? 's' : ''} updated` : ''}`)
+      } else toast.success(account ? `Linked to ${account.name}` : 'Contact saved')
       setOpen(false); onChanged()
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed') }
     finally { setBusy(false) }
@@ -51,6 +61,12 @@ export default function ContactDialog({ detail, onChanged }: { detail: InboxDeta
           <p style={{ margin: '0 0 12px', fontSize: 13, color: '#605E5C' }}>
             {detail.email?.contact_email ?? (detail.contact ? `+${detail.contact.wa_id}` : '')}. Link once, next messages go to the right place.
           </p>
+          {canDomain ? (
+            <label style={{ display: 'flex', alignItems: 'center', gap: 8, fontSize: 13, margin: '0 0 14px', cursor: 'pointer' }}>
+              <input type="checkbox" checked={wholeDomain} onChange={(e) => setWholeDomain(e.target.checked)} />
+              Apply to everyone at @{domain}
+            </label>
+          ) : null}
           <div className="ibx-modal__label">Existing customer</div>
           <label className="ibx-search" style={{ background: '#fff', border: '1px solid #E1DFDD' }}>
             <Search size={16} />
