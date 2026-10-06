@@ -1,14 +1,18 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { Clock, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { addNote, replyPortal, replyWhatsApp, type InboxDetail } from './inboxApi'
 import { windowLeft } from './inboxFormat'
+import SuggestionBar from './SuggestionBar'
 
 type Mode = 'reply' | 'note'
 type Via = 'whatsapp' | 'portal'
 
-export default function Composer({ detail, onSent }: { detail: InboxDetail; onSent: () => void }) {
+type Props = { detail: InboxDetail; who: string; me: string; onSent: () => void }
+
+export default function Composer({ detail, who, me, onSent }: Props) {
   const conv = detail.conversation
+  const box = useRef<HTMLTextAreaElement>(null)
   const [mode, setMode] = useState<Mode>('reply')
   const [text, setText] = useState('')
   const [busy, setBusy] = useState(false)
@@ -28,7 +32,7 @@ export default function Composer({ detail, onSent }: { detail: InboxDetail; onSe
 
   useEffect(() => { setVia(preferred); setText(''); setMode('reply') }, [conv.id]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  const name = detail.contact?.display_name ?? detail.account?.name ?? 'customer'
+  const name = who
   const canReply = mode === 'note' || (via === 'whatsapp' ? !!waLeft : via === 'portal')
 
   async function send() {
@@ -49,6 +53,11 @@ export default function Composer({ detail, onSent }: { detail: InboxDetail; onSe
   }
 
   return (
+    <>
+    {mode === 'reply' ? (
+      <SuggestionBar detail={detail} who={who} me={me} onChanged={onSent}
+        onPick={(t) => { setText(t); requestAnimationFrame(() => box.current?.focus()) }} />
+    ) : null}
     <div className={`ibx-composer${mode === 'note' ? ' ibx-composer--note' : ''}`}>
       <div className="ibx-composer__bar">
         <div className="ibx-seg">
@@ -71,7 +80,7 @@ export default function Composer({ detail, onSent }: { detail: InboxDetail; onSe
         {mode === 'note' ? <span style={{ fontSize: 12, color: '#7A4A00', marginLeft: 'auto' }}>Only staff see notes.</span> : null}
       </div>
       <label htmlFor="ibx-compose" style={{ position: 'absolute', left: -9999 }}>Message</label>
-      <textarea id="ibx-compose" rows={3} value={text} onChange={(e) => setText(e.target.value)}
+      <textarea ref={box} id="ibx-compose" rows={3} value={text} onChange={(e) => setText(e.target.value)}
         placeholder={mode === 'note' ? 'Write a note for the team…' : `Reply to ${name}…`}
         onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); void send() } }} />
       <div className="ibx-composer__foot">
@@ -82,5 +91,6 @@ export default function Composer({ detail, onSent }: { detail: InboxDetail; onSe
         </button>
       </div>
     </div>
+    </>
   )
 }

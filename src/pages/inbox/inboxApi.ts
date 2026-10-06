@@ -37,6 +37,7 @@ export type InboxDetail = {
     booking_id: string | null; subject: string | null; team: string | null; assignee_id: string | null
     assignee_name: string | null; eff_status: 'open' | 'snoozed' | 'closed'; snoozed_until: string | null
     reply_due_at: string | null; first_reply_at: string | null; created_at: string; booking_ref: string | null
+    contact_linked: boolean
   }
   account: { account_id: string; name: string; portal_users: number } | null
   contact: {
@@ -91,4 +92,17 @@ export async function searchAccounts(q: string): Promise<{ account_id: string; n
     .eq('closed', false).ilike('name', `%${q.trim()}%`).order('name').limit(8)
   if (error) throw new Error(error.message)
   return (data ?? []) as { account_id: string; name: string }[]
+}
+
+export async function aiSuggest(conversationId: string): Promise<{ label: string; text: string }[]> {
+  const { data, error } = await supabase.functions.invoke('inbox-suggest', { body: { conversation_id: conversationId } })
+  if (error) {
+    let msg = error.message
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try { const j = await ctx.json(); msg = j?.error ?? msg } catch { /* keep default */ }
+    }
+    throw new Error(msg)
+  }
+  return ((data ?? {}) as { replies?: { label: string; text: string }[] }).replies ?? []
 }

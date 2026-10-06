@@ -12,7 +12,7 @@ function ChannelTag({ m }: { m: InboxMessage }) {
 function Ticks({ status }: { status: string | null }) {
   if (status === 'read') return <CheckCheck size={13} color="#2563EB" />
   if (status === 'delivered') return <CheckCheck size={13} />
-  if (status === 'failed') return <span style={{ color: '#B42318', fontWeight: 600 }}>Failed</span>
+  if (status === 'failed') return <span style={{ color: '#B42318', fontWeight: 500 }}>Failed</span>
   return <Check size={13} />
 }
 
@@ -26,7 +26,7 @@ function Media({ path }: { path: string }) {
   }, [path])
   if (isImg && url) return <a href={url} target="_blank" rel="noreferrer"><img src={url} alt="Attachment" style={{ maxWidth: 240, borderRadius: 10, display: 'block', marginBottom: 6 }} /></a>
   return (
-    <a href={url ?? undefined} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 600, color: 'inherit' }}>
+    <a href={url ?? undefined} target="_blank" rel="noreferrer" style={{ display: 'inline-flex', alignItems: 'center', gap: 6, fontSize: 13, fontWeight: 500, color: 'inherit' }}>
       <Paperclip size={14} />{path.split('/').pop()}
     </a>
   )
@@ -55,7 +55,7 @@ export default function MessageTimeline({ messages, who }: { messages: InboxMess
         } else if (m.kind === 'note') {
           node = (
             <div className="ibx-note">
-              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 600, color: '#7A4A00', marginBottom: 4 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 500, color: '#7A4A00', marginBottom: 4 }}>
                 <Lock size={12} />Internal note · {m.sender_name ?? 'Staff'} · {clock(m.created_at)}
               </div>
               <div style={{ fontSize: 14, lineHeight: 1.5, color: '#3D2A00', whiteSpace: 'pre-wrap' }}>{m.body}</div>

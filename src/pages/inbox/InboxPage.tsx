@@ -1,6 +1,7 @@
 // Unified inbox: WhatsApp + Portal (WeChat/email later) in one place. Realtime via inbox_* tables.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
+import { toast } from 'sonner'
 import { supabase } from '../../supabase'
 import ConversationList from './ConversationList'
 import DetailsPanel from './DetailsPanel'
@@ -57,7 +58,7 @@ export default function InboxPage() {
       if (selRef.current !== id) return
       setDetail(d)
       if (read) await markRead(id)
-    } catch (e) { setError(e instanceof Error ? e.message : 'Could not load conversation') }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not load conversation') }
   }, [])
 
   useEffect(() => { setLoading(true); void loadList() }, [loadList])

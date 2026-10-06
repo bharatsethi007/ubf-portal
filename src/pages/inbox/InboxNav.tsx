@@ -70,7 +70,7 @@ export default function InboxNav({ counts, view, channel, team, onView, onChanne
       })}
 
       {counts?.overdue ? (
-        <div style={{ marginTop: 'auto', padding: '12px 10px 4px', fontSize: 12.5, color: '#B42318', fontWeight: 600 }}>
+        <div style={{ marginTop: 'auto', padding: '12px 10px 4px', fontSize: 12.5, color: '#B42318', fontWeight: 500 }}>
           {counts.overdue} overdue {counts.overdue === 1 ? 'reply' : 'replies'}
         </div>
       ) : null}

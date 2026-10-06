@@ -29,9 +29,9 @@ export default function DetailsPanel({ detail, onChanged }: { detail: InboxDetai
     <aside className="ibx-side ibx-pane" aria-label="Contact details">
       <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center', gap: 6 }}>
         <span className="ibx-av ibx-av--lg" style={avatarColors(who)}>{initials(who)}</span>
-        <div style={{ fontWeight: 700, fontSize: 16 }}>{who}</div>
+        <div style={{ fontWeight: 600, fontSize: 16 }}>{who}</div>
         {detail.account ? (
-          <Link to={`/customers/${detail.account.account_id}`} style={{ fontSize: 13, fontWeight: 600 }}>{detail.account.name}</Link>
+          <Link to={`/customers/${detail.account.account_id}`} style={{ fontSize: 13, fontWeight: 500 }}>{detail.account.name}</Link>
         ) : (
           <span style={{ fontSize: 13, color: '#64748B', textTransform: 'capitalize' }}>{detail.contact?.contact_type}</span>
         )}
@@ -55,7 +55,7 @@ export default function DetailsPanel({ detail, onChanged }: { detail: InboxDetai
               return (
                 <Link key={s.id} to={`/bookings/${s.id}`} className={`ibx-card${s.focus ? ' ibx-card--focus' : ''}`}>
                   <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
-                    <span className="ibx-mono" style={{ fontWeight: 600 }}>{s.booking_ref ?? 'Booking'}</span>
+                    <span className="ibx-mono" style={{ fontWeight: 500 }}>{s.booking_ref ?? 'Booking'}</span>
                     {s.stage ? <span className="ibx-chip" style={{ background: bg, color: fg, textTransform: 'capitalize' }}>{s.stage.replace('_', ' ')}</span> : null}
                   </div>
                   <div className="ibx-ellip" style={{ fontSize: 12.5, color: '#64748B', marginTop: 4 }}>
@@ -78,7 +78,7 @@ export default function DetailsPanel({ detail, onChanged }: { detail: InboxDetai
         {c.first_reply_at ? <div className="ibx-kv"><span>First reply</span><span>{mins(c.created_at, c.first_reply_at)}</span></div> : null}
         {due !== null ? (
           <div className="ibx-kv"><span>Reply due</span>
-            <span style={{ color: due < 0 ? '#B42318' : '#B54708', fontWeight: 600 }}>{due < 0 ? 'Overdue' : `in ${Math.max(1, Math.round(due / 60000))} min`}</span>
+            <span style={{ color: due < 0 ? '#B42318' : '#B54708', fontWeight: 500 }}>{due < 0 ? 'Overdue' : `in ${Math.max(1, Math.round(due / 60000))} min`}</span>
           </div>
         ) : null}
       </div>

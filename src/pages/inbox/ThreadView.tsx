@@ -16,10 +16,12 @@ const SNOOZES: { key: string; label: string; at: () => Date }[] = [
   { key: 'wk', label: 'Next Monday 9am', at: () => { const d = new Date(); d.setDate(d.getDate() + ((8 - d.getDay()) % 7 || 7)); d.setHours(9, 0, 0, 0); return d } },
 ]
 
+// Title = whoever wrote this thread. Account's WhatsApp contact only when this thread is that chat.
 export function whoOf(d: InboxDetail): string {
-  return d.contact?.display_name
-    ?? [...d.messages].reverse().find((m) => m.sender_kind === 'customer')?.sender_name
-    ?? d.account?.name ?? 'Unknown'
+  const sender = [...d.messages].reverse().find((m) => m.direction === 'in' && m.sender_name)?.sender_name
+  return sender
+    ?? (d.conversation.contact_linked ? d.contact?.display_name : null)
+    ?? d.account?.name ?? d.contact?.display_name ?? 'Unknown'
 }
 
 export default function ThreadView({ detail, staff, me, onChanged }: Props) {
@@ -88,15 +90,15 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
       {focus ? (
         <div className="ibx-strip">
           <Package size={16} color="#0A2472" />
-          <Link to={`/bookings/${focus.id}`} className="ibx-mono" style={{ fontWeight: 600 }}>{focus.booking_ref}</Link>
+          <Link to={`/bookings/${focus.id}`} className="ibx-mono" style={{ fontWeight: 500 }}>{focus.booking_ref}</Link>
           {focus.stage ? <span className="ibx-chip ibx-chip--ok" style={{ textTransform: 'capitalize' }}>{focus.stage.replace('_', ' ')}</span> : null}
-          {focus.next_action ? <span style={{ color: '#334155' }}>Next: <b style={{ fontWeight: 600 }}>{focus.next_action}</b></span> : null}
+          {focus.next_action ? <span style={{ color: '#334155' }}>Next: <span style={{ color: '#0F172A' }}>{focus.next_action}</span></span> : null}
           {focus.last_free_day ? <span style={{ color: '#64748B' }}>LFD {new Date(focus.last_free_day).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</span> : null}
         </div>
       ) : null}
 
       <MessageTimeline messages={detail.messages} who={who} />
-      <Composer detail={detail} onSent={onChanged} />
+      <Composer detail={detail} who={who} me={me} onSent={onChanged} />
     </main>
   )
 }

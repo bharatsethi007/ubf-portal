@@ -49,7 +49,7 @@ export default function TriagePanel({ detail, onChanged }: { detail: InboxDetail
           <div className="ibx-hits">
             {hits.map((h) => (
               <button key={h.account_id} type="button" disabled={busy} onClick={() => link('customer', h)}>
-                <span style={{ fontWeight: 600 }}>{h.name}</span> <span className="ibx-mono" style={{ color: '#64748B' }}>{h.account_id}</span>
+                <span style={{ fontWeight: 500 }}>{h.name}</span> <span className="ibx-mono" style={{ color: '#64748B' }}>{h.account_id}</span>
               </button>
             ))}
           </div>
@@ -62,7 +62,7 @@ export default function TriagePanel({ detail, onChanged }: { detail: InboxDetail
           <button key={key} type="button" className="ibx-opt" disabled={busy} onClick={() => link(key)}>
             <span className="ibx-opt__icon" style={{ background: bg, color: fg }}><Icon size={16} /></span>
             <span>
-              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 600 }}>{label}</span>
+              <span style={{ display: 'block', fontSize: 13.5, fontWeight: 500 }}>{label}</span>
               <span style={{ display: 'block', fontSize: 12, color: '#64748B' }}>{hint}</span>
             </span>
           </button>
