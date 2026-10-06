@@ -4,6 +4,7 @@ import { Copy, EyeOff, ExternalLink, FilePlus2, Link2, MoreHorizontal, PackagePl
 import { toast } from 'sonner'
 import type { InboxMessage } from './inboxApi'
 import { avatarColors, initials } from './inboxFormat'
+import EmailFrame, { fetchEmailHtml } from './EmailFrame'
 import { AttachmentTiles, cleanBody, inboxAction, isInlineJunk, outlookDate, splitQuoted } from './EmailParts'
 
 type Addr = { name: string | null; address: string | null }
@@ -45,13 +46,52 @@ function Menu({ m, text, attIds }: { m: InboxMessage; text: string; attIds: numb
   )
 }
 
+// Outlook formatting when available; plain text while it loads (cached after first open) or if it can't be fetched.
+function EmailBodyView({ m, text }: { m: InboxMessage; text: string }) {
+  const [main, rest] = splitQuoted(text)
+  const [html, setHtml] = useState<{ html: string; has_history?: boolean } | null | 'fail'>(null)
+  const [full, setFull] = useState<string | null>(null)
+  const [quoted, setQuoted] = useState(false)
+  useEffect(() => {
+    let live = true
+    setHtml(null)
+    fetchEmailHtml(m.id).then((r) => { if (live) setHtml(r) }).catch(() => { if (live) setHtml('fail') })
+    return () => { live = false }
+  }, [m.id])
+  useEffect(() => {
+    if (!quoted || full || html === 'fail' || !html) return
+    void fetchEmailHtml(m.id, true).then((r) => setFull(r.html)).catch(() => setFull(''))
+  }, [quoted, full, html, m.id])
+
+  const paras = (t: string) => t.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)
+  if (html === null) return <div className="ibx-mail__body"><div className="ibx-mail__skel" /><div className="ibx-mail__skel" style={{ width: '60%' }} /></div>
+  if (html === 'fail') {
+    return (
+      <>
+        <div className="ibx-mail__body">{paras(main || '(no text)')}</div>
+        {rest ? <button type="button" className="ibx-mail__more" onClick={() => setQuoted(!quoted)} title={quoted ? 'Hide history' : 'Show history'}>···</button> : null}
+        {rest && quoted ? <div className="ibx-mail__body ibx-mail__body--quoted">{paras(rest)}</div> : null}
+      </>
+    )
+  }
+  return (
+    <>
+      <div className="ibx-mail__html"><EmailFrame html={quoted && full ? full : html.html} /></div>
+      {html.has_history ? (
+        <button type="button" className="ibx-mail__more" onClick={() => setQuoted(!quoted)} title={quoted ? 'Hide history' : 'Show history'}>
+          {quoted && full === null ? '…' : '···'}
+        </button>
+      ) : null}
+    </>
+  )
+}
+
 export default function EmailCard({ m, initiallyOpen }: { m: InboxMessage; initiallyOpen: boolean }) {
   const [open, setOpen] = useState(initiallyOpen)
-  const [quoted, setQuoted] = useState(false)
   const em = m.email
   const sender = m.sender_name || em?.from || 'Unknown'
   const body = cleanBody(m.body)
-  const [main, rest] = splitQuoted(body)
+  const [main] = splitQuoted(body)
   const atts = (em?.attachments ?? []).filter((a) => !isInlineJunk(a))
   const av = avatarColors(sender)
 
@@ -86,13 +126,7 @@ export default function EmailCard({ m, initiallyOpen }: { m: InboxMessage; initi
         </div>
       </header>
       <AttachmentTiles items={atts} messageId={m.id} />
-      <div className="ibx-mail__body">{(main || '(no text)').split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}</div>
-      {rest ? (
-        <>
-          <button type="button" className="ibx-mail__more" onClick={() => setQuoted(!quoted)} title={quoted ? 'Hide history' : 'Show history'}>···</button>
-          {quoted ? <div className="ibx-mail__body ibx-mail__body--quoted">{rest.split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}</div> : null}
-        </>
-      ) : null}
+      <EmailBodyView m={m} text={body} />
     </article>
   )
 }

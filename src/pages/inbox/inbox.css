@@ -198,3 +198,10 @@ a.ibx-card:hover { border-color: #C7D2FE; }
 .ibx-pick input:focus-visible + .ibx-av { outline: 2px solid #0F6CBD; outline-offset: 2px; }
 .ibx-bulk { display: flex; align-items: center; gap: 4px; font-size: 12.5px; color: #242424; min-height: 32px; }
 .ibx-bulk > input { width: 16px; height: 16px; margin: 0 6px 0 2px; }
+
+/* Outlook HTML body */
+.ibx-mail__html { padding: 6px 20px 14px 68px; }
+.ibx-mail__frame { display: block; width: 100%; border: 0; background: #fff; }
+.ibx-mail__skel { height: 12px; margin: 8px 0; border-radius: 4px; background: linear-gradient(90deg, #F3F2F1, #EDEBE9, #F3F2F1); background-size: 200% 100%; animation: ibx-skel 1.2s infinite; }
+@keyframes ibx-skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
+@media (max-width: 720px) { .ibx-mail__html { padding-left: 16px; } }
