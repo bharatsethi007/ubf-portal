@@ -113,6 +113,23 @@ export async function replyEmail(conversationId: string, text: string): Promise<
   if (payload.error) throw new Error(payload.error)
 }
 
+export type CreatedBooking = { id: string; booking_ref: string; module: string; containers: number; documents: number; low_confidence: string[] }
+
+export async function createBookingFromConversation(conversationId: string, module: string, mode: 'quick' | 'ai'): Promise<CreatedBooking> {
+  const { data, error } = await supabase.functions.invoke('inbox-booking', { body: { conversation_id: conversationId, module, mode } })
+  if (error) {
+    let msg = error.message
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try { const j = await ctx.json(); msg = j?.error ?? msg } catch { /* keep default */ }
+    }
+    throw new Error(msg)
+  }
+  const r = (data ?? {}) as CreatedBooking & { error?: string }
+  if (r.error) throw new Error(r.error)
+  return r
+}
+
 export async function searchAccounts(q: string): Promise<{ account_id: string; name: string }[]> {
   if (q.trim().length < 2) return []
   const { data, error } = await supabase.from('customers').select('account_id,name')

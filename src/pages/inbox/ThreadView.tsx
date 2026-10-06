@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { Check, Package, Phone, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import Composer from './Composer'
+import CreateBookingMenu from './CreateBookingMenu'
 import MessageTimeline from './MessageTimeline'
 import { assign, contactTypeOf, isUnknown, setStatus, type InboxDetail, type StaffOption } from './inboxApi'
 import { avatarColors, CHANNEL_META, initials } from './inboxFormat'
@@ -56,6 +57,7 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
           </div>
         </div>
         <div style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+          <CreateBookingMenu detail={detail} />
           {detail.contact ? (
             <a className="ibx-btn ibx-btn--icon" href={`tel:+${detail.contact.wa_id}`} title="Call" aria-label="Call"><Phone size={16} /></a>
           ) : null}

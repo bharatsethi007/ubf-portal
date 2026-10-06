@@ -122,3 +122,6 @@ a.ibx-card:hover { border-color: #C7D2FE; }
 .ibx-att { display: inline-flex; align-items: center; gap: 5px; height: 26px; padding: 0 9px; border-radius: 7px;
   border: 1px solid rgba(100,116,139,.35); background: rgba(255,255,255,.12); color: inherit; font: inherit; font-size: 12px; cursor: pointer; max-width: 100%; }
 .ibx-att:hover { border-color: currentColor; }
+
+.ibx-pop { position: absolute; right: 0; top: calc(100% + 6px); z-index: 30; width: 300px; background: #fff; border: 1px solid #E2E8F0; border-radius: 12px; box-shadow: 0 12px 32px rgba(15,23,42,.14); padding: 12px; }
+.ibx-pop .ibx-seg button { height: 30px; }
