@@ -1,0 +1,2 @@
+-- Left nav mailboxes: inbox_counts gains 'mailboxes'; inbox_list treats p_team containing '@' as a mailbox filter.
+-- Applied via pg_get_functiondef + replace (see migration inbox_mailbox_filter in Supabase history).

@@ -227,3 +227,33 @@ textarea.ibx-in { height: auto; padding: 6px 9px; resize: vertical; }
 .ibx-lines__foot { display: flex; align-items: center; font-size: 12.5px; color: #424242; padding-top: 4px; }
 @media (max-width: 720px) { .ibx-grid2, .ibx-grid4 { grid-template-columns: 1fr; } }
 .ibx-checknote { margin-bottom: 12px; padding: 8px 12px; border: 1px solid #F5DDA6; background: #FFF8E8; border-radius: 6px; font-size: 12.5px; color: #5C3D00; line-height: 1.5; }
+
+/* Collapsible left menu */
+.ibx-nav { transition: flex-basis .15s ease; }
+.ibx-navitem__text { flex: 1; min-width: 0; text-align: left; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ibx-nav--mini { flex-basis: 56px; padding: 14px 8px; }
+.ibx-nav--mini .ibx-nav__head { justify-content: center; padding: 2px 0 12px; }
+.ibx-nav--mini .ibx-navitem { justify-content: center; padding: 0; position: relative; }
+.ibx-nav--mini .ibx-navitem__text { display: none; }
+.ibx-nav--mini .ibx-navitem__count { position: absolute; top: 2px; right: 0; margin: 0; font-size: 10px; }
+.ibx-nav--mini .ibx-sect { font-size: 0; padding: 10px 0 4px; border-top: 1px solid #EEF0F4; margin-top: 8px; }
+
+/* Job status bar */
+.ibx-jsb { display: flex; align-items: center; gap: 12px; padding: 8px 20px; background: #fff; border-bottom: 1px solid var(--ibx-line); font-size: 12.5px; min-height: 46px; flex-wrap: wrap; }
+.ibx-jsb__ref { border: 0; background: none; padding: 0; font-size: 12.5px; font-weight: 500; color: #0A2472; cursor: pointer; text-decoration: underline; text-underline-offset: 2px; }
+.ibx-jsb__steps { display: flex; align-items: flex-start; gap: 0; margin: 0; padding: 0; list-style: none; min-width: 0; }
+.ibx-jsb__step { position: relative; display: flex; flex-direction: column; align-items: center; width: 92px; text-align: center; }
+.ibx-jsb__step::before { content: ""; position: absolute; top: 7px; left: -50%; width: 100%; height: 2px; background: #E1DFDD; z-index: 0; }
+.ibx-jsb__step:first-child::before { display: none; }
+.ibx-jsb__step--done::before, .ibx-jsb__step--current::before { background: #0F6CBD; }
+.ibx-jsb__dot { position: relative; z-index: 1; width: 16px; height: 16px; border-radius: 50%; border: 2px solid #C8C6C4; background: #fff;
+  display: inline-flex; align-items: center; justify-content: center; color: #fff; box-sizing: border-box; }
+.ibx-jsb__step--done .ibx-jsb__dot { background: #0F6CBD; border-color: #0F6CBD; }
+.ibx-jsb__step--current .ibx-jsb__dot { border-color: #0F6CBD; box-shadow: 0 0 0 3px #DCEBFA; }
+.ibx-jsb__label { margin-top: 3px; font-size: 11.5px; color: #424242; }
+.ibx-jsb__step--todo .ibx-jsb__label { color: #8A8886; }
+.ibx-jsb__detail { max-width: 88px; font-size: 10.5px; color: #605E5C; }
+.ibx-jsb__wait { color: #605E5C; font-size: 12.5px; padding: 0 4px; }
+.ibx-navitem__abbr { display: none; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
+.ibx-nav--mini .ibx-navitem__abbr { display: inline; }
+.ibx-nav--mini .ibx-navitem__icon { display: none; }

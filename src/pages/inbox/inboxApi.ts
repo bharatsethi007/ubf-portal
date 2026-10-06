@@ -8,7 +8,7 @@ export type ContactType = 'customer' | 'lead' | 'carrier' | 'shipper' | 'agent' 
 
 export type InboxCounts = {
   mine: number; unassigned: number; unknown: number; all: number; snoozed: number; overdue: number; awaiting: number
-  channels: Partial<Record<Channel, number>>; teams: Record<string, number>
+  channels: Partial<Record<Channel, number>>; teams: Record<string, number>; mailboxes?: Record<string, number>
 }
 
 export type InboxRow = {

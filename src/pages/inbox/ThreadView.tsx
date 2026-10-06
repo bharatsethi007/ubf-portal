@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Package, Plane, RotateCcw, X } from 'lucide-react'
+import { Check, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import AttachmentViewer from './AttachmentViewer'
 import Composer from './Composer'
@@ -8,9 +8,10 @@ import ContactDialog from './ContactDialog'
 import CreateBookingMenu from './CreateBookingMenu'
 import EaBookingDialog from './EaBookingDialog'
 import JobDialog from './JobDialog'
+import JobStatusBar from './JobStatusBar'
 import MessageTimeline from './MessageTimeline'
 import ThreadActions from './ThreadActions'
-import { assign, contactTypeOf, isUnknown, linkJob, setStatus, type EmailAttachment, type InboxDetail, type StaffOption } from './inboxApi'
+import { assign, contactTypeOf, isUnknown, setStatus, type EmailAttachment, type InboxDetail, type StaffOption } from './inboxApi'
 import { avatarColors, CHANNEL_META, initials } from './inboxFormat'
 import { inboxAction } from './EmailParts'
 
@@ -31,7 +32,6 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
   const who = whoOf(detail)
   const unknown = isUnknown(detail)
   const channels = Array.from(new Set(detail.messages.filter((m) => m.kind === 'message').map((m) => m.channel)))
-  const focus = detail.shipments.find((s) => s.focus)
   const typeLabel = detail.account ? 'Customer' : contactTypeOf(detail) ?? (detail.email ? 'Unknown sender' : 'Unknown number')
 
   useEffect(() => {
@@ -90,28 +90,7 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
         </div>
       </header>
 
-      {focus || c.booking_ref ? (
-        <div className="ibx-strip">
-          <Package size={16} color="#0A2472" />
-          <Link to={`/bookings/${focus?.id ?? c.booking_id}`} className="ibx-mono" style={{ fontWeight: 500 }}>{focus?.booking_ref ?? c.booking_ref}</Link>
-          {focus?.stage ? <span className="ibx-chip ibx-chip--ok" style={{ textTransform: 'capitalize' }}>{focus.stage.replace('_', ' ')}</span> : null}
-          {focus?.next_action ? <span style={{ color: '#334155' }}>Next: <span style={{ color: '#0F172A' }}>{focus.next_action}</span></span> : null}
-          {focus?.last_free_day ? <span style={{ color: '#64748B' }}>LFD {new Date(focus.last_free_day).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })}</span> : null}
-          {c.booking_id ? (
-            <button type="button" className="ibx-mail__icon" style={{ marginLeft: 'auto', width: 26, height: 26 }} title="Unlink job" aria-label="Unlink job"
-              onClick={() => run(() => linkJob(c.id, null), 'Unlinked')}><X size={14} /></button>
-          ) : null}
-        </div>
-      ) : null}
-
-      {!c.booking_id && c.eff_status === 'open' && detail.email?.mailbox === 'exportair.nz@ubfreight.com'
-        && detail.messages.some((m) => m.direction === 'in' && m.channel === 'email') && !/^\d{3}-\d{8}\b/.test(c.subject ?? '') ? (
-        <div className="ibx-strip" style={{ background: '#F5F9FD' }}>
-          <Plane size={15} color="#0F6CBD" />
-          <span style={{ color: '#334155' }}>Booking request? Turn this email into an export air booking and pickup.</span>
-          <button type="button" className="ibx-btn" style={{ marginLeft: 'auto', height: 30 }} onClick={() => inboxAction('ea-booking')}>Create export air booking</button>
-        </div>
-      ) : null}
+      <JobStatusBar convId={c.id} refreshKey={`${c.booking_id ?? ''}:${detail.messages.length}`} onChanged={onChanged} />
       <MessageTimeline messages={detail.messages} who={who} />
       <Composer detail={detail} who={who} me={me} onSent={onChanged} />
       {preview ? <AttachmentViewer items={preview.items} index={preview.index} onClose={() => setPreview(null)} /> : null}
