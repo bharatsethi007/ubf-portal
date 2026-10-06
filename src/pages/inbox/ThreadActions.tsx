@@ -1,13 +1,13 @@
 // Thread "Actions" dropdown: jobs, contact, snooze, ignore. Everything that used to live in the side panel.
 import { useEffect, useRef, useState } from 'react'
 import {
-  ChevronDown, Clock, EyeOff, FilePlus2, Link2, PackagePlus, Phone, RefreshCw, Truck, UserPlus, UserRound, UserX,
+  Clock, MoreHorizontal, EyeOff, FilePlus2, Link2, PackagePlus, Phone, RefreshCw, Truck, UserPlus, UserRound, UserX,
 } from 'lucide-react'
 import { toast } from 'sonner'
 import { ignore, setStatus, type InboxDetail } from './inboxApi'
 import { inboxAction, isInlineJunk } from './EmailParts'
 
-const SNOOZES: { label: string; at: () => Date }[] = [
+export const SNOOZES: { label: string; at: () => Date }[] = [
   { label: '1 hour', at: () => new Date(Date.now() + 3600e3) },
   { label: '4 hours', at: () => new Date(Date.now() + 4 * 3600e3) },
   { label: 'Tomorrow 9am', at: () => { const d = new Date(); d.setDate(d.getDate() + 1); d.setHours(9, 0, 0, 0); return d } },
@@ -16,7 +16,8 @@ const SNOOZES: { label: string; at: () => Date }[] = [
 
 type Item = { icon: typeof Clock; label: string; run: () => void; hide?: boolean; danger?: boolean }
 
-export default function ThreadActions({ detail, onChanged }: { detail: InboxDetail; onChanged: () => void }) {
+// hideTrigger: email threads use each email's "..." menu instead; this stays mounted for the ignore handler.
+export default function ThreadActions({ detail, onChanged, hideTrigger = false }: { detail: InboxDetail; onChanged: () => void; hideTrigger?: boolean }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   const c = detail.conversation
@@ -34,7 +35,7 @@ export default function ThreadActions({ detail, onChanged }: { detail: InboxDeta
   }
 
   useEffect(() => {
-    const on = () => void doIgnore(false)
+    const on = (e: Event) => void doIgnore(!!(e as CustomEvent<{ sender?: boolean }>).detail?.sender)
     window.addEventListener('ibx:ignore', on)
     return () => window.removeEventListener('ibx:ignore', on)
   }) // re-binds each render so the handler sees the current conversation
@@ -71,7 +72,11 @@ export default function ThreadActions({ detail, onChanged }: { detail: InboxDeta
 
   return (
     <div ref={box} style={{ position: 'relative' }}>
-      <button type="button" className="ibx-btn" onClick={() => setOpen(!open)} aria-expanded={open}>Actions<ChevronDown size={15} /></button>
+      {hideTrigger ? null : (
+        <button type="button" className="ibx-mail__icon" onClick={() => setOpen(!open)} aria-expanded={open} aria-label="More actions" title="More actions">
+          <MoreHorizontal size={18} />
+        </button>
+      )}
       {open ? (
         <div className="ibx-menu" role="menu" style={{ minWidth: 250, maxHeight: '70vh', overflow: 'auto' }}>
           {groups.map((g) => {

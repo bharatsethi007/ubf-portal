@@ -257,3 +257,7 @@ textarea.ibx-in { height: auto; padding: 6px 9px; resize: vertical; }
 .ibx-navitem__abbr { display: none; font-size: 11px; font-weight: 600; letter-spacing: .02em; }
 .ibx-nav--mini .ibx-navitem__abbr { display: inline; }
 .ibx-nav--mini .ibx-navitem__icon { display: none; }
+.ibx-jsb { flex-wrap: nowrap; }
+.ibx-jsb__steps { flex: 0 1 auto; overflow: hidden; }
+.ibx-jsb__step { width: 84px; flex: 0 1 84px; min-width: 64px; }
+.ibx-thread__head h2 { font-size: 15.5px; font-weight: 600; }

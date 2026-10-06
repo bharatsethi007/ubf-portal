@@ -1,6 +1,6 @@
 // One email in Outlook 365 reading-pane style. Older emails collapse to a single line; actions live in a "..." menu.
 import { useEffect, useRef, useState } from 'react'
-import { Copy, EyeOff, ExternalLink, FilePlus2, Link2, MoreHorizontal, PackagePlus, Paperclip, RefreshCw, ReplyAll, StickyNote } from 'lucide-react'
+import { Copy, EyeOff, ExternalLink, FilePlus2, Link2, MoreHorizontal, PackagePlus, Paperclip, RefreshCw, ReplyAll, StickyNote, UserRound, UserX } from 'lucide-react'
 import { toast } from 'sonner'
 import type { InboxMessage } from './inboxApi'
 import { avatarColors, initials } from './inboxFormat'
@@ -29,7 +29,10 @@ function Menu({ m, text, attIds }: { m: InboxMessage; text: string; attIds: numb
     { icon: StickyNote, label: 'Add internal note', run: () => inboxAction('compose', { mode: 'note' }) },
     { icon: Copy, label: 'Copy text', run: () => void navigator.clipboard.writeText(text).then(() => toast.success('Copied')) },
     ...(m.email?.web_link ? [{ icon: ExternalLink, label: 'Open in Outlook', run: () => window.open(m.email!.web_link!, '_blank', 'noopener') }] : []),
-    { icon: EyeOff, label: 'Ignore', run: () => inboxAction('ignore') },
+    { icon: UserRound, label: 'Who is this? (customer, lead, carrier)', run: () => inboxAction('contact') },
+    { icon: EyeOff, label: 'Ignore conversation', run: () => inboxAction('ignore') },
+    ...(m.direction === 'in' && m.email?.from && !/@ubfreight\.com$/i.test(m.email.from)
+      ? [{ icon: UserX, label: `Ignore sender (${m.email.from})`, run: () => inboxAction('ignore', { sender: true }) }] : []),
   ]
   return (
     <div ref={box} style={{ position: 'relative' }}>
