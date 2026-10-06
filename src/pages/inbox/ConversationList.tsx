@@ -8,8 +8,6 @@ type Props = {
   onSearch: (q: string) => void; onSelect: (id: string) => void
 }
 
-const SLA_COLOR = { late: '#B42318', due: '#B54708', ok: '#64748B', done: '#067647' } as const
-
 function orgLine(r: InboxRow): string {
   if (r.account_name) return r.account_name
   if (r.contact_type) return r.contact_type[0].toUpperCase() + r.contact_type.slice(1)
@@ -48,16 +46,17 @@ export default function ConversationList({ rows, loading, error, view, selectedI
             <span className="ibx-conv__body">
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
                 <span className="ibx-ellip" style={{ fontWeight: strong ? 600 : 500, fontSize: 13.5, flex: '0 1 auto' }}>{r.who}</span>
-                <span className="ibx-ellip" style={{ fontSize: 12, color: unknown ? '#B42318' : '#64748B', flex: '1 1 0' }}>{orgLine(r)}</span>
+                {unknown
+                  ? <span className="ibx-pill ibx-chip--late" style={{ flex: 'none' }}>Unknown</span>
+                  : <span className="ibx-ellip" style={{ fontSize: 12, color: '#64748B', flex: '1 1 0' }}>{orgLine(r)}</span>}
+                {unknown ? <span style={{ flex: 1 }} /> : null}
                 <span style={{ fontSize: 11.5, color: '#64748B', whiteSpace: 'nowrap' }}>{timeAgo(r.last_message_at)}</span>
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <span className="ibx-ellip" style={{ fontSize: 12.5, color: strong ? '#0F172A' : '#475467', flex: 1 }}>
                   {r.last_sender === 'staff' ? 'You: ' : ''}{r.last_preview ?? r.subject ?? ''}
                 </span>
-                {sla && sla.tone !== 'done' ? (
-                  <span style={{ fontSize: 11.5, color: SLA_COLOR[sla.tone], whiteSpace: 'nowrap' }}>{sla.label}</span>
-                ) : null}
+                {sla && sla.tone !== 'done' ? <span className={`ibx-pill ibx-chip--${sla.tone}`}>{sla.label}</span> : null}
                 {strong ? <span className="ibx-unread">{r.unread > 99 ? '99+' : r.unread}</span> : null}
               </span>
             </span>

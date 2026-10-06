@@ -115,3 +115,6 @@ a.ibx-card:hover { border-color: #C7D2FE; }
 .ibx-sugg__chip--act { background: #F7F8FA; }
 .ibx-sugg__chip--ai { background: #F3F6FF; border-color: #D6E0FF; color: #1D4ED8; }
 .ibx-composer { margin-top: 8px; }
+
+.ibx-pill { display: inline-flex; align-items: center; height: 18px; padding: 0 7px; border-radius: 9px; font-size: 11px; font-weight: 500; white-space: nowrap; flex: none; }
+.ibx-chip--ok.ibx-pill { background: #EEF2FF; color: #3730A3; }
