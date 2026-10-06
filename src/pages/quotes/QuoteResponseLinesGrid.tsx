@@ -87,17 +87,22 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
     onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
   }
 
-  // Auto FX, no button needed:
-  // - lines in the response currency always get 1
+  // Auto FX, no button needed. Runs ONCE per line + currency pair, never while typing:
+  // - lines in the response currency get 1
   // - foreign lines still at default (blank / 1) get the live rate
   // - when the response currency changes, every line is re-rated
-  // Manual ex-rates survive otherwise. Waits until rates for this currency have loaded.
+  // After that the ex-rate fields are fully manual. Waits until rates have loaded.
   const fxAppliedFor = useRef(currency)
+  const fxSeen = useRef(new Set<string>())
   useEffect(() => {
     if (fxLoading || fxBase !== currency) return
     const full = fxAppliedFor.current !== currency
+    if (full) fxSeen.current.clear()
     let changed = false
     const next = lines.map((l) => {
+      const key = `${l.id}|${l.buy_currency}|${l.sell_currency}`
+      if (fxSeen.current.has(key)) return l
+      fxSeen.current.add(key)
       const p: Partial<QuoteResponseLine> = {}
       const fix = (cur: string, side: 'buy' | 'sell', cur0: string) => {
         if (!cur) return
@@ -188,7 +193,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
   }
 
   const numInput = (value: string, onCh: (v: string) => void) => (
-    <input type="number" className="qrl-in qrl-num" value={value} onChange={(e) => onCh(e.target.value)} />
+    <input type="text" inputMode="decimal" className="qrl-in qrl-num" value={value} onChange={(e) => { const v = e.target.value; if (v === '' || /^-?\d*\.?\d*$/.test(v)) onCh(v) }} />
   )
 
   return (
