@@ -21,6 +21,7 @@ import { useBookingRecord } from './useBookingRecord'
 import BookingProgressPanel from './progress/BookingProgressPanel'
 import { useBookingProgress } from './progress/useBookingProgress'
 import type { GotoTarget } from './progress/actionPlan'
+import { EmailComposerProvider } from './email/EmailComposerContext'
 import { PortConnectDetailProvider } from './portConnect/PortConnectDetailProvider'
 import { aggregatePortConnectBookingFields } from './portConnect/bookingPortConnectCoalesce'
 import {
@@ -135,6 +136,10 @@ function BookingRecordPageContent({
 
   return (
     <PortConnectDetailProvider containers={tracking.containers}>
+      <EmailComposerProvider
+        deps={{ booking, rows: containerRows, tracking: tracking.containers, progress: progress ?? null, containers: containerNumbers }}
+        onSent={() => { bumpHistory(); void reloadProgress() }}
+      >
       <div className="detail-page booking-record-page bk-root bk-record">
         <BookingRecordNav backHref={backHref} onNewBooking={onNewBooking} />
 
@@ -227,6 +232,7 @@ function BookingRecordPageContent({
           </TabsContent>
         </Tabs>
       </div>
+      </EmailComposerProvider>
     </PortConnectDetailProvider>
   )
 }

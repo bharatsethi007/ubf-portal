@@ -1,11 +1,13 @@
 import { dmy, type BookingProgress } from './progressApi'
 import type { TemplateKey } from './messageTemplates'
+import type { ComposerKind } from '../email/composerPresets'
 
 /** Where an ops CTA takes the user on the record page. */
 export type GotoTarget = 'details' | 'tracking' | 'documents' | 'history' | 'portal_request'
 export type Cta =
   | { kind: 'goto'; label: string; target: GotoTarget }
   | { kind: 'notify'; label: string; template: TemplateKey }
+  | { kind: 'email'; label: string; composer: ComposerKind } // opens the Outlook composer on the record page
 export type ActionPlan = {
   title: string; why: string; tone: 'red' | 'amber' | 'blue' | 'green'
   primary: Cta | null
@@ -43,12 +45,12 @@ export function actionPlan(p: BookingProgress): ActionPlan {
   if (a === 'Confirm arrival') return plan(a, `ETA ${eta} passed. No arrival recorded.`, { kind: 'goto', label: 'Check tracking', target: 'tracking' },
     { template: 'delay', label: 'Warn customer of delay' })
   if (a === 'Book cartage') return plan(a, `Cleared, no truck booked.${p.lfd ? ` Last free day ${lfd}.` : ''}`,
-    { kind: 'goto', label: 'Book cartage', target: 'details' }, { template: 'delivery_time', label: 'Ask customer for delivery time' })
+    { kind: 'email', label: 'Email trucker', composer: 'delivery' }, { template: 'delivery_time', label: 'Ask customer for delivery time' })
   if (a === 'Deliver') return plan(a, `Truck booked. Deliver before last free day ${lfd}.`, { kind: 'goto', label: 'Open cartage', target: 'details' },
     { template: 'status', label: 'Confirm delivery with customer' })
   if (a === 'Book pickup') return plan(a, 'Departure is close and no pickup is booked.', { kind: 'goto', label: 'Book pickup', target: 'details' })
   if (a === 'Return empty') return plan(a, `Delivered. Empty still out${p.depot ? `, returns to ${p.depot}` : ''}.`,
-    { kind: 'notify', label: 'Ask customer about empty', template: 'empty_reminder' })
+    { kind: 'email', label: 'Book empty pickup', composer: 'empty' }, { template: 'empty_reminder', label: 'Ask customer about empty' })
   if (a === 'Approve invoice') return plan(a, 'Job delivered. Invoice not approved.', { kind: 'goto', label: 'Open invoices', target: 'details' })
   if (a === 'Send invoice') return plan(a, 'Invoice approved. Not sent to customer.', { kind: 'goto', label: 'Open invoices', target: 'details' })
   return plan(a, '', null, { template: 'status', label: 'Send status update' })

@@ -3,6 +3,7 @@ import { Check, AlertTriangle, ArrowRight, Mail, MessageCircle, MonitorSmartphon
 import { dmy, type BookingProgress, type Milestone } from './progressApi'
 import { actionPlan, type GotoTarget } from './actionPlan'
 import CustomerUpdateDialog from './CustomerUpdateDialog'
+import { useEmailComposer } from '../email/EmailComposerContext'
 import type { TemplateKey } from './messageTemplates'
 import type { Channel } from './CustomerUpdateDialog'
 import './progress.css'
@@ -44,6 +45,7 @@ export default function BookingProgressPanel({ progress: p, variant = 'wide', co
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem(`bp-collapsed-${variant}`) === '1' } catch { return false } })
   const toggle = () => setCollapsed((c) => { try { localStorage.setItem(`bp-collapsed-${variant}`, c ? '0' : '1') } catch { /* ignore */ } return !c })
   const plan = actionPlan(p)
+  const composer = useEmailComposer()
   const vesselName = vessel ?? p.milestones.find((m) => m.key === 'arrived')?.note ?? null
   const currentIdx = p.milestones.findIndex((m) => !m.done)
   const left = p.milestones.filter((m) => !m.done)
@@ -52,8 +54,10 @@ export default function BookingProgressPanel({ progress: p, variant = 'wide', co
 
   const runPrimary = () => {
     if (!plan.primary) return
-    if (plan.primary.kind === 'notify') open(plan.primary.template)
-    else onGoto?.(plan.primary.target)
+    const c = plan.primary
+    if (c.kind === 'notify') open(c.template)
+    else if (c.kind === 'email') { if (composer) composer.openComposer({ kind: c.composer }); else onGoto?.('details') }
+    else onGoto?.(c.target)
   }
   const defaultTpl: TemplateKey = plan.customer?.template ?? (plan.primary?.kind === 'notify' ? plan.primary.template : 'status')
 
@@ -103,7 +107,7 @@ export default function BookingProgressPanel({ progress: p, variant = 'wide', co
             <div className="bp-next__cta">
               {plan.primary && <button type="button" className="bp-primary" onClick={runPrimary}>{plan.primary.label}</button>}
               <div className="bp-ch">
-                <button type="button" className="bp-ib" title="Email customer" aria-label="Email customer" onClick={() => open(defaultTpl, 'email')}><Mail size={15} /></button>
+                <button type="button" className="bp-ib" title="Email customer" aria-label="Email customer" onClick={() => (composer ? composer.openComposer({ kind: 'customer', template: defaultTpl }) : open(defaultTpl, 'email'))}><Mail size={15} /></button>
                 <button type="button" className="bp-ib" title="WhatsApp customer" aria-label="WhatsApp customer" onClick={() => open(defaultTpl, 'whatsapp')}><MessageCircle size={15} /></button>
                 <button type="button" className="bp-ib" title="Post to customer portal" aria-label="Post to customer portal" onClick={() => open(defaultTpl, 'portal')}><MonitorSmartphone size={15} /></button>
               </div>

@@ -1,7 +1,7 @@
 import { useMemo } from 'react'
 import BookingDatesColumn from './form/BookingDatesColumn'
 import BookingCartageCard from './form/BookingCartageCard'
-import { openDeliveryEmail, openEmptyPickupEmail } from './form/cartageMail'
+import { useEmailComposer } from './email/EmailComposerContext'
 import BookingInvoicesTab from './invoices/BookingInvoicesTab'
 import BookingLeftColumn from './form/BookingLeftColumn'
 import BookingMiddleColumn from './form/BookingMiddleColumn'
@@ -57,6 +57,7 @@ export default function BookingDetailsTab({
   onPatch,
 }: Props) {
   const { staff } = useBookingTasks(bookingId)
+  const composer = useEmailComposer()
 
   const deliveryPrefill = useMemo(
     () =>
@@ -99,12 +100,8 @@ export default function BookingDetailsTab({
         booking={booking}
         deliveryPrefill={deliveryPrefill}
         onPatch={onPatch}
-        onEmailDelivery={() =>
-          void openDeliveryEmail({ booking, rows: containerRows, tracking: trackingContainers })
-        }
-        onEmailEmptyPickup={() =>
-          void openEmptyPickupEmail({ booking, rows: containerRows, tracking: trackingContainers })
-        }
+        onEmailDelivery={() => composer?.openComposer({ kind: 'delivery' })}
+        onEmailEmptyPickup={() => composer?.openComposer({ kind: 'empty' })}
       />
       <BookingTaskPanel
         booking={booking}

@@ -76,7 +76,7 @@ async function resolveMailFields(ctx: CartageMailCtx) {
     try {
       const depots = await listDropOffDepots()
       const d = depots.find((x) => x.code === booking.drop_off_depot)
-      dropOff = d ? `${d.code} — ${d.name}` : booking.drop_off_depot
+      dropOff = d ? `${d.code} - ${d.name}` : booking.drop_off_depot
     } catch {
       dropOff = booking.drop_off_depot
     }
@@ -104,17 +104,15 @@ async function resolveMailFields(ctx: CartageMailCtx) {
   }
 }
 
-function joinLines(lines: Array<string | null>): string {
-  return lines.filter((l): l is string => l != null).join('\n')
-}
-function openMailto(subject: string, body: string): void {
-  window.location.href = `mailto:?subject=${encodeURIComponent(subject)}&body=${encodeURIComponent(body)}`
-}
+export type CartageMail = { subject: string; lines: string[] }
+export type { CartageMailCtx }
 
-export async function openDeliveryEmail(ctx: CartageMailCtx): Promise<void> {
+const keep = (lines: Array<string | null>): string[] => lines.filter((l): l is string => l != null)
+
+export async function buildDeliveryEmail(ctx: CartageMailCtx): Promise<CartageMail> {
   const f = await resolveMailFields(ctx)
   const subject = `${f.ref} ${f.nums} ${f.types} | Delivery to ${f.customer}`
-  const body = joinLines([
+  return { subject, lines: keep([
     'Hi there,',
     '',
     f.terminal
@@ -127,26 +125,17 @@ export async function openDeliveryEmail(ctx: CartageMailCtx): Promise<void> {
     f.door ? `Door direction: ${f.door}` : null,
     f.customer ? `Customer: ${f.customer}` : null,
     f.peak ? `Pickup: ${f.peak}` : null,
-    ...(f.isUbf
-      ? [
-          f.bay ? `Bay: ${f.bay}` : null,
-          f.timeSlot ? `Time slot: ${f.timeSlot}` : null,
-        ]
-      : []),
+    ...(f.isUbf ? [f.bay ? `Bay: ${f.bay}` : null, f.timeSlot ? `Time slot: ${f.timeSlot}` : null] : []),
     f.cartageFull ? '' : null,
     f.cartageFull ? 'Cartage instructions:' : null,
     f.cartageFull ? f.cartageFull : null,
-    '',
-    'Kind regards,',
-    'UB Freight',
-  ])
-  openMailto(subject, body)
+  ]) }
 }
 
-export async function openEmptyPickupEmail(ctx: CartageMailCtx): Promise<void> {
+export async function buildEmptyPickupEmail(ctx: CartageMailCtx): Promise<CartageMail> {
   const f = await resolveMailFields(ctx)
   const subject = `${f.ref} ${f.nums} ${f.types} | Empty Pick up from ${f.customer}`
-  const body = joinLines([
+  return { subject, lines: keep([
     'Hi there,',
     '',
     f.depot
@@ -160,9 +149,5 @@ export async function openEmptyPickupEmail(ctx: CartageMailCtx): Promise<void> {
     f.cartageEmpty ? '' : null,
     f.cartageEmpty ? 'Drop off instructions:' : null,
     f.cartageEmpty ? f.cartageEmpty : null,
-    '',
-    'Kind regards,',
-    'UB Freight',
-  ])
-  openMailto(subject, body)
+  ]) }
 }

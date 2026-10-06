@@ -128,8 +128,8 @@ export default function BookingCartageCard({
         <button
           type="button"
           className="text-link booking-cartage__email-btn"
-          title="Open in Outlook"
-          aria-label="Open in Outlook"
+          title="Email trucking company: delivery"
+          aria-label="Email trucking company: delivery"
           onClick={onEmailDelivery}
         >
           <MailPlus size={16} />
@@ -145,8 +145,8 @@ export default function BookingCartageCard({
         <button
           type="button"
           className="text-link booking-cartage__email-btn"
-          title="Open in Outlook"
-          aria-label="Open in Outlook"
+          title="Email trucking company: empty pickup"
+          aria-label="Email trucking company: empty pickup"
           onClick={onEmailEmptyPickup}
         >
           <MailPlus size={16} />
