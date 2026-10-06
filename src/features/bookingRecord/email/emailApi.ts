@@ -46,8 +46,11 @@ export async function fetchStaffSignature(): Promise<{ name: string; title: stri
 export async function sendBookingEmail(p: SendEmailPayload): Promise<SendEmailResult> {
   const { data, error } = await supabase.functions.invoke('booking-email-send', { body: p })
   if (error) {
-    const ctx = (error as { context?: Response }).context
-    const msg = ctx ? await ctx.json().then((j: { error?: string }) => j.error).catch(() => null) : null
+    // HttpError: context is a Response. FetchError (not deployed, network, CORS): context is not.
+    const ctx = (error as { context?: unknown }).context
+    let msg: string | null = null
+    if (ctx instanceof Response) msg = await ctx.json().then((j: { error?: string }) => j.error ?? null).catch(() => null)
+    else if (error.name === 'FunctionsFetchError') msg = 'Email service unreachable. Is booking-email-send deployed?'
     throw new Error(msg || error.message)
   }
   return data as SendEmailResult
