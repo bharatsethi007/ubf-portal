@@ -1,4 +1,4 @@
-import { CheckCheck, Clock, Inbox, Link2, User } from 'lucide-react'
+import { CheckCheck, Clock, EyeOff, Inbox, Link2, User } from 'lucide-react'
 import type { Channel, InboxCounts, View } from './inboxApi'
 import { CHANNEL_META, TEAM_LABEL } from './inboxFormat'
 
@@ -15,6 +15,7 @@ const VIEWS: { key: View; label: string; icon: typeof User }[] = [
   { key: 'all', label: 'All open', icon: Inbox },
   { key: 'snoozed', label: 'Snoozed', icon: Clock },
   { key: 'closed', label: 'Closed', icon: CheckCheck },
+  { key: 'ignored', label: 'Ignored', icon: EyeOff },
 ]
 
 const CHANNELS: Channel[] = ['whatsapp', 'wechat', 'portal', 'email']
@@ -23,7 +24,7 @@ const TEAMS = ['IS', 'IA', 'ES', 'EA']
 export default function InboxNav({ counts, view, channel, team, onView, onChannel, onTeam }: Props) {
   const viewCount = (k: View): number | null => {
     if (!counts) return null
-    if (k === 'closed') return null
+    if (k === 'closed' || k === 'ignored') return null
     return counts[k] ?? null
   }
   return (

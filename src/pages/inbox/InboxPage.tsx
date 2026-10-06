@@ -1,10 +1,9 @@
-// Unified inbox: WhatsApp + Portal (WeChat/email later) in one place. Realtime via inbox_* tables.
+// Unified inbox: WhatsApp, Portal and shared mailboxes in one place (WeChat later). Realtime via inbox_* tables.
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { supabase } from '../../supabase'
 import ConversationList from './ConversationList'
-import DetailsPanel from './DetailsPanel'
 import InboxNav from './InboxNav'
 import ThreadView from './ThreadView'
 import {
@@ -13,7 +12,7 @@ import {
 } from './inboxApi'
 import './inbox.css'
 
-const VIEWS: View[] = ['mine', 'unassigned', 'unknown', 'all', 'snoozed', 'closed']
+const VIEWS: View[] = ['mine', 'unassigned', 'unknown', 'all', 'snoozed', 'closed', 'ignored']
 
 export default function InboxPage() {
   const [params, setParams] = useSearchParams()
@@ -107,10 +106,7 @@ export default function InboxPage() {
       <ConversationList rows={rows} loading={loading} error={error} view={view}
         selectedId={selectedId} search={search} onSearch={setSearch} onSelect={(id) => patch({ c: id })} />
       {detail ? (
-        <>
-          <ThreadView detail={detail} staff={staff} me={me} onChanged={refresh} />
-          <DetailsPanel detail={detail} onChanged={refresh} />
-        </>
+        <ThreadView detail={detail} staff={staff} me={me} onChanged={refresh} />
       ) : (
         <main className="ibx-thread" style={{ alignItems: 'center', justifyContent: 'center' }}>
           <div className="ibx-empty">{selectedId ? 'Loading conversation…' : 'Pick a conversation'}</div>

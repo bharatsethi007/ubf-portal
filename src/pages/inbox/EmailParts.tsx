@@ -1,6 +1,5 @@
 // Email helpers for the Outlook-style reading pane: body cleanup, quoted-history split, attachment tiles.
 import { FileImage, FileSpreadsheet, FileText, File as FileIcon } from 'lucide-react'
-import { toast } from 'sonner'
 import { fileKey, signedUrl } from '../../lib/fileStore'
 import type { EmailAttachment } from './inboxApi'
 
@@ -9,12 +8,8 @@ export function kb(n: number | null): string {
   return n > 1048576 ? `${(n / 1048576).toFixed(1)} MB` : `${Math.max(1, Math.round(n / 1024))} KB`
 }
 
-export async function openAttachment(a: EmailAttachment) {
-  try {
-    const url = await signedUrl(fileKey('booking-emails', a.s3_key), { expires: 600 })
-    if (url) window.open(url, '_blank', 'noopener')
-  } catch (e) { toast.error(e instanceof Error ? e.message : 'Could not open file') }
-}
+export const attachmentUrl = (a: EmailAttachment, download = false) =>
+  signedUrl(fileKey('booking-emails', a.s3_key), { expires: 900, download: download ? a.name : undefined })
 
 // Plain-text bodies from Graph carry [cid:..] image refs and <http://..> link targets. Strip the noise.
 export function cleanBody(raw: string | null): string {
@@ -48,14 +43,14 @@ function tone(a: EmailAttachment): { Icon: typeof FileIcon; color: string } {
   return { Icon: FileIcon, color: '#605E5C' }
 }
 
-export function AttachmentTiles({ items }: { items: EmailAttachment[] }) {
+export function AttachmentTiles({ items, messageId }: { items: EmailAttachment[]; messageId: number }) {
   if (!items.length) return null
   return (
     <div className="ibx-mail__atts">
       {items.map((a) => {
         const { Icon, color } = tone(a)
         return (
-          <button key={a.s3_key} type="button" className="ibx-mail__att" onClick={() => void openAttachment(a)} title={a.name}>
+          <button key={a.s3_key} type="button" className="ibx-mail__att" onClick={() => inboxAction('preview', { items, index: items.indexOf(a), messageId })} title={a.name}>
             <Icon size={22} color={color} strokeWidth={1.6} />
             <span style={{ minWidth: 0 }}>
               <span className="ibx-ellip" style={{ display: 'block' }}>{a.name}</span>
@@ -74,5 +69,6 @@ export function outlookDate(iso: string): string {
 }
 
 // Composer and booking menu listen for these so per-email actions can drive them.
-export const inboxAction = (name: 'compose' | 'create-booking', detail?: Record<string, unknown>) =>
+export type JobMode = 'link' | 'docs' | 'update'
+export const inboxAction = (name: 'compose' | 'create-booking' | 'preview' | 'job' | 'contact' | 'ignore', detail?: Record<string, unknown>) =>
   window.dispatchEvent(new CustomEvent(`ibx:${name}`, { detail }))

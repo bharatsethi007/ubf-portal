@@ -3,7 +3,7 @@
 import { supabase } from '../../supabase'
 
 export type Channel = 'portal' | 'whatsapp' | 'wechat' | 'email' | 'internal'
-export type View = 'mine' | 'unassigned' | 'unknown' | 'all' | 'snoozed' | 'closed'
+export type View = 'mine' | 'unassigned' | 'unknown' | 'all' | 'snoozed' | 'closed' | 'ignored'
 export type ContactType = 'customer' | 'lead' | 'carrier' | 'shipper' | 'agent' | 'spam'
 
 export type InboxCounts = {
@@ -27,7 +27,7 @@ export type InboxMessage = {
   email: EmailMeta | null
 }
 
-export type EmailAttachment = { name: string; size: number | null; s3_key: string; content_type: string | null }
+export type EmailAttachment = { id: number; name: string; size: number | null; s3_key: string; content_type: string | null }
 export type EmailMeta = {
   subject: string | null; from: string | null; web_link: string | null
   to: { name: string | null; address: string | null }[]; cc: { name: string | null; address: string | null }[]
@@ -44,7 +44,7 @@ export type InboxDetail = {
   conversation: {
     id: string; account_id: string | null; wa_contact_id: string | null; portal_thread_id: string | null
     booking_id: string | null; subject: string | null; team: string | null; assignee_id: string | null
-    assignee_name: string | null; eff_status: 'open' | 'snoozed' | 'closed'; snoozed_until: string | null
+    assignee_name: string | null; eff_status: 'open' | 'snoozed' | 'closed' | 'ignored'; snoozed_until: string | null
     reply_due_at: string | null; first_reply_at: string | null; created_at: string; booking_ref: string | null
     contact_linked: boolean; contact_type: ContactType | null; contact_email: string | null; contact_name: string | null
   }
@@ -82,6 +82,47 @@ export const replyPortal = (id: string, body: string) => rpc<void>('inbox_reply_
 export const linkContact = (id: string, type: ContactType, accountId?: string | null) =>
   rpc<void>('inbox_link_contact', { p_id: id, p_type: type, p_account: accountId ?? null })
 export const fetchStaff = () => rpc<StaffOption[]>('inbox_staff_list')
+export const ignore = (id: string, sender = false) => rpc<{ blocked: string | null }>('inbox_ignore', { p_id: id, p_sender: sender })
+
+export type JobHit = {
+  id: string; booking_ref: string; job_no: string | null; module: string; status: string; customer: string | null
+  customer_ref: string | null; mbl_no: string | null; hawb: string | null; eta: string | null; etd: string | null
+  containers: string | null; linked: boolean
+}
+export const searchJobs = (convId: string, q: string) => rpc<JobHit[]>('inbox_job_search', { p_conv: convId, p_q: q || null })
+export const linkJob = (convId: string, bookingId: string | null) => rpc<void>('inbox_link_job', { p_id: convId, p_booking: bookingId })
+
+export async function fetchDocTags(): Promise<{ id: string; name: string }[]> {
+  const { data, error } = await supabase.from('document_tags').select('id,name').order('name')
+  if (error) throw new Error(error.message)
+  return (data ?? []) as { id: string; name: string }[]
+}
+
+export type JobChange = { field: string; label: string; current: string | number | null; proposed: string | number; unsure: boolean }
+export type JobProposal = { booking_ref: string; changes: JobChange[]; containers: { no: string; type: string | null }[] }
+
+async function invoke<T>(fn: string, body: Record<string, unknown>): Promise<T> {
+  const { data, error } = await supabase.functions.invoke(fn, { body })
+  if (error) {
+    let msg = error.message
+    const ctx = (error as { context?: Response }).context
+    if (ctx && typeof ctx.json === 'function') {
+      try { const j = await ctx.json(); msg = j?.error ?? msg } catch { /* keep default */ }
+    }
+    throw new Error(msg)
+  }
+  const r = (data ?? {}) as T & { error?: string }
+  if (r.error) throw new Error(r.error)
+  return r
+}
+
+export const saveDocsToJob = (convId: string, bookingId: string, attachmentIds: number[], tagId: string | null) =>
+  invoke<{ saved: number; skipped: number; booking_ref: string }>('inbox-job',
+    { action: 'attach', conversation_id: convId, booking_id: bookingId, attachment_ids: attachmentIds, tag_id: tagId })
+export const proposeJobUpdate = (convId: string, bookingId: string, messageId: number | null) =>
+  invoke<JobProposal>('inbox-job', { action: 'propose', conversation_id: convId, booking_id: bookingId, message_id: messageId })
+export const applyJobUpdate = (convId: string, bookingId: string, changes: Record<string, unknown>, containers: { no: string; type: string | null }[]) =>
+  invoke<{ booking_ref: string; updated: string[] }>('inbox-job', { action: 'apply', conversation_id: convId, booking_id: bookingId, changes, containers })
 
 export async function replyWhatsApp(conversationId: string, contactId: string, text: string): Promise<void> {
   const { data, error } = await supabase.functions.invoke('whatsapp-reply', {

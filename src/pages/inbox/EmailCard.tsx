@@ -1,6 +1,6 @@
 // One email in Outlook 365 reading-pane style. Older emails collapse to a single line; actions live in a "..." menu.
 import { useEffect, useRef, useState } from 'react'
-import { Copy, ExternalLink, MoreHorizontal, PackagePlus, Paperclip, ReplyAll, StickyNote } from 'lucide-react'
+import { Copy, EyeOff, ExternalLink, FilePlus2, Link2, MoreHorizontal, PackagePlus, Paperclip, RefreshCw, ReplyAll, StickyNote } from 'lucide-react'
 import { toast } from 'sonner'
 import type { InboxMessage } from './inboxApi'
 import { avatarColors, initials } from './inboxFormat'
@@ -9,7 +9,7 @@ import { AttachmentTiles, cleanBody, inboxAction, isInlineJunk, outlookDate, spl
 type Addr = { name: string | null; address: string | null }
 const names = (l: Addr[] | undefined) => (l ?? []).map((a) => a.name || a.address).filter(Boolean).join('; ')
 
-function Menu({ m, text }: { m: InboxMessage; text: string }) {
+function Menu({ m, text, attIds }: { m: InboxMessage; text: string; attIds: number[] }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -22,9 +22,13 @@ function Menu({ m, text }: { m: InboxMessage; text: string }) {
   const items = [
     { icon: ReplyAll, label: 'Reply all', run: () => inboxAction('compose', { mode: 'reply', via: 'email' }) },
     { icon: PackagePlus, label: 'Create booking', run: () => inboxAction('create-booking') },
+    { icon: RefreshCw, label: 'Update job from this email', run: () => inboxAction('job', { mode: 'update', messageId: m.id }) },
+    ...(attIds.length ? [{ icon: FilePlus2, label: 'Save attachments to job', run: () => inboxAction('job', { mode: 'docs', attachmentIds: attIds }) }] : []),
+    { icon: Link2, label: 'Link to job', run: () => inboxAction('job', { mode: 'link' }) },
     { icon: StickyNote, label: 'Add internal note', run: () => inboxAction('compose', { mode: 'note' }) },
     { icon: Copy, label: 'Copy text', run: () => void navigator.clipboard.writeText(text).then(() => toast.success('Copied')) },
     ...(m.email?.web_link ? [{ icon: ExternalLink, label: 'Open in Outlook', run: () => window.open(m.email!.web_link!, '_blank', 'noopener') }] : []),
+    { icon: EyeOff, label: 'Ignore', run: () => inboxAction('ignore') },
   ]
   return (
     <div ref={box} style={{ position: 'relative' }}>
@@ -77,11 +81,11 @@ export default function EmailCard({ m, initiallyOpen }: { m: InboxMessage; initi
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 'none' }}>
           <button type="button" className="ibx-mail__icon" aria-label="Reply all" title="Reply all"
             onClick={() => inboxAction('compose', { mode: 'reply', via: 'email' })}><ReplyAll size={17} /></button>
-          <Menu m={m} text={body} />
+          <Menu m={m} text={body} attIds={atts.map((a) => a.id)} />
           <span className="ibx-mail__date" style={{ marginLeft: 6 }}>{outlookDate(m.created_at)}</span>
         </div>
       </header>
-      <AttachmentTiles items={atts} />
+      <AttachmentTiles items={atts} messageId={m.id} />
       <div className="ibx-mail__body">{(main || '(no text)').split(/\n{2,}/).map((para, i) => <p key={i}>{para}</p>)}</div>
       {rest ? (
         <>

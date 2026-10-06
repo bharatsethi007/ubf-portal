@@ -11,7 +11,8 @@ const MODULES = [
   { code: 'ES', label: 'Export Sea' }, { code: 'EA', label: 'Export Air' },
 ] as const
 
-export default function CreateBookingMenu({ detail }: { detail: InboxDetail }) {
+// bare = no button of its own; opened from the Actions menu or an email's "..." menu.
+export default function CreateBookingMenu({ detail, bare = false }: { detail: InboxDetail; bare?: boolean }) {
   const nav = useNavigate()
   const team = detail.conversation.team
   const [open, setOpen] = useState(false)
@@ -48,10 +49,12 @@ export default function CreateBookingMenu({ detail }: { detail: InboxDetail }) {
   }
 
   return (
-    <div ref={box} style={{ position: 'relative' }}>
-      <button type="button" className="ibx-btn" onClick={() => setOpen(!open)} aria-expanded={open}>
-        <PackagePlus size={15} />Create booking
-      </button>
+    <div ref={box} style={bare ? undefined : { position: 'relative' }}>
+      {bare ? null : (
+        <button type="button" className="ibx-btn" onClick={() => setOpen(!open)} aria-expanded={open}>
+          <PackagePlus size={15} />Create booking
+        </button>
+      )}
       {open ? (
         <div className="ibx-pop" role="dialog" aria-label="Create booking">
           <div style={{ fontSize: 12, color: '#64748B', marginBottom: 6 }}>Module</div>

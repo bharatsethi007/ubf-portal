@@ -24,7 +24,7 @@ export default function ConversationList({ rows, loading, error, view, selectedI
             value={search} onChange={(e) => onSearch(e.target.value)} />
         </label>
         <div style={{ fontSize: 12, color: '#64748B' }}>
-          {loading ? 'Loading…' : `${rows.length} ${view === 'closed' ? 'closed' : view === 'snoozed' ? 'snoozed' : 'open'} · most urgent first`}
+          {loading ? 'Loading…' : `${rows.length} ${view === 'closed' || view === 'snoozed' || view === 'ignored' ? view : 'open'} · most urgent first`}
         </div>
       </div>
 
@@ -33,7 +33,7 @@ export default function ConversationList({ rows, loading, error, view, selectedI
 
       {rows.map((r) => {
         const unknown = !r.account_id && !r.contact_type
-        const sla = view === 'closed' ? null : slaFor(r)
+        const sla = view === 'closed' || view === 'ignored' ? null : slaFor(r)
         const ch = r.last_channel ?? r.channels[0] ?? 'portal'
         const strong = r.unread > 0
         return (
