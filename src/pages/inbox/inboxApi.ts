@@ -93,16 +93,3 @@ export async function searchAccounts(q: string): Promise<{ account_id: string; n
   if (error) throw new Error(error.message)
   return (data ?? []) as { account_id: string; name: string }[]
 }
-
-export async function aiSuggest(conversationId: string): Promise<{ label: string; text: string }[]> {
-  const { data, error } = await supabase.functions.invoke('inbox-suggest', { body: { conversation_id: conversationId } })
-  if (error) {
-    let msg = error.message
-    const ctx = (error as { context?: Response }).context
-    if (ctx && typeof ctx.json === 'function') {
-      try { const j = await ctx.json(); msg = j?.error ?? msg } catch { /* keep default */ }
-    }
-    throw new Error(msg)
-  }
-  return ((data ?? {}) as { replies?: { label: string; text: string }[] }).replies ?? []
-}
