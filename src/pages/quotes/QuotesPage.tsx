@@ -3,11 +3,16 @@ import { useNavigate } from 'react-router-dom'
 import { Plus, Search, List, LayoutGrid, CalendarDays, Plane, Container, Boxes } from 'lucide-react'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
+import { usePorts } from '../../hooks/usePorts'
+import { resolvePortLabel } from '../../features/portal/dashboard/portalPortDisplay'
 import { useStaffList } from '../../hooks/useStaffList'
 import { usePerm } from '../../access/PermissionsProvider'
 import QuotesListView from './QuotesListView'
 import QuotesKanban from './QuotesKanban'
 import QuotesCalendar from './QuotesCalendar'
+import QuotesStatsStrip from './QuotesStatsStrip'
+import QuotesPortFilter from './QuotesPortFilter'
+import type { PortPair } from './quotesStatsApi'
 
 type View = 'list' | 'kanban' | 'calendar'
 
@@ -30,6 +35,9 @@ export default function QuotesPage() {
   const canAddQuote = usePerm('quotes', 'add')
   const { ports } = useSeaPorts()
   const { staff } = useStaffList()
+  const { ports: allPorts } = usePorts()
+  const [lane, setLane] = useState<PortPair>({ from: null, to: null })
+  const [statsKey, setStatsKey] = useState(0)
 
   const [view, setView] = useState<View>('list')
   const [mode, setMode] = useState<ModeFilter>('all')
@@ -50,6 +58,7 @@ export default function QuotesPage() {
   const portName = (code: string | null) => (code ? portMap.get(code) ?? code : '—')
   const staffName = (id: string | null) => (id ? staffMap.get(id) ?? '—' : '—')
   const openQuote = (id: string) => navigate(`/quotes/${id}`)
+  const laneName = (code: string) => resolvePortLabel(code, null, allPorts)
 
   return (
     <div className="quotes-page">
@@ -57,6 +66,8 @@ export default function QuotesPage() {
         <header className="quotes-page__head">
           <h1>Quotations</h1>
         </header>
+
+        <QuotesStatsStrip mode={view === 'list' ? mode : 'all'} lane={lane} refreshKey={statsKey} />
 
         <div className="quotes-page__toolbar">
           <label className="quotes-page__search">
@@ -68,6 +79,8 @@ export default function QuotesPage() {
               onChange={(e) => setSearch(e.target.value)}
             />
           </label>
+
+          <QuotesPortFilter value={lane} onChange={setLane} portName={laneName} />
 
           <div className="quotes-page__actions">
             {view === 'list' && (
@@ -123,18 +136,21 @@ export default function QuotesPage() {
             portMap={portMap}
             staffMap={staffMap}
             mode={mode}
+            lane={lane}
+            onChanged={() => setStatsKey((k) => k + 1)}
           />
         )}
         {view === 'kanban' && (
           <QuotesKanban
             search={debouncedSearch}
+            lane={lane}
             onOpen={openQuote}
             portName={portName}
             staffName={staffName}
           />
         )}
         {view === 'calendar' && (
-          <QuotesCalendar search={debouncedSearch} onOpen={openQuote} />
+          <QuotesCalendar search={debouncedSearch} lane={lane} onOpen={openQuote} />
         )}
       </div>
     </div>

@@ -7,6 +7,7 @@ import { deleteQuotes, setQuotesStatus } from './quotesApi'
 import QuotesTable from './QuotesTable'
 import BulkStatusModal from './BulkStatusModal'
 import { quotesTableColumns, STATUS_TABS, type QuoteRow } from './quotesTableColumns'
+import type { PortPair } from './quotesStatsApi'
 
 const PAGE_SIZE_OPTIONS = [25, 50, 100, 500]
 
@@ -31,9 +32,11 @@ type Props = {
   portMap: Map<string, string>
   staffMap: Map<string, string>
   mode: 'all' | 'air' | 'fcl' | 'lcl'
+  lane: PortPair
+  onChanged?: () => void
 }
 
-export default function QuotesListView({ search, onOpen, portMap, staffMap, mode }: Props) {
+export default function QuotesListView({ search, onOpen, portMap, staffMap, mode, lane, onChanged }: Props) {
   const [statusTab, setStatusTab] = useState<string>('open')
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(25)
@@ -51,7 +54,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
   useEffect(() => {
     setPage(1)
     setSelectedIds(new Set())
-  }, [search, statusTab, pageSize, mode])
+  }, [search, statusTab, pageSize, mode, lane])
 
   const reload = useCallback(async () => {
     const my = ++reqId.current
@@ -74,6 +77,8 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
 
     const term = search.trim()
     if (term) query = query.or(`quote_no.ilike.%${term}%,customer_name.ilike.%${term}%`)
+    if (lane.from) query = query.ilike('from_port_code', lane.from)
+    if (lane.to) query = query.ilike('to_port_code', lane.to)
 
     const { data, error: err, count } = await query.range(from, to)
     if (my !== reqId.current) return
@@ -103,7 +108,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
       setTotal(count ?? 0)
     }
     setLoading(false)
-  }, [page, pageSize, search, statusTab, mode])
+  }, [page, pageSize, search, statusTab, mode, lane])
 
   useEffect(() => { reload() }, [reload])
 
@@ -136,6 +141,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
       toast.success(`Deleted ${ids.length} quote${ids.length > 1 ? 's' : ''}`)
       setSelectedIds(new Set())
       await reload()
+      onChanged?.()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Delete failed')
     } finally {
@@ -158,6 +164,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
       setStatusModalOpen(false)
       setSelectedIds(new Set())
       await reload()
+      onChanged?.()
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Update failed')
     } finally {

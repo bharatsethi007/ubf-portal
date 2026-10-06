@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { PortPair } from './quotesStatsApi'
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 import {
   addDays, addMonths, addWeeks, eachDayOfInterval, endOfMonth, endOfWeek,
@@ -9,6 +10,7 @@ import { modeTag } from './quoteCardMeta'
 
 type Props = {
   search: string
+  lane: PortPair
   onOpen: (id: string) => void
 }
 
@@ -23,7 +25,7 @@ function dayKey(value: string | null, basis: DateBasis): string | null {
   return value.slice(0, 10)
 }
 
-export default function QuotesCalendar({ search, onOpen }: Props) {
+export default function QuotesCalendar({ search, lane, onOpen }: Props) {
   const [mode, setMode] = useState<Mode>('week')
   const [basis, setBasis] = useState<DateBasis>('created_at')
   const [anchor, setAnchor] = useState<Date>(() => new Date())
@@ -51,7 +53,7 @@ export default function QuotesCalendar({ search, onOpen }: Props) {
     setLoading(true)
     const fromIso = format(gridStart, 'yyyy-MM-dd')
     const toIso = format(addDays(gridEnd, 1), 'yyyy-MM-dd') // exclusive upper bound
-    listCalendarQuotes(basis, fromIso, toIso, search)
+    listCalendarQuotes(basis, fromIso, toIso, search, lane)
       .then((data) => {
         if (my !== reqId.current) return
         setRows(data)
@@ -65,7 +67,7 @@ export default function QuotesCalendar({ search, onOpen }: Props) {
       .finally(() => {
         if (my === reqId.current) setLoading(false)
       })
-  }, [basis, gridStart, gridEnd, search])
+  }, [basis, gridStart, gridEnd, search, lane])
 
   const byDay = useMemo(() => {
     const m = new Map<string, BoardQuote[]>()

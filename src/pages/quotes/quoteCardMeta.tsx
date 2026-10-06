@@ -3,8 +3,6 @@ import { Plane, Boxes, Container, Ship, type LucideIcon } from 'lucide-react'
 // Kanban column order + labels. Keys match the `quotes.status` values.
 export const BOARD_COLUMNS: { key: string; label: string }[] = [
   { key: 'open', label: 'Open' },
-  { key: 'published', label: 'Published' },
-  { key: 'sent', label: 'Quotation Sent' },
   { key: 'won', label: 'Won' },
   { key: 'lost', label: 'Lost' },
   { key: 'crosswin', label: 'Cross Win' },

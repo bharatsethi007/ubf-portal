@@ -30,6 +30,7 @@ import { serviceTypeForIncoterm } from '../rates/incotermLegs'
 import PartyPicker from './PartyPicker'
 import QuoteContactSelect from './QuoteContactSelect'
 import ExternalNotesField from './ExternalNotesField'
+import QuotePreviewBubble from './QuotePreviewBubble'
 import './quoteDetailPage.css'
 
 const SIZES: { value: ContainerSize; label: string }[] = [
@@ -597,6 +598,7 @@ export default function QuoteDetailPage() {
           />
         </div>
       </div>
+      <QuotePreviewBubble quoteId={quote.id} quoteNo={quote.quote_no} />
     </div>
   )
 }

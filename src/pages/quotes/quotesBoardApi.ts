@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import type { PortPair } from './quotesStatsApi'
 
 // Shared shape for Kanban cards and Calendar events. Wider than the list row
 // because cards surface pickup/delivery dates and the calendar keys on them.
@@ -30,7 +31,7 @@ const BOARD_COLS =
   'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_by, created_at, pickup_date, delivery_date'
 
 // Kanban loads the whole board (capped) and groups client-side by status.
-export async function listBoardQuotes(search: string): Promise<BoardQuote[]> {
+export async function listBoardQuotes(search: string, lane?: PortPair): Promise<BoardQuote[]> {
   let query = supabase
     .from('quotes')
     .select(BOARD_COLS)
@@ -39,6 +40,8 @@ export async function listBoardQuotes(search: string): Promise<BoardQuote[]> {
 
   const term = search.trim()
   if (term) query = query.or(`quote_no.ilike.%${term}%,customer_name.ilike.%${term}%`)
+  if (lane?.from) query = query.ilike('from_port_code', lane.from)
+  if (lane?.to) query = query.ilike('to_port_code', lane.to)
 
   const { data, error } = await query
   if (error) throw error
@@ -52,6 +55,7 @@ export async function listCalendarQuotes(
   fromIso: string,
   toIso: string,
   search: string,
+  lane?: PortPair,
 ): Promise<BoardQuote[]> {
   let query = supabase
     .from('quotes')
@@ -64,6 +68,8 @@ export async function listCalendarQuotes(
 
   const term = search.trim()
   if (term) query = query.or(`quote_no.ilike.%${term}%,customer_name.ilike.%${term}%`)
+  if (lane?.from) query = query.ilike('from_port_code', lane.from)
+  if (lane?.to) query = query.ilike('to_port_code', lane.to)
 
   const { data, error } = await query
   if (error) throw error

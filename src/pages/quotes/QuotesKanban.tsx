@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { PortPair } from './quotesStatsApi'
 import { toast } from 'sonner'
 import { setQuoteStatus } from './quotesApi'
 import { listBoardQuotes, type BoardQuote } from './quotesBoardApi'
@@ -6,6 +7,7 @@ import { BOARD_COLUMNS, STATUS_ACCENT, CARD_STATUS_OPTIONS, modeTag } from './qu
 
 type Props = {
   search: string
+  lane: PortPair
   onOpen: (id: string) => void
   portName: (code: string | null) => string
   staffName: (id: string | null) => string
@@ -19,7 +21,7 @@ function fmtDay(iso: string | null): string {
     : d.toLocaleDateString('en-NZ', { day: '2-digit', month: 'short' })
 }
 
-export default function QuotesKanban({ search, onOpen, portName, staffName }: Props) {
+export default function QuotesKanban({ search, lane, onOpen, portName, staffName }: Props) {
   const [rows, setRows] = useState<BoardQuote[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
@@ -30,7 +32,7 @@ export default function QuotesKanban({ search, onOpen, portName, staffName }: Pr
   useEffect(() => {
     const my = ++reqId.current
     setLoading(true)
-    listBoardQuotes(search)
+    listBoardQuotes(search, lane)
       .then((data) => {
         if (my !== reqId.current) return
         setRows(data)
@@ -44,7 +46,7 @@ export default function QuotesKanban({ search, onOpen, portName, staffName }: Pr
       .finally(() => {
         if (my === reqId.current) setLoading(false)
       })
-  }, [search])
+  }, [search, lane])
 
   const byStatus = useMemo(() => {
     const m = new Map<string, BoardQuote[]>()

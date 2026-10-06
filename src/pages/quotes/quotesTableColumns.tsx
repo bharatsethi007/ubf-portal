@@ -1,6 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import {
-  Files, FolderOpen, Send, Share2, Trophy, XCircle, Repeat2,
+  Files, FolderOpen, Trophy, XCircle, Repeat2,
   Plane, Boxes, Container, Ship, Mail, Globe, PenLine, ArrowDownToLine, ArrowUpFromLine, type LucideIcon,
 } from 'lucide-react'
 
@@ -22,8 +22,6 @@ export type QuoteRow = {
 export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
   { key: 'all', label: 'All Quotes', Icon: Files },
   { key: 'open', label: 'Open', Icon: FolderOpen },
-  { key: 'published', label: 'Published', Icon: Share2 },
-  { key: 'sent', label: 'Sent', Icon: Send },
   { key: 'won', label: 'Won', Icon: Trophy },
   { key: 'lost', label: 'Lost', Icon: XCircle },
   { key: 'crosswin', label: 'Cross win', Icon: Repeat2 },
@@ -32,8 +30,6 @@ export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
 // Selectable target statuses for the bulk change-status modal.
 export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'open', label: 'Open' },
-  { value: 'published', label: 'Published' },
-  { value: 'sent', label: 'Sent' },
   { value: 'won', label: 'Won' },
   { value: 'lost', label: 'Lost' },
   { value: 'crosswin', label: 'Cross win' },
