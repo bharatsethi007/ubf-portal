@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { ChevronUp, ChevronDown, Copy, Trash2, Plus, LayoutTemplate, Save, Truck } from 'lucide-react'
+import { ChevronUp, ChevronDown, Copy, Trash2, Plus, LayoutTemplate, Save, Truck, Pencil } from 'lucide-react'
 import { toast } from 'sonner'
 import RefSelect from '../../components/common/RefSelect'
 import { useChargeUnits, useTaxRates, useCurrencies, useChargeGroups, useChargeCodes } from '../../hooks/useQuoteRefData'
@@ -15,6 +15,7 @@ import { fetchEffectiveRates } from '../setup/fxRatesApi'
 import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
 import QuoteResponseTemplateDialogs from './QuoteResponseTemplateDialogs'
 import CartageSearchDialog from './CartageSearchDialog'
+import ChargeCodeEditDialog, { type EditableCode } from './ChargeCodeEditDialog'
 import { qtyForUnit, type UnitQty } from './quoteUnitQty'
 import { useResponseLineUnits } from './useResponseLineUnits'
 import './quoteResponseLinesGrid.css'
@@ -74,6 +75,18 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
     for (const c of chargeCodes) m.set(c.description.toLowerCase(), c.charge_group)
     return m
   }, [chargeCodes])
+  const codeObjByDesc = useMemo(() => new Map(chargeCodes.map((c) => [c.description.trim().toLowerCase(), c])), [chargeCodes])
+  const unitOptionsAll = useMemo(() => units.map((u) => ({ value: u.code, label: u.label })), [units])
+  const [editCode, setEditCode] = useState<EditableCode | null>(null)
+  async function onCodeSaved(oldDesc: string, next: EditableCode) {
+    setEditCode(null)
+    await refreshCodes()
+    // Follow a rename on every line of this response that used the old wording.
+    const old = oldDesc.trim().toLowerCase()
+    if (old !== next.description.trim().toLowerCase()) {
+      onChange(lines.map((l) => (l.description.trim().toLowerCase() === old ? { ...l, description: next.description } : l)))
+    }
+  }
 
   const round4 = (n: number) => String(Math.round(n * 10000) / 10000)
   function exFor(cur: string, side: 'buy' | 'sell'): string | null {
@@ -259,6 +272,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
                     </div>
                   </td>
                   <td className="qrl-c-desc">
+                    <div className="flex items-center gap-1">
                     <input className="qrl-in" list="qrl-charge-codes" value={l.description}
                       onChange={(e) => {
                         const v = e.target.value
@@ -267,6 +281,13 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
                         // Picked a known charge code: fill its group, and its default unit when valid for this mode.
                         update(l.id, { description: v, charge_group: grp, ...defaultUnitPatch(v) })
                       }} />
+                    {codeObjByDesc.get(l.description.trim().toLowerCase()) && (
+                      <button type="button" className="qrl-iconbtn" title="Edit charge code" aria-label="Edit charge code"
+                        onClick={() => setEditCode(codeObjByDesc.get(l.description.trim().toLowerCase()) ?? null)}>
+                        <Pencil size={13} />
+                      </button>
+                    )}
+                    </div>
                     {l.description.trim() && !codeByDesc.has(l.description.trim().toLowerCase()) && (
                       <button type="button" className="qrl-addcode-btn" disabled={addingFor === l.id}
                         onClick={async () => {
@@ -360,6 +381,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
         onSaveTemplate={() => void handleSaveTemplate()}
       />
 
+      <ChargeCodeEditDialog code={editCode} groups={groupOptions} units={unitOptionsAll} onClose={() => setEditCode(null)} onSaved={(o, n) => void onCodeSaved(o, n)} />
       <datalist id="qrl-charge-codes">
         {chargeCodes.map((c) => <option key={c.code} value={c.description}>{c.code} — {c.description}</option>)}
       </datalist>
