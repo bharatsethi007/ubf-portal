@@ -5,6 +5,7 @@ import { useNavigate } from 'react-router-dom'
 import { PackagePlus, Sparkles, Zap } from 'lucide-react'
 import { toast } from 'sonner'
 import { createBookingFromConversation, type InboxDetail } from './inboxApi'
+import { inboxAction } from './EmailParts'
 
 const MODULES = [
   { code: 'IS', label: 'Import Sea' }, { code: 'IA', label: 'Import Air' },
@@ -63,18 +64,28 @@ export default function CreateBookingMenu({ detail, bare = false }: { detail: In
               <button key={m.code} type="button" className={mod === m.code ? 'on' : ''} onClick={() => setMod(m.code)}>{m.label}</button>
             ))}
           </div>
+          {mod === 'EA' ? (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
+              <button type="button" className="ibx-opt" onClick={() => { setOpen(false); inboxAction('ea-booking') }}>
+                <span className="ibx-opt__icon" style={{ background: '#F1F5F9', color: '#334155' }}><Zap size={15} /></span>
+                <span><span style={{ display: 'block', fontSize: 13, fontWeight: 500 }}>Review and create</span>
+                  <span style={{ display: 'block', fontSize: 12, color: '#64748B' }}>Prefilled from the email, AI fill optional. Books the pickup too.</span></span>
+              </button>
+            </div>
+          ) : (
           <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 12 }}>
-            <button type="button" className="ibx-opt" disabled={!!busy} onClick={() => void go('quick')}>
-              <span className="ibx-opt__icon" style={{ background: '#F1F5F9', color: '#334155' }}><Zap size={15} /></span>
-              <span><span style={{ display: 'block', fontSize: 13, fontWeight: 500 }}>{busy === 'quick' ? 'Creating…' : 'Quick draft'}</span>
-                <span style={{ display: 'block', fontSize: 12, color: '#64748B' }}>Customer, containers, attachments. Free.</span></span>
-            </button>
-            <button type="button" className="ibx-opt" disabled={!!busy} onClick={() => void go('ai')}>
-              <span className="ibx-opt__icon" style={{ background: '#F3F6FF', color: '#1D4ED8' }}><Sparkles size={15} /></span>
-              <span><span style={{ display: 'block', fontSize: 13, fontWeight: 500 }}>{busy === 'ai' ? 'Reading email…' : 'AI fill'}</span>
-                <span style={{ display: 'block', fontSize: 12, color: '#64748B' }}>Reads email + PDFs, fills the form. ~2c.</span></span>
-            </button>
+              <button type="button" className="ibx-opt" disabled={!!busy} onClick={() => void go('quick')}>
+                <span className="ibx-opt__icon" style={{ background: '#F1F5F9', color: '#334155' }}><Zap size={15} /></span>
+                <span><span style={{ display: 'block', fontSize: 13, fontWeight: 500 }}>{busy === 'quick' ? 'Creating…' : 'Quick draft'}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: '#64748B' }}>Customer, containers, attachments. Free.</span></span>
+              </button>
+              <button type="button" className="ibx-opt" disabled={!!busy} onClick={() => void go('ai')}>
+                <span className="ibx-opt__icon" style={{ background: '#F3F6FF', color: '#1D4ED8' }}><Sparkles size={15} /></span>
+                <span><span style={{ display: 'block', fontSize: 13, fontWeight: 500 }}>{busy === 'ai' ? 'Reading email…' : 'AI fill'}</span>
+                  <span style={{ display: 'block', fontSize: 12, color: '#64748B' }}>Reads email + PDFs, fills the form. ~2c.</span></span>
+              </button>
           </div>
+          )}
         </div>
       ) : null}
     </div>

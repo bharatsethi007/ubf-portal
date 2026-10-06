@@ -205,3 +205,25 @@ a.ibx-card:hover { border-color: #C7D2FE; }
 .ibx-mail__skel { height: 12px; margin: 8px 0; border-radius: 4px; background: linear-gradient(90deg, #F3F2F1, #EDEBE9, #F3F2F1); background-size: 200% 100%; animation: ibx-skel 1.2s infinite; }
 @keyframes ibx-skel { from { background-position: 200% 0; } to { background-position: -200% 0; } }
 @media (max-width: 720px) { .ibx-mail__html { padding-left: 16px; } }
+
+/* Booking review forms */
+.ibx-in { box-sizing: border-box; width: 100%; height: 32px; padding: 0 9px; border: 1px solid #D1D1D1; border-radius: 4px; background: #fff;
+  font: inherit; font-size: 13px; color: #242424; }
+textarea.ibx-in { height: auto; padding: 6px 9px; resize: vertical; }
+.ibx-in:focus { outline: none; border-color: #0F6CBD; box-shadow: 0 0 0 1px #0F6CBD; }
+.ibx-in--num { text-align: right; }
+.ibx-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 8px 10px; }
+.ibx-grid4 { display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px 10px; }
+.ibx-field { display: flex; flex-direction: column; gap: 4px; font-size: 12px; color: #605E5C; min-width: 0; }
+.ibx-field--check .ibx-in { border-color: #F59E0B; background: #FFFBEB; }
+.ibx-fs { border: 1px solid #E1DFDD; border-radius: 6px; padding: 8px 10px 10px; margin: 0; min-width: 0; }
+.ibx-fs legend { font-size: 12px; color: #605E5C; padding: 0 4px; }
+.ibx-check { display: flex; align-items: center; gap: 8px; font-size: 13px; margin-top: 10px; }
+.ibx-lines { border: 1px solid #E1DFDD; border-radius: 6px; padding: 6px 8px; }
+.ibx-lines__head, .ibx-lines__row { display: grid; grid-template-columns: 80px repeat(3, 1fr) 1.2fr 28px; gap: 6px; align-items: center; }
+.ibx-lines__head { font-size: 11.5px; color: #8A8886; padding: 2px 0 4px; }
+.ibx-lines__head span { text-align: right; }
+.ibx-lines__row { margin-bottom: 4px; }
+.ibx-lines__foot { display: flex; align-items: center; font-size: 12.5px; color: #424242; padding-top: 4px; }
+@media (max-width: 720px) { .ibx-grid2, .ibx-grid4 { grid-template-columns: 1fr; } }
+.ibx-checknote { margin-bottom: 12px; padding: 8px 12px; border: 1px solid #F5DDA6; background: #FFF8E8; border-radius: 6px; font-size: 12.5px; color: #5C3D00; line-height: 1.5; }

@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, Package, RotateCcw, X } from 'lucide-react'
+import { Check, Package, Plane, RotateCcw, X } from 'lucide-react'
 import { toast } from 'sonner'
 import AttachmentViewer from './AttachmentViewer'
 import Composer from './Composer'
 import ContactDialog from './ContactDialog'
 import CreateBookingMenu from './CreateBookingMenu'
+import EaBookingDialog from './EaBookingDialog'
 import JobDialog from './JobDialog'
 import MessageTimeline from './MessageTimeline'
 import ThreadActions from './ThreadActions'
@@ -103,10 +104,19 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
         </div>
       ) : null}
 
+      {!c.booking_id && c.eff_status === 'open' && detail.email?.mailbox === 'exportair.nz@ubfreight.com'
+        && detail.messages.some((m) => m.direction === 'in' && m.channel === 'email') && !/^\d{3}-\d{8}\b/.test(c.subject ?? '') ? (
+        <div className="ibx-strip" style={{ background: '#F5F9FD' }}>
+          <Plane size={15} color="#0F6CBD" />
+          <span style={{ color: '#334155' }}>Booking request? Turn this email into an export air booking and pickup.</span>
+          <button type="button" className="ibx-btn" style={{ marginLeft: 'auto', height: 30 }} onClick={() => inboxAction('ea-booking')}>Create export air booking</button>
+        </div>
+      ) : null}
       <MessageTimeline messages={detail.messages} who={who} />
       <Composer detail={detail} who={who} me={me} onSent={onChanged} />
       {preview ? <AttachmentViewer items={preview.items} index={preview.index} onClose={() => setPreview(null)} /> : null}
       <JobDialog detail={detail} onChanged={onChanged} />
+      <EaBookingDialog detail={detail} onChanged={onChanged} />
       <ContactDialog detail={detail} onChanged={onChanged} />
     </main>
   )

@@ -70,5 +70,5 @@ export function outlookDate(iso: string): string {
 
 // Composer and booking menu listen for these so per-email actions can drive them.
 export type JobMode = 'link' | 'docs' | 'update'
-export const inboxAction = (name: 'compose' | 'create-booking' | 'preview' | 'job' | 'contact' | 'ignore', detail?: Record<string, unknown>) =>
+export const inboxAction = (name: 'compose' | 'create-booking' | 'preview' | 'job' | 'contact' | 'ignore' | 'ea-booking', detail?: Record<string, unknown>) =>
   window.dispatchEvent(new CustomEvent(`ibx:${name}`, { detail }))
