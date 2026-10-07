@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, FileText, Trophy, Pencil, Plus, X, ArrowRight, Check } from 'lucide-react'
+import { ArrowLeft, FileText, Trophy, Pencil, Plus, X, ArrowRight, Check, Send } from 'lucide-react'
 import { toast } from 'sonner'
 import { supabase } from '../../supabase'
 import IncotermSelect from '../../components/bookings/IncotermSelect'
@@ -33,6 +33,8 @@ import ExternalNotesField from './ExternalNotesField'
 import QuotePreviewBubble from './QuotePreviewBubble'
 import CopyQuoteButton from './CopyQuoteButton'
 import QuoteAddressField from './QuoteAddressField'
+
+const QuoteEmailDialog = lazy(() => import('./email/QuoteEmailDialog'))
 import LostReasonModal from './LostReasonModal'
 import type { LostInfo } from './quoteLostReasons'
 import './quoteDetailPage.css'
@@ -134,6 +136,7 @@ export default function QuoteDetailPage() {
   const [loading, setLoading] = useState(true)
   const [statusBusy, setStatusBusy] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
+  const [emailOpen, setEmailOpen] = useState(false)
   const [customerPick, setCustomerPick] = useState<CustomerPickerValue | null>(null)
   const [editingPorts, setEditingPorts] = useState(false)
 
@@ -343,6 +346,8 @@ export default function QuoteDetailPage() {
           </div>
           <div className="nqd-actions">
             <span style={{ fontSize: 12, alignSelf: 'center', marginRight: 8, color: saveLabelColor, whiteSpace: 'nowrap' }}>{saveLabel}</span>
+            <button className="nqd-btn" title="Email quote" aria-label="Email quote" onClick={() => setEmailOpen(true)}
+              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}><Send size={15} /></button>
             <button className="nqd-btn nqd-btn--won" disabled={statusBusy} onClick={() => mark('won')}>Mark won</button>
             <button className="nqd-btn nqd-btn--lost" disabled={statusBusy} onClick={() => mark('lost')}>Mark lost</button>
             <button className="nqd-btn nqd-btn--cross" disabled={statusBusy} onClick={() => mark('crosswin')}>Mark cross win</button>
@@ -601,6 +606,11 @@ export default function QuoteDetailPage() {
         </div>
       </div>
       <QuotePreviewBubble quoteId={quote.id} quoteNo={quote.quote_no} />
+      {emailOpen && (
+        <Suspense fallback={null}>
+          <QuoteEmailDialog quoteId={quote.id} onClose={() => setEmailOpen(false)} />
+        </Suspense>
+      )}
       <LostReasonModal open={lostOpen} busy={statusBusy} onClose={() => setLostOpen(false)} onConfirm={(info) => void mark('lost', info)} />
     </div>
   )

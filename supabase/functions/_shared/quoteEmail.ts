@@ -94,3 +94,16 @@ export function renderStaffDigest(name: string | null, rows: DigestRow[], consol
     html: shell(`${rows.length} open quotes need a follow up`, "Weekly quote follow-up", "Quotes waiting on customers", inner, footer),
   };
 }
+
+export type QuoteActions = { acceptUrl: string; declineUrl: string; viewUrl: string; multi: boolean };
+
+/** Staff-written email body (plain paragraphs, Outlook look) with optional Accept / Decline buttons. */
+export function renderQuoteEmailBody(text: string, actions: QuoteActions | null): string {
+  const paras = text.trim().split(/\n{2,}/).map((block) =>
+    `<p style="margin:0 0 12px;font-family:${FONT};font-size:14px;line-height:21px;color:#111827;">${esc(block).replace(/\n/g, "<br>")}</p>`).join("");
+  const btns = actions ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 16px;"><tr>
+<td style="padding:0 10px 0 0;">${button(actions.multi ? "Choose and accept" : "Accept quote", actions.multi ? actions.viewUrl : actions.acceptUrl, GREEN, 190)}</td>
+<td>${button("Decline", actions.declineUrl, "#64748B", 120)}</td></tr></table>
+<p style="margin:0 0 12px;font-family:${FONT};font-size:12px;line-height:18px;color:${MUTED};">One click updates our system. You can also just reply to this email.</p>` : "";
+  return `<div style="font-family:${FONT};">${paras}${btns}</div>`;
+}
