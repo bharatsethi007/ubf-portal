@@ -3,6 +3,7 @@ import { Send, Loader2, Paperclip, X, Truck, Container, User, PenLine } from 'lu
 import { toast } from 'sonner'
 import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog'
 import RecipientInput from './RecipientInput'
+import ContactPicker from './ContactPicker'
 import RichEditor from './RichEditor'
 import AttachmentPanel, { MAX_ATTACH_BYTES, fmtSize } from './AttachmentPanel'
 import { sendBookingEmail } from './emailApi'
@@ -94,6 +95,9 @@ export default function EmailComposerDialog(p: Props) {
               )}
             </div>
             {showCc && <RecipientInput label="Cc" value={cc} onChange={setCc} kind={p.preset?.contactKind} />}
+            {p.preset?.purpose === 'customer' && p.preset.suggestions && (
+              <ContactPicker contacts={p.preset.suggestions} to={to} cc={cc} onTo={setTo} />
+            )}
             <div className="flex items-center gap-3 border-b border-slate-100 py-2">
               <span className="w-10 shrink-0 text-[12px] font-medium text-slate-500">Subject</span>
               <input value={subject} onChange={(e) => setSubject(e.target.value)}

@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Trash2, RefreshCw, X } from 'lucide-react'
+import { Trash2, RefreshCw, X, Download } from 'lucide-react'
 import { toast } from 'sonner'
 import Pagination from '../../components/Pagination'
-import { supabase } from '../../supabase'
+import { buildQuotesQuery } from './quotesListQuery'
+import { exportQuotesCsv } from './quotesExport'
 import { deleteQuotes, setQuotesStatus } from './quotesApi'
 import QuotesTable from './QuotesTable'
 import BulkStatusModal from './BulkStatusModal'
@@ -47,6 +48,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set())
   const [statusModalOpen, setStatusModalOpen] = useState(false)
   const [busy, setBusy] = useState(false)
+  const [exporting, setExporting] = useState(false)
   const reqId = useRef(0)
 
   const columns = useMemo(() => quotesTableColumns(portMap, staffMap), [portMap, staffMap])
@@ -62,23 +64,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
     const from = (page - 1) * pageSize
     const to = from + pageSize - 1
 
-    let query = supabase
-      .from('quotes')
-      .select(
-        'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_at, created_by, source, movement_type',
-        { count: 'exact' },
-      )
-      .order('created_at', { ascending: false })
-
-    if (statusTab !== 'all') query = query.eq('status', statusTab)
-    if (mode === 'air') query = query.or('shipment_type.ilike.Air,shipment_mode.ilike.%air%')
-    else if (mode === 'fcl') query = query.ilike('shipment_type', 'FCL')
-    else if (mode === 'lcl') query = query.ilike('shipment_type', 'LCL')
-
-    const term = search.trim()
-    if (term) query = query.or(`quote_no.ilike.%${term}%,customer_name.ilike.%${term}%`)
-    if (lane.from) query = query.ilike('from_port_code', lane.from)
-    if (lane.to) query = query.ilike('to_port_code', lane.to)
+    const query = buildQuotesQuery({ statusTab, mode, search, lane }, true)
 
     const { data, error: err, count } = await query.range(from, to)
     if (my !== reqId.current) return
@@ -173,6 +159,19 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
   }
 
   const selectedCount = selectedIds.size
+  const tabLabel = STATUS_TABS.find((t) => t.key === statusTab)?.label ?? 'all'
+
+  async function handleExport() {
+    setExporting(true)
+    try {
+      const n = await exportQuotesCsv({ statusTab, mode, search, lane }, portMap, staffMap)
+      toast.success(`Exported ${n} quote${n === 1 ? '' : 's'}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Export failed')
+    } finally {
+      setExporting(false)
+    }
+  }
 
   return (
     <>
@@ -190,6 +189,17 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
             {label}
           </button>
         ))}
+        <button
+          type="button"
+          className="icon-btn"
+          style={{ marginLeft: 'auto', alignSelf: 'center' }}
+          title={`Export ${tabLabel} quotes (CSV)`}
+          aria-label="Export CSV"
+          disabled={exporting}
+          onClick={handleExport}
+        >
+          <Download size={16} strokeWidth={2} />
+        </button>
       </div>
 
       {selectedCount > 0 && (

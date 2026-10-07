@@ -4,7 +4,11 @@ import { fetchCustomerContacts, type BookingProgress } from '../progress/progres
 import type { EmailPurpose } from './emailApi'
 
 export type ComposerKind = 'delivery' | 'empty' | 'customer' | 'blank'
-export type ComposerPreset = { purpose: EmailPurpose; subject: string; html: string; to: string[]; contactKind?: string }
+export type ContactSuggestion = { email: string; name: string | null; source: string }
+export type ComposerPreset = {
+  purpose: EmailPurpose; subject: string; html: string; to: string[]; contactKind?: string
+  suggestions?: ContactSuggestion[] // customer contacts staff can tick on/off
+}
 export type ComposerOpen = { kind: ComposerKind; template?: TemplateKey }
 export type PresetDeps = CartageMailCtx & { progress: BookingProgress | null; containers: string[] }
 export type Signature = { name: string; title: string | null; phone: string | null }
@@ -44,7 +48,11 @@ export async function buildPreset(open: ComposerOpen, d: PresetDeps): Promise<Co
     const firstName = (first?.name || contacts?.customer_name || '').trim().split(/\s+/)[0] || 'there'
     const vessel = d.progress.milestones.find((m) => m.key === 'arrived')?.note ?? null
     const t = buildTemplate(open.template ?? 'status', { p: d.progress, firstName, containers: d.containers, vessel })
-    return { purpose: 'customer', subject: t.subject, html: linesToHtml(t.body.split('\n')), to: first ? [first.email] : [], contactKind: 'customer' }
+    return {
+      purpose: 'customer', subject: t.subject, html: linesToHtml(t.body.split('\n')),
+      to: first ? [first.email.toLowerCase()] : [], contactKind: 'customer',
+      suggestions: (contacts?.emails ?? []).map((e) => ({ ...e, email: e.email.toLowerCase() })),
+    }
   }
   const ref = d.booking.booking_ref ?? ''
   return { purpose: 'general', subject: ref, html: '<p>Hi there,</p><p></p>', to: [] }

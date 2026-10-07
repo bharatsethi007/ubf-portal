@@ -31,6 +31,7 @@ import PartyPicker from './PartyPicker'
 import QuoteContactSelect from './QuoteContactSelect'
 import ExternalNotesField from './ExternalNotesField'
 import QuotePreviewBubble from './QuotePreviewBubble'
+import CopyQuoteButton from './CopyQuoteButton'
 import './quoteDetailPage.css'
 
 const SIZES: { value: ContainerSize; label: string }[] = [
@@ -334,6 +335,7 @@ export default function QuoteDetailPage() {
             <span className="nqd-statpill nqd-statpill--m"><FileText size={13} /> {stats.thisMonth} this month</span>
             <span className="nqd-statpill nqd-statpill--w"><Trophy size={13} /> {stats.converted} won</span>
             <span className="nqd-qno">{quote.quote_no ?? '—'}</span>
+            <CopyQuoteButton quoteId={quote.id} quoteNo={quote.quote_no} />
           </div>
           <div className="nqd-actions">
             <span style={{ fontSize: 12, alignSelf: 'center', marginRight: 8, color: saveLabelColor, whiteSpace: 'nowrap' }}>{saveLabel}</span>

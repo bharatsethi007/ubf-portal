@@ -1,4 +1,5 @@
 import type { ColumnDef } from '@tanstack/react-table'
+import CopyQuoteButton from './CopyQuoteButton'
 import {
   Files, FolderOpen, Trophy, XCircle, Repeat2,
   Plane, Boxes, Container, Ship, Mail, Globe, PenLine, ArrowDownToLine, ArrowUpFromLine, type LucideIcon,
@@ -147,6 +148,11 @@ export function quotesTableColumns(
       accessorKey: 'created_at',
       header: 'Created',
       cell: ({ getValue }) => fmtCreated(getValue<string>()),
+    },
+    {
+      id: 'actions',
+      header: '',
+      cell: ({ row }) => <CopyQuoteButton quoteId={row.original.id} quoteNo={row.original.quote_no} size={14} />,
     },
   ]
 }
