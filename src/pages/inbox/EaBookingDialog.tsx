@@ -2,12 +2,13 @@
 // Creates a confirmed booking and, when "UBF collects" is chosen, the pickup job in TMS.
 import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Sparkles, X } from 'lucide-react'
+import { ChevronLeft, ChevronRight, Eye, PanelLeft, Sparkles, X } from 'lucide-react'
 import { toast } from 'sonner'
 import EaCargoLines from './EaCargoLines'
 import { commitEa, prefillEa, type BillTo, type EaForm, type EaParty } from './eaBookingApi'
 import { searchAccounts, type InboxDetail } from './inboxApi'
 import { isInlineJunk } from './EmailParts'
+import AttachmentPane from './AttachmentPane'
 
 const INCOTERMS = ['', 'EXW', 'FCA', 'FOB', 'CPT', 'CIP', 'DAP', 'DDP']
 
@@ -38,6 +39,7 @@ export default function EaBookingDialog({ detail, onChanged }: { detail: InboxDe
   const [busy, setBusy] = useState<'load' | 'ai' | 'save' | null>(null)
   const atts = useMemo(() => detail.messages.flatMap((m) => (m.email?.attachments ?? []).filter((a) => !isInlineJunk(a))), [detail.messages])
   const [picked, setPicked] = useState<Set<number>>(new Set())
+  const [view, setView] = useState<number | null>(null) // attachment shown beside the form
 
   async function load(ai: boolean) {
     setBusy(ai ? 'ai' : 'load')
@@ -50,7 +52,7 @@ export default function EaBookingDialog({ detail, onChanged }: { detail: InboxDe
   }
 
   useEffect(() => {
-    const on = () => { setOpen(true); setForm(null); setBill(null); setQ(''); setPicked(new Set(atts.map((a) => a.id))); void load(false) }
+    const on = () => { setOpen(true); setForm(null); setBill(null); setQ(''); setPicked(new Set(atts.map((a) => a.id))); setView(null); void load(false) }
     window.addEventListener('ibx:ea-booking', on)
     return () => window.removeEventListener('ibx:ea-booking', on)
   }) // re-binds each render so the handler sees this conversation
@@ -65,6 +67,7 @@ export default function EaBookingDialog({ detail, onChanged }: { detail: InboxDe
   const notes = form?._low_confidence ?? []
   const low = new Set(notes.map((x) => x.split(/[:.\s[]/)[0]))
   const set = (patch: Partial<EaForm>) => setForm((f) => (f ? { ...f, ...patch } : f))
+  const shown = view !== null ? atts[view] : undefined
 
   async function create() {
     if (!form) return
@@ -81,17 +84,37 @@ export default function EaBookingDialog({ detail, onChanged }: { detail: InboxDe
 
   return (
     <div className="ibx-modal-back" onMouseDown={(e) => { if (e.target === e.currentTarget) close() }}>
-      <div className="ibx-modal" style={{ width: 820 }} role="dialog" aria-label="New export air booking">
+      <div className="ibx-modal" role="dialog" aria-label="New export air booking"
+        style={shown ? { width: 'min(1640px, 100%)', height: 'calc(100vh - 48px)' } : { width: 820 }}>
         <header className="ibx-modal__head">
           <h3>New export air booking</h3>
           <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+            {atts.length ? (
+              <button type="button" className="ibx-btn" onClick={() => setView(shown ? null : 0)}>
+                <PanelLeft size={15} />{shown ? 'Hide files' : 'Show files'}
+              </button>
+            ) : null}
             <button type="button" className="ibx-btn" disabled={!!busy} onClick={() => void load(true)}>
               <Sparkles size={15} />{busy === 'ai' ? 'Reading email…' : 'AI fill (~2c)'}
             </button>
             <button type="button" className="ibx-mail__icon" aria-label="Close" onClick={close}><X size={18} /></button>
           </div>
         </header>
-        <div className="ibx-modal__body">
+        <div style={{ display: 'flex', flex: 1, minHeight: 0, borderTop: shown ? '1px solid #EDEBE9' : undefined }}>
+        {shown && view !== null ? (
+          <section style={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', borderRight: '1px solid #EDEBE9' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '6px 8px 6px 12px', borderBottom: '1px solid #EDEBE9' }}>
+              <select className="ibx-in" style={{ flex: 1, minWidth: 0 }} aria-label="File" value={view} onChange={(e) => setView(Number(e.target.value))}>
+                {atts.map((a, i) => <option key={a.id} value={i}>{a.name}</option>)}
+              </select>
+              <button type="button" className="ibx-mail__icon" aria-label="Previous file" disabled={view === 0} onClick={() => setView(view - 1)}><ChevronLeft size={18} /></button>
+              <button type="button" className="ibx-mail__icon" aria-label="Next file" disabled={view === atts.length - 1} onClick={() => setView(view + 1)}><ChevronRight size={18} /></button>
+              <button type="button" className="ibx-mail__icon" aria-label="Close file" onClick={() => setView(null)}><X size={18} /></button>
+            </div>
+            <AttachmentPane a={shown} />
+          </section>
+        ) : null}
+        <div className="ibx-modal__body" style={shown ? { width: 820, flexShrink: 0, paddingTop: 12 } : { flex: 1 }}>
           {!form ? <div className="ibx-jobs__empty">Reading email…</div> : (
             <>
               {notes.length ? (
@@ -162,10 +185,13 @@ export default function EaBookingDialog({ detail, onChanged }: { detail: InboxDe
                 <>
                   <div className="ibx-modal__label" style={{ marginTop: 14 }}>Save these email files to the booking</div>
                   <div className="ibx-checks" style={{ maxHeight: 120 }}>
-                    {atts.map((a) => (
+                    {atts.map((a, i) => (
                       <label key={a.id}><input type="checkbox" checked={picked.has(a.id)} onChange={(e) => {
                         const nx = new Set(picked); if (e.target.checked) nx.add(a.id); else nx.delete(a.id); setPicked(nx)
-                      }} /><span className="ibx-ellip">{a.name}</span></label>
+                      }} /><span className="ibx-ellip" style={{ flex: 1 }}>{a.name}</span>
+                        <button type="button" className="ibx-mail__icon" aria-label={`View ${a.name}`} title="View beside form"
+                          style={view === i ? { color: '#0A2472' } : undefined}
+                          onClick={(e) => { e.preventDefault(); setView(view === i ? null : i) }}><Eye size={16} /></button></label>
                     ))}
                   </div>
                 </>
@@ -174,6 +200,7 @@ export default function EaBookingDialog({ detail, onChanged }: { detail: InboxDe
                 <textarea className="ibx-in" rows={2} value={form.notes ?? ''} onChange={(e) => set({ notes: e.target.value })} /></label>
             </>
           )}
+        </div>
         </div>
         <footer className="ibx-modal__foot">
           <button type="button" className="ibx-btn" onClick={close}>Cancel</button>
