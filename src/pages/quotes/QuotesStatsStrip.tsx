@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
-import { FileText, FolderOpen, Hourglass, Trophy, XCircle, Percent, type LucideIcon } from 'lucide-react'
+import { FileText, FolderOpen, Hourglass, Trophy, XCircle, Percent, Medal, type LucideIcon } from 'lucide-react'
+import QuotesLeaderboardDialog from './leaderboard/QuotesLeaderboardDialog'
 import { fetchQuotesStats, type QuotesMode, type PortPair, type QuotesStats, type StatsPeriod } from './quotesStatsApi'
 
 type Props = { mode: QuotesMode; lane: PortPair; refreshKey?: number }
@@ -26,6 +27,7 @@ function loadPeriod(): StatsPeriod {
 export default function QuotesStatsStrip({ mode, lane, refreshKey = 0 }: Props) {
   const [stats, setStats] = useState<QuotesStats | null>(null)
   const [period, setPeriod] = useState<StatsPeriod>(loadPeriod)
+  const [boardOpen, setBoardOpen] = useState(false)
 
   useEffect(() => {
     let cancelled = false
@@ -53,7 +55,7 @@ export default function QuotesStatsStrip({ mode, lane, refreshKey = 0 }: Props) 
 
   return (
     <div className="flex flex-col gap-2">
-      <div className="flex justify-end">
+      <div className="flex items-center justify-end gap-2">
         <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5" role="tablist" aria-label="Stats period">
           {PERIODS.map(({ key, label, hint }) => (
             <button
@@ -69,7 +71,11 @@ export default function QuotesStatsStrip({ mode, lane, refreshKey = 0 }: Props) 
             </button>
           ))}
         </div>
+        <button type="button" className="icon-btn" title="Leaderboard" aria-label="Leaderboard" onClick={() => setBoardOpen(true)}>
+          <Medal size={17} strokeWidth={2} />
+        </button>
       </div>
+      <QuotesLeaderboardDialog open={boardOpen} onClose={() => setBoardOpen(false)} mode={mode} initialPeriod={period} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
         {tiles.map(({ label, value, Icon, tone }) => (
           <div key={label} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
