@@ -32,6 +32,7 @@ import QuoteContactSelect from './QuoteContactSelect'
 import ExternalNotesField from './ExternalNotesField'
 import QuotePreviewBubble from './QuotePreviewBubble'
 import CopyQuoteButton from './CopyQuoteButton'
+import QuoteAddressField from './QuoteAddressField'
 import LostReasonModal from './LostReasonModal'
 import type { LostInfo } from './quoteLostReasons'
 import './quoteDetailPage.css'
@@ -101,15 +102,17 @@ function pickCargo(q: QuoteRecord): Cargo {
   }
 }
 
-async function fetchCustomerAddress(accountId: string): Promise<string> {
+async function fetchCustomerPick(accountId: string): Promise<CustomerPickerValue | null> {
   const { data } = await supabase
     .from('customers')
-    .select('address1,address2,address3,city,country')
+    .select('account_id,name,address1,address2,address3,city,state,postcode,country')
     .eq('account_id', accountId)
     .maybeSingle()
-  if (!data) return ''
-  return [data.address1, data.address2, data.address3, data.city, data.country]
-    .filter(Boolean).join(', ')
+  if (!data) return null
+  const o = data as Record<string, string | null>
+  const v = (k: string) => o[k] ?? undefined
+  return { account_id: String(o.account_id), name: String(o.name ?? ''), address1: v('address1'), address2: v('address2'),
+    address3: v('address3'), city: v('city'), state: v('state'), postcode: v('postcode'), country: v('country') }
 }
 
 export default function QuoteDetailPage() {
@@ -131,6 +134,7 @@ export default function QuoteDetailPage() {
   const [loading, setLoading] = useState(true)
   const [statusBusy, setStatusBusy] = useState(false)
   const [lostOpen, setLostOpen] = useState(false)
+  const [customerPick, setCustomerPick] = useState<CustomerPickerValue | null>(null)
   const [editingPorts, setEditingPorts] = useState(false)
 
   const { stats } = useCustomerQuoteStats(quote?.customer_account_id)
@@ -151,13 +155,8 @@ export default function QuoteDetailPage() {
         cl = fetched.length ? fetched : [newQuoteCargoLine(0)]
       }
       const f = pickFields(q)
-      if (q.customer_account_id && (!f.shipper_address || !f.consignee_address)) {
-        const addr = await fetchCustomerAddress(q.customer_account_id)
-        if (addr) {
-          if (!f.shipper_address) f.shipper_address = addr
-          if (!f.consignee_address) f.consignee_address = addr
-        }
-      }
+      // Addresses are never auto-filled. The customer is offered in the "From CF" picker instead.
+      setCustomerPick(q.customer_account_id ? await fetchCustomerPick(q.customer_account_id) : null)
       const mode: CargoEntryMode = q.cargo_entry_mode === 'total' ? 'total' : 'individual'
       setQuote(q); setStatus(q.status)
       setFields(f); setInitial(f)
@@ -227,6 +226,7 @@ export default function QuoteDetailPage() {
       const p = { customer_account_id: v.account_id, customer_name: v.name, contact_name: null, contact_email: null, contact_phone: null }
       await updateQuote(id, p)
       setQuote((q) => (q ? { ...q, ...p } : q))
+      setCustomerPick(await fetchCustomerPick(v.account_id))
       toast.success('Customer updated')
     } catch { toast.error('Failed to update customer') }
   }
@@ -488,14 +488,10 @@ export default function QuoteDetailPage() {
               onPick={(v) => patch({ consignee: v.name || null, consignee_address: v.address || null })}
             />
           </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Shipper address</span>
-            <textarea className="nqd-input nqd-textarea" rows={2} value={fields.shipper_address ?? ''} onChange={(e) => patch({ shipper_address: e.target.value || null })} />
-          </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Consignee address</span>
-            <textarea className="nqd-input nqd-textarea" rows={2} value={fields.consignee_address ?? ''} onChange={(e) => patch({ consignee_address: e.target.value || null })} />
-          </div>
+          <QuoteAddressField label="Shipper address" value={fields.shipper_address ?? ''} partyName={fields.shipper}
+            customer={customerPick} onChange={(v) => patch({ shipper_address: v || null })} />
+          <QuoteAddressField label="Consignee address" value={fields.consignee_address ?? ''} partyName={fields.consignee}
+            customer={customerPick} onChange={(v) => patch({ consignee_address: v || null })} />
         </div>
       </div>
 

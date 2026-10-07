@@ -2,6 +2,7 @@
 import React, { useEffect, useState } from 'react';
 import type { CustomerStats } from './customerProfileApi';
 import { CustomerInfoAddressCard } from './CustomerInfoAddressCard';
+import { CustomerContactsCard } from './CustomerContactsCard';
 import {
   fetchContacts, fetchPortalUsers, fetchMeta, fetchCustomerSync, saveMeta,
   grantPortalAccess, revokePortalAccess,
@@ -70,10 +71,12 @@ export function CustomerInfoTab({
 
       <CustomerInfoAddressCard meta={meta} setMeta={setMeta} resolved={resolved} />
 
-      <ContactsCard
+      <CustomerContactsCard
+        accountId={accountId}
         contacts={contacts}
         portalEmails={portalEmails}
         onEnable={async (email) => { await grantPortalAccess(accountId, email); await reloadPortal(); onReload(); }}
+        onChanged={async () => { setContacts(await fetchContacts(accountId)); onReload(); }}
       />
 
       <PortalCard
@@ -94,41 +97,6 @@ function Row({ label, value }: { label: string; value?: string | null }) {
       <dt>{label}</dt>
       <dd>{value || '—'}</dd>
     </div>
-  );
-}
-
-function ContactsCard({
-  contacts, portalEmails, onEnable,
-}: { contacts: Contact[]; portalEmails: Set<string>; onEnable: (email: string) => Promise<void> }) {
-  const [busy, setBusy] = useState<string | null>(null);
-  return (
-    <Card title="Contacts" wide>
-      {contacts.length === 0 ? <div className="cp-empty">No contacts</div> : (
-        <div className="cp-contact-list">
-          {contacts.map((c) => {
-            const email = (c.email ?? '').toLowerCase();
-            const hasPortal = email && portalEmails.has(email);
-            const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || '—';
-            return (
-              <div key={c.id} className="cp-contact">
-                <div className="cp-contact-main">
-                  <div className="cp-contact-name">
-                    {name}{c.is_prime && <span className="cp-badge cp-badge--indigo cp-ml">Prime</span>}
-                  </div>
-                  <div className="cp-contact-sub">{c.email || 'no email'}{c.phone ? ` · ${c.phone}` : ''}</div>
-                </div>
-                {email && (hasPortal
-                  ? <span className="cp-badge cp-badge--emerald">Portal</span>
-                  : <button className="cp-btn cp-btn--sm" disabled={busy === email}
-                      onClick={async () => { setBusy(email); try { await onEnable(c.email!); } finally { setBusy(null); } }}>
-                      {busy === email ? 'Sending…' : 'Enable portal'}
-                    </button>)}
-              </div>
-            );
-          })}
-        </div>
-      )}
-    </Card>
   );
 }
 

@@ -23,7 +23,7 @@ type Props = {
   onNameChange: (name: string) => void
 }
 
-function composeAddress(c: CustomerPickerValue): string {
+export function composeAddress(c: CustomerPickerValue): string {
   return [
     c.address1,
     c.address2,

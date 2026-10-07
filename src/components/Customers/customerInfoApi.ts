@@ -8,6 +8,8 @@ export interface Contact {
   email: string | null;
   phone: string | null;
   is_prime: boolean | null;
+  /** 'cf' = synced from CyberFreight (read-only), 'console' = added here, not in CF. */
+  source?: string | null;
 }
 
 export {
@@ -102,7 +104,7 @@ export const EMPTY_META = (accountId: string): CustomerMeta => ({
 export async function fetchContacts(accountId: string): Promise<Contact[]> {
   const { data, error } = await supabase
     .from('contacts')
-    .select('id,first_name,last_name,email,phone,is_prime')
+    .select('id,first_name,last_name,email,phone,is_prime,source')
     .eq('account_id', accountId)
     .order('is_prime', { ascending: false })
     .order('last_name', { ascending: true });
@@ -138,4 +140,33 @@ export async function saveMeta(meta: CustomerMeta): Promise<void> {
     updated_by: uid,
   });
   if (error) throw error;
+}
+
+export type ContactDraft = { first_name: string; last_name: string; email: string; phone: string };
+
+const clean = (d: ContactDraft) => ({
+  first_name: d.first_name.trim() || null,
+  last_name: d.last_name.trim() || null,
+  email: d.email.trim().toLowerCase() || null,
+  phone: d.phone.trim() || null,
+});
+
+export async function addContact(accountId: string, d: ContactDraft): Promise<void> {
+  const { data: u } = await supabase.auth.getUser();
+  const { error } = await supabase.from('contacts').insert({
+    account_id: accountId, ...clean(d), is_prime: false, source: 'console',
+    synced_at: null, created_by: u.user?.id ?? null, updated_at: new Date().toISOString(),
+  });
+  if (error) throw new Error(error.code === '23505' ? 'That contact already exists' : error.message);
+}
+
+export async function updateContact(id: number, d: ContactDraft): Promise<void> {
+  const { error } = await supabase.from('contacts')
+    .update({ ...clean(d), updated_at: new Date().toISOString() }).eq('id', id).eq('source', 'console');
+  if (error) throw new Error(error.message);
+}
+
+export async function deleteContact(id: number): Promise<void> {
+  const { error } = await supabase.from('contacts').delete().eq('id', id).eq('source', 'console');
+  if (error) throw new Error(error.message);
 }
