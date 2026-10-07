@@ -1,5 +1,5 @@
 // ea-booking — Export Air booking from an inbox conversation, reviewed by staff before it is created.
-// prefill: { conversation_id, ai?: boolean } -> { form, bill_to }   (free regex pass; AI pass only when asked, ~2c)
+// prefill: { conversation_id, ai?: boolean } -> { form, bill_to, sli }   (free regex + UBF SLI read; AI pass only when asked, ~2c)
 // commit:  { conversation_id, form, bill_to_account, attachment_ids[] } -> booking (status confirmed) + cargo lines,
 //          supplier row, chosen email attachments as documents, conversation link, and a pickup job when form.pickup.needed.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
@@ -9,6 +9,7 @@ import { isServiceCaller } from "../_shared/serviceAuth.ts";
 import { getObject, putObject } from "../_shared/s3.ts";
 import { extractPdfText } from "../booking-email-ingest/pdfText.ts";
 import { aiPrefill, CLAUDE_MODEL, type EaForm, regexPrefill } from "./extract.ts";
+import { applySli, sliForConversation } from "./sli.ts";
 setApiFn("ea-booking");
 
 const cors = {
@@ -79,8 +80,12 @@ Deno.serve(async (req: Request) => {
           pickup: { ...form.pickup, ...clean(x.pickup) }, lines: (x.lines ?? []).filter((l) => l && (l.pieces || l.kg || l.l)).length ? x.lines : form.lines };
       } catch (e) { return json({ error: `${String(e).slice(0, 160)}. Fill the form by hand.` }, 502); }
     }
+    // A filled-in UBF SLI (.docx or text PDF) is read for free and wins over email guesses.
+    const { data: allAtts } = ids.length ? await sb.from("inbox_attachments").select("id,name,s3_key").in("message_id", ids) : { data: [] };
+    const sli = await sliForConversation((allAtts ?? []) as { id: number; name: string; s3_key: string }[], async (k) => new Uint8Array(await (await getObject(`booking-emails/${k}`)).arrayBuffer()));
+    if (sli) form = applySli(form, sli);
     const { data: acc } = conv.account_id ? await sb.from("customers").select("account_id,name").eq("account_id", conv.account_id).maybeSingle() : { data: null };
-    return json({ form, bill_to: acc ?? null, model: b.ai ? CLAUDE_MODEL : null });
+    return json({ form, bill_to: acc ?? null, model: b.ai ? CLAUDE_MODEL : null, sli: sli?._sli_file ?? null });
   }
 
   if (b.action === "commit") {
