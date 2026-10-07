@@ -36,11 +36,12 @@ export async function exportQuotesCsv(
   }
 
   const port = (c: string | null) => (c ? portMap.get(c) ?? c : '')
-  const head = ['Quote #', 'Customer', 'Mode', 'Type', 'Status', 'Origin', 'Destination', 'Source', 'Created by', 'Created']
+  const head = ['Quote #', 'Customer', 'Mode', 'Type', 'Status', 'Origin', 'Destination', 'Source', 'Created by', 'Created', 'Expires', 'Lost reason', 'Lost note']
   const lines = rows.map((r) => [
     r.quote_no, r.customer_name, modeLabel(r), r.movement_type, r.status,
     port(r.from_port_code), port(r.to_port_code), r.source ?? 'manual',
     r.created_by ? staffMap.get(r.created_by) ?? '' : '', fmtDate(r.created_at),
+    r.expires_at ? fmtDate(r.expires_at) : '', r.lost_reason ?? '', r.lost_note ?? '',
   ].map(cell).join(','))
 
   const csv = '﻿' + [head.join(','), ...lines].join('\r\n')

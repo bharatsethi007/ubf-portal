@@ -1,5 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import CopyQuoteButton from './CopyQuoteButton'
+import { AUTO_EXPIRED } from './quoteLostReasons'
 import {
   Files, FolderOpen, Trophy, XCircle, Repeat2,
   Plane, Boxes, Container, Ship, Mail, Globe, PenLine, ArrowDownToLine, ArrowUpFromLine, type LucideIcon,
@@ -18,6 +19,9 @@ export type QuoteRow = {
   source: string | null
   created_by: string | null
   created_at: string
+  lost_reason?: string | null
+  lost_note?: string | null
+  expires_at?: string | null
 }
 
 export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
@@ -35,6 +39,28 @@ export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'lost', label: 'Lost' },
   { value: 'crosswin', label: 'Cross win' },
 ]
+
+function expiryCell(iso: string | null | undefined) {
+  if (!iso) return <span style={{ color: '#94a3b8' }}>Not priced</span>
+  const ms = new Date(iso).getTime() - Date.now()
+  const days = ms / 86400000
+  const color = days < 0 ? '#B91C1C' : days < 2 ? '#B45309' : '#475569'
+  const label = days < 0 ? 'Expired' : days < 1 ? `${Math.max(1, Math.round(ms / 3600000))}h left` : `${Math.floor(days)}d left`
+  return <span style={{ color, whiteSpace: 'nowrap' }} title={fmtCreated(iso)}>{label}</span>
+}
+
+function lostReasonCell(reason: string | null | undefined, note: string | null | undefined) {
+  if (!reason) return <span style={{ color: '#94a3b8' }}>No reason</span>
+  const auto = reason === AUTO_EXPIRED
+  return (
+    <span
+      title={note ?? undefined}
+      style={{ display: 'inline-flex', alignItems: 'center', borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 500, lineHeight: 1.4, whiteSpace: 'nowrap', background: auto ? '#F2F4F7' : '#FEF2F2', color: auto ? '#667085' : '#B91C1C' }}
+    >
+      {reason}
+    </span>
+  )
+}
 
 function fmtCreated(iso: string): string {
   const d = new Date(iso)
@@ -88,8 +114,16 @@ export function quoteTypeCell(movement: string | null) {
 export function quotesTableColumns(
   portMap: Map<string, string>,
   staffMap: Map<string, string>,
+  statusTab = 'all',
 ): ColumnDef<QuoteRow>[] {
   const port = (code: string | null) => (code ? portMap.get(code) ?? code : '—')
+  const extra: ColumnDef<QuoteRow>[] = []
+  if (statusTab === 'open' || statusTab === 'all') {
+    extra.push({ id: 'expires', header: 'Expires', cell: ({ row }) => row.original.status === 'open' ? expiryCell(row.original.expires_at) : '—' })
+  }
+  if (statusTab === 'lost' || statusTab === 'all') {
+    extra.push({ id: 'lost_reason', header: 'Lost reason', cell: ({ row }) => row.original.status === 'lost' ? lostReasonCell(row.original.lost_reason, row.original.lost_note) : '—' })
+  }
   return [
     {
       accessorKey: 'quote_no',
@@ -149,6 +183,7 @@ export function quotesTableColumns(
       header: 'Created',
       cell: ({ getValue }) => fmtCreated(getValue<string>()),
     },
+    ...extra,
     {
       id: 'actions',
       header: '',

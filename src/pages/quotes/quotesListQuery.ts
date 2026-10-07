@@ -2,7 +2,7 @@ import { supabase } from '../../supabase'
 import type { PortPair, QuotesMode } from './quotesStatsApi'
 
 export const QUOTE_LIST_COLS =
-  'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_at, created_by, source, movement_type'
+  'id, quote_no, status, customer_name, shipment_mode, shipment_type, from_port_code, to_port_code, created_at, created_by, source, movement_type, lost_reason, lost_note, expires_at'
 
 export type QuoteListFilters = {
   statusTab: string

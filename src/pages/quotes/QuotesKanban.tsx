@@ -2,6 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import type { PortPair } from './quotesStatsApi'
 import { toast } from 'sonner'
 import { setQuoteStatus } from './quotesApi'
+import LostReasonModal from './LostReasonModal'
+import type { LostInfo } from './quoteLostReasons'
 import { listBoardQuotes, type BoardQuote } from './quotesBoardApi'
 import { BOARD_COLUMNS, STATUS_ACCENT, CARD_STATUS_OPTIONS, modeTag } from './quoteCardMeta'
 
@@ -26,6 +28,7 @@ export default function QuotesKanban({ search, lane, onOpen, portName, staffName
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [dragId, setDragId] = useState<string | null>(null)
+  const [pendingLost, setPendingLost] = useState<string | null>(null)
   const [overCol, setOverCol] = useState<string | null>(null)
   const reqId = useRef(0)
 
@@ -59,13 +62,15 @@ export default function QuotesKanban({ search, lane, onOpen, portName, staffName
     return m
   }, [rows])
 
-  async function move(id: string, to: string) {
+  async function move(id: string, to: string, lost?: LostInfo) {
     const current = rows.find((r) => r.id === id)
     if (!current || current.status === to) return
+    if (to === 'lost' && !lost) { setPendingLost(id); return }
+    setPendingLost(null)
     const from = current.status
     setRows((rs) => rs.map((r) => (r.id === id ? { ...r, status: to } : r)))
     try {
-      await setQuoteStatus(id, to)
+      await setQuoteStatus(id, to, lost)
     } catch (e) {
       setRows((rs) => rs.map((r) => (r.id === id ? { ...r, status: from } : r)))
       toast.error(e instanceof Error ? e.message : 'Could not change status')
@@ -75,6 +80,12 @@ export default function QuotesKanban({ search, lane, onOpen, portName, staffName
   if (error) return <div className="error">{error}</div>
 
   return (
+    <>
+    <LostReasonModal
+      open={!!pendingLost}
+      onClose={() => setPendingLost(null)}
+      onConfirm={(info) => { if (pendingLost) void move(pendingLost, 'lost', info) }}
+    />
     <div className="qboard" role="list">
       {BOARD_COLUMNS.map((col) => {
         const items = byStatus.get(col.key) ?? []
@@ -159,5 +170,6 @@ export default function QuotesKanban({ search, lane, onOpen, portName, staffName
         )
       })}
     </div>
+    </>
   )
 }

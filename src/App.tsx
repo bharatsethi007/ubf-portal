@@ -33,6 +33,7 @@ import StaffRoute from './components/StaffRoute'
 import StaffMfaGate from './components/StaffMfaGate'
 import SliPage from './features/sli/SliPage'
 import PublicTrackPage from './features/publicTrack/PublicTrackPage'
+import QuoteRespondPage from './pages/public/QuoteRespondPage'
 import RatePage from './pages/public/RatePage'
 import BookingsWorkspacePage from './features/bookingsWorkspace/BookingsWorkspacePage'
 import CourierBookingsList from './pages/courier/CourierBookingsList'
@@ -151,6 +152,7 @@ export default function App() {
       <Routes>
         <Route path="/sli/:token" element={<SliPage />} />
         <Route path="/t/:token" element={<PublicTrackPage />} />
+        <Route path="/q/:token" element={<QuoteRespondPage />} />
         <Route path="/rate" element={<RatePage />} />
         <Route path="/set-password" element={<StaffSetPasswordPage />} />
         <Route path="/forgot-password" element={session ? <Navigate to="/" replace /> : <ForgotPasswordPage />} />

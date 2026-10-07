@@ -32,6 +32,8 @@ import QuoteContactSelect from './QuoteContactSelect'
 import ExternalNotesField from './ExternalNotesField'
 import QuotePreviewBubble from './QuotePreviewBubble'
 import CopyQuoteButton from './CopyQuoteButton'
+import LostReasonModal from './LostReasonModal'
+import type { LostInfo } from './quoteLostReasons'
 import './quoteDetailPage.css'
 
 const SIZES: { value: ContainerSize; label: string }[] = [
@@ -128,6 +130,7 @@ export default function QuoteDetailPage() {
   const [initialCargoMode, setInitialCargoMode] = useState<CargoEntryMode>('individual')
   const [loading, setLoading] = useState(true)
   const [statusBusy, setStatusBusy] = useState(false)
+  const [lostOpen, setLostOpen] = useState(false)
   const [editingPorts, setEditingPorts] = useState(false)
 
   const { stats } = useCustomerQuoteStats(quote?.customer_account_id)
@@ -284,11 +287,12 @@ export default function QuoteDetailPage() {
     : (saveState === 'saving' || anyDirty) ? 'Saving…' : 'All changes saved'
   const saveLabelColor = saveState === 'error' ? '#dc2626' : '#64748b'
 
-  async function mark(next: string) {
+  async function mark(next: string, lost?: LostInfo) {
     if (!id) return
+    if (next === 'lost' && !lost) { setLostOpen(true); return }
     setStatusBusy(true)
     try {
-      await setQuoteStatus(id, next); setStatus(next)
+      await setQuoteStatus(id, next, lost); setStatus(next); setLostOpen(false)
       toast.success(`Marked ${next === 'crosswin' ? 'cross win' : next}`)
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to update status') }
     finally { setStatusBusy(false) }
@@ -601,6 +605,7 @@ export default function QuoteDetailPage() {
         </div>
       </div>
       <QuotePreviewBubble quoteId={quote.id} quoteNo={quote.quote_no} />
+      <LostReasonModal open={lostOpen} busy={statusBusy} onClose={() => setLostOpen(false)} onConfirm={(info) => void mark('lost', info)} />
     </div>
   )
 }

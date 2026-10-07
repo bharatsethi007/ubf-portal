@@ -241,3 +241,9 @@ verify_jwt = true
 
 [functions.whatsapp-webhook]
 verify_jwt = false
+
+[functions.quote-reminder-send]
+verify_jwt = true
+
+[functions.quote-staff-digest]
+verify_jwt = false

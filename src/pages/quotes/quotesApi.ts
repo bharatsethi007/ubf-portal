@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import type { LostInfo } from './quoteLostReasons'
 
 export type QuoteDraft = {
   shipment_mode: string | null
@@ -131,8 +132,14 @@ export async function updateQuote(id: string, patch: Partial<QuoteDraft>): Promi
   if (error) throw error
 }
 
-export async function setQuoteStatus(id: string, status: string): Promise<void> {
-  const { error } = await supabase.from('quotes').update({ status }).eq('id', id)
+function statusPatch(status: string, lost?: LostInfo | null) {
+  return status === 'lost'
+    ? { status, lost_reason: lost?.reason ?? null, lost_note: lost?.note ?? null }
+    : { status }
+}
+
+export async function setQuoteStatus(id: string, status: string, lost?: LostInfo | null): Promise<void> {
+  const { error } = await supabase.from('quotes').update(statusPatch(status, lost)).eq('id', id)
   if (error) throw error
 }
 
@@ -141,8 +148,8 @@ export async function deleteQuotes(ids: string[]): Promise<void> {
   const { error } = await supabase.from('quotes').delete().in('id', ids)
   if (error) throw error
 }
-export async function setQuotesStatus(ids: string[], status: string): Promise<void> {
+export async function setQuotesStatus(ids: string[], status: string, lost?: LostInfo | null): Promise<void> {
   if (!ids.length) return
-  const { error } = await supabase.from('quotes').update({ status }).in('id', ids)
+  const { error } = await supabase.from('quotes').update(statusPatch(status, lost)).in('id', ids)
   if (error) throw error
 }

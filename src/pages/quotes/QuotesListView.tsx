@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { Trash2, RefreshCw, X, Download } from 'lucide-react'
+import { Trash2, RefreshCw, X, Download, BellRing } from 'lucide-react'
+import { useSearchParams } from 'react-router-dom'
+import QuoteRemindersDialog from './reminders/QuoteRemindersDialog'
 import { toast } from 'sonner'
 import Pagination from '../../components/Pagination'
 import { buildQuotesQuery } from './quotesListQuery'
 import { exportQuotesCsv } from './quotesExport'
+import type { LostInfo } from './quoteLostReasons'
 import { deleteQuotes, setQuotesStatus } from './quotesApi'
 import QuotesTable from './QuotesTable'
 import BulkStatusModal from './BulkStatusModal'
@@ -25,6 +28,9 @@ type QuoteDbRow = {
   created_at: string
   created_by: string | null
   source: string | null
+  lost_reason: string | null
+  lost_note: string | null
+  expires_at: string | null
 }
 
 type Props = {
@@ -49,9 +55,15 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
   const [statusModalOpen, setStatusModalOpen] = useState(false)
   const [busy, setBusy] = useState(false)
   const [exporting, setExporting] = useState(false)
+  const [params, setParams] = useSearchParams()
+  const [remindersOpen, setRemindersOpen] = useState(params.get('reminders') === '1')
+  function closeReminders() {
+    setRemindersOpen(false)
+    if (params.has('reminders')) { params.delete('reminders'); setParams(params, { replace: true }) }
+  }
   const reqId = useRef(0)
 
-  const columns = useMemo(() => quotesTableColumns(portMap, staffMap), [portMap, staffMap])
+  const columns = useMemo(() => quotesTableColumns(portMap, staffMap, statusTab), [portMap, staffMap, statusTab])
 
   useEffect(() => {
     setPage(1)
@@ -84,6 +96,9 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
           shipment_mode: r.shipment_mode,
           shipment_type: r.shipment_type,
           movement_type: r.movement_type,
+          lost_reason: r.lost_reason,
+          lost_note: r.lost_note,
+          expires_at: r.expires_at,
           from_port_code: r.from_port_code,
           to_port_code: r.to_port_code,
           source: r.source,
@@ -135,7 +150,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
     }
   }
 
-  async function handleApplyStatus(from: string, to: string) {
+  async function handleApplyStatus(from: string, to: string, lost?: LostInfo) {
     const ids = rows
       .filter((r) => selectedIds.has(r.id) && (from === 'any' || r.status === from))
       .map((r) => r.id)
@@ -145,7 +160,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
     }
     setBusy(true)
     try {
-      await setQuotesStatus(ids, to)
+      await setQuotesStatus(ids, to, lost)
       toast.success(`Updated ${ids.length} quote${ids.length > 1 ? 's' : ''}`)
       setStatusModalOpen(false)
       setSelectedIds(new Set())
@@ -193,6 +208,16 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
           type="button"
           className="icon-btn"
           style={{ marginLeft: 'auto', alignSelf: 'center' }}
+          title="Quote reminders"
+          aria-label="Quote reminders"
+          onClick={() => setRemindersOpen(true)}
+        >
+          <BellRing size={16} strokeWidth={2} />
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          style={{ alignSelf: 'center' }}
           title={`Export ${tabLabel} quotes (CSV)`}
           aria-label="Export CSV"
           disabled={exporting}
@@ -245,6 +270,13 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
         </label>
         <Pagination page={page} total={total} pageSize={pageSize} onPageChange={setPage} />
       </div>
+
+      <QuoteRemindersDialog
+        open={remindersOpen}
+        onClose={closeReminders}
+        portName={(c) => (c ? portMap.get(c) ?? c : '?')}
+        onSent={() => void reload()}
+      />
 
       <BulkStatusModal
         open={statusModalOpen}

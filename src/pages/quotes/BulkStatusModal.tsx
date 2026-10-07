@@ -1,18 +1,22 @@
 import { useState, type CSSProperties } from 'react'
 import { STATUS_OPTIONS } from './quotesTableColumns'
+import { LOST_REASONS, type LostInfo } from './quoteLostReasons'
 
 type Props = {
   open: boolean
   count: number
   busy?: boolean
   onClose: () => void
-  onApply: (from: string, to: string) => void
+  onApply: (from: string, to: string, lost?: LostInfo) => void
 }
 
 export default function BulkStatusModal({ open, count, busy = false, onClose, onApply }: Props) {
   const [from, setFrom] = useState('any')
   const [to, setTo] = useState('open')
+  const [reason, setReason] = useState('')
+  const [note, setNote] = useState('')
   if (!open) return null
+  const lostBlocked = to === 'lost' && (!reason || (reason === 'Other' && !note.trim()))
   return (
     <div style={overlay} onClick={onClose}>
       <div style={sheet} onClick={(e) => e.stopPropagation()}>
@@ -36,9 +40,28 @@ export default function BulkStatusModal({ open, count, busy = false, onClose, on
             </select>
           </label>
         </div>
+        {to === 'lost' && (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 14 }}>
+            <label style={col}>
+              <span style={lbl}>Lost reason</span>
+              <select style={inp} value={reason} onChange={(e) => setReason(e.target.value)}>
+                <option value="">Select a reason</option>
+                {LOST_REASONS.map((r) => <option key={r} value={r}>{r}</option>)}
+              </select>
+            </label>
+            <label style={col}>
+              <span style={lbl}>Note {reason === 'Other' ? '' : '(optional)'}</span>
+              <input style={inp} value={note} onChange={(e) => setNote(e.target.value)} />
+            </label>
+          </div>
+        )}
         <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 8, marginTop: 22 }}>
           <button style={btnGhost} onClick={onClose} disabled={busy}>Cancel</button>
-          <button style={btnPrimary} onClick={() => onApply(from, to)} disabled={busy}>
+          <button
+            style={{ ...btnPrimary, opacity: lostBlocked ? 0.5 : 1 }}
+            onClick={() => onApply(from, to, to === 'lost' ? { reason, note: note.trim() || null } : undefined)}
+            disabled={busy || lostBlocked}
+          >
             {busy ? 'Applying…' : 'Apply'}
           </button>
         </div>
