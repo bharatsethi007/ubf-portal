@@ -63,11 +63,7 @@ export default function QuotesPage() {
   return (
     <div className="quotes-page">
       <div className="card quotes-page__card">
-        <header className="quotes-page__head">
-          <h1>Quotations</h1>
-        </header>
-
-        <QuotesStatsStrip mode={view === 'list' ? mode : 'all'} lane={lane} refreshKey={statsKey} />
+        <QuotesStatsStrip title="Quotations" mode={view === 'list' ? mode : 'all'} lane={lane} refreshKey={statsKey} />
 
         <div className="quotes-page__toolbar">
           <label className="quotes-page__search">

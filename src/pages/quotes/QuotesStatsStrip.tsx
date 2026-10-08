@@ -3,7 +3,7 @@ import { FileText, FolderOpen, Hourglass, Trophy, XCircle, Percent, Medal, type 
 import QuotesLeaderboardDialog from './leaderboard/QuotesLeaderboardDialog'
 import { fetchQuotesStats, type QuotesMode, type PortPair, type QuotesStats, type StatsPeriod } from './quotesStatsApi'
 
-type Props = { mode: QuotesMode; lane: PortPair; refreshKey?: number }
+type Props = { mode: QuotesMode; lane: PortPair; refreshKey?: number; title?: string }
 
 type Tile = { label: string; value: string; Icon: LucideIcon; tone?: string }
 
@@ -24,7 +24,7 @@ function loadPeriod(): StatsPeriod {
   return 'month'
 }
 
-export default function QuotesStatsStrip({ mode, lane, refreshKey = 0 }: Props) {
+export default function QuotesStatsStrip({ mode, lane, refreshKey = 0, title }: Props) {
   const [stats, setStats] = useState<QuotesStats | null>(null)
   const [period, setPeriod] = useState<StatsPeriod>(loadPeriod)
   const [boardOpen, setBoardOpen] = useState(false)
@@ -54,8 +54,10 @@ export default function QuotesStatsStrip({ mode, lane, refreshKey = 0 }: Props) 
   ]
 
   return (
-    <div className="flex flex-col gap-2">
-      <div className="flex items-center justify-end gap-2">
+    <div className="flex flex-col gap-3">
+      <div className="quotes-page__head flex items-center justify-between gap-2">
+        {title ? <h1>{title}</h1> : <span />}
+        <div className="flex items-center gap-2">
         <div className="inline-flex rounded-md border border-slate-200 bg-white p-0.5" role="tablist" aria-label="Stats period">
           {PERIODS.map(({ key, label, hint }) => (
             <button
@@ -74,6 +76,7 @@ export default function QuotesStatsStrip({ mode, lane, refreshKey = 0 }: Props) 
         <button type="button" className="icon-btn" title="Leaderboard" aria-label="Leaderboard" onClick={() => setBoardOpen(true)}>
           <Medal size={17} strokeWidth={2} />
         </button>
+        </div>
       </div>
       <QuotesLeaderboardDialog open={boardOpen} onClose={() => setBoardOpen(false)} mode={mode} initialPeriod={period} />
       <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
