@@ -7,7 +7,8 @@ import {
   fetchBookingQuote, unlinkQuote, money,
   type LinkedQuote, type QuoteResponseLine, type QuoteResponseSummary,
 } from '@/features/quoteBooking/quoteBookingApi'
-import FinanceQuoteLines, { vendorCosts } from './FinanceQuoteLines'
+import FinanceQuoteLines from './FinanceQuoteLines'
+import ExpectedCostsCard from './ExpectedCostsCard'
 
 type Props = { bookingId: string; onChanged: () => void }
 
@@ -42,8 +43,6 @@ export default function BookingFinanceTab({ bookingId, onChanged }: Props) {
   }
 
   if (loading) return <div className="bk-card" style={{ padding: 16 }}><p className="text-muted-foreground">Loading…</p></div>
-
-  const costs = vendorCosts(lines)
 
   return (
     <div style={{ display: 'grid', gap: 16 }}>
@@ -85,26 +84,8 @@ export default function BookingFinanceTab({ bookingId, onChanged }: Props) {
         )}
       </section>
 
-      {quote && (
-        <section className="bk-card">
-          <div className="bk-card__toolbar"><span style={{ fontWeight: 500 }}>Expected costs</span>
-            <span className="text-muted-foreground text-sm" style={{ marginLeft: 8 }}>from quote buy lines</span></div>
-          {costs.length === 0 ? (
-            <p className="text-muted-foreground" style={{ padding: 16 }}>No buy costs on the quote.</p>
-          ) : (
-            <div className="table-wrap">
-              <table className="data-table">
-                <thead><tr><th>Vendor</th><th style={{ textAlign: 'right' }}>Expected ({resp?.currency ?? 'NZD'})</th></tr></thead>
-                <tbody>
-                  {costs.map((c) => (
-                    <tr key={c.vendor}><td>{c.vendor}</td><td style={{ textAlign: 'right' }}>{money(c.total)}</td></tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
-        </section>
-      )}
+      <ExpectedCostsCard key={quote?.id ?? 'none'} bookingId={bookingId} quoteLines={lines}
+        quoteCurrency={resp?.currency ?? null} quotedBuy={resp?.total_buy ?? null} onChanged={onChanged} />
 
       <QuoteLinkDialog bookingId={bookingId} open={linkOpen} onOpenChange={setLinkOpen}
         onLinked={() => { void load(); onChanged() }} />

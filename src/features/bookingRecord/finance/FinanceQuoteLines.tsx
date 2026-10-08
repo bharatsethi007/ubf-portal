@@ -16,17 +16,6 @@ function groupLines(lines: QuoteResponseLine[]) {
   return keys.map((k) => ({ key: k, label: GROUP_LABEL[k] ?? k, rows: m.get(k) ?? [] }))
 }
 
-export function vendorCosts(lines: QuoteResponseLine[]) {
-  const m = new Map<string, number>()
-  for (const l of lines) {
-    const buy = Number(l.total_buy ?? 0)
-    if (!buy) continue
-    const v = l.vendor?.trim() || 'No vendor set'
-    m.set(v, (m.get(v) ?? 0) + buy)
-  }
-  return [...m.entries()].map(([vendor, total]) => ({ vendor, total })).sort((a, b) => b.total - a.total)
-}
-
 export default function FinanceQuoteLines({ lines, currency }: { lines: QuoteResponseLine[]; currency: string | null }) {
   if (lines.length === 0) return <p className="text-muted-foreground pad-inline">Quote response has no charge lines.</p>
   const groups = groupLines(lines)
