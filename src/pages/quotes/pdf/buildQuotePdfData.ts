@@ -1,4 +1,5 @@
 import { computeResponseLine, computeResponseTotals, type QuoteResponseLine } from '../quoteResponseLinesApi'
+import { transitLabel } from '../../../lib/transitLabel'
 import type { QuoteRecord } from '../quotesApi'
 import type { QuoteResponseRecord } from '../quoteResponsesApi'
 import type { QuoteCargoLine } from '../quoteCargoApi'
@@ -102,7 +103,7 @@ function buildOption(input: PdfResponseInput, index: number, refs: PdfRefs): Pdf
     currency,
     shippingLine: record.carrier || '',
     via: via ? via.code : record.via_port || '',
-    transitTime: record.transit_time_days != null && String(record.transit_time_days) !== '' ? `${record.transit_time_days} days` : '',
+    transitTime: transitLabel(record.transit_time_days),
     freeDays: record.origin_free_time_days != null && String(record.origin_free_time_days) !== '' ? `${record.origin_free_time_days} days` : '',
     charges,
     subTotal: money(currency, totals.subTotal),

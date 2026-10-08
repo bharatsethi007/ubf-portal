@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useSearchParams } from 'react-router-dom'
 import { CheckCircle2, XCircle, ArrowRight, Clock } from 'lucide-react'
+import { transitLabel } from '../../lib/transitLabel'
 import { DECLINE_REASONS, loadPublicQuote, money, nzDate, respondPublicQuote, type PublicQuote } from './quoteRespondApi'
 
 type View = 'choose' | 'decline' | 'done'
@@ -92,7 +93,7 @@ export default function QuoteRespondPage() {
                       <span className="min-w-0 flex-1">
                         <span className="block text-sm text-slate-900">{o.carrier ?? o.product ?? (q.options.length > 1 ? `Option ${i + 1}` : 'Your rate')}</span>
                         <span className="block text-xs text-slate-500">
-                          {[o.transit_days ? `${o.transit_days} days transit` : null, o.via ? `via ${o.via}` : null, o.product].filter(Boolean).join(' · ') || ' '}
+                          {[o.transit_days ? `${transitLabel(o.transit_days)} transit` : null, o.via ? `via ${o.via}` : null, o.product].filter(Boolean).join(' · ') || ' '}
                         </span>
                       </span>
                       <span className="text-sm tabular-nums text-slate-900">{money(o.total, o.currency)}</span>

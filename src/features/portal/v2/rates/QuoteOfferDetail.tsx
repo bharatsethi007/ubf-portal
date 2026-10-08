@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react'
+import { transitLabel } from '../../../../lib/transitLabel'
 import { Link } from 'react-router-dom'
 import { ArrowRight, Check, ChevronDown, Loader2, MessageSquare, Package, X } from 'lucide-react'
 import { fmtDay } from '../homeModel'
@@ -43,7 +44,7 @@ export default function QuoteOfferDetail({ o, open, onAnswered }: Props) {
   }
 
   const facts: [string, string | null][] = [
-    ['Carrier', o.carrier], ['Via', o.via_port], ['Transit', o.transit_time_days ? `${o.transit_time_days} days` : null],
+    ['Carrier', o.carrier], ['Via', o.via_port], ['Transit', transitLabel(o.transit_time ?? o.transit_time_days) || null],
     ['ETD', o.etd ? fmtDay(o.etd) : null], ['ETA', o.eta ? fmtDay(o.eta) : null], ['Incoterm', o.incoterms],
     ['Free time at origin', o.origin_free_time_days ? `${o.origin_free_time_days} days` : null],
     ['Free time at destination', o.detention_free_time_dest ? `${o.detention_free_time_dest} days` : null],

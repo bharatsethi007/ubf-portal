@@ -19,6 +19,7 @@ export type QuoteOffer = {
   carrier: string | null
   via_port: string | null
   transit_time_days: number | null
+  transit_time?: string | null
   etd: string | null
   eta: string | null
   valid_from: string | null

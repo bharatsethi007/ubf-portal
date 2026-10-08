@@ -62,7 +62,7 @@ Deno.serve(async (req) => {
         if (to.endsWith("@ubfreight.com") && !internalOk) { results.push({ quote_id: qid, quote_no: q.quote_no, ok: false, error: "Email is a UBF address" }); continue; }
 
         const { data: opts } = await db.from("quote_responses")
-          .select("id, carrier, transit_time_days, total_sell, currency, valid_till, status")
+          .select("id, carrier, transit_time, transit_time_days, total_sell, currency, valid_till, status")
           .eq("quote_id", qid).gt("total_sell", 0).not("status", "in", "(rejected,withdrawn)").order("total_sell");
         if (!opts?.length) { results.push({ quote_id: qid, quote_no: q.quote_no, ok: false, error: "No priced options" }); continue; }
 
@@ -89,7 +89,7 @@ Deno.serve(async (req) => {
         const mail = renderCustomerReminder({
           contactName, customerName: q.customer_name, quoteNo: q.quote_no ?? "", lane, expiresAt: q.expires_at,
           // LCL co-loaders are never shown to customers.
-          options: opts.map((o) => ({ carrier: String(q.shipment_type ?? '').toUpperCase() === 'LCL' ? null : o.carrier, transit_days: o.transit_time_days, total: o.total_sell, currency: o.currency, valid_till: o.valid_till })),
+          options: opts.map((o) => ({ carrier: String(q.shipment_type ?? '').toUpperCase() === 'LCL' ? null : o.carrier, transit_days: o.transit_time ?? (o.transit_time_days != null ? String(o.transit_time_days) : null), total: o.total_sell, currency: o.currency, valid_till: o.valid_till })),
           acceptUrl: `${base}?a=accept&r=${opts[0].id}`, declineUrl: `${base}?a=decline`, viewUrl: base,
           ownerName: owner?.full_name ?? null, ownerEmail: owner?.email ?? null,
         });

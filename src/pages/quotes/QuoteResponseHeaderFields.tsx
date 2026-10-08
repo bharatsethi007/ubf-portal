@@ -40,7 +40,7 @@ export default function QuoteResponseHeaderFields({ header, onPatch }: Props) {
         <TextField label="ETA" type="date" value={header.eta} onChange={(v) => onPatch({ eta: v })} />
         <TextField label="Carrier / Airline" value={header.carrier} onChange={(v) => onPatch({ carrier: v })} />
         <TextField label="Via Port" value={header.via_port} onChange={(v) => onPatch({ via_port: v })} />
-        <TextField label="Transit Time Days" type="number" value={header.transit_time_days} onChange={(v) => onPatch({ transit_time_days: v })} />
+        <TextField label="Transit Time" value={header.transit_time_days} onChange={(v) => onPatch({ transit_time_days: v })} />
         <TextField label="Origin Free Time Days" type="number" value={header.origin_free_time_days} onChange={(v) => onPatch({ origin_free_time_days: v })} />
         <TextField label="Detention Free Time Dest" type="number" value={header.detention_free_time_dest} onChange={(v) => onPatch({ detention_free_time_dest: v })} />
         <TextField label="Product" value={header.product} onChange={(v) => onPatch({ product: v })} />

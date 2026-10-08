@@ -2,7 +2,7 @@ import { supabase } from '../../supabase'
 
 export type PublicOption = {
   id: string; carrier: string | null; product: string | null; via: string | null
-  transit_days: number | null; total: number | null; currency: string | null; valid_till: string | null; status: string
+  transit_days: string | null; total: number | null; currency: string | null; valid_till: string | null; status: string
 }
 export type PublicQuote = {
   error?: string

@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase'
+import { transitLabel } from '../../../lib/transitLabel'
 
 export type EmailThread = {
   id: string; subject: string | null; mailbox: string; contact_email: string | null; contact_name: string | null
@@ -8,7 +9,7 @@ export type EmailThread = {
 export type QuoteEmailFacts = {
   quoteNo: string; lane: string; isLcl: boolean; contactName: string | null; contactEmail: string | null
   expiresAt: string | null; ownerName: string | null
-  options: { carrier: string | null; total: number | null; currency: string | null; transit: number | null }[]
+  options: { carrier: string | null; total: number | null; currency: string | null; transit: string | null }[]
 }
 
 export async function fetchThreads(quoteId: string, search: string): Promise<EmailThread[]> {
@@ -23,7 +24,7 @@ export async function fetchEmailFacts(quoteId: string, portName: (c: string | nu
   if (error) throw error
   const [{ data: email }, { data: opts }, { data: owner }] = await Promise.all([
     supabase.rpc('quote_contact_email', { p_quote: quoteId }),
-    supabase.from('quote_responses').select('carrier, total_sell, currency, transit_time_days, status')
+    supabase.from('quote_responses').select('carrier, total_sell, currency, transit_time, transit_time_days, status')
       .eq('quote_id', quoteId).gt('total_sell', 0).not('status', 'in', '(rejected,withdrawn)').order('total_sell'),
     q.created_by ? supabase.from('staff_users').select('full_name').eq('user_id', q.created_by).maybeSingle() : Promise.resolve({ data: null }),
   ])
@@ -32,14 +33,14 @@ export async function fetchEmailFacts(quoteId: string, portName: (c: string | nu
     quoteNo: q.quote_no ?? '', lane: `${portName(q.from_port_code)} to ${portName(q.to_port_code)}`, isLcl,
     contactName: q.contact_name, contactEmail: (email as string | null) ?? null, expiresAt: q.expires_at,
     ownerName: (owner as { full_name?: string } | null)?.full_name ?? null,
-    options: (opts ?? []).map((o) => ({ carrier: isLcl ? null : o.carrier, total: o.total_sell, currency: o.currency, transit: o.transit_time_days })),
+    options: (opts ?? []).map((o) => ({ carrier: isLcl ? null : o.carrier, total: o.total_sell, currency: o.currency, transit: o.transit_time ?? (o.transit_time_days != null ? String(o.transit_time_days) : null) })),
   }
 }
 
 export function defaultMessage(f: QuoteEmailFacts, myName: string | null): string {
   const first = f.contactName?.trim().split(/\s+/)[0]
   const money = (n: number | null, c: string | null) => (n == null ? '' : `${c ?? 'NZD'} ${Number(n).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-  const lines = f.options.map((o, i) => `- ${o.carrier ?? (f.options.length > 1 ? `Option ${i + 1}` : 'Rate')}: ${money(o.total, o.currency)}${o.transit ? `, ${o.transit} days transit` : ''}`)
+  const lines = f.options.map((o, i) => `- ${o.carrier ?? (f.options.length > 1 ? `Option ${i + 1}` : 'Rate')}: ${money(o.total, o.currency)}${o.transit ? `, ${transitLabel(o.transit)} transit` : ''}`)
   const valid = f.expiresAt ? `\n\nThis quote is valid until ${new Date(f.expiresAt).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}.` : ''
   return [
     `Hi ${first ?? 'there'},`,

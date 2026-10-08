@@ -69,7 +69,8 @@ function mapRecord(row: Record<string, unknown>): QuoteResponseRecord {
     eta: dateStr(row.eta),
     carrier: (row.carrier as string | null) ?? null,
     via_port: (row.via_port as string | null) ?? null,
-    transit_time_days: numStr(row.transit_time_days),
+    // Free text ("3-5 days"); falls back to the old whole-number column.
+    transit_time_days: (row.transit_time as string | null) ?? numStr(row.transit_time_days),
     origin_free_time_days: numStr(row.origin_free_time_days),
     detention_free_time_dest: numStr(row.detention_free_time_dest),
     product: (row.product as string | null) ?? null,
@@ -160,8 +161,14 @@ export async function updateQuoteResponseHeader(
 ): Promise<void> {
   const payload: Record<string, unknown> = { ...patch }
 
+  // Transit is free text in transit_time; the DB keeps transit_time_days (first number) in sync.
+  if ('transit_time_days' in patch) {
+    const v = patch.transit_time_days
+    payload.transit_time = typeof v === 'string' ? v.trim() || null : null
+    delete payload.transit_time_days
+  }
+
   for (const key of [
-    'transit_time_days',
     'origin_free_time_days',
     'detention_free_time_dest',
     'exchange_rate',

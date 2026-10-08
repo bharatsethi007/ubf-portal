@@ -42,7 +42,7 @@ const FIELD_LABELS: Record<string, string> = {
   customer_account_id: 'Customer', customer_name: 'Customer name', customer_po: 'Customer ref',
   shipper: 'Shipper', consignee: 'Consignee', shipper_address: 'Shipper address', consignee_address: 'Consignee address',
   pickup_address: 'Pickup address', drop_address: 'Delivery address',
-  carrier: 'Carrier', via_port: 'Via', transit_time_days: 'Transit days',
+  carrier: 'Carrier', via_port: 'Via', transit_time_days: 'Transit days', transit_time: 'Transit',
   total_sell: 'Sell total', total_buy: 'Buy total', net_profit: 'Net profit', margin_pct: 'Margin',
   cargo_description: 'Description', quantity: 'Qty', package_type: 'Package', total_weight: 'Weight',
   container_size: 'Container', container_type: 'Type', qty: 'Qty',

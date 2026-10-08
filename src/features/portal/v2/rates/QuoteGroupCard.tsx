@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { transitLabel } from '../../../../lib/transitLabel'
 import { ChevronDown, Clock, Plane, Ship } from 'lucide-react'
 import { fmtDay, placeName, shortCode, titleCase } from '../homeModel'
 import { money } from './ratesApi'
@@ -73,7 +74,7 @@ export default function QuoteGroupCard({ g, ports, isOpen, focusId, delay, onTog
               </span>
               <b>{x.carrier ?? 'Carrier to confirm'}</b>
               <span className="pv3-qopt__meta">
-                <Clock size={12} />{x.transit_time_days ? `${x.transit_time_days} days` : 'Transit on request'}{x.via_port ? ` · via ${x.via_port}` : ''}
+                <Clock size={12} />{x.transit_time || x.transit_time_days ? transitLabel(x.transit_time ?? x.transit_time_days) : 'Transit on request'}{x.via_port ? ` · via ${x.via_port}` : ''}
               </span>
               <span className="pv3-qopt__price">{money(x.total_sell, x.currency ?? g.currency)}</span>
             </button>

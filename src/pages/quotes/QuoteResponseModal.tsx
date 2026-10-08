@@ -229,8 +229,8 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                   </Field>
                 )}
 
-                <Field label="Transit Time (Days)">
-                  <input type="number" className="nqd-input" value={header.transit_time_days ?? ''} onChange={(e) => patch({ transit_time_days: e.target.value })} />
+                <Field label="Transit Time">
+                  <input type="text" className="nqd-input" placeholder="e.g. 3-5 days" value={header.transit_time_days ?? ''} onChange={(e) => patch({ transit_time_days: e.target.value })} />
                 </Field>
                 <Field label="Free Days">
                   <input type="number" className="nqd-input" value={header.origin_free_time_days ?? ''} onChange={(e) => patch({ origin_free_time_days: e.target.value })} />

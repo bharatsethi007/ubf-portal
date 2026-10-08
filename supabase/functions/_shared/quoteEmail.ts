@@ -4,6 +4,12 @@ const NAVY = "#0A2472", ORANGE = "#F7941D", INK = "#1E293B", BODY = "#475569", M
 const GREEN = "#047857";
 const FONT = "'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
 
+export function transitText(v: string | null | undefined): string {
+  const t = String(v ?? "").trim();
+  if (!t) return "";
+  return /^\d+(\s*[-–to]+\s*\d+)?$/i.test(t) ? `${t.replace(/\s*(-|–|to)\s*/i, "-")} days` : t;
+}
+
 export const esc = (s: unknown) => String(s ?? "").replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
 
 export function nzDate(iso: string | null | undefined): string {
@@ -47,7 +53,7 @@ const p = (html: string) => `<p style="margin:0 0 14px;font-family:${FONT};font-
 const th = (t: string, right = false) => `<td style="padding:8px 10px;background:#F8FAFC;border-bottom:1px solid ${LINE};font-family:${FONT};font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:${MUTED};${right ? "text-align:right;" : ""}">${t}</td>`;
 const td = (t: string, right = false) => `<td style="padding:10px;border-bottom:1px solid ${LINE};font-family:${FONT};font-size:14px;color:${INK};${right ? "text-align:right;white-space:nowrap;" : ""}">${t}</td>`;
 
-export type ReminderOption = { carrier: string | null; transit_days: number | null; total: number | null; currency: string | null; valid_till: string | null };
+export type ReminderOption = { carrier: string | null; transit_days: string | null; total: number | null; currency: string | null; valid_till: string | null };
 export type CustomerReminder = {
   contactName: string | null; customerName: string | null; quoteNo: string; lane: string; expiresAt: string | null;
   options: ReminderOption[]; acceptUrl: string; declineUrl: string; viewUrl: string; ownerName: string | null; ownerEmail: string | null;
@@ -55,7 +61,7 @@ export type CustomerReminder = {
 
 export function renderCustomerReminder(r: CustomerReminder): { subject: string; html: string } {
   const hello = r.contactName?.trim() ? `Hi ${esc(r.contactName.trim().split(/\s+/)[0])},` : "Hi,";
-  const rows = r.options.map((o, i) => `<tr>${td(esc(o.carrier ?? (r.options.length > 1 ? `Option ${i + 1}` : "Your rate")))}${td(o.transit_days ? `${o.transit_days} days` : "")}${td(esc(money(o.total, o.currency)), true)}</tr>`).join("");
+  const rows = r.options.map((o, i) => `<tr>${td(esc(o.carrier ?? (r.options.length > 1 ? `Option ${i + 1}` : "Your rate")))}${td(esc(transitText(o.transit_days)))}${td(esc(money(o.total, o.currency)), true)}</tr>`).join("");
   const table = r.options.length
     ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${LINE};border-radius:8px;margin:4px 0 20px;"><tr>${th("Option")}${th("Transit")}${th("Total", true)}</tr>${rows}</table>`
     : "";
