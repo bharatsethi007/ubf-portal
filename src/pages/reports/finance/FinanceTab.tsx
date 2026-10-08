@@ -1,4 +1,6 @@
 import { useMemo, useState } from 'react'
+import { FileDown, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
 import { C, Seg } from '../reportsUi'
 import { fetchSync } from './financeApi'
 import { DATA_START, addMonths, fyEnd, fyLabel, fyOf, fyStart, lastClosedMonth, monthLabel, monthsBetween } from './financeUtil'
@@ -14,6 +16,7 @@ import FinCollections from './FinCollections'
 import FinMatching from './FinMatching'
 import FinLeaks from './FinLeaks'
 import FinCustomerProfit from './FinCustomerProfit'
+import { downloadBoardPack } from './boardpack/boardPackExport'
 
 export type View = 'overview' | 'pl' | 'bs' | 'cf' | 'wc' | 'collections' | 'matching' | 'leaks' | 'customers' | 'forecast' | 'checks'
 const VIEWS: { k: View; label: string }[] = [
@@ -37,6 +40,13 @@ export default function FinanceTab({ initialView }: { initialView?: View }) {
   const [useAdj, setUseAdj] = useState(true)
   const fy = fyOf(toMonth)
   const sync = useAsync(fetchSync, [])
+  const [packBusy, setPackBusy] = useState(false)
+  async function boardPack() {
+    setPackBusy(true)
+    try { await downloadBoardPack(toMonth, useAdj); toast.success('Board pack downloaded') }
+    catch (e) { toast.error(e instanceof Error ? e.message : 'Board pack failed') }
+    finally { setPackBusy(false) }
+  }
 
   const fys = useMemo(() => {
     const out: number[] = []
@@ -72,6 +82,10 @@ export default function FinanceTab({ initialView }: { initialView?: View }) {
             {monthOpts.map((m) => <option key={m} value={m}>to {monthLabel(m)}</option>)}
           </select>
           <Toggle on={useAdj} onChange={setUseAdj} label="Add back unposted job costs" />
+          <button className="icon-btn" title={`Download board pack for ${monthLabel(toMonth)}`} aria-label="Download board pack"
+            disabled={packBusy} onClick={boardPack}>
+            {packBusy ? <Loader2 size={16} className="animate-spin" /> : <FileDown size={16} />}
+          </button>
         </div>
       </div>
       <div style={{ fontSize: 11.5, color: C.mut }}>
