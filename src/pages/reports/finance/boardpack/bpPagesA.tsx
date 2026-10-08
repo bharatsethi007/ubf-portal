@@ -1,4 +1,4 @@
-import { Page, Text, View } from '@react-pdf/renderer'
+import { Image, Page, Text, View } from '@react-pdf/renderer'
 import { compact, fyLabel, pct, ratio } from '../financeUtil'
 import type { BoardPack } from './boardPackData'
 import { TrendChart } from './bpCharts'
@@ -18,7 +18,8 @@ export function Cover({ p }: { p: BoardPack }) {
   const gm = ratio(p.yT.gp, p.yT.revenue)
   return (
     <Page size="A4" style={{ fontFamily: 'General Sans', backgroundColor: K.paper }}>
-      <View style={{ backgroundColor: K.navy, paddingHorizontal: 48, paddingTop: 150, paddingBottom: 40 }}>
+      <View style={{ backgroundColor: K.navy, paddingHorizontal: 48, paddingTop: 44, paddingBottom: 40 }}>
+        <Image src="/ub-freight-logo-white.png" style={{ width: 112, height: 56, objectFit: 'contain', marginBottom: 72 }} />
         <Text style={{ fontSize: 9, color: '#C9D3EC', letterSpacing: 1.2, textTransform: 'uppercase' }}>UB Freight Limited</Text>
         <Text style={{ fontSize: 30, fontWeight: 600, color: K.paper, marginTop: 10 }}>Board pack</Text>
         <View style={{ width: 44, height: 3, backgroundColor: K.orange, marginTop: 12, marginBottom: 12 }} />
