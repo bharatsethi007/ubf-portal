@@ -148,7 +148,7 @@
 .bk-cntr-pop__warn { margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: var(--bk-amber-soft); color: var(--bk-amber); font-size: 11.5px; }
 
 /* Next action to-do button */
-.bk-col-todo { width: 40px; text-align: center; padding: 0 6px !important; }
+.bk-col-todo { width: 34px; text-align: center; padding: 0 2px !important; }
 .bk-todo { position: relative; width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: #fff; transition: transform .1s; }
 .bk-todo:active { transform: scale(.95); }
 .bk-todo--red { color: var(--bk-red); background: var(--bk-red-soft); border-color: #FAD4D0; }
