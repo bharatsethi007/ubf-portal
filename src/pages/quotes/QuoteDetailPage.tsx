@@ -32,6 +32,7 @@ import QuoteContactSelect from './QuoteContactSelect'
 import ExternalNotesField from './ExternalNotesField'
 import QuotePreviewBubble from './QuotePreviewBubble'
 import CopyQuoteButton from './CopyQuoteButton'
+import QuoteBookingAction from '../../features/quoteBooking/QuoteBookingAction'
 import QuoteAddressField from './QuoteAddressField'
 
 const QuoteEmailDialog = lazy(() => import('./email/QuoteEmailDialog'))
@@ -348,6 +349,14 @@ export default function QuoteDetailPage() {
             <span style={{ fontSize: 12, alignSelf: 'center', marginRight: 8, color: saveLabelColor, whiteSpace: 'nowrap' }}>{saveLabel}</span>
             <button className="nqd-btn" title="Email quote" aria-label="Email quote" onClick={() => setEmailOpen(true)}
               style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}><Send size={15} /></button>
+            <QuoteBookingAction
+              quoteId={quote.id}
+              quoteNo={quote.quote_no}
+              status={status}
+              bookingId={(quote as QuoteRecord & { booking_id?: string | null }).booking_id}
+              shipmentMode={quote.shipment_mode}
+              movementType={fields.movement_type}
+            />
             <button className="nqd-btn nqd-btn--won" disabled={statusBusy} onClick={() => mark('won')}>Mark won</button>
             <button className="nqd-btn nqd-btn--lost" disabled={statusBusy} onClick={() => mark('lost')}>Mark lost</button>
             <button className="nqd-btn nqd-btn--cross" disabled={statusBusy} onClick={() => mark('crosswin')}>Mark cross win</button>

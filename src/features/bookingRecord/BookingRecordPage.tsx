@@ -12,6 +12,7 @@ import type { BookingContainerRow } from './containers/bookingContainerTypes'
 import BookingDocumentsTab from './documents/BookingDocumentsTab'
 import BookingDetailsTab from './BookingDetailsTab'
 import BookingHistoryTab from './tabs/BookingHistoryTab'
+import BookingFinanceTab from './finance/BookingFinanceTab'
 import BookingRecordHeader from './BookingRecordHeader'
 import BookingRecordNav from './BookingRecordNav'
 import BookingRecordSkeleton from './BookingRecordSkeleton'
@@ -176,6 +177,7 @@ function BookingRecordPageContent({
             <TabsTrigger value="details">Details</TabsTrigger>
             <TabsTrigger value="tracking">Tracking</TabsTrigger>
             <TabsTrigger value="documents">Documents</TabsTrigger>
+            <TabsTrigger value="finance">Finance</TabsTrigger>
             <TabsTrigger value="history">History</TabsTrigger>
           </TabsList>
 
@@ -226,6 +228,9 @@ function BookingRecordPageContent({
           </TabsContent>
           <TabsContent value="documents">
             <BookingDocumentsTab bookingId={booking.id} accountId={booking.account_id} />
+          </TabsContent>
+          <TabsContent value="finance">
+            <BookingFinanceTab bookingId={booking.id} onChanged={bumpHistory} />
           </TabsContent>
           <TabsContent value="history">
             <BookingHistoryTab bookingId={booking.id} refreshKey={historyTick} />
