@@ -12,12 +12,13 @@ import FinForecast from './FinForecast'
 import FinChecks from './FinChecks'
 import FinCollections from './FinCollections'
 import FinMatching from './FinMatching'
+import FinLeaks from './FinLeaks'
 
-export type View = 'overview' | 'pl' | 'bs' | 'cf' | 'wc' | 'collections' | 'matching' | 'forecast' | 'checks'
+export type View = 'overview' | 'pl' | 'bs' | 'cf' | 'wc' | 'collections' | 'matching' | 'leaks' | 'forecast' | 'checks'
 const VIEWS: { k: View; label: string }[] = [
   { k: 'overview', label: 'CFO overview' }, { k: 'pl', label: 'Profit & loss' }, { k: 'bs', label: 'Balance sheet' },
   { k: 'cf', label: 'Cash flow' }, { k: 'wc', label: 'Debtors & creditors' }, { k: 'collections', label: 'Collections' },
-  { k: 'matching', label: 'Match payments' }, { k: 'forecast', label: '13-week cash' },
+  { k: 'matching', label: 'Match payments' }, { k: 'leaks', label: 'Margin leaks' }, { k: 'forecast', label: '13-week cash' },
   { k: 'checks', label: 'Checks' },
 ]
 
@@ -83,6 +84,7 @@ export default function FinanceTab({ initialView }: { initialView?: View }) {
       {view === 'wc' && <FinWorkingCapital p={period} />}
       {view === 'collections' && <FinCollections />}
       {view === 'matching' && <FinMatching />}
+      {view === 'leaks' && <FinLeaks />}
       {view === 'forecast' && <FinForecast />}
       {view === 'checks' && <FinChecks />}
     </div>

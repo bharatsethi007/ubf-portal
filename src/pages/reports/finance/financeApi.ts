@@ -120,3 +120,20 @@ export async function reviewMatch(receiptId: number, status: 'done' | 'ignore' |
   const { error } = await supabase.rpc('fin_match_review', { p_receipt_id: receiptId, p_status: status, p_note: note ?? null })
   if (error) throw new Error(error.message)
 }
+
+/* ---------- margin leaks ---------- */
+export type LeakCategory = 'not_invoiced' | 'overrun' | 'loss' | 'never_costed' | 'cost_not_billed'
+export type LeakRow = { job_no: number; category: LeakCategory; module: string | null; house_bill: string | null
+  ref_job: string | null; customer_id: string | null; customer: string | null; suppliers: string | null
+  cost_billed: number; cost_booked: number; gap: number; revenue: number; gp: number; margin: number | null
+  first_bill: string | null; last_bill: string | null; last_invoice: string | null; days_since: number | null
+  review_status: string | null; review_note: string | null }
+
+export const fetchLeaks = () => call<LeakRow>('fin_margin_leaks', {}, ['job_no', 'cost_billed', 'cost_booked', 'gap',
+  'revenue', 'gp', 'margin', 'days_since'])
+
+export async function reviewLeak(r: LeakRow, status: 'rebilled' | 'accepted' | 'fixed' | 'ignore' | 'clear', note?: string) {
+  const { error } = await supabase.rpc('fin_leak_review', { p_job_no: r.job_no, p_category: r.category, p_status: status,
+    p_gap: r.gap, p_note: note ?? null })
+  if (error) throw new Error(error.message)
+}
