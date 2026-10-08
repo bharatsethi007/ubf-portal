@@ -1,5 +1,5 @@
-.qrm-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: 2.5vh 2.5vw; }
-.qrm-modal { width: 95vw; height: 95vh; max-width: 1600px; background: #fff; border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
+.qrm-overlay { position: fixed; inset: 0; background: rgba(15,23,42,0.45); display: flex; align-items: center; justify-content: center; z-index: 100; padding: calc(2.5vh / var(--mz, 1)) calc(2.5vw / var(--mz, 1)); }
+.qrm-modal { width: calc(95vw / var(--mz, 1)); height: calc(95vh / var(--mz, 1)); max-width: 1600px; background: #fff; border-radius: 14px; display: flex; flex-direction: column; overflow: hidden; box-shadow: 0 20px 60px rgba(0,0,0,0.3); }
 .qrm-head { display: flex; align-items: flex-start; justify-content: space-between; padding: 16px 24px; border-bottom: 1px solid #e2e8f0; flex-shrink: 0; }
 .qrm-title { font-size: 18px; font-weight: 700; color: #0f172a; }
 .qrm-sub { font-size: 13px; color: #64748b; margin-top: 2px; }

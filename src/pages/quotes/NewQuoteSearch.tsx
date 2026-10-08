@@ -693,7 +693,7 @@ export default function NewQuoteSearch() {
       {courierPopup && courier && (
         <div role="dialog" aria-modal="true" onMouseDown={(e) => { if (e.target === e.currentTarget) setCourierPopup(false) }}
           style={{ position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 200, padding: 24 }}>
-          <div onMouseDown={(e) => e.stopPropagation()} style={{ width: 'min(560px, 95vw)', maxHeight: '80vh', overflow: 'auto', background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
+          <div onMouseDown={(e) => e.stopPropagation()} style={{ width: 'min(560px, calc(95vw / var(--mz, 1)))', maxHeight: 'calc(80vh / var(--mz, 1))', overflow: 'auto', background: '#fff', borderRadius: 12, padding: 16, boxShadow: '0 20px 60px rgba(0,0,0,0.3)' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
               <strong style={{ fontSize: 15 }}>Choose courier · {courier.leg === 'dest' ? 'delivery' : 'pickup'}</strong>
               <button type="button" className="text-link" onClick={() => setCourierPopup(false)}>Close</button>

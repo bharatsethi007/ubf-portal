@@ -79,7 +79,7 @@ export default function AgentRecipientPicker({ agentCountry, agentEnd, existing,
 
   return (
     <div style={{ position: 'fixed', inset: 0, background: 'rgba(16,24,40,0.4)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 50, padding: 16 }} onClick={onClose}>
-      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, maxWidth: 560, width: '100%', maxHeight: '85vh', display: 'flex', flexDirection: 'column', boxShadow: '0 12px 40px rgba(16,24,40,0.16)' }}>
+      <div onClick={(e) => e.stopPropagation()} style={{ background: '#fff', borderRadius: 10, maxWidth: 560, width: '100%', maxHeight: 'calc(85vh / var(--mz, 1))', display: 'flex', flexDirection: 'column', boxShadow: '0 12px 40px rgba(16,24,40,0.16)' }}>
         <div style={{ padding: '16px 18px 10px' }}>
           <div style={{ fontSize: 14, color: '#0A2472', fontWeight: 500, marginBottom: 2 }}>Add recipients</div>
           <p style={{ ...label, margin: '0 0 12px' }}>Agent at {agentEnd === 'origin' ? 'origin' : 'destination'}{agentCountry ? ` · ${agentCountry}` : ''}</p>

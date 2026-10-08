@@ -1,8 +1,8 @@
 .cbf-dialog {
-  width: 80vw !important;
-  max-width: 80vw !important;
-  height: 80vh !important;
-  max-height: 80vh !important;
+  width: calc(80vw / var(--mz, 1)) !important;
+  max-width: calc(80vw / var(--mz, 1)) !important;
+  height: calc(80vh / var(--mz, 1)) !important;
+  max-height: calc(80vh / var(--mz, 1)) !important;
   margin: auto !important;
   padding: 24px !important;
   display: flex !important;

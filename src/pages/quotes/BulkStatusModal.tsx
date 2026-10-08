@@ -75,7 +75,7 @@ const overlay: CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
 }
 const sheet: CSSProperties = {
-  background: '#fff', borderRadius: 12, padding: 24, width: 'min(440px, 92vw)',
+  background: '#fff', borderRadius: 12, padding: 24, width: 'min(440px, calc(92vw / var(--mz, 1)))',
   boxShadow: '0 20px 50px rgba(15,23,42,0.25)',
 }
 const col: CSSProperties = { display: 'flex', flexDirection: 'column', gap: 4, flex: 1 }

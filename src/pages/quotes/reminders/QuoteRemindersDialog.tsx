@@ -209,6 +209,6 @@ const overlay: CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
 }
 const sheet: CSSProperties = {
-  background: '#fff', borderRadius: 12, width: 'min(1180px, 96vw)', maxHeight: '88vh',
+  background: '#fff', borderRadius: 12, width: 'min(1180px, calc(96vw / var(--mz, 1)))', maxHeight: 'calc(88vh / var(--mz, 1))',
   display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(15,23,42,0.25)', overflow: 'hidden',
 }

@@ -173,6 +173,6 @@ const overlay: CSSProperties = {
   position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
 }
 const sheet: CSSProperties = {
-  background: '#fff', borderRadius: 12, width: 'min(1120px, 96vw)', height: 'min(760px, 90vh)',
+  background: '#fff', borderRadius: 12, width: 'min(1120px, calc(96vw / var(--mz, 1)))', height: 'min(760px, calc(90vh / var(--mz, 1)))',
   display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(15,23,42,0.25)', overflow: 'hidden',
 }

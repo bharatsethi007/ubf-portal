@@ -41,7 +41,7 @@ export default function QuotePreviewBubble({ quoteId, quoteNo }: Props) {
           <DialogHeader>
             <DialogTitle>Quote preview{quoteNo ? ` · ${quoteNo}` : ''}</DialogTitle>
           </DialogHeader>
-          <div className="max-h-[80vh] overflow-auto">
+          <div className="max-h-[calc(80vh/var(--mz,1))] overflow-auto">
             {responses == null ? (
               <p className="qr-placeholder">Loading preview…</p>
             ) : (

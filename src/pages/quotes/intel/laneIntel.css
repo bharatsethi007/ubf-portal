@@ -8,7 +8,7 @@
   border: 2px solid #fff; animation: fi-pop .4s cubic-bezier(.2,1.6,.4,1) .3s both; }
 .fi-launch__ring { position: absolute; inset: -4px; border-radius: 50%; border: 2px solid #D97706; opacity: 0; animation: fi-ring 1.6s ease-out .5s 2; }
 
-.fi-drawer { position: fixed; top: 76px; right: 16px; bottom: 16px; width: 404px; max-width: calc(100vw - 32px); z-index: 41; background: #fff;
+.fi-drawer { position: fixed; top: 76px; right: 16px; bottom: 16px; width: 404px; max-width: calc(100vw / var(--mz, 1) - 32px); z-index: 41; background: #fff;
   border: 1px solid #e3e7ed; border-radius: 14px; box-shadow: 0 24px 60px rgba(10,36,114,.16); display: flex; flex-direction: column; overflow: hidden;
   animation: fi-slide .38s cubic-bezier(.2,.8,.2,1) both; }
 .fi-drawer--out { animation: fi-slide-out .24s cubic-bezier(.4,0,1,1) both; }
