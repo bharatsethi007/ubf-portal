@@ -12,11 +12,26 @@ const NZ_CITIES = ["Auckland", "Wellington", "Christchurch", "Hamilton", "Tauran
 function townVariants(raw) {
   const t = String(raw || "").trim(); if (!t) return []
   const low = t.toLowerCase(); const out = []
-  for (const c of NZ_CITIES) { if (low.includes(c.toLowerCase())) { out.push(c); break } }
+  // A known city in the text is what Bascik rates on. Use it alone: other spellings just 400.
+  for (const c of NZ_CITIES) { if (low.includes(c.toLowerCase())) return [c] }
   if (t.includes(",")) { const parts = t.split(",").map((x) => x.trim()).filter(Boolean); const seg = parts.length >= 2 ? parts[parts.length - 2] : parts[0]; if (seg && !out.includes(seg)) out.push(seg.replace(/\s+\d{3,4}$/, "").trim()) }
   const stripped = t.replace(/\s+\d{3,4}$/, "").replace(/\s+(central business district|central city|cbd|central|city)$/i, "").trim(); if (stripped && !out.includes(stripped)) out.push(stripped)
   const fw = t.split(/[\s,]+/)[0]; if (fw && !out.includes(fw)) out.push(fw)
   return out.filter(Boolean)
+}
+
+// Warm-instance caches: one login per token life, and repeat searches answered without calling Bascik.
+const tokenCache = new Map() // env -> { token, exp }
+const resultCache = new Map() // key -> { at, body }
+const RESULT_TTL = 10 * 60 * 1000
+async function getToken(H, envKey, clientId, clientSecret, bUser, bPass) {
+  const c = tokenCache.get(envKey)
+  if (c && c.exp > Date.now() + 60_000) return c.token
+  const tokRes = await apiFetch(H.auth, { method: "POST", headers: { "Authorization": "Basic " + btoa(`${clientId}:${clientSecret}`), "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" }, body: new URLSearchParams({ grant_type: "password", username: bUser, password: bPass, scope: "openid" }) })
+  const at = await tokRes.text(); if (!tokRes.ok) throw new Error(`auth_${tokRes.status}`)
+  const j = JSON.parse(at); if (!j?.access_token) throw new Error("auth_no_token")
+  tokenCache.set(envKey, { token: j.access_token, exp: Date.now() + (Number(j.expires_in) || 3600) * 1000 })
+  return j.access_token
 }
 
 async function priceenquiry(api, token, account, from, to, pieces, weight, volume) {
@@ -42,15 +57,22 @@ Deno.serve(async (req) => {
     if (!rawFrom || !rawTo) return json({ ok: false, reason: "from/to required" }, 400)
     const pieces = Math.max(1, parseInt(String(body?.pieces ?? "1"), 10) || 1)
     const weight = body?.weight_kg != null ? Number(body.weight_kg) : 0, volume = body?.volume_m3 != null ? Number(body.volume_m3) : 0
-    const H = HOSTS[body?.env === "test" ? "test" : "prod"]
-    const tokRes = await apiFetch(H.auth, { method: "POST", headers: { "Authorization": "Basic " + btoa(`${clientId}:${clientSecret}`), "Content-Type": "application/x-www-form-urlencoded", "Accept": "application/json" }, body: new URLSearchParams({ grant_type: "password", username: bUser, password: bPass, scope: "openid" }) })
-    const at = await tokRes.text(); if (!tokRes.ok) { console.error("bascik auth", tokRes.status); return json({ ok: false, reason: `auth_${tokRes.status}` }, 502) }
-    const token = JSON.parse(at)?.access_token; if (!token) return json({ ok: false, reason: "auth_no_token" }, 502)
+    const envKey = body?.env === "test" ? "test" : "prod"
+    const H = HOSTS[envKey]
     const froms = townVariants(rawFrom), tos = townVariants(rawTo)
+    const ck = JSON.stringify([envKey, froms, tos, pieces, weight, volume])
+    const hit = resultCache.get(ck)
+    if (hit && Date.now() - hit.at < RESULT_TTL) return json({ ...hit.body, cached: true })
+    let token
+    try { token = await getToken(H, envKey, clientId, clientSecret, bUser, bPass) } catch (e) { console.error("bascik auth", String(e)); return json({ ok: false, reason: String(e.message ?? e) }, 502) }
     let rows = [], usedFrom = froms[0] ?? rawFrom, usedTo = tos[0] ?? rawTo
     outer: for (const f of froms) { for (const t of tos) { const rr = await priceenquiry(H.api, token, account, f, t, pieces, weight, volume); if (rr.length > 0) { rows = rr; usedFrom = f; usedTo = t; break outer } } }
     const options = rows.map((r) => ({ service: String(r?.serviceLevelDesc ?? r?.productAbbrev ?? ""), cost: num(r?.cost) })).filter((o) => o.cost > 0).sort((a, b) => a.cost - b.cost)
-    if (options.length === 0) return json({ ok: false, reason: "not_ratable", triedFrom: froms, triedTo: tos })
-    return json({ ok: true, best: options[0], options, from: usedFrom, to: usedTo, currency: "NZD" })
+    const out = options.length === 0
+      ? { ok: false, reason: "not_ratable", triedFrom: froms, triedTo: tos }
+      : { ok: true, best: options[0], options, from: usedFrom, to: usedTo, currency: "NZD" }
+    resultCache.set(ck, { at: Date.now(), body: out })
+    if (resultCache.size > 300) resultCache.delete(resultCache.keys().next().value)
+    return json(out)
   } catch (e) { console.error("bascik exception", String(e)); return json({ ok: false, reason: String(e) }, 500) }
 })

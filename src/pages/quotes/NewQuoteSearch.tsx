@@ -264,7 +264,8 @@ export default function NewQuoteSearch() {
         if (!cancelled) setCartage({ leg: leg.side, label: status === 'ok' ? 'Cartage' : leg.label, amount, confidence: conf, status, source: status === 'ok' ? 'ubf' : undefined })
       } catch { if (!cancelled) setCartage(null) }
     }
-    const t = setTimeout(go, 300)
+    // Wait for typing to settle before hitting the carrier APIs.
+    const t = setTimeout(go, 900)
     return () => { cancelled = true; clearTimeout(t) }
   }, [cartKey]) // eslint-disable-line react-hooks/exhaustive-deps
 

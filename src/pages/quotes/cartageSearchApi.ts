@@ -49,7 +49,22 @@ export async function runCartageRate(p: {
 
 export type BascikQuote = { ok: boolean; best?: { service: string; cost: number }; options?: { service: string; cost: number }[]; reason?: string; from?: string; to?: string }
 
-export async function runBascikCartage(p: { from_suburb: string; to_suburb: string; pieces: number; weight_kg: number; volume_m3: number }): Promise<BascikQuote> {
+// Same search within 10 minutes is answered from memory (saves vendor API calls on re-renders and edits back).
+const TTL = 10 * 60 * 1000
+const memo = new Map<string, { at: number; p: Promise<unknown> }>()
+function cached<T>(key: string, run: () => Promise<T>): Promise<T> {
+  const hit = memo.get(key)
+  if (hit && Date.now() - hit.at < TTL) return hit.p as Promise<T>
+  const p = run().then((r) => { if (!(r as { ok?: boolean })?.ok) memo.delete(key); return r })
+  memo.set(key, { at: Date.now(), p })
+  return p
+}
+
+export function runBascikCartage(p: { from_suburb: string; to_suburb: string; pieces: number; weight_kg: number; volume_m3: number }): Promise<BascikQuote> {
+  return cached(`bas:${JSON.stringify(p)}`, () => runBascikCartageLive(p))
+}
+
+async function runBascikCartageLive(p: { from_suburb: string; to_suburb: string; pieces: number; weight_kg: number; volume_m3: number }): Promise<BascikQuote> {
   try {
     const { data, error } = await supabase.functions.invoke('cartage-bascik-quote', {
       body: { from_suburb: p.from_suburb, to_suburb: p.to_suburb, pieces: p.pieces, weight_kg: p.weight_kg, volume_m3: p.volume_m3 },
@@ -65,11 +80,17 @@ export async function runBascikCartage(p: { from_suburb: string; to_suburb: stri
 export type GssOption = { carrier: string; service: string; cost: number; charge: number; rural: boolean; quoteId: string | null }
 export type GssQuote = { ok: boolean; best?: GssOption; options?: GssOption[]; reason?: string }
 
-export async function runGssCartage(p: {
+type GssInput = {
   origin?: { suburb?: string; city?: string; postcode?: string; street?: string } | null
   destination: { suburb?: string; city?: string; postcode?: string; street?: string }
   pieces: number; weight_kg: number; volume_m3: number
-}): Promise<GssQuote> {
+}
+
+export function runGssCartage(p: GssInput): Promise<GssQuote> {
+  return cached(`gss:${JSON.stringify(p)}`, () => runGssCartageLive(p))
+}
+
+async function runGssCartageLive(p: GssInput): Promise<GssQuote> {
   try {
     const { data, error } = await supabase.functions.invoke('cartage-gss-quote', {
       body: { origin: p.origin ?? null, destination: p.destination, pieces: p.pieces, weight_kg: p.weight_kg, volume_m3: p.volume_m3 },
