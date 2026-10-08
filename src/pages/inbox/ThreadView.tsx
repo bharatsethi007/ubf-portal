@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { Check, RotateCcw } from 'lucide-react'
+import { Check, FileText, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import AttachmentViewer from './AttachmentViewer'
 import Composer from './Composer'
@@ -10,9 +10,10 @@ import EaBookingDialog from './EaBookingDialog'
 import JobDialog from './JobDialog'
 import JobStatusBar from './JobStatusBar'
 import MessageTimeline from './MessageTimeline'
+import QuoteDialog from './QuoteDialog'
 import ThreadActions from './ThreadActions'
 import { AssignPicker, SnoozePicker } from './HeaderTools'
-import { contactTypeOf, isUnknown, setStatus, type EmailAttachment, type InboxDetail, type StaffOption } from './inboxApi'
+import { contactTypeOf, isSales, isUnknown, setStatus, type EmailAttachment, type InboxDetail, type StaffOption } from './inboxApi'
 import { avatarColors, CHANNEL_META, initials } from './inboxFormat'
 import { inboxAction } from './EmailParts'
 
@@ -32,6 +33,7 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
   const [preview, setPreview] = useState<{ items: EmailAttachment[]; index: number } | null>(null)
   const who = whoOf(detail)
   const unknown = isUnknown(detail)
+  const sales = isSales(detail)
   const channels = Array.from(new Set(detail.messages.filter((m) => m.kind === 'message').map((m) => m.channel)))
   const title = c.subject && c.subject !== 'WhatsApp' ? c.subject : who
   const typeLabel = detail.account ? 'Customer' : contactTypeOf(detail) ?? (detail.email ? 'Unknown sender' : 'Unknown number')
@@ -74,7 +76,7 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
           <SnoozePicker detail={detail} onChanged={onChanged} />
           <div style={{ position: 'relative' }}>
             <ThreadActions detail={detail} onChanged={onChanged} hideTrigger={!!detail.email} />
-            <CreateBookingMenu detail={detail} bare />
+            {sales ? null : <CreateBookingMenu detail={detail} bare />}
           </div>
           {c.eff_status === 'open' ? (
             <button type="button" className="ibx-btn ibx-btn--primary" style={{ marginLeft: 6 }} disabled={busy} onClick={() => run(() => setStatus(c.id, 'closed'), 'Closed')}>
@@ -88,12 +90,24 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
         </div>
       </header>
 
-      <JobStatusBar convId={c.id} refreshKey={`${c.booking_id ?? ''}:${detail.messages.length}`} onChanged={onChanged} />
-      <MessageTimeline messages={detail.messages} who={who} />
+      {sales ? (
+        c.quote_id ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, padding: '8px 20px', borderBottom: '1px solid #EDEBE9', fontSize: 12.5, color: '#475467' }}>
+            <FileText size={14} />Quote
+            <Link to={`/quotes/${c.quote_id}`} className="ibx-mono" style={{ color: '#2E4A7D' }}>{c.quote_no}</Link>
+            <button type="button" className="ibx-btn" style={{ marginLeft: 'auto', height: 26 }} onClick={() => inboxAction('quote-link')}>Change</button>
+          </div>
+        ) : null
+      ) : <JobStatusBar convId={c.id} refreshKey={`${c.booking_id ?? ''}:${detail.messages.length}`} onChanged={onChanged} />}
+      <MessageTimeline messages={detail.messages} who={who} sales={sales} />
       <Composer detail={detail} who={who} me={me} onSent={onChanged} />
       {preview ? <AttachmentViewer items={preview.items} index={preview.index} onClose={() => setPreview(null)} /> : null}
-      <JobDialog detail={detail} onChanged={onChanged} />
-      <EaBookingDialog detail={detail} onChanged={onChanged} />
+      {sales ? <QuoteDialog detail={detail} onChanged={onChanged} /> : (
+        <>
+          <JobDialog detail={detail} onChanged={onChanged} />
+          <EaBookingDialog detail={detail} onChanged={onChanged} />
+        </>
+      )}
       <ContactDialog detail={detail} onChanged={onChanged} />
     </main>
   )

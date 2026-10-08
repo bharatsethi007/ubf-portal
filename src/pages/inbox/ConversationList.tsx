@@ -12,7 +12,14 @@ type Props = {
 function orgLine(r: InboxRow): string {
   if (r.account_name) return r.account_name
   if (r.contact_type) return r.contact_type[0].toUpperCase() + r.contact_type.slice(1)
-  return r.contact_email ?? 'Unknown'
+  return r.contact_email ?? r.wa_id ?? ''
+}
+
+// Who owns this thread: initials badge (BS = Bharat Sethi). Dashed ring when nobody has it.
+function OwnerBadge({ r }: { r: InboxRow }) {
+  if (!r.assignee_id) return <span className="ibx-owner ibx-owner--none" title="Unassigned" />
+  const ini = r.assignee_initials || initials(r.assignee_name)
+  return <span className="ibx-owner" style={avatarColors(r.assignee_name ?? ini)} title={r.assignee_name ?? ''}>{ini}</span>
 }
 
 export default function ConversationList({ rows, loading, error, view, selectedId, search, onSearch, onSelect, picked, onPick, onBulk }: Props) {
@@ -43,7 +50,7 @@ export default function ConversationList({ rows, loading, error, view, selectedI
           </div>
         ) : (
           <div style={{ fontSize: 12, color: '#64748B' }}>
-            {loading ? 'Loading…' : `${rows.length} ${view === 'closed' || view === 'snoozed' || view === 'ignored' ? view : 'open'} · most urgent first`}
+            {loading ? 'Loading…' : `${rows.length} ${view === 'closed' || view === 'snoozed' || view === 'ignored' ? view : 'open'} · newest first`}
           </div>
         )}
       </div>
@@ -52,15 +59,14 @@ export default function ConversationList({ rows, loading, error, view, selectedI
       {!loading && !error && rows.length === 0 ? <div className="ibx-empty">Nothing here. Inbox zero.</div> : null}
 
       {rows.map((r) => {
-        const unknown = !r.account_id && !r.contact_type
         const sla = view === 'closed' || view === 'ignored' ? null : slaFor(r)
         const ch = r.last_channel ?? r.channels[0] ?? 'portal'
         const strong = r.unread > 0
         return (
-          <div key={r.id} className={`ibx-conv${r.id === selectedId ? ' ibx-conv--sel' : ''}${picking ? ' ibx-conv--picking' : ''}${picked.has(r.id) ? ' ibx-conv--picked' : ''}`}>
+          <div key={r.id} className={`ibx-conv${r.id === selectedId ? ' ibx-conv--sel' : ''}${picking ? ' ibx-conv--picking' : ''}${picked.has(r.id) ? ' ibx-conv--picked' : ''}${strong ? ' ibx-conv--unread' : ''}`}>
             <label className="ibx-pick" title="Select">
               <input type="checkbox" aria-label={`Select ${r.who}`} checked={picked.has(r.id)} onChange={(e) => onPick([r.id], e.target.checked)} />
-              <span className="ibx-av ibx-av--md" style={avatarColors(r.who, unknown)}>
+              <span className="ibx-av ibx-av--md" style={avatarColors(r.who)}>
                 {initials(r.who)}
                 <span className="ibx-av__badge" style={{ background: CHANNEL_META[ch].color }} title={CHANNEL_META[ch].label} />
               </span>
@@ -68,17 +74,16 @@ export default function ConversationList({ rows, loading, error, view, selectedI
             <button type="button" className="ibx-conv__main" onClick={() => onSelect(r.id)} title={r.booking_ref ?? undefined}>
             <span className="ibx-conv__body">
               <span style={{ display: 'flex', alignItems: 'baseline', gap: 6, minWidth: 0 }}>
-                <span className="ibx-ellip" style={{ fontWeight: strong ? 600 : 500, fontSize: 13.5, flex: '0 1 auto' }}>{r.who}</span>
-                {unknown
-                  ? <span className="ibx-pill ibx-chip--late" style={{ flex: 'none' }}>Unknown</span>
-                  : <span className="ibx-ellip" style={{ fontSize: 12, color: '#64748B', flex: '1 1 0' }}>{orgLine(r)}</span>}
-                {unknown ? <span style={{ flex: 1 }} /> : null}
+                <span className="ibx-ellip" style={{ fontWeight: strong ? 500 : 400, color: strong ? '#0F172A' : '#334155', fontSize: 13.5, flex: '0 1 auto' }}>{r.who}</span>
+                <span className="ibx-ellip" style={{ fontSize: 12, color: '#64748B', flex: '1 1 0' }}>{orgLine(r)}</span>
                 <span style={{ fontSize: 11.5, color: '#64748B', whiteSpace: 'nowrap' }}>{timeAgo(r.last_message_at)}</span>
+                <OwnerBadge r={r} />
               </span>
               <span style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
                 <span className="ibx-ellip" style={{ fontSize: 12.5, color: strong ? '#0F172A' : '#475467', flex: 1 }}>
                   {r.last_sender === 'staff' ? 'You: ' : ''}{r.last_preview ?? r.subject ?? ''}
                 </span>
+                {r.quote_no ? <span className="ibx-pill" style={{ background: '#EEF2FB', color: '#4A5E8A' }}>{r.quote_no}</span> : null}
                 {sla && sla.tone !== 'done' ? <span className={`ibx-pill ibx-chip--${sla.tone}`}>{sla.label}</span> : null}
                 {strong ? <span className="ibx-unread">{r.unread > 99 ? '99+' : r.unread}</span> : null}
               </span>

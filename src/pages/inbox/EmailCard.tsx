@@ -10,7 +10,7 @@ import { AttachmentTiles, cleanBody, inboxAction, isInlineJunk, outlookDate, spl
 type Addr = { name: string | null; address: string | null }
 const names = (l: Addr[] | undefined) => (l ?? []).map((a) => a.name || a.address).filter(Boolean).join('; ')
 
-function Menu({ m, text, attIds }: { m: InboxMessage; text: string; attIds: number[] }) {
+function Menu({ m, text, attIds, sales }: { m: InboxMessage; text: string; attIds: number[]; sales: boolean }) {
   const [open, setOpen] = useState(false)
   const box = useRef<HTMLDivElement>(null)
   useEffect(() => {
@@ -22,10 +22,15 @@ function Menu({ m, text, attIds }: { m: InboxMessage; text: string; attIds: numb
   const act = (fn: () => void) => () => { setOpen(false); fn() }
   const items = [
     { icon: ReplyAll, label: 'Reply all', run: () => inboxAction('compose', { mode: 'reply', via: 'email' }) },
-    { icon: PackagePlus, label: 'Create booking', run: () => inboxAction('create-booking') },
-    { icon: RefreshCw, label: 'Update job from this email', run: () => inboxAction('job', { mode: 'update', messageId: m.id }) },
-    ...(attIds.length ? [{ icon: FilePlus2, label: 'Save attachments to job', run: () => inboxAction('job', { mode: 'docs', attachmentIds: attIds }) }] : []),
-    { icon: Link2, label: 'Link to job', run: () => inboxAction('job', { mode: 'link' }) },
+    ...(sales ? [
+      { icon: FilePlus2, label: 'Create quote', run: () => inboxAction('create-quote') },
+      { icon: Link2, label: 'Link to quote', run: () => inboxAction('quote-link') },
+    ] : [
+      { icon: PackagePlus, label: 'Create booking', run: () => inboxAction('create-booking') },
+      { icon: RefreshCw, label: 'Update job from this email', run: () => inboxAction('job', { mode: 'update', messageId: m.id }) },
+      ...(attIds.length ? [{ icon: FilePlus2, label: 'Save attachments to job', run: () => inboxAction('job', { mode: 'docs', attachmentIds: attIds }) }] : []),
+      { icon: Link2, label: 'Link to job', run: () => inboxAction('job', { mode: 'link' }) },
+    ]),
     { icon: StickyNote, label: 'Add internal note', run: () => inboxAction('compose', { mode: 'note' }) },
     { icon: Copy, label: 'Copy text', run: () => void navigator.clipboard.writeText(text).then(() => toast.success('Copied')) },
     ...(m.email?.web_link ? [{ icon: ExternalLink, label: 'Open in Outlook', run: () => window.open(m.email!.web_link!, '_blank', 'noopener') }] : []),
@@ -89,7 +94,7 @@ function EmailBodyView({ m, text }: { m: InboxMessage; text: string }) {
   )
 }
 
-export default function EmailCard({ m, initiallyOpen }: { m: InboxMessage; initiallyOpen: boolean }) {
+export default function EmailCard({ m, initiallyOpen, sales = false }: { m: InboxMessage; initiallyOpen: boolean; sales?: boolean }) {
   const [open, setOpen] = useState(initiallyOpen)
   const em = m.email
   const sender = m.sender_name || em?.from || 'Unknown'
@@ -124,7 +129,7 @@ export default function EmailCard({ m, initiallyOpen }: { m: InboxMessage; initi
         <div style={{ display: 'flex', alignItems: 'center', gap: 2, flex: 'none' }}>
           <button type="button" className="ibx-mail__icon" aria-label="Reply all" title="Reply all"
             onClick={() => inboxAction('compose', { mode: 'reply', via: 'email' })}><ReplyAll size={17} /></button>
-          <Menu m={m} text={body} attIds={atts.map((a) => a.id)} />
+          <Menu m={m} text={body} attIds={atts.map((a) => a.id)} sales={sales} />
           <span className="ibx-mail__date" style={{ marginLeft: 6 }}>{outlookDate(m.created_at)}</span>
         </div>
       </header>

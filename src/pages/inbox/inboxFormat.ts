@@ -3,7 +3,7 @@ import type { Channel, InboxRow } from './inboxApi'
 export const CHANNEL_META: Record<Channel, { label: string; color: string }> = {
   whatsapp: { label: 'WhatsApp', color: '#1FAF5A' },
   wechat: { label: 'WeChat', color: '#0E7A3E' },
-  portal: { label: 'Portal', color: '#0A2472' },
+  portal: { label: 'Portal', color: '#7C95C8' },
   email: { label: 'Email', color: '#64748B' },
   internal: { label: 'Internal', color: '#94A3B8' },
 }
@@ -13,7 +13,7 @@ export const TEAM_LABEL: Record<string, string> = {
 }
 
 const AV_COLORS: [string, string][] = [
-  ['#E0E7FF', '#0A2472'], ['#DCFCE7', '#0E7A3E'], ['#FEF3C7', '#7A4A00'], ['#EDE9FE', '#5B21B6'],
+  ['#E6ECF8', '#3D5A8C'], ['#DCFCE7', '#0E7A3E'], ['#FEF3C7', '#7A4A00'], ['#EDE9FE', '#5B21B6'],
   ['#E0F2FE', '#075985'], ['#FCE7F3', '#9D174D'], ['#F1F5F9', '#334155'],
 ]
 

@@ -33,7 +33,7 @@ function Media({ path }: { path: string }) {
   )
 }
 
-export default function MessageTimeline({ messages, who }: { messages: InboxMessage[]; who: string }) {
+export default function MessageTimeline({ messages, who, sales = false }: { messages: InboxMessage[]; who: string; sales?: boolean }) {
   const end = useRef<HTMLDivElement>(null)
   useEffect(() => { end.current?.scrollIntoView({ block: 'end' }) }, [messages.length])
   const av = avatarColors(who)
@@ -54,7 +54,7 @@ export default function MessageTimeline({ messages, who }: { messages: InboxMess
 
         let node: ReactNode
         if (isMail) {
-          node = <EmailCard m={m} initiallyOpen={m.id === lastEmail || messages.length <= 2} />
+          node = <EmailCard m={m} initiallyOpen={m.id === lastEmail || messages.length <= 2} sales={sales} />
         } else if (m.kind === 'event') {
           node = <div className="ibx-event">{m.body} · {m.sender_name ? `${m.sender_name} · ` : ''}{clock(m.created_at)}</div>
         } else if (m.kind === 'note') {

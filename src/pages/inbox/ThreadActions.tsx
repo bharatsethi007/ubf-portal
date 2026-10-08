@@ -4,7 +4,7 @@ import {
   Clock, MoreHorizontal, EyeOff, FilePlus2, Link2, PackagePlus, Phone, RefreshCw, Truck, UserPlus, UserRound, UserX,
 } from 'lucide-react'
 import { toast } from 'sonner'
-import { ignore, setStatus, type InboxDetail } from './inboxApi'
+import { ignore, isSales, setStatus, type InboxDetail } from './inboxApi'
 import { inboxAction, isInlineJunk } from './EmailParts'
 
 export const SNOOZES: { label: string; at: () => Date }[] = [
@@ -46,8 +46,12 @@ export default function ThreadActions({ detail, onChanged, hideTrigger = false }
     return () => document.removeEventListener('mousedown', close)
   }, [open])
 
+  const sales = isSales(detail)
   const groups: { title: string; items: Item[] }[] = [
-    { title: 'Job', items: [
+    sales ? { title: 'Quote', items: [
+      { icon: FilePlus2, label: 'Create quote', run: () => inboxAction('create-quote') },
+      { icon: Link2, label: c.quote_id ? 'Change linked quote' : 'Link to quote', run: () => inboxAction('quote-link') },
+    ] } : { title: 'Job', items: [
       { icon: PackagePlus, label: 'Create booking', run: () => inboxAction('create-booking') },
       { icon: RefreshCw, label: 'Update job from email', run: () => inboxAction('job', { mode: 'update' }) },
       { icon: FilePlus2, label: 'Save attachments to job', run: () => inboxAction('job', { mode: 'docs' }), hide: !hasAtts },

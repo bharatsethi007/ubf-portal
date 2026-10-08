@@ -16,7 +16,7 @@ export type InboxRow = {
   team: string | null; assignee_id: string | null; assignee_name: string | null
   last_message_at: string; last_preview: string | null; last_channel: Channel | null; last_sender: string | null
   reply_due_at: string | null; wa_id: string | null; contact_type: ContactType | null; booking_ref: string | null
-  contact_email: string | null
+  contact_email: string | null; email_mailbox: string | null; assignee_initials: string | null; quote_no: string | null
   unread: number; channels: Channel[]
 }
 
@@ -47,6 +47,7 @@ export type InboxDetail = {
     assignee_name: string | null; eff_status: 'open' | 'snoozed' | 'closed' | 'ignored'; snoozed_until: string | null
     reply_due_at: string | null; first_reply_at: string | null; created_at: string; booking_ref: string | null
     contact_linked: boolean; contact_type: ContactType | null; contact_email: string | null; contact_name: string | null
+    quote_id: string | null; quote_no: string | null
   }
   account: { account_id: string; name: string; portal_users: number } | null
   contact: {
@@ -60,6 +61,9 @@ export type InboxDetail = {
 
 export const contactTypeOf = (d: InboxDetail): ContactType | null => d.contact?.contact_type ?? d.conversation.contact_type ?? null
 export const isUnknown = (d: InboxDetail) => !d.account && !contactTypeOf(d)
+// Sales Support threads are quote requests: create/link quotes, never bookings or jobs.
+export const SALES_MAILBOX = 'salessupport.nz@ubfreight.com'
+export const isSales = (d: InboxDetail) => d.email?.mailbox?.toLowerCase() === SALES_MAILBOX
 
 export type StaffOption = { user_id: string; name: string; initials: string | null }
 
@@ -94,6 +98,15 @@ export type JobHit = {
 }
 export const searchJobs = (convId: string, q: string) => rpc<JobHit[]>('inbox_job_search', { p_conv: convId, p_q: q || null })
 export const linkJob = (convId: string, bookingId: string | null) => rpc<void>('inbox_link_job', { p_id: convId, p_booking: bookingId })
+
+export type QuoteHit = {
+  id: string; quote_no: string; status: string; shipment_type: string | null; shipment_mode: string | null
+  customer: string | null; origin: string | null; destination: string | null; created_at: string; linked: boolean
+}
+export const searchQuotes = (convId: string, q: string) => rpc<QuoteHit[]>('inbox_quote_search', { p_conv: convId, p_q: q || null })
+export const linkQuote = (convId: string, quoteId: string | null) => rpc<void>('inbox_link_quote', { p_id: convId, p_quote: quoteId })
+export const createQuoteFromConversation = (convId: string) =>
+  invoke<{ id: string; quote_no: string; cargo: number; existing?: boolean; low_confidence: string[] }>('inbox-quote', { conversation_id: convId })
 
 export async function fetchDocTags(): Promise<{ id: string; name: string }[]> {
   const { data, error } = await supabase.from('document_tags').select('id,name').order('name')
