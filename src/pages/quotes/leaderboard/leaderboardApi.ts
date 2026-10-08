@@ -41,6 +41,12 @@ export type LbTotals = {
   customers: number
 }
 
+export type MixRow = { label: string; n: number; won?: number; lost?: number }
+export type LbMix = {
+  status: MixRow[]; mode: MixRow[]; direction: MixRow[]; source: MixRow[]
+  destination: MixRow[]; lane: MixRow[]; lost_reason: MixRow[]
+}
+
 export type Leaderboard = {
   since: string
   days: number
@@ -48,6 +54,8 @@ export type Leaderboard = {
   totals: LbTotals
   staff: LbStaff[]
   customers: LbCustomer[]
+  /** Present once the insights migration is applied. */
+  mix?: LbMix
 }
 
 export async function fetchLeaderboard(period: StatsPeriod, mode: QuotesMode): Promise<Leaderboard> {

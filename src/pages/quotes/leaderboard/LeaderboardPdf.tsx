@@ -1,6 +1,7 @@
 import { Document, Page, View, Text, Image, StyleSheet } from '@react-pdf/renderer'
 import type { Leaderboard } from './leaderboardApi'
 import { fmtDay, fmtHrs, fmtPct } from './leaderboardFormat'
+import LeaderboardPdfInsights from './LeaderboardPdfInsights'
 
 const NAVY = '#002753', ORANGE = '#F99D29', INK = '#111111', MUTE = '#6b7280', LINE = '#e2e6ea', SOFT = '#f4f6f8'
 const GREEN = '#047857', RED = '#B91C1C', MEDAL = ['#C9A227', '#9AA4B2', '#B87333']
@@ -144,6 +145,7 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
           <Text render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`} />
         </View>
       </Page>
+      <LeaderboardPdfInsights lb={lb} periodLabel={periodLabel} />
       {cust.length > 0 && (
         <Page size="A4" orientation="landscape" style={s.page}>
         <Text style={[s.sec, { marginTop: 0 }]}>CUSTOMERS{lb.customers.length > CUST_MAX ? ` (TOP ${CUST_MAX})` : ''}</Text>

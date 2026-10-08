@@ -1,14 +1,15 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Trophy, X, FileSpreadsheet, FileDown, Users, Building2 } from 'lucide-react'
+import { Trophy, X, FileSpreadsheet, FileDown, Users, Building2, PieChart } from 'lucide-react'
 import { toast } from 'sonner'
 import type { QuotesMode, StatsPeriod } from '../quotesStatsApi'
 import { fetchLeaderboard, fmtDay, fmtHrs, fmtPct, modeLabel, PERIOD_LABEL, type Leaderboard } from './leaderboardApi'
 import { StaffTable, CustomerTable } from './LeaderboardTables'
+import LeaderboardInsights from './LeaderboardInsights'
 import { downloadLeaderboardCsv } from './leaderboardCsv'
 import { downloadLeaderboardPdf } from './leaderboardPdfExport'
 
 type Props = { open: boolean; onClose: () => void; mode: QuotesMode; initialPeriod: StatsPeriod }
-type Tab = 'team' | 'customers'
+type Tab = 'team' | 'customers' | 'insights'
 
 const PERIODS: StatsPeriod[] = ['week', 'month', 'quarter', 'year']
 
@@ -114,12 +115,16 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
             className={`quotes-tabs__btn${tab === 'customers' ? ' quotes-tabs__btn--on' : ''}`}>
             <Building2 size={14} strokeWidth={2} /> Customers
           </button>
+          <button type="button" role="tab" aria-selected={tab === 'insights'} onClick={() => setTab('insights')}
+            className={`quotes-tabs__btn${tab === 'insights' ? ' quotes-tabs__btn--on' : ''}`}>
+            <PieChart size={14} strokeWidth={2} /> Insights
+          </button>
         </div>
 
         <div className="min-h-[200px] flex-1 overflow-auto px-5 pb-4" style={{ opacity: loading ? 0.55 : 1 }}>
           {!lb ? (
             <p className="py-10 text-center text-sm text-slate-500">{loading ? 'Loading…' : 'No data.'}</p>
-          ) : tab === 'team' ? <StaffTable rows={lb.staff} /> : <CustomerTable rows={lb.customers} />}
+          ) : tab === 'team' ? <StaffTable rows={lb.staff} /> : tab === 'customers' ? <CustomerTable rows={lb.customers} /> : <LeaderboardInsights lb={lb} />}
         </div>
 
         <div className="border-t border-slate-100 px-5 py-2 text-[11px] text-slate-500">

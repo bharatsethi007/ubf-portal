@@ -1657,6 +1657,9 @@ a:hover { text-decoration: underline; }
 .quotes-page__new-btn {
   width: auto; margin-top: 0; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
 }
+.quotes-page__actions .quotes-page__new-btn {
+  height: 34px; padding: 0 14px; font-size: 13px; border-radius: 8px; box-sizing: border-box;
+}
 .quotes-tabs {
   display: flex; flex-wrap: wrap; gap: 4px; border-bottom: 1px solid var(--color-line);
 }
@@ -2165,11 +2168,11 @@ a:hover { text-decoration: underline; }
 .quotes-page__actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .quotes-viewtoggle {
   display: inline-flex; border: 1px solid var(--color-line); border-radius: 8px;
-  overflow: hidden; background: var(--color-surface);
+  overflow: hidden; background: var(--color-surface); height: 34px; box-sizing: border-box;
 }
 .quotes-viewtoggle__btn {
-  border: none; background: transparent; padding: 7px 10px; cursor: pointer;
-  color: var(--muted-foreground); line-height: 0; display: inline-flex; align-items: center;
+  border: none; background: transparent; padding: 0 10px; cursor: pointer; height: 100%;
+  color: var(--muted-foreground); line-height: 1; display: inline-flex; align-items: center; font-size: 13px;
 }
 .quotes-viewtoggle__btn + .quotes-viewtoggle__btn { border-left: 1px solid var(--color-line); }
 .quotes-viewtoggle__btn:hover { color: var(--color-ink); background: var(--color-canvas); }

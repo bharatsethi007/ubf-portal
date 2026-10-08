@@ -89,10 +89,10 @@ export default function QuotesPage() {
                     aria-selected={mode === key}
                     title={label}
                     className={`quotes-viewtoggle__btn${mode === key ? ' quotes-viewtoggle__btn--on' : ''}`}
-                    style={{ lineHeight: 1, padding: '6px 12px', fontSize: 13, fontWeight: 500, gap: 5 }}
+                    style={{ padding: '0 12px', fontWeight: 500, gap: 5 }}
                     onClick={() => setMode(key)}
                   >
-                    {Icon && <Icon size={14} strokeWidth={2} />} {label}
+                    {Icon && <Icon size={15} strokeWidth={2} />} {label}
                   </button>
                 ))}
               </div>
@@ -108,7 +108,7 @@ export default function QuotesPage() {
                   className={`quotes-viewtoggle__btn${view === key ? ' quotes-viewtoggle__btn--on' : ''}`}
                   onClick={() => setView(key)}
                 >
-                  <Icon size={16} strokeWidth={2} />
+                  <Icon size={15} strokeWidth={2} />
                 </button>
               ))}
             </div>
@@ -118,7 +118,7 @@ export default function QuotesPage() {
                 className="btn quotes-page__new-btn"
                 onClick={() => navigate('/quotes/new')}
               >
-                <Plus size={16} strokeWidth={2} />
+                <Plus size={15} strokeWidth={2} />
                 New Quote
               </button>
             )}

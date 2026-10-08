@@ -1,5 +1,6 @@
 import type { Leaderboard } from './leaderboardApi'
 import { fmtDay } from './leaderboardFormat'
+import { countryName } from './insightsData'
 
 function cell(v: unknown): string {
   const s = v == null ? '' : String(v)
@@ -28,6 +29,19 @@ export function downloadLeaderboardCsv(lb: Leaderboard, periodLabel: string, mod
     i + 1, c.name, c.account_id ?? '', c.quotes, c.open, c.won, c.lost,
     c.win_rate ?? '', c.avg_hrs_to_quote ?? '', fmtDay(c.last_quote),
   ])))
+
+  if (lb.mix) {
+    const sections: [string, { label: string; n: number; won?: number; lost?: number }[]][] = [
+      ['STATUS', lb.mix.status], ['MODE', lb.mix.mode], ['IMPORT / EXPORT', lb.mix.direction],
+      ['DESTINATION COUNTRY', lb.mix.destination.map((r) => ({ ...r, label: countryName(r.label) }))],
+      ['LOST REASONS', lb.mix.lost_reason], ['SOURCE', lb.mix.source],
+    ];
+    for (const [title, rows] of sections) {
+      const total = rows.reduce((t, r) => t + r.n, 0);
+      out.push('', row([title]), row(['Label', 'Quotes', 'Share %', 'Won', 'Lost']));
+      rows.forEach((r) => out.push(row([r.label, r.n, total ? Math.round((r.n / total) * 100) : 0, r.won ?? '', r.lost ?? ''])));
+    }
+  }
 
   const blob = new Blob(['﻿' + out.join('\r\n')], { type: 'text/csv;charset=utf-8' })
   const url = URL.createObjectURL(blob)
