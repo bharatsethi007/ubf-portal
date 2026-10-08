@@ -137,3 +137,16 @@ export async function reviewLeak(r: LeakRow, status: 'rebilled' | 'accepted' | '
     p_gap: r.gap, p_note: note ?? null })
   if (error) throw new Error(error.message)
 }
+
+/* ---------- customer profitability ---------- */
+export type Verdict = 'grow' | 'keep' | 'reprice' | 'tighten terms' | 'too small to serve'
+export type CustProfitRow = { accountid: string; name: string | null; sales_rep: string | null; terms: string | null
+  is_related: boolean; jobs: number; revenue: number; gp: number; margin: number | null; gp_per_job: number | null
+  prev_revenue: number; prev_gp: number; billed: number; disb_billed: number; avg_days_to_pay: number | null
+  ar_balance: number; overdue_60: number; serve_cost: number; finance_cost: number; net_contribution: number
+  cost_per_job: number; verdict: Verdict }
+
+export const fetchCustomerProfit = (from: string, to: string, rate = 0.09) =>
+  call<CustProfitRow>('fin_customer_profit', { p_from: from, p_to: to, p_rate: rate }, ['jobs', 'revenue', 'gp', 'margin',
+    'gp_per_job', 'prev_revenue', 'prev_gp', 'billed', 'disb_billed', 'avg_days_to_pay', 'ar_balance', 'overdue_60',
+    'serve_cost', 'finance_cost', 'net_contribution', 'cost_per_job'])
