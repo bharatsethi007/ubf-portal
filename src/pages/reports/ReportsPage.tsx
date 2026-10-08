@@ -1,16 +1,19 @@
 ﻿import { useState } from 'react'
-import { Handshake, Headset, Megaphone, Ship, TrendingUp, Users } from 'lucide-react'
+import { Handshake, Headset, Landmark, Megaphone, Ship, TrendingUp, Users } from 'lucide-react'
+import { usePerm } from '@/access/PermissionsProvider'
 import VolumesLanesTab from './VolumesLanesTab'
 import CustomerInsightsTab from './CustomerInsightsTab'
 import SalesAnalyticsTab from './SalesAnalyticsTab'
 import CustomerServiceTab from './cs/CustomerServiceTab'
 import AgentReciprocityTab from './AgentReciprocityTab'
 import MarketingTab from './MarketingTab'
+import FinanceTab from './finance/FinanceTab'
 
-type Tab = 'volumes' | 'customers' | 'sales' | 'cs' | 'agents' | 'marketing'
+type Tab = 'volumes' | 'customers' | 'sales' | 'cs' | 'agents' | 'marketing' | 'finance'
 
 export default function ReportsPage() {
   const [tab, setTab] = useState<Tab>('volumes')
+  const canFinance = usePerm('finance', 'read')
   return (
     <div className="quotes-page">
       <div className="quotes-page__head">
@@ -53,6 +56,14 @@ export default function ReportsPage() {
             Marketing
           </span>
         </button>
+        {canFinance && (
+          <button className={`quotes-tabs__btn${tab === 'finance' ? ' quotes-tabs__btn--on' : ''}`} onClick={() => setTab('finance')}>
+            <span className="inline-flex items-center gap-1.5">
+              <Landmark size={16} aria-hidden />
+              Finance
+            </span>
+          </button>
+        )}
       </div>
       {tab === 'volumes' ? <VolumesLanesTab /> : null}
       {tab === 'customers' ? <CustomerInsightsTab /> : null}
@@ -60,6 +71,7 @@ export default function ReportsPage() {
       {tab === 'cs' ? <CustomerServiceTab /> : null}
       {tab === 'agents' ? <AgentReciprocityTab /> : null}
       {tab === 'marketing' ? <MarketingTab /> : null}
+      {tab === 'finance' && canFinance ? <FinanceTab /> : null}
     </div>
   )
 }
