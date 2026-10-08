@@ -96,10 +96,10 @@
 .bk-board .sortable-th__ind--active { color: var(--bk-blue); }
 .bk-board .import-sea-row--hold td:first-child { box-shadow: inset 3px 0 0 var(--bk-red); }
 
-/* Checkboxes: hidden until hover, always shown while selecting */
+/* Checkboxes: faint until hover, full while selecting */
 .bk-board .board-checkbox-col, .bk-board .board-checkbox-cell { width: 30px; padding: 0 0 0 10px; }
 .bk-board:not(.bk-board--selecting) .board-checkbox-col > *,
-.bk-board:not(.bk-board--selecting) tbody tr:not(:hover) .board-checkbox-cell > * { opacity: 0; pointer-events: none; }
+.bk-board:not(.bk-board--selecting) tbody tr:not(:hover) .board-checkbox-cell > * { opacity: .35; }
 .bk-board .board-checkbox-cell > * { transition: opacity .1s; }
 
 /* Cells */
@@ -148,7 +148,11 @@
 .bk-cntr-pop__warn { margin-top: 8px; padding: 6px 8px; border-radius: 6px; background: var(--bk-amber-soft); color: var(--bk-amber); font-size: 11.5px; }
 
 /* Next action to-do button */
-.bk-col-todo { width: 34px; text-align: center; padding: 0 2px !important; }
+.bk-col-todo { width: 40px; text-align: center; padding: 0 6px !important; }
+/* Pin next action to the right edge so wide tables never hide it */
+.bk-board .data-table th.bk-col-todo, .bk-board .data-table td.bk-col-todo { position: sticky; right: 0; box-shadow: inset 1px 0 0 var(--bk-line); }
+.bk-board .data-table th.bk-col-todo { z-index: 3; }
+.bk-board .data-table td.bk-col-todo { z-index: 2; background: #fff; }
 .bk-todo { position: relative; width: 26px; height: 26px; border-radius: 7px; border: 1px solid transparent; display: inline-flex; align-items: center; justify-content: center; cursor: pointer; background: #fff; transition: transform .1s; }
 .bk-todo:active { transform: scale(.95); }
 .bk-todo--red { color: var(--bk-red); background: var(--bk-red-soft); border-color: #FAD4D0; }

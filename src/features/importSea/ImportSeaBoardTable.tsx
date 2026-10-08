@@ -102,7 +102,6 @@ export default function ImportSeaBoardTable({
                     onChange={onToggleAllVisible}
                   />
                 </th>
-                <th className="bk-col-todo" aria-label="Next action" title="Next action" />
                 <SortableTh label="Booking ref" columnKey="booking_ref" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-bref" />
                 <SortableTh label="Job #" columnKey="job_no" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-job" />
                 <SortableTh label="Client" columnKey="customer_name" sortKey={sortKey} sortDir={sortDir} onSort={onSort} className="import-sea-col-client" />
@@ -119,6 +118,7 @@ export default function ImportSeaBoardTable({
                 <th className="import-sea-col-inv">Inv appr</th>
                 <th className="import-sea-col-inv">Inv sent</th>
                 <th className="import-sea-col-refresh" aria-label="Refresh" />
+                <th className="bk-col-todo" aria-label="Next action" title="Next action" />
               </tr>
             </thead>
             <tbody>
@@ -148,9 +148,6 @@ export default function ImportSeaBoardTable({
                           onToggle={(shiftKey) => onToggleRow(row.id, index, shiftKey)}
                         />
                       </BoardCheckboxCell>
-                      <td className="bk-col-todo" onClick={(e) => e.stopPropagation()}>
-                        <NextActionCell flow={flow.get(row.id)} onOpen={() => onOpenPeek(row.id)} />
-                      </td>
                       <td className="mono import-sea-col-bref">
                         <BookingRefCell
                           bookingId={row.id}
@@ -252,6 +249,9 @@ export default function ImportSeaBoardTable({
                           cooldownSec={rowRefreshCooldownSec(row.id)}
                           onRefresh={() => onRefreshRow(row)}
                         />
+                      </td>
+                      <td className="bk-col-todo" onClick={(e) => e.stopPropagation()}>
+                        <NextActionCell flow={flow.get(row.id)} onOpen={() => onOpenPeek(row.id)} />
                       </td>
                     </tr>
                   )
