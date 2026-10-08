@@ -4,6 +4,7 @@ import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../supabase'
 import StaffAvatar from './StaffAvatar'
 import MyProfileModal from './MyProfileModal'
+import TextSizeMenu from './TextSizeMenu'
 import { displayName } from '../../pages/users/staffProfileApi'
 import { useMyProfile } from './useMyProfile'
 
@@ -43,6 +44,8 @@ export default function UserMenu({ session }: { session: Session }) {
           <button type="button" className="dropdown-item" style={item} onClick={() => { setOpen(false); setEditing(true) }}>
             <UserRound size={15} /> My profile
           </button>
+          <TextSizeMenu />
+          <div style={{ borderTop: '1px solid var(--line)', margin: '6px 0' }} />
           <button type="button" className="dropdown-item" style={item} onClick={() => { setOpen(false); void supabase.auth.signOut({ scope: 'local' }) }}>
             <LogOut size={15} /> Sign out
           </button>

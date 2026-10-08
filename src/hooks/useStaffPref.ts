@@ -22,6 +22,17 @@ export function useStaffPref<T extends string>(
     return fallback
   })
 
+  // Keep every hook using the same key in step (e.g. the user menu and the page it changes).
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const d = (e as CustomEvent<{ key: string; value: string }>).detail
+      if (d?.key === key && (allowed as readonly string[]).includes(d.value)) setValue(d.value as T)
+    }
+    window.addEventListener('ubf-pref-change', onChange)
+    return () => window.removeEventListener('ubf-pref-change', onChange)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [key])
+
   useEffect(() => {
     let cancelled = false
     void (async () => {
@@ -53,6 +64,7 @@ export function useStaffPref<T extends string>(
       } catch {
         /* ignore */
       }
+      window.dispatchEvent(new CustomEvent('ubf-pref-change', { detail: { key, value: next } }))
       void (async () => {
         const { data: auth } = await supabase.auth.getUser()
         const userId = auth.user?.id

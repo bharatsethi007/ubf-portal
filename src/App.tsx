@@ -34,6 +34,7 @@ import StaffMfaGate from './components/StaffMfaGate'
 import SliPage from './features/sli/SliPage'
 import PublicTrackPage from './features/publicTrack/PublicTrackPage'
 import QuoteRespondPage from './pages/public/QuoteRespondPage'
+import ModuleTextScale from './components/staff/ModuleTextScale'
 import RatePage from './pages/public/RatePage'
 import BookingsWorkspacePage from './features/bookingsWorkspace/BookingsWorkspacePage'
 import CourierBookingsList from './pages/courier/CourierBookingsList'
@@ -175,14 +176,14 @@ export default function App() {
             <Route path="/tms/:id/edit" element={<StaffRoute><ConsignmentForm /></StaffRoute>} />
             <Route path="/new-booking" element={<NewBookingPage />} />
             <Route path="/estimates" element={<EstimatesPage />} />
-            <Route path="/quotes" element={<StaffRoute><QuotesPage /></StaffRoute>} />
+            <Route path="/quotes" element={<StaffRoute><ModuleTextScale module="quotes"><QuotesPage /></ModuleTextScale></StaffRoute>} />
             <Route path="/tasks" element={<StaffRoute><MyTasksPage /></StaffRoute>} />
             <Route path="/inbox" element={<StaffRoute><InboxPage /></StaffRoute>} />
             <Route path="/whatsapp" element={<Navigate to="/inbox?channel=whatsapp" replace />} />
             <Route path="/messages" element={<Navigate to="/inbox?channel=portal" replace />} />
-            <Route path="/quotes/new" element={<StaffRoute><NewQuoteSearch /></StaffRoute>} />
-            <Route path="/quotes/:id/responses/:responseId" element={<StaffRoute><QuoteResponsePage /></StaffRoute>} />
-            <Route path="/quotes/:id" element={<StaffRoute><QuoteDetailPage /></StaffRoute>} />
+            <Route path="/quotes/new" element={<StaffRoute><ModuleTextScale module="quotes"><NewQuoteSearch /></ModuleTextScale></StaffRoute>} />
+            <Route path="/quotes/:id/responses/:responseId" element={<StaffRoute><ModuleTextScale module="quotes"><QuoteResponsePage /></ModuleTextScale></StaffRoute>} />
+            <Route path="/quotes/:id" element={<StaffRoute><ModuleTextScale module="quotes"><QuoteDetailPage /></ModuleTextScale></StaffRoute>} />
             <Route path="/bookings" element={<StaffRoute><BookingsWorkspacePage /></StaffRoute>} />
             <Route path="/bookings/import-sea" element={<StaffRoute><BookingsWorkspacePage slug="import-sea" /></StaffRoute>} />
             <Route path="/bookings/import-air" element={<StaffRoute><BookingsWorkspacePage slug="import-air" /></StaffRoute>} />
