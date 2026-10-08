@@ -16,13 +16,15 @@ import FinCollections from './FinCollections'
 import FinMatching from './FinMatching'
 import FinLeaks from './FinLeaks'
 import FinCustomerProfit from './FinCustomerProfit'
+import FinDutyFloat from './FinDutyFloat'
+import FinClose from './FinClose'
 import { downloadBoardPack } from './boardpack/boardPackExport'
 
-export type View = 'overview' | 'pl' | 'bs' | 'cf' | 'wc' | 'collections' | 'matching' | 'leaks' | 'customers' | 'forecast' | 'checks'
+export type View = 'overview' | 'close' | 'pl' | 'bs' | 'cf' | 'wc' | 'collections' | 'matching' | 'leaks' | 'customers' | 'duty' | 'forecast' | 'checks'
 const VIEWS: { k: View; label: string }[] = [
-  { k: 'overview', label: 'CFO overview' }, { k: 'pl', label: 'Profit & loss' }, { k: 'bs', label: 'Balance sheet' },
+  { k: 'overview', label: 'CFO overview' }, { k: 'close', label: 'Month-end close' }, { k: 'pl', label: 'Profit & loss' }, { k: 'bs', label: 'Balance sheet' },
   { k: 'cf', label: 'Cash flow' }, { k: 'wc', label: 'Debtors & creditors' }, { k: 'collections', label: 'Collections' },
-  { k: 'matching', label: 'Match payments' }, { k: 'leaks', label: 'Margin leaks' }, { k: 'customers', label: 'Customer profit' },
+  { k: 'matching', label: 'Match payments' }, { k: 'leaks', label: 'Margin leaks' }, { k: 'customers', label: 'Customer profit' }, { k: 'duty', label: 'Customs duty' },
   { k: 'forecast', label: '13-week cash' },
   { k: 'checks', label: 'Checks' },
 ]
@@ -94,6 +96,7 @@ export default function FinanceTab({ initialView }: { initialView?: View }) {
         {' '}Management accounts: no depreciation or income tax is posted in the ledger.
       </div>
       {view === 'overview' && <FinOverview p={period} />}
+      {view === 'close' && <FinClose p={period} onOpen={setView} />}
       {view === 'pl' && <FinPnl p={period} />}
       {view === 'bs' && <FinBalanceSheet p={period} />}
       {view === 'cf' && <FinCashFlow p={period} />}
@@ -102,6 +105,7 @@ export default function FinanceTab({ initialView }: { initialView?: View }) {
       {view === 'matching' && <FinMatching />}
       {view === 'leaks' && <FinLeaks />}
       {view === 'customers' && <FinCustomerProfit p={period} />}
+      {view === 'duty' && <FinDutyFloat p={period} />}
       {view === 'forecast' && <FinForecast />}
       {view === 'checks' && <FinChecks />}
     </div>

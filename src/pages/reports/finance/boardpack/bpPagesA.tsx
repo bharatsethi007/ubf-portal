@@ -11,6 +11,14 @@ const delta = (a: number, b: number | null | undefined, higherIsGood = true) => 
   return { delta: `${c >= 0 ? '+' : ''}${c.toFixed(0)}% vs last year`, good: higherIsGood ? c >= 0 : c <= 0 }
 }
 
+const closeLine = (p: BoardPack) => {
+  const c = p.close
+  if (!c) return 'Month-end close status not available.'
+  if (c.signoff) return `Month-end close signed off by ${c.signoff.by ?? 'unknown'} on ${new Date(c.signoff.at).toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' })}.`
+  const clear = c.checks.filter((x) => x.status === 'pass' || x.review).length
+  return `Month-end close not signed off: ${clear} of ${c.checks.length} checks passed or reviewed.`
+}
+
 export const CONTENTS = ['At a glance', 'Commentary and matters for the board', 'Profit and loss', 'Balance sheet',
   'Cash flow and 13-week forecast', 'Debtors and creditors', 'Margin leaks and customer profitability']
 
@@ -33,7 +41,8 @@ export function Cover({ p }: { p: BoardPack }) {
           <Kpi label={`Net profit ${fullMonth(p.month).split(' ')[0]}`} value={compact(p.mT.net)} {...delta(p.mT.net, p.mLy?.net)} />
           <Kpi label="Cash at month end" value={compact(p.cashClose)} />
         </View>
-        <Text style={{ ...S.h3, marginTop: 34 }}>Contents</Text>
+        <Text style={{ fontSize: 8.5, color: p.close?.signoff ? K.pos : K.mut, marginTop: 22 }}>{closeLine(p)}</Text>
+        <Text style={{ ...S.h3, marginTop: 26 }}>Contents</Text>
         {CONTENTS.map((c, i) => (
           <View key={c} style={{ flexDirection: 'row', paddingVertical: 5, borderBottomWidth: 0.3, borderBottomColor: K.hair }}>
             <Text style={{ width: 22, fontSize: 9, color: K.orange }}>{i + 1}</Text>

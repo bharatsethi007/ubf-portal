@@ -1,6 +1,6 @@
 import {
-  fetchAging, fetchBalanceSheet, fetchCashflow, fetchCustomerProfit, fetchFlags, fetchForecast, fetchKpis, fetchLeaks, fetchPl,
-  type AgingRow, type CustProfitRow, type FlagRow, type ForecastRow, type PlRow,
+  fetchAging, fetchBalanceSheet, fetchCashflow, fetchClose, fetchCustomerProfit, fetchFlags, fetchForecast, fetchKpis, fetchLeaks, fetchPl,
+  type AgingRow, type CloseList, type CustProfitRow, type FlagRow, type ForecastRow, type PlRow,
 } from '../financeApi'
 import { buildInsights, type Insight } from '../financeInsights'
 import {
@@ -27,6 +27,7 @@ export type BoardPack = {
   flags: FlagRow[]
   leaks: { label: string; n: number; amount: number }[]
   cust: { rows: CustProfitRow[]; from: string; to: string }
+  close: CloseList | null
 }
 
 const PL_GROUPS = ['Revenue', 'Cost of sales', 'Other operating income', 'Operating expenses', 'Other income', 'Finance costs', 'Income tax']
@@ -62,10 +63,10 @@ export async function buildBoardPack(month: string, useAdj: boolean): Promise<Bo
   const bsOpen = fy > fyOf(DATA_START) ? `${fy}-03-31` : fyStart(fy)
   const custFrom = addMonths(month, -11), custTo = monthEnd(month)
 
-  const [kpis, plAll, bsNow, bsOpenRows, cfRows, arRows, apRows, forecast, flags, leakRows, custRows] = await Promise.all([
+  const [kpis, plAll, bsNow, bsOpenRows, cfRows, arRows, apRows, forecast, flags, leakRows, custRows, close] = await Promise.all([
     fetchKpis(DATA_START, month), fetchPl(plFrom, month), fetchBalanceSheet(monthEnd(month)), fetchBalanceSheet(bsOpen),
     fetchCashflow(months[0], month), fetchAging('D'), fetchAging('C'), fetchForecast(13), fetchFlags(), fetchLeaks(),
-    fetchCustomerProfit(custFrom, custTo),
+    fetchCustomerProfit(custFrom, custTo), fetchClose(month).catch(() => null),
   ])
 
   const adj = useAdj ? unpostedCosts(kpis) : {}
@@ -171,6 +172,6 @@ export async function buildBoardPack(month: string, useAdj: boolean): Promise<Bo
     ar: buckets(arRows), ap: buckets(apRows), arTop: [...nonRel].sort((a, b) => (b.d31_60 + b.d61_90 + b.d90_plus) - (a.d31_60 + a.d61_90 + a.d90_plus)).slice(0, 10),
     dso: days(arRows), dpo: days(apRows), unapplied: arRows.reduce((a, r) => a + r.unapplied, 0),
     relatedAr: arRows.filter(isRel).reduce((a, r) => a + r.total, 0),
-    flags, leaks, cust: { rows: custRows, from: custFrom, to: custTo },
+    flags, leaks, cust: { rows: custRows, from: custFrom, to: custTo }, close,
   }
 }

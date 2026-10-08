@@ -150,3 +150,47 @@ export const fetchCustomerProfit = (from: string, to: string, rate = 0.09) =>
   call<CustProfitRow>('fin_customer_profit', { p_from: from, p_to: to, p_rate: rate }, ['jobs', 'revenue', 'gp', 'margin',
     'gp_per_job', 'prev_revenue', 'prev_gp', 'billed', 'disb_billed', 'avg_days_to_pay', 'ar_balance', 'overdue_60',
     'serve_cost', 'finance_cost', 'net_contribution', 'cost_per_job'])
+
+/* ---------- customs duty float ---------- */
+export type DutyMonth = { month: string; duty: number; recovered: number; avg_fdays: number | null; avg_hdays: number | null; jobs: number }
+export type DutyCustomer = { accountid: string; name: string | null; jobs: number; duty: number; recovered: number
+  avg_fdays: number | null; avg_hdays: number | null; days_to_pay: number | null; pct_before: number | null
+  funding_cost: number; owe_now: number | null; funded_now: number | null }
+export type DutyGap = { job_no: number; module: string | null; house_bill: string | null; accountid: string | null; name: string | null
+  duty_date: string; duty: number; recovered: number; gap: number; billed: number; reason: 'duplicate' | 'not_billed' | 'short' }
+export type DutyFloat = {
+  now: { customs_open: number; customs_overdue: number | null; customs_stale: number | null; customs_stale_jobs: number
+    next_due_date: string | null; next_due_amount: number | null; clients_owe: number | null; funded_now: number | null; funded_now_jobs: number }
+  totals: { jobs: number; duty: number; recovered: number; paid_before_customs: number | null; avg_fdays: number | null
+    funding_cost: number; avg_funded: number; avg_held: number; avg_hdays: number | null; held_benefit: number }
+  months: DutyMonth[]; customers: DutyCustomer[]; unrecovered: DutyGap[]
+}
+
+export async function fetchDutyFloat(from: string, to: string, rate = 0.09): Promise<DutyFloat> {
+  const { data, error } = await supabase.rpc('fin_duty_float', { p_from: from, p_to: to, p_rate: rate })
+  if (error) throw new Error(error.message)
+  return data as DutyFloat
+}
+
+/* ---------- month-end close ---------- */
+export type CloseStatus = 'pass' | 'warn' | 'fail'
+export type CloseCheck = { code: string; area: string; title: string; status: CloseStatus; detail: string; action?: string
+  amount?: number | null; count?: number | null; view?: string
+  review: { status: 'done' | 'accepted'; note: string | null; by: string | null; at: string } | null }
+export type CloseList = { month: string; month_end: string; checks: CloseCheck[]
+  signoff: { closed: boolean; note: string | null; by: string | null; at: string } | null }
+
+export async function fetchClose(month: string): Promise<CloseList> {
+  const { data, error } = await supabase.rpc('fin_close_checklist', { p_month: month })
+  if (error) throw new Error(error.message)
+  return data as CloseList
+}
+export async function reviewClose(month: string, code: string, status: 'open' | 'done' | 'accepted', note?: string) {
+  const { error } = await supabase.rpc('fin_close_review', { p_month: month, p_code: code, p_status: status, p_note: note ?? null })
+  if (error) throw new Error(error.message)
+}
+export async function signOffMonth(month: string, close: boolean, note?: string): Promise<CloseList> {
+  const { data, error } = await supabase.rpc('fin_close_month', { p_month: month, p_close: close, p_note: note ?? null })
+  if (error) throw new Error(error.message)
+  return data as CloseList
+}
