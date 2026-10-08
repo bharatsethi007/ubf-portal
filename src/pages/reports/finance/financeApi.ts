@@ -66,3 +66,57 @@ export const fetchForecast = (weeks = 13) =>
 
 export const fetchFlags = () => call<FlagRow>('fin_flags', {}, ['amount'])
 export const fetchSync = () => call<SyncRow>('fin_sync_status', {}, ['rows'])
+
+/* ---------- collections + payment matching ---------- */
+export type QueueRow = {
+  accountid: string; name: string | null; email: string | null; terms: string | null; credit_limit: number | null
+  is_related: boolean; overdue: number; d1_30: number; d31_60: number; d61_90: number; d90_plus: number; total: number
+  unapplied: number; oldest_days: number; avg_days_late: number | null; stage: 'friendly' | 'firm' | 'final'
+  priority: number; last_kind: string | null; last_at: string | null; last_by: string | null
+  promise_date: string | null; promise_amount: number | null; promise_broken: boolean
+}
+export type LedgerInvoice = { number: string; doctype: string; module: string; job_no: number | null; doc_date: string
+  datedue: string | null; days_over: number; amount: number; balance: number; currency: string | null }
+export type CollectionAction = { id: number; kind: string; body: string | null; promise_date: string | null
+  promise_amount: number | null; invoices: string[] | null; email_to: string[] | null; at: string; by: string | null }
+export type CustomerLedger = { accountid: string; name: string | null; emails: string[]; best_email: string | null
+  invoices: LedgerInvoice[]; unapplied: { receipt_no: number; date: string; ref: string | null; amount: number; balance: number }[]
+  actions: CollectionAction[]; mailbox: string | null }
+export type MatchRow = { receipt_id: number; receipt_no: number; accountid: string; name: string | null; date1: string
+  ref: string | null; amount: number; balance: number; age_days: number; rule: string; confidence: 'high' | 'medium' | 'low' | 'none'
+  suggestion: string; invoices: { number: string; balance: number; accountid?: string }[]
+  review_status: 'done' | 'ignore' | null; review_note: string | null }
+
+export const fetchQueue = () => call<QueueRow>('fin_collections_queue', {}, ['credit_limit', 'overdue', 'd1_30', 'd31_60',
+  'd61_90', 'd90_plus', 'total', 'unapplied', 'oldest_days', 'avg_days_late', 'priority', 'promise_amount'])
+
+export async function fetchLedger(accountid: string): Promise<CustomerLedger> {
+  const { data, error } = await supabase.rpc('fin_customer_ledger', { p_accountid: accountid })
+  if (error) throw new Error(error.message)
+  return data as CustomerLedger
+}
+
+export async function logAction(a: { accountid: string; kind: string; body?: string; promise_date?: string | null
+  promise_amount?: number | null; invoices?: string[] }) {
+  const { error } = await supabase.rpc('fin_collection_log', { p_accountid: a.accountid, p_kind: a.kind, p_body: a.body ?? null,
+    p_promise_date: a.promise_date ?? null, p_promise_amount: a.promise_amount ?? null, p_invoices: a.invoices ?? null, p_email_to: null })
+  if (error) throw new Error(error.message)
+}
+
+export async function sendReminder(b: { accountid: string; to: string[]; cc: string[]; subject: string; text: string; invoices: string[] }) {
+  const { data, error } = await supabase.functions.invoke('collections-email-send', { body: b })
+  if (error) {
+    let msg = error.message
+    try { msg = (await (error as { context?: Response }).context?.json())?.error ?? msg } catch { /* keep generic */ }
+    throw new Error(msg)
+  }
+  if (data?.error) throw new Error(data.error)
+  return data as { ok: true; from: string }
+}
+
+export const fetchMatches = () => call<MatchRow>('fin_unapplied_matches', {}, ['amount', 'balance', 'age_days', 'receipt_no'])
+
+export async function reviewMatch(receiptId: number, status: 'done' | 'ignore' | 'clear', note?: string) {
+  const { error } = await supabase.rpc('fin_match_review', { p_receipt_id: receiptId, p_status: status, p_note: note ?? null })
+  if (error) throw new Error(error.message)
+}
