@@ -1,5 +1,6 @@
 import { Switch } from '@/components/ui/switch'
 import PortStatusMilestones from './PortStatusMilestones'
+import UbfClearanceMilestones, { useBookingCustoms } from './UbfClearanceMilestones'
 import type { BookingRecord, BookingRecordPatch } from '../bookingRecordTypes'
 import type {
   BookingTrackingEvent,
@@ -39,27 +40,36 @@ export default function MilestoneToggles({
   events = [],
   onPatch,
 }: Props) {
+  // CF customs entry drives "UBF cleared". Manual switch only when UBF has no entry in CF.
+  const customs = useBookingCustoms(booking.id)
+  const hasEntry = Boolean(customs)
   return (
     <section className="booking-milestones">
       <h4 className="booking-panel-subtitle">Milestones</h4>
       <p className="booking-milestones__caption">
-        Port releases sync from PortConnect; UBF flags are manual workflow steps on the booking.
+        Port releases sync from PortConnect. UBF Customs and MPI clearance sync from CyberFreight. Other UBF flags are manual.
       </p>
 
       <PortStatusMilestones containers={containers} events={events} />
 
       <div className="booking-milestones__group">
-        <h5 className="booking-milestones__subheading">UBF status (manual)</h5>
+        <h5 className="booking-milestones__subheading">UBF status</h5>
         <ul className="booking-milestones__list">
-          {UBF_MILESTONES.map(({ key, label }) => (
-            <li key={key} className="booking-milestones__row">
-              <span>{label}</span>
-              <Switch
-                checked={Boolean(booking[key])}
-                onCheckedChange={(v) => onPatch({ [key]: v }, { [key]: v })}
-              />
-            </li>
-          ))}
+          {UBF_MILESTONES.map(({ key, label }) => {
+            if (key === 'cleared' && customs === undefined) return null
+            if (key === 'cleared' && hasEntry && customs) {
+              return <UbfClearanceMilestones key={key} customs={customs} />
+            }
+            return (
+              <li key={key} className="booking-milestones__row">
+                <span>{key === 'cleared' ? 'UBF cleared (no CF entry)' : label}</span>
+                <Switch
+                  checked={Boolean(booking[key])}
+                  onCheckedChange={(v) => onPatch({ [key]: v }, { [key]: v })}
+                />
+              </li>
+            )
+          })}
         </ul>
       </div>
     </section>

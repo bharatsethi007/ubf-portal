@@ -10,6 +10,13 @@ export type BookingCustoms = {
   mpi_food_status_label: string | null
   clear_date: string | null
   closed: boolean | null
+  /** From TSW responses (CF CUSTOMS_MSGS_RES1). */
+  entry_number?: string | null
+  customs_released_at?: string | null
+  mpi_bio_cleared_at?: string | null
+  mpi_food_cleared_at?: string | null
+  bacc_number?: string | null
+  facc_number?: string | null
 }
 
 export type CustomsPillState = 'on' | 'warn' | 'off'
@@ -18,7 +25,7 @@ export type CustomsPillState = 'on' | 'warn' | 'off'
 export async function fetchBookingCustoms(bookingId?: string): Promise<Map<string, BookingCustoms>> {
   let q = supabase
     .from('v_booking_customs')
-    .select('booking_id, customs_status, customs_status_label, mpi_status, mpi_status_label, mpi_food_status, mpi_food_status_label, clear_date, closed')
+    .select('booking_id, customs_status, customs_status_label, mpi_status, mpi_status_label, mpi_food_status, mpi_food_status_label, clear_date, closed, entry_number, customs_released_at, mpi_bio_cleared_at, mpi_food_cleared_at, bacc_number, facc_number')
   if (bookingId) q = q.eq('booking_id', bookingId)
   const { data } = await q
   const out = new Map<string, BookingCustoms>()
