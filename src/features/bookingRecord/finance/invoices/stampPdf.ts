@@ -49,7 +49,9 @@ function drawStamp(page: PDFPage, bold: PDFFont, reg: PDFFont, inv: CreditorInvo
     { t: `On: ${inv.approved_at ? nzDateTime(inv.approved_at) : '-'} NZT`, f: reg, s: 8.5, c: INK },
     { t: `Pay by: ${inv.pay_by ? nzDate(inv.pay_by) : '-'}`, f: bold, s: 9.5, c: inv.urgent ? RED : INK },
     { t: `Job: ${meta.booking_ref ?? '-'}`, f: reg, s: 8.5, c: INK },
+    { t: `ETA: ${meta.eta ? nzDate(meta.eta.slice(0, 10)) : '-'}`, f: reg, s: 8.5, c: INK },
   )
+  for (const l of wrap(`Customer: ${meta.customer_name ?? '-'}`, reg, 8.5, W - pad * 2).slice(0, 2)) rows.push({ t: l, f: reg, s: 8.5, c: INK })
   if (inv.approval_comment) for (const l of wrap(`Comment: ${inv.approval_comment}`, reg, 8.5, W - pad * 2).slice(0, 5)) rows.push({ t: l, f: reg, s: 8.5, c: INK })
   if (inv.version > 1) rows.push({ t: `Version ${inv.version}. Changes on last page.`, f: reg, s: 7.5, c: MUTED })
 

@@ -111,8 +111,8 @@ export default function InvoiceReviewDialog({ inv, meta, open, onOpenChange, onC
                   onClick={async () => { const d = await docUrl(inv.stamped_document_id!); window.open(d.url, '_blank', 'noopener') }}><Download size={15} /></button>
               )}
               {inv.status === 'approved' && inv.stamped_document_id && !inv.needs_restamp && (
-                <button className="btn btn--inline" style={iconBtn} disabled={busy} title={`Email to ${ACCOUNTS_EMAIL}`} aria-label={`Email to ${ACCOUNTS_EMAIL}`}
-                  onClick={() => void run(`Sent to ${ACCOUNTS_EMAIL}`, () => sendToAccounts(inv, meta))}><Send size={15} /></button>
+                <button className="btn btn--inline" style={iconBtn} disabled={busy} title={`Email to ${ACCOUNTS_EMAIL}, cc approver`} aria-label={`Email to ${ACCOUNTS_EMAIL}, cc approver`}
+                  onClick={() => void run(`Sent to ${ACCOUNTS_EMAIL}, cc ${inv.approved_by_name ?? 'approver'}`, () => sendToAccounts(inv, meta))}><Send size={15} /></button>
               )}
             </div>
             {!canApprove && inv.status !== 'approved' && <p className="text-sm text-muted-foreground">Approval needs finance or admin access.</p>}

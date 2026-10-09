@@ -49,7 +49,7 @@ export type CreditorInvoice = {
 
 export type InvoiceEvent = { id: number; action: string; detail: Record<string, unknown> | null; actor_name: string | null; created_at: string }
 
-export type BookingMeta = { booking_ref: string | null; account_id: string; eta: string | null; module: string | null }
+export type BookingMeta = { booking_ref: string | null; account_id: string; eta: string | null; module: string | null; customer_name: string | null }
 
 export type InvoiceDoc = { id: string; file_name: string; storage_path: string; mime_type: string | null; tag_id: string | null }
 
@@ -66,9 +66,22 @@ export async function listInvoices(bookingId: string): Promise<CreditorInvoice[]
 }
 
 export async function fetchBookingMeta(bookingId: string): Promise<BookingMeta> {
-  const { data, error } = await supabase.from('bookings').select('booking_ref, account_id, m_eta, eta, module').eq('id', bookingId).single()
+  const { data, error } = await supabase.from('bookings')
+    .select('booking_ref, account_id, m_eta, eta, module, importer_name, shipment_id, customers!bookings_account_id_fkey ( name )')
+    .eq('id', bookingId).single()
   fail(error)
-  return { booking_ref: data!.booking_ref, account_id: data!.account_id, eta: data!.m_eta ?? data!.eta ?? null, module: data!.module }
+  const b = data as unknown as {
+    booking_ref: string | null; account_id: string; m_eta: string | null; eta: string | null; module: string | null
+    importer_name: string | null; shipment_id: number | null; customers: { name: string | null } | { name: string | null }[] | null
+  }
+  const cust = Array.isArray(b.customers) ? b.customers[0] : b.customers
+  // ETA: manual/job ETA first, then the matched ERP shipment.
+  let eta = b.m_eta ?? b.eta ?? null
+  if (!eta && b.shipment_id) {
+    const { data: sh } = await supabase.from('shipments').select('eta').eq('job_unique', b.shipment_id).maybeSingle()
+    eta = (sh?.eta as string | null | undefined)?.slice(0, 10) ?? null
+  }
+  return { booking_ref: b.booking_ref, account_id: b.account_id, eta, module: b.module, customer_name: cust?.name ?? b.importer_name ?? null }
 }
 
 async function tagId(name: string): Promise<string | null> {
@@ -160,14 +173,26 @@ export async function saveStamped(inv: CreditorInvoice, meta: BookingMeta, bytes
   return doc.id
 }
 
+// Approver gets a copy. approved_by_name holds the approver's staff email.
+async function approverEmail(inv: CreditorInvoice): Promise<string[]> {
+  const isEmail = (v: string | null | undefined) => !!v && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(v)
+  if (isEmail(inv.approved_by_name)) return [inv.approved_by_name!.toLowerCase()]
+  const { data } = await supabase.from('creditor_invoices').select('approved_by').eq('id', inv.id).maybeSingle()
+  if (!data?.approved_by) return []
+  const { data: su } = await supabase.from('staff_users').select('email').eq('user_id', data.approved_by).maybeSingle()
+  return isEmail(su?.email) ? [String(su!.email).toLowerCase()] : []
+}
+
 export async function sendToAccounts(inv: CreditorInvoice, meta: BookingMeta): Promise<void> {
   if (!inv.stamped_document_id) throw new Error('Stamp the invoice first')
   const amt = `${inv.currency} ${Number(inv.total ?? 0).toLocaleString('en-NZ', { minimumFractionDigits: 2 })}`
   const subject = `${inv.urgent ? 'URGENT ' : ''}Approved creditor invoice: ${inv.vendor_name ?? ''} ${inv.invoice_no ?? ''} | ${meta.booking_ref ?? ''} | Pay by ${inv.pay_by ?? ''}`.replace(/\s+/g, ' ').trim()
   const html = `<p>Hi Accounts,</p><p>Approved creditor invoice attached.</p><ul>`
     + `<li>Vendor: ${inv.vendor_name ?? '-'}</li><li>Invoice: ${inv.invoice_no ?? '-'}</li><li>Amount: ${amt}</li>`
-    + `<li>Job: ${meta.booking_ref ?? '-'}</li><li>Pay by: ${inv.pay_by ?? '-'}${inv.urgent ? ' (URGENT)' : ''}</li>`
+    + `<li>Customer: ${meta.customer_name ?? '-'}</li><li>Job: ${meta.booking_ref ?? '-'}</li><li>ETA: ${meta.eta ?? '-'}</li><li>Pay by: ${inv.pay_by ?? '-'}${inv.urgent ? ' (URGENT)' : ''}</li>`
     + `<li>Approved by: ${inv.approved_by_name ?? '-'}</li>${inv.approval_comment ? `<li>Comment: ${inv.approval_comment}</li>` : ''}</ul>`
-  await sendBookingEmail({ booking_id: inv.booking_id, to: [ACCOUNTS_EMAIL], cc: [], subject, html, document_ids: [inv.stamped_document_id], purpose: 'general' })
-  const { error } = await supabase.rpc('creditor_invoice_mark_sent', { p_id: inv.id, p_to: ACCOUNTS_EMAIL }); fail(error)
+  const cc = await approverEmail(inv)
+  await sendBookingEmail({ booking_id: inv.booking_id, to: [ACCOUNTS_EMAIL], cc, subject, html, document_ids: [inv.stamped_document_id], purpose: 'general' })
+  const sentTo = [ACCOUNTS_EMAIL, ...cc.map((c) => `cc ${c}`)].join(', ')
+  const { error } = await supabase.rpc('creditor_invoice_mark_sent', { p_id: inv.id, p_to: sentTo }); fail(error)
 }
