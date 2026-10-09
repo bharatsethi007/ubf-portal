@@ -9,6 +9,7 @@ import {
 } from '@/features/quoteBooking/quoteBookingApi'
 import FinanceQuoteLines from './FinanceQuoteLines'
 import ExpectedCostsCard from './ExpectedCostsCard'
+import CreditorInvoicesCard from './invoices/CreditorInvoicesCard'
 
 type Props = { bookingId: string; onChanged: () => void }
 
@@ -86,6 +87,8 @@ export default function BookingFinanceTab({ bookingId, onChanged }: Props) {
 
       <ExpectedCostsCard key={quote?.id ?? 'none'} bookingId={bookingId} quoteLines={lines}
         quoteCurrency={resp?.currency ?? null} quotedBuy={resp?.total_buy ?? null} onChanged={onChanged} />
+
+      <CreditorInvoicesCard bookingId={bookingId} onChanged={onChanged} />
 
       <QuoteLinkDialog bookingId={bookingId} open={linkOpen} onOpenChange={setLinkOpen}
         onLinked={() => { void load(); onChanged() }} />
