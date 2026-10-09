@@ -1,4 +1,4 @@
-// CustomerContactsCard.tsx — CF contacts (read-only) plus contacts added in the console (editable, not synced to CF).
+// CustomerContactsCard.tsx — all contacts editable/deletable. Changes stay in the portal; CF is never written.
 import { useState } from 'react';
 import { Check, Pencil, Plus, Trash2, X } from 'lucide-react';
 import { toast } from 'sonner';
@@ -20,9 +20,11 @@ export function CustomerContactsCard({ accountId, contacts, portalEmails, onEnab
   const [busy, setBusy] = useState<string | null>(null);
   const [editing, setEditing] = useState<number | 'new' | null>(null);
   const [draft, setDraft] = useState<ContactDraft>(empty);
+  const [lockEmail, setLockEmail] = useState(false);
 
   const start = (c?: Contact) => {
     setEditing(c ? c.id : 'new');
+    setLockEmail(!!c?.email && portalEmails.has(c.email.toLowerCase()));
     setDraft(c ? { first_name: c.first_name ?? '', last_name: c.last_name ?? '', email: c.email ?? '', phone: c.phone ?? '' } : empty);
   };
 
@@ -41,7 +43,12 @@ export function CustomerContactsCard({ accountId, contacts, portalEmails, onEnab
   };
 
   const remove = async (c: Contact) => {
-    if (!window.confirm(`Delete ${[c.first_name, c.last_name].filter(Boolean).join(' ') || 'this contact'}?`)) return;
+    const name = [c.first_name, c.last_name].filter(Boolean).join(' ') || 'this contact';
+    const hasPortal = !!c.email && portalEmails.has(c.email.toLowerCase());
+    const msg = `Delete ${name}?`
+      + (c.source !== 'console' ? '\nRemoved in the portal only. CyberFreight keeps it and sync will not re-add it.' : '')
+      + (hasPortal ? '\nPortal login stays active. Revoke it under Portal access.' : '');
+    if (!window.confirm(msg)) return;
     setBusy(`del:${c.id}`);
     try { await deleteContact(c.id); await onChanged(); toast.success('Contact deleted'); }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Delete failed'); }
@@ -53,7 +60,8 @@ export function CustomerContactsCard({ accountId, contacts, portalEmails, onEnab
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, minmax(0, 1fr))', gap: 6, flex: 1 }}>
         <input className="cp-input cp-input--block" placeholder="First name" autoFocus value={draft.first_name} onChange={(e) => setDraft({ ...draft, first_name: e.target.value })} />
         <input className="cp-input cp-input--block" placeholder="Last name" value={draft.last_name} onChange={(e) => setDraft({ ...draft, last_name: e.target.value })} />
-        <input className="cp-input cp-input--block" placeholder="Email" type="email" value={draft.email} onChange={(e) => setDraft({ ...draft, email: e.target.value })} />
+        <input className="cp-input cp-input--block" placeholder="Email" type="email" value={draft.email} disabled={lockEmail}
+          title={lockEmail ? 'Has a portal login. Email locked.' : undefined} onChange={(e) => setDraft({ ...draft, email: e.target.value })} />
         <input className="cp-input cp-input--block" placeholder="Phone" value={draft.phone} onChange={(e) => setDraft({ ...draft, phone: e.target.value })}
           onKeyDown={(e) => { if (e.key === 'Enter') void save(); }} />
       </div>
@@ -85,7 +93,7 @@ export function CustomerContactsCard({ accountId, contacts, portalEmails, onEnab
                   <div className="cp-contact-name">
                     {name}
                     {c.is_prime && <span className="cp-badge cp-badge--indigo cp-ml">Prime</span>}
-                    {local && <span className="cp-badge cp-ml" style={{ background: '#FFF7ED', color: '#C2410C' }} title="Added in the console. CyberFreight does not have this contact.">Not synced with CF</span>}
+                    {local && <span className="cp-badge cp-ml" style={{ background: '#FFF7ED', color: '#C2410C' }} title="Added or edited in the portal. CyberFreight does not have this version.">Not synced with CF</span>}
                   </div>
                   <div className="cp-contact-sub">{c.email || 'no email'}{c.phone ? ` · ${c.phone}` : ''}</div>
                 </div>
@@ -96,20 +104,18 @@ export function CustomerContactsCard({ accountId, contacts, portalEmails, onEnab
                         onClick={async () => { setBusy(email); try { await onEnable(c.email!); } finally { setBusy(null); } }}>
                         {busy === email ? 'Sending…' : 'Enable portal'}
                       </button>)}
-                  {local && (
-                    <>
+                  <>
                       <button className="cp-btn" style={iconBtn} title="Edit contact" aria-label="Edit contact" onClick={() => start(c)}><Pencil size={14} /></button>
                       <button className="cp-btn cp-btn--danger" style={iconBtn} title="Delete contact" aria-label="Delete contact"
                         disabled={busy === `del:${c.id}`} onClick={() => void remove(c)}><Trash2 size={14} /></button>
-                    </>
-                  )}
+                  </>
                 </div>
               </div>
             );
           })}
         </div>
       )}
-      <p className="cp-note">CF contacts sync from CyberFreight and are read-only. Contacts you add here stay in the portal only.</p>
+      <p className="cp-note">Edits and deletes stay in the portal only. CyberFreight is not changed, and sync will not undo them.</p>
     </Card>
   );
 }

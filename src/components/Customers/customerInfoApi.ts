@@ -8,7 +8,7 @@ export interface Contact {
   email: string | null;
   phone: string | null;
   is_prime: boolean | null;
-  /** 'cf' = synced from CyberFreight (read-only), 'console' = added here, not in CF. */
+  /** 'cf' = synced from CyberFreight, 'console' = added or edited here, not in CF. */
   source?: string | null;
 }
 
@@ -161,12 +161,16 @@ export async function addContact(accountId: string, d: ContactDraft): Promise<vo
 }
 
 export async function updateContact(id: number, d: ContactDraft): Promise<void> {
-  const { error } = await supabase.from('contacts')
-    .update({ ...clean(d), updated_at: new Date().toISOString() }).eq('id', id).eq('source', 'console');
+  const c = clean(d);
+  const { error } = await supabase.rpc('contact_edit', {
+    p_id: id, p_first_name: c.first_name ?? '', p_last_name: c.last_name ?? '',
+    p_email: c.email ?? '', p_phone: c.phone ?? '',
+  });
   if (error) throw new Error(error.message);
 }
 
+/** Deletes any contact. CF rows are suppressed so the next sync does not bring them back. */
 export async function deleteContact(id: number): Promise<void> {
-  const { error } = await supabase.from('contacts').delete().eq('id', id).eq('source', 'console');
+  const { error } = await supabase.rpc('contact_delete', { p_id: id });
   if (error) throw new Error(error.message);
 }
