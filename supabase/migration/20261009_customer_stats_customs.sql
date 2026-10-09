@@ -1,0 +1,5 @@
+-- Applied 9 Oct 2026 via MCP. Repo parity: do not re-run.
+-- v_customer_stats: counts every shipment leg (transhipment import legs), customs entries, courier jobs.
+-- Last activity covers all three. New columns appended: customs_entries, customs_only_entries, courier_jobs.
+-- v_booking_customs: customs entry per booking (bookings.shipment_id = job number), for IS board CUS/MPI pills.
+-- Full SQL lives in the Supabase migration history (20261009_customer_stats_customs).

@@ -1,5 +1,6 @@
 import { supabase } from '../../supabase'
 import type { ImportSeaBookingPatch, ImportSeaRow } from './types'
+import { fetchBookingCustoms, type BookingCustoms } from './importSeaCustoms'
 
 type AutoStop = Pick<ImportSeaRow, 'pc_auto_stopped_at' | 'pc_auto_stop_reason' | 'carrier_auto_stopped_at' | 'carrier_auto_stop_reason'>
 
@@ -38,13 +39,16 @@ async function fetchGateOuts(bookingId?: string): Promise<Map<string, GateOut>> 
 }
 
 export async function fetchImportSeaBoard(includeArchived = false): Promise<ImportSeaRow[]> {
-  const [{ data, error }, stops, gates] = await Promise.all([
+  const [{ data, error }, stops, gates, customs] = await Promise.all([
     supabase.rpc('get_import_sea_board', { p_include_archived: includeArchived }),
     fetchAutoStops().catch(() => new Map<string, AutoStop>()),
     fetchGateOuts().catch(() => new Map<string, GateOut>()),
+    fetchBookingCustoms().catch(() => new Map<string, BookingCustoms>()),
   ])
   if (error) throw error
-  return ((data ?? []) as ImportSeaRow[]).map((r) => ({ ...normalizeImportSeaRow(r), ...stops.get(r.id), ...gates.get(r.id) }))
+  return ((data ?? []) as ImportSeaRow[]).map((r) => ({
+    ...normalizeImportSeaRow(r), ...stops.get(r.id), ...gates.get(r.id), customs: customs.get(r.id) ?? null,
+  }))
 }
 
 /** Staff restart of an auto-stopped refresh; the automation picks it up on its next run. */
@@ -78,11 +82,12 @@ export async function fetchImportSeaBoardRow(bookingId: string): Promise<ImportS
   if (error) throw error
   const row = (data as ImportSeaRow[] | null)?.[0]
   if (!row) return null
-  const [stops, gates] = await Promise.all([
+  const [stops, gates, customs] = await Promise.all([
     fetchAutoStops(bookingId).catch(() => new Map<string, AutoStop>()),
     fetchGateOuts(bookingId).catch(() => new Map<string, GateOut>()),
+    fetchBookingCustoms(bookingId).catch(() => new Map<string, BookingCustoms>()),
   ])
-  return { ...normalizeImportSeaRow(row), ...stops.get(row.id), ...gates.get(row.id) }
+  return { ...normalizeImportSeaRow(row), ...stops.get(row.id), ...gates.get(row.id), customs: customs.get(row.id) ?? null }
 }
 
 export async function updateImportSeaBooking(

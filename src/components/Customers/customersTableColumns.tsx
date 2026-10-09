@@ -9,7 +9,12 @@ function RoleBadges({ row }: { row: CustomerStats }) {
     <span className="customer-badges">
       {row.is_importer && <span className="pill scheduled">Importer</span>}
       {row.is_exporter && <span className="pill booked">Exporter</span>}
-      {!row.is_importer && !row.is_exporter && <span className="text-muted-foreground">—</span>}
+      {(row.customs_only_entries ?? 0) > 0 && (
+        <span className="pill parsed" title="Has customs-only entries (no freight job)">Customs</span>
+      )}
+      {!row.is_importer && !row.is_exporter && !(row.customs_only_entries ?? 0) && (
+        <span className="text-muted-foreground">—</span>
+      )}
     </span>
   )
 }
@@ -58,6 +63,12 @@ export function customersTableColumns(): ColumnDef<CustomerStats>[] {
       header: 'Total',
       enableSorting: false,
       cell: ({ getValue }) => <span className="mono nums">{getValue<number>()}</span>,
+    },
+    {
+      accessorKey: 'customs_entries',
+      header: 'Customs',
+      enableSorting: false,
+      cell: ({ getValue }) => <span className="mono nums">{getValue<number | undefined>() ?? 0}</span>,
     },
     {
       accessorKey: 'in_transit',

@@ -65,6 +65,7 @@ export default function CustomersPage() {
       if (!showInactive) query = query.eq('closed', false)
       if (roleFilter === 'importer') query = query.eq('is_importer', true)
       else if (roleFilter === 'exporter') query = query.eq('is_exporter', true)
+      else if (roleFilter === 'customs') query = query.gt('customs_only_entries', 0)
       if (managerFilter !== 'all') query = query.eq('sales_manager', managerFilter)
 
       const term = debouncedSearch.trim()

@@ -6,6 +6,7 @@ import {
 import { clearancePillState } from '@/features/clearance/clearanceLayers'
 import type { ImportSeaRow } from './types'
 import AutoTrackPills from './cells/AutoTrackPills'
+import CustomsPills from './cells/CustomsPills'
 
 const OPS_STEPS = [
   { key: 'swb_released', label: 'SWB' },
@@ -52,6 +53,7 @@ export default function ImportSeaOpsStatus({ row }: Props) {
           {step.label}
         </span>
       ))}
+      <CustomsPills row={row} />
       {CLEARANCE_STEPS.map((step) => (
         <Tooltip key={step.label}>
           <TooltipTrigger

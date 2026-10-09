@@ -17,6 +17,11 @@ export type CustomerStats = {
   closed: boolean
   /** 'portal' = created in the portal, not yet in CyberFreight. */
   source?: string | null
+  /** Customs entries in CyberFreight (24 months). */
+  customs_entries?: number
+  /** Customs entries with no freight job (customs-only / free-hand). */
+  customs_only_entries?: number
+  courier_jobs?: number
 }
 
 export type Contact = {

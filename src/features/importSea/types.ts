@@ -1,3 +1,5 @@
+import type { BookingCustoms } from './importSeaCustoms'
+
 export type ImportSeaContainer = {
   container_no: string | null
   container_type: string | null
@@ -70,6 +72,8 @@ export type ImportSeaRow = {
   erp_ref_confirmed_at: string | null
   archived_at: string | null
   archived_by: string | null
+  /** UBF customs entry on this job (CyberFreight CUSTMAIN), merged client-side. */
+  customs?: BookingCustoms | null
 }
 
 /** Columns written back to `bookings` on inline edit. */
