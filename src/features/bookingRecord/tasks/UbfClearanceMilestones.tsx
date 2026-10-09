@@ -1,5 +1,8 @@
 import { useEffect, useState } from 'react'
-import { Check } from 'lucide-react'
+import { Check, FileText, Loader2 } from 'lucide-react'
+import { toast } from 'sonner'
+import { buildClearanceAdvice } from '@/features/customsAdvice/renderClearanceAdvice'
+import ClearanceAdviceDialog from '@/features/customsAdvice/ClearanceAdviceDialog'
 import { formatReleaseTimestamp } from '@/features/clearance/clearanceLayers'
 import { fetchBookingCustoms, type BookingCustoms } from '@/features/importSea/importSeaCustoms'
 
@@ -56,8 +59,26 @@ export function useBookingCustoms(bookingId: string) {
   return data
 }
 
-export default function UbfClearanceMilestones({ customs }: { customs: BookingCustoms }) {
+type Props = { customs: BookingCustoms; bookingId: string; bookingRef: string | null }
+
+export default function UbfClearanceMilestones({ customs, bookingId, bookingRef }: Props) {
   const lines = [customsLine(customs), mpiLine(customs)]
+  const [busy, setBusy] = useState(false)
+  const [preview, setPreview] = useState<{ url: string; title: string } | null>(null)
+
+  useEffect(() => () => { if (preview) URL.revokeObjectURL(preview.url) }, [preview])
+
+  async function open() {
+    setBusy(true)
+    try {
+      setPreview(await buildClearanceAdvice(bookingId, bookingRef))
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not build clearance advice')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   return (
     <>
       {lines.map((l) => (
@@ -76,6 +97,20 @@ export default function UbfClearanceMilestones({ customs }: { customs: BookingCu
           </span>
         </li>
       ))}
+      <li className="booking-milestones__row">
+        <span className="booking-milestones__label">Clearance advice (PDF)</span>
+        <button
+          type="button"
+          className="icon-btn"
+          onClick={open}
+          disabled={busy}
+          title="View UBF clearance advice: Customs entry + MPI"
+          aria-label="View clearance advice PDF"
+        >
+          {busy ? <Loader2 size={15} className="animate-spin" /> : <FileText size={15} />}
+        </button>
+        <ClearanceAdviceDialog url={preview?.url ?? null} title={preview?.title ?? ''} onClose={() => setPreview(null)} />
+      </li>
     </>
   )
 }

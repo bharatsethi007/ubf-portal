@@ -58,7 +58,9 @@ export default function MilestoneToggles({
           {UBF_MILESTONES.map(({ key, label }) => {
             if (key === 'cleared' && customs === undefined) return null
             if (key === 'cleared' && hasEntry && customs) {
-              return <UbfClearanceMilestones key={key} customs={customs} />
+              return (
+                <UbfClearanceMilestones key={key} customs={customs} bookingId={booking.id} bookingRef={booking.booking_ref} />
+              )
             }
             return (
               <li key={key} className="booking-milestones__row">
