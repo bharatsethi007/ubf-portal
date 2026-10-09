@@ -88,7 +88,7 @@ export const GROUP_LABEL: Record<string, string> = {
   freight: 'Freight',
   destination: 'Destination charges',
 }
-const GROUP_ORDER = ['origin', 'freight', 'destination']
+const GROUP_ORDER = ['freight', 'origin', 'destination']
 
 export async function listOffers(): Promise<QuoteOffer[]> {
   const { data, error } = await supabase.from('portal_quote_offers').select('*').order('sent_at', { ascending: false })
