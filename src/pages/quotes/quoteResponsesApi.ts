@@ -149,6 +149,13 @@ export async function createQuoteResponse(quoteId: string): Promise<{ id: string
   return data
 }
 
+/** Copies a response (header + charge lines) as a new draft. Returns the new id. */
+export async function duplicateQuoteResponse(id: string): Promise<string> {
+  const { data, error } = await supabase.rpc('duplicate_quote_response', { p_id: id })
+  if (error) throw new Error(error.message)
+  return String(data)
+}
+
 export async function fetchQuoteResponse(id: string): Promise<QuoteResponseRecord | null> {
   const { data, error } = await supabase.from('quote_responses').select('*').eq('id', id).maybeSingle()
   if (error) throw error

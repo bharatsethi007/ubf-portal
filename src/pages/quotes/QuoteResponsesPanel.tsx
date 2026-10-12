@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
-import { Pencil, Trash2, Search, Plus, Send, Undo2 } from 'lucide-react'
+import { Pencil, Trash2, Search, Plus, Send, Undo2, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   createQuoteResponse,
   deleteQuoteResponse,
+  duplicateQuoteResponse,
   fetchQuoteResponses,
   sendQuoteForApproval,
   withdrawQuoteApproval,
@@ -97,6 +98,18 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
       reload()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to delete response')
+    }
+  }
+
+  async function handleCopy(e: MouseEvent, responseId: string) {
+    e.stopPropagation()
+    try {
+      const id = await duplicateQuoteResponse(responseId)
+      toast.success('Response copied')
+      await reload()
+      setOpenId(id)
+    } catch (err) {
+      toast.error(err instanceof Error ? err.message : 'Failed to copy response')
     }
   }
 
@@ -208,7 +221,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
                       <h3 className="quote-response-card__title">
                         # {index + 1} - {r.response_no ?? 'Draft'}
                       </h3>
-                      {responseStatusPill(r.status)}
+                      {r.status !== 'draft' && responseStatusPill(r.status)}
                     </div>
                     <div className="quote-response-card__actions">
                       <button
@@ -218,6 +231,15 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
                         onClick={(e) => { e.stopPropagation(); openEditor(r.id) }}
                       >
                         <Pencil size={14} />
+                      </button>
+                      <button
+                        type="button"
+                        className="quote-response-card__icon"
+                        aria-label="Copy response"
+                        title="Copy response"
+                        onClick={(e) => handleCopy(e, r.id)}
+                      >
+                        <Copy size={14} />
                       </button>
                       <button
                         type="button"
