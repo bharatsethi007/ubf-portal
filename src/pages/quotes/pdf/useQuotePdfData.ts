@@ -12,6 +12,12 @@ import { buildQuotePdfData, type PdfRefs, type PdfCustomer, type PdfResponseInpu
 
 export type PdfResp = { id: string; response_no: string | null }
 
+async function fetchStaffName(userId: string | null | undefined): Promise<string> {
+  if (!userId) return ''
+  const { data } = await supabase.from('staff_users').select('full_name, email').eq('user_id', userId).maybeSingle()
+  return (data?.full_name || data?.email || '').trim()
+}
+
 async function fetchCustomerLite(accountId: string): Promise<PdfCustomer> {
   const { data } = await supabase
     .from('customers')
@@ -30,6 +36,7 @@ export function useQuotePdfData(quoteId: string, responses: PdfResp[] | null) {
   const [cargo, setCargo] = useState<QuoteCargoLine[]>([])
   const [containers, setContainers] = useState<QuoteContainer[]>([])
   const [customer, setCustomer] = useState<PdfCustomer>(null)
+  const [preparedBy, setPreparedBy] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
 
@@ -54,9 +61,14 @@ export function useQuotePdfData(quoteId: string, responses: PdfResp[] | null) {
             return { record, lines } as PdfResponseInput
           }),
         ])
+        const ok = loaded.filter(Boolean) as PdfResponseInput[]
+        // Quoting user = whoever priced the first option, else quote creator.
+        const firstBy = (ok[0]?.record as { created_by?: string | null } | undefined)?.created_by
+        const name = await fetchStaffName(firstBy || (q as { created_by?: string | null } | null)?.created_by)
         if (cancelled) return
         setQuote(q)
-        setResponseInputs(loaded.filter(Boolean) as PdfResponseInput[])
+        setPreparedBy(name)
+        setResponseInputs(ok)
         setCargo(cg); setContainers(ct); setCustomer(cust)
       } catch {
         if (!cancelled) setError('Failed to load quote for PDF')
@@ -87,8 +99,8 @@ export function useQuotePdfData(quoteId: string, responses: PdfResp[] | null) {
 
   const data = useMemo<QuotePdfData | null>(() => {
     if (!quote || !responseInputs.length) return null
-    return buildQuotePdfData(quote, responseInputs, cargo, containers, customer, refs)
-  }, [quote, responseInputs, cargo, containers, customer, refs])
+    return { ...buildQuotePdfData(quote, responseInputs, cargo, containers, customer, refs), preparedBy }
+  }, [quote, responseInputs, cargo, containers, customer, refs, preparedBy])
 
   return { data, loading, error }
 }

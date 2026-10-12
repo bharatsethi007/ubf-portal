@@ -2,7 +2,8 @@ import { Document, Page, View, Text, Image, Svg, Path, Line, G, StyleSheet } fro
 import { QUOTE_TERMS } from './quoteTerms'
 import type { QuotePdfData, PdfOption } from './buildQuotePdfData'
 
-const NAVY = '#002753', ORANGE = '#F99D29', BLACK = '#111111', MUTE = '#6b7280', LINE = '#e2e6ea', SOFT = '#f4f6f8'
+// Match UB Freight logo colours exactly.
+const NAVY = '#002070', ORANGE = '#FF8C0D', BLACK = '#111111', MUTE = '#6b7280', LINE = '#e2e6ea', SOFT = '#f4f6f8'
 
 const s = StyleSheet.create({
   page: { paddingTop: 26, paddingBottom: 26, paddingHorizontal: 30, fontSize: 7.5, color: BLACK, fontFamily: 'General Sans', fontWeight: 400, lineHeight: 1.3 },
@@ -185,7 +186,9 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
           <Text style={s.qBarTitle}>QUOTATION</Text>
           <Text style={s.qBarNo}>{data.quoteNo}</Text>
         </View>
-        <Text style={s.qDateUnder}>Quote date: {data.quoteDate}</Text>
+        <Text style={s.qDateUnder}>
+          Date: {data.quoteDate}{data.preparedBy ? `  |  ${data.preparedBy}` : ''}
+        </Text>
 
         <View style={s.route}>
           <RouteEnd code={data.from.code} name={data.from.name} cc={data.from.cc} />

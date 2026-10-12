@@ -41,6 +41,7 @@ export type QuotePdfData = {
   showCarrier: boolean
   cargoTags: string[]
   quoteDate: string
+  preparedBy: string
   options: PdfOption[]
   externalNote: string
 }
@@ -225,6 +226,7 @@ export function buildQuotePdfData(
     showCarrier,
     cargoTags: buildCargoTags(quote),
     quoteDate,
+    preparedBy: '',
     options,
     externalNote: (quote.external_notes || '').trim(),
   }
