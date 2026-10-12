@@ -1,6 +1,8 @@
 import { useState, type FormEvent } from 'react'
 import { Loader2, Send, X } from 'lucide-react'
 import { fetchTeam, invite, updatePerson, type Role } from './teamApi'
+import { ALL_MODULES, type ModuleKey } from '../access'
+import ModulePicker from './ModulePicker'
 
 type Props = { onDone: (msg: string) => void; onClose: () => void }
 
@@ -10,6 +12,8 @@ export default function InviteForm({ onDone, onClose }: Props) {
   const [name, setName] = useState('')
   const [phone, setPhone] = useState('')
   const [role, setRole] = useState<Role>('member')
+  // Finance & invoices starts off: least privilege for balances and invoices.
+  const [mods, setMods] = useState<ModuleKey[]>(ALL_MODULES.filter((k) => k !== 'billing'))
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
 
@@ -17,7 +21,7 @@ export default function InviteForm({ onDone, onClose }: Props) {
     e.preventDefault()
     setBusy(true); setErr('')
     try {
-      const r = await invite(email.trim(), name.trim(), role)
+      const r = await invite(email.trim(), name.trim(), role, role === 'admin' ? ALL_MODULES : mods)
       // Phone is saved after the invite creates the person. A failure here shouldn't undo the invite.
       if (phone.trim()) {
         const t = await fetchTeam().catch(() => null)
@@ -40,11 +44,14 @@ export default function InviteForm({ onDone, onClose }: Props) {
         <label><span>Phone <i>(optional)</i></span><input type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} placeholder="+64 21 123 4567" maxLength={30} /></label>
         <label><span>Role</span>
           <select value={role} onChange={(e) => setRole(e.target.value as Role)}>
-            <option value="member">Member: sees everything</option>
-            <option value="admin">Admin: also manages the team</option>
+            <option value="member">Member: chosen modules</option>
+            <option value="admin">Admin: everything + team</option>
           </select>
         </label>
       </div>
+      {role === 'member'
+        ? <ModulePicker value={mods} onChange={setMods} disabled={busy} />
+        : <p className="pv3-muted" style={{ margin: 0 }}>Admins see every module, including invoices and balances, and manage the team.</p>}
       {err && <div className="pv3-team__err" role="alert">{err}</div>}
       <div className="pv3-team__row">
         <span className="pv3-muted">They get an email to set a password. The link lasts 7 days.</span>

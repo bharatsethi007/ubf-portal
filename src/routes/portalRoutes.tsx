@@ -18,6 +18,7 @@ import ContactsPage from '../features/portal/v2/contacts/ContactsPage'
 import PortalMessagesPage from '../features/portal/v2/messages/PortalMessagesPage'
 import PortalShipmentsV3 from '../features/portal/v2/shipments/PortalShipmentsV3'
 import PortalAuthGate from '../features/portal/auth/PortalAuthGate'
+import { RequireModule } from '../features/portal/v2/access'
 
 type Props = {
   session: Session | null
@@ -41,14 +42,14 @@ export function portalRoutes({ session, authReady, isStaff, staffReady }: Props)
           <Route index element={<PortalHomePage />} />
           <Route path="shipments/:jobNo" element={<PortalShipmentDetailV3 />} />
           <Route path="shipments" element={<PortalShipmentsV3 />} />
-          <Route path="bookings" element={<PortalBookingsPage />} />
-          <Route path="bookings/new" element={<BookingRequestPage />} />
-          <Route path="bookings/:id/edit" element={<BookingEditPage />} />
-          <Route path="rates" element={<PortalRatesPage />} />
-          <Route path="analytics" element={<PortalAnalyticsPage />} />
-          <Route path="products" element={<PortalProductsPage />} />
+          <Route path="bookings" element={<RequireModule m="bookings"><PortalBookingsPage /></RequireModule>} />
+          <Route path="bookings/new" element={<RequireModule m="bookings"><BookingRequestPage /></RequireModule>} />
+          <Route path="bookings/:id/edit" element={<RequireModule m="bookings"><BookingEditPage /></RequireModule>} />
+          <Route path="rates" element={<RequireModule m="rates"><PortalRatesPage /></RequireModule>} />
+          <Route path="analytics" element={<RequireModule m="analytics"><PortalAnalyticsPage /></RequireModule>} />
+          <Route path="products" element={<RequireModule m="products"><PortalProductsPage /></RequireModule>} />
           <Route path="quotes" element={<Navigate to="/portal/rates?tab=quotes" replace />} />
-          <Route path="billing" element={<PortalBillingPage />} />
+          <Route path="billing" element={<RequireModule m="billing"><PortalBillingPage /></RequireModule>} />
           <Route path="settings/whatsapp" element={<Navigate to="/portal/settings/notifications" replace />} />
           <Route path="settings/notifications" element={<NotificationSettingsPage />} />
           <Route path="settings/team" element={<TeamPage />} />

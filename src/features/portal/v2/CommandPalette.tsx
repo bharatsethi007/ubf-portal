@@ -4,6 +4,7 @@ import { CornerDownLeft, FileText, Plane, Plus, Receipt, Search, Ship } from 'lu
 import { supabase } from '../../../supabase'
 import { usePorts } from '../../../hooks/usePorts'
 import { detailPath, placeName, shipmentNo, titleCase } from './homeModel'
+import { usePortalAccess } from './access'
 
 type Row = {
   job_unique: number
@@ -49,6 +50,7 @@ type Props = { open: boolean; onClose: () => void }
 export default function CommandPalette({ open, onClose }: Props) {
   const navigate = useNavigate()
   const { ports } = usePorts()
+  const { canPath } = usePortalAccess()
   const [rows, setRows] = useState<Row[]>(cache ?? [])
   const [q, setQ] = useState('')
   const [cursor, setCursor] = useState(0)
@@ -89,9 +91,9 @@ export default function CommandPalette({ open, onClose }: Props) {
         to: detailPath(r),
         icon: (r.mode ?? '').toLowerCase() === 'sea' ? 'sea' : 'air',
       }))
-    const acts = ACTIONS.filter((a) => !needle || `${a.title} ${a.sub}`.toLowerCase().includes(needle))
+    const acts = ACTIONS.filter((a) => canPath(a.to)).filter((a) => !needle || `${a.title} ${a.sub}`.toLowerCase().includes(needle))
     return [...ships, ...acts]
-  }, [rows, q, ports])
+  }, [rows, q, ports, canPath])
 
   useEffect(() => { setCursor(0) }, [q])
 

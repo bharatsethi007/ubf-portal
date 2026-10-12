@@ -1,15 +1,17 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { ArrowLeft, Check, CheckCircle2, Loader2, Mail, MessageCircle, PauseCircle } from 'lucide-react'
-import { KINDS, fetchPrefs, savePrefs, type Prefs, type PrefsPatch } from './notifyApi'
+import { KINDS, kindModule, fetchPrefs, savePrefs, type Prefs, type PrefsPatch } from './notifyApi'
 import { fetchWaStatus, type WaStatus } from './waApi'
 import WhatsAppLink from './WhatsAppLink'
 import './notifications.css'
+import { usePortalAccess } from '../access'
 
 const EMPTY: Prefs = { email_enabled: false, off_kinds: [], wa_enabled: false, wa_off_kinds: [], seen_at: null }
 
 /** Per-user choice of channel (email, WhatsApp) and which updates each one carries. The bell always shows everything. */
 export default function NotificationSettingsPage() {
+  const { can } = usePortalAccess()
   const [p, setP] = useState<Prefs>(EMPTY)
   const [wa, setWa] = useState<WaStatus>({ linked: false })
   const [loaded, setLoaded] = useState(false)
@@ -93,7 +95,7 @@ export default function NotificationSettingsPage() {
         <div className="pv3-nset__grid pv3-nset__grid--head">
           <span>Update</span><span>Email</span><span>WhatsApp</span>
         </div>
-        {KINDS.map((k) => (
+        {KINDS.filter((k) => { const m = kindModule(k.kind); return !m || can(m) }).map((k) => (
           <div key={k.kind} className="pv3-nset__grid">
             <span className="pv3-nset__kind">
               <i className={`pv3-bell__dot pv3-bell__dot--${k.tone}`} />

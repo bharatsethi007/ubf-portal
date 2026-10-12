@@ -1,4 +1,4 @@
-﻿import { useState, useMemo, type CSSProperties } from 'react'
+import { useState, useMemo, type CSSProperties } from 'react'
 import { Calendar } from 'lucide-react'
 
 const NAVY = '#0A2472'

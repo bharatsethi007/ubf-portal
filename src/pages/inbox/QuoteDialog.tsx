@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { Search, X } from 'lucide-react'
 import { toast } from 'sonner'
 import { createQuoteFromConversation, linkQuote, searchQuotes, type InboxDetail, type QuoteHit } from './inboxApi'
+import { autoRateQuote, type AutoRate } from './inboxQuoteRates'
 
 const d = (x: string) => new Date(x).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short' })
 
@@ -18,19 +19,29 @@ export default function QuoteDialog({ detail, onChanged }: { detail: InboxDetail
 
   useEffect(() => {
     const onLink = () => { setOpen(true); setQ(''); setPick(null) }
-    const onCreate = () => {
+    const onCreate = async () => {
       const t = toast.loading('Reading email and attachments…')
-      createQuoteFromConversation(convId).then((r) => {
-        toast.dismiss(t)
-        toast.success(r.existing ? `Already linked to ${r.quote_no}` : `Quote ${r.quote_no} created`)
-        if (r.low_confidence?.length) toast.message(`Check: ${r.low_confidence.slice(0, 6).join(', ')}`)
+      try {
+        const r = await createQuoteFromConversation(convId)
         onChanged()
-        nav(`/quotes/${r.id}`)
-      }).catch((e) => { toast.dismiss(t); toast.error(e instanceof Error ? e.message : 'Could not create quote') })
+        if (r.existing) { toast.dismiss(t); toast.success(`Already linked to ${r.quote_no}`); nav(`/quotes/${r.id}`); return }
+        toast.loading(`Quote ${r.quote_no} created. Finding rates…`, { id: t })
+        let a: AutoRate | null = null
+        try { a = await autoRateQuote(r.id) } catch { a = null }
+        toast.dismiss(t)
+        if (a?.status === 'attached') toast.success(`${r.quote_no}: ${a.carrier} rates added (cheapest of ${a.options}). Review before sending.`)
+        else if (a?.status === 'no_ports') toast.warning(`${r.quote_no} created. Add ${a.missing.join(' and ')} to search rates.`)
+        else if (a?.status === 'no_cargo') toast.warning(`${r.quote_no} created. Add cargo details to search rates.`)
+        else if (a?.status === 'no_rates') toast.warning(`${r.quote_no} created. No rate card for ${a.lane}. Request rates from agents.`)
+        else toast.warning(`${r.quote_no} created. Rate search failed, check Vendor rates.`)
+        if (r.low_confidence?.length) toast.message(`Check: ${r.low_confidence.slice(0, 6).join(', ')}`)
+        nav(`/quotes/${r.id}${a?.status === 'no_rates' ? '?tab=request' : ''}`)
+      } catch (e) { toast.dismiss(t); toast.error(e instanceof Error ? e.message : 'Could not create quote') }
     }
     window.addEventListener('ibx:quote-link', onLink)
-    window.addEventListener('ibx:create-quote', onCreate)
-    return () => { window.removeEventListener('ibx:quote-link', onLink); window.removeEventListener('ibx:create-quote', onCreate) }
+    const create = () => void onCreate()
+    window.addEventListener('ibx:create-quote', create)
+    return () => { window.removeEventListener('ibx:quote-link', onLink); window.removeEventListener('ibx:create-quote', create) }
   }, [convId, nav, onChanged])
   useEffect(() => { setOpen(false) }, [convId])
   useEffect(() => {

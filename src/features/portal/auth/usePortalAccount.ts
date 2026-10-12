@@ -14,6 +14,9 @@ export type PortalAccount = {
   companyName: string | null
   initials: string
   status: 'pending' | 'active' | 'revoked'
+  /** Portal role and module keys. Admins see every module regardless of the list. */
+  role: 'admin' | 'member'
+  modules: string[]
 }
 
 export function usePortalAccount(session: Session | null) {
@@ -50,7 +53,7 @@ export function usePortalAccount(session: Session | null) {
     ;(async () => {
       const { data: pu } = await supabase
         .from('portal_users')
-        .select('account_id, email, status, display_name')
+        .select('account_id, email, status, display_name, role, modules')
         .eq('user_id', userId)
         .maybeSingle()
 
@@ -85,7 +88,9 @@ export function usePortalAccount(session: Session | null) {
         ? `${parts[0][0]}${parts[1][0]}`.toUpperCase()
         : displayName.slice(0, 2).toUpperCase()
 
-      setAccount({ accountId: pu.account_id, email, displayName, personName, firstName, companyName, initials, status })
+      const role: PortalAccount['role'] = pu.role === 'admin' ? 'admin' : 'member'
+      const modules = Array.isArray(pu.modules) ? (pu.modules as string[]) : []
+      setAccount({ accountId: pu.account_id, email, displayName, personName, firstName, companyName, initials, status, role, modules })
       setIsPortalUser(status === 'active')
       setLoading(false)
     })()

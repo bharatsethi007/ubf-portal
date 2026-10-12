@@ -20,6 +20,8 @@ export const KINDS: { kind: Kind; label: string; help: string; tone: 'blue' | 'a
   { kind: 'gated_out', label: 'Collected from port', help: 'A container leaves the port, with the date free time ends.', tone: 'green' },
   { kind: 'task_assigned', label: 'Action needed', help: 'We need something from you, like a delivery date or documents.', tone: 'amber' },
 ]
+/** Module a notification kind belongs to (matches DB portal_kind_module). Null = core. */
+export const kindModule = (k: string): 'billing' | 'rates' | null => (k === 'invoice_issued' ? 'billing' : k === 'quote_ready' ? 'rates' : null)
 export const kindMeta = (k: string) => KINDS.find((x) => x.kind === k) ?? { kind: k as Kind, label: 'Update', help: '', tone: 'blue' as const }
 
 export type Prefs = { email_enabled: boolean; off_kinds: string[]; wa_enabled: boolean; wa_off_kinds: string[]; seen_at: string | null }

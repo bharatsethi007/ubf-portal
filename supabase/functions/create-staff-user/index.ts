@@ -1,4 +1,4 @@
-﻿// STAFF (verify_jwt = true). Creates auth user + staff_users row + roles + set-password token, emails link via Brevo.
+// STAFF (verify_jwt = true). Creates auth user + staff_users row + roles + set-password token, emails link via Brevo.
 // Body: { email: string, role_ids?: string[] }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";

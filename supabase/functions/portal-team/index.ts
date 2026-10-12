@@ -1,5 +1,7 @@
 // CUSTOMER (verify_jwt = true). Customer admins manage their own portal team.
-// Body: { action: 'invite', email, name?, role? } | { action: 'resend' | 'remove' | 'restore', user_id } | { action: 'set_role', user_id, role }
+// Body: { action: 'invite', email, name?, role?, modules? } | { action: 'resend' | 'remove' | 'restore', user_id }
+//     | { action: 'set_role', user_id, role } | { action: 'set_modules', user_id, modules }
+// Modules: which portal modules a member can use (admins see all). The DB enforces them via portal_account_for().
 // Rules: caller must be an active portal user with role 'admin'; every target must be on the caller's account;
 // an account always keeps at least one active admin; emails already used for any other login (staff, driver,
 // another customer) are refused, so an invite can never take over an existing account.
@@ -21,6 +23,10 @@ const fail = (message: string, status = 400) => json({ error: message }, status)
 const PORTAL_URL = (Deno.env.get("CUSTOMER_PORTAL_URL") ?? "https://portal.ubfreight.com").replace(/\/$/, "");
 const MAX_USERS = 25;
 const TOKEN_TTL_MS = 7 * 24 * 3600 * 1000;
+const MODULES = ["bookings", "rates", "products", "analytics", "billing"];
+// Unknown keys dropped. Missing list on invite = everything except billing (least privilege for balances).
+const cleanModules = (v: unknown, fallback: string[]): string[] =>
+  Array.isArray(v) ? MODULES.filter((m) => v.includes(m)) : fallback;
 
 type Me = { user_id: string; account_id: string; role: string; email: string; display_name: string | null };
 
@@ -93,6 +99,7 @@ Deno.serve(async (req) => {
       if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) || email.length > 200) return fail("Enter a valid email address.");
       const name = typeof body?.name === "string" && body.name.trim() ? body.name.trim().slice(0, 100) : null;
       const role = body?.role === "admin" ? "admin" : "member";
+      const modules = role === "admin" ? MODULES : cleanModules(body?.modules, MODULES.filter((m) => m !== "billing"));
 
       const { count } = await db.from("portal_users").select("user_id", { count: "exact", head: true })
         .eq("account_id", me.account_id).neq("status", "revoked");
@@ -105,14 +112,14 @@ Deno.serve(async (req) => {
         // Never attach an existing login that isn't already on this account (staff, drivers, other customers).
         if (!pu || pu.account_id !== me.account_id) return fail("This email can't be added. Contact UB Freight for help.", 409);
         if (pu.status === "active") return fail("This person already has access.", 409);
-        const { error } = await db.from("portal_users").update({ status: "pending", role, display_name: name ?? undefined, invited_by: me.user_id, activated_at: null }).eq("user_id", existing);
+        const { error } = await db.from("portal_users").update({ status: "pending", role, modules, display_name: name ?? undefined, invited_by: me.user_id, activated_at: null }).eq("user_id", existing);
         if (error) throw error;
       } else {
-        const { data: created, error } = await db.auth.admin.createUser({ email, email_confirm: true, password: `${crypto.randomUUID()}${crypto.randomUUID()}Aa1!` });
+        const { data: created, error } = await db.auth.admin.createUser({ email, email_confirm: true, password: `${crypto.randomUUID()}Aa1!` /* throwaway, under Supabase's 72-char cap; they set their own via the invite */ });
         if (error || !created.user) return fail("Could not create the invite. Try again.");
         userId = created.user.id;
         const { error: insErr } = await db.from("portal_users").insert({
-          user_id: userId, account_id: me.account_id, email, display_name: name, status: "pending", role, invited_by: me.user_id,
+          user_id: userId, account_id: me.account_id, email, display_name: name, status: "pending", role, modules, invited_by: me.user_id,
         });
         if (insErr) { await db.auth.admin.deleteUser(userId); throw insErr; }
       }
@@ -138,6 +145,14 @@ Deno.serve(async (req) => {
       const { error } = await db.from("portal_users").update({ role }).eq("user_id", target.user_id);
       if (error) throw error;
       return json({ ok: true });
+    }
+    if (action === "set_modules") {
+      if (!Array.isArray(body?.modules)) return fail("Choose which modules they can use.");
+      if (target.role === "admin") return fail("Admins see every module. Make them a member to limit access.");
+      const modules = cleanModules(body.modules, []);
+      const { error } = await db.from("portal_users").update({ modules }).eq("user_id", target.user_id);
+      if (error) throw error;
+      return json({ ok: true, modules });
     }
     if (action === "remove") {
       if (lastAdmin) return fail("Your account needs at least one admin. Make someone else admin first.");

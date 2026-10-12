@@ -15,6 +15,7 @@ import {
   shipmentNo, shortCode, stageLabel, stageTone, titleCase, todayIso,
 } from './homeModel'
 import type { PortalOutletContext } from './PortalShellV2'
+import { usePortalAccess } from './access'
 
 function greeting(): string {
   const h = new Date().getHours()
@@ -38,6 +39,7 @@ function Kpi({ label, value, sub, tone, delay, to, onClick }: { label: string; v
 export default function PortalHomePage() {
   const navigate = useNavigate()
   const { account, openSearch } = useOutletContext<PortalOutletContext>()
+  const { can } = usePortalAccess()
   const { ports } = usePorts()
   const { pool, active, invoices, analytics, positions, loading, error } = usePortalHome()
   const acts = usePortalActions()
@@ -91,8 +93,8 @@ export default function PortalHomePage() {
         </div>
         <div className="pv3-head__actions">
           <button type="button" className="pv3-btn pv3-btn--ghost" onClick={openSearch}><Search size={15} /> Find shipment</button>
-          <Link to="/portal/rates?tab=search" className="pv3-btn pv3-btn--ghost"><Tag size={15} /> Get rates</Link>
-          <Link to="/portal/bookings/new" className="pv3-btn pv3-btn--primary"><Plus size={15} /> New booking</Link>
+          {can('rates') && <Link to="/portal/rates?tab=search" className="pv3-btn pv3-btn--ghost"><Tag size={15} /> Get rates</Link>}
+          {can('bookings') && <Link to="/portal/bookings/new" className="pv3-btn pv3-btn--primary"><Plus size={15} /> New booking</Link>}
         </div>
       </div>
 
@@ -105,7 +107,7 @@ export default function PortalHomePage() {
         <Kpi label="Arriving next 7 days" value={String(Math.round(cArr))} sub="by scheduled ETA" delay={0.08} />
         <Kpi label="Exceptions" value={String(Math.round(cExc))} sub={exc.length ? 'need a look' : 'all clear'} tone={exc.length ? 'red' : undefined} delay={0.12}
           onClick={exc.length ? () => document.getElementById('exceptions')?.scrollIntoView({ behavior: 'smooth', block: 'center' }) : undefined} />
-        <Kpi label="Open balance" value={fmtMoney(cOpen, m.currency)} sub={m.overdue > 0 ? `${fmtMoney(m.overdue, m.currency)} past due` : 'nothing past due'} tone={m.overdue > 0 ? 'amber' : undefined} delay={0.16} to="/portal/billing" />
+        {can('billing') && <Kpi label="Open balance" value={fmtMoney(cOpen, m.currency)} sub={m.overdue > 0 ? `${fmtMoney(m.overdue, m.currency)} past due` : 'nothing past due'} tone={m.overdue > 0 ? 'amber' : undefined} delay={0.16} to="/portal/billing" />}
       </div>
 
       <div className="pv3-rise" style={{ animationDelay: '.1s' }}>
@@ -170,20 +172,20 @@ export default function PortalHomePage() {
         </div>
       </section>
 
-      <Link to="/portal/analytics" className="pv3-card pv3-home-an pv3-rise pv3-hover" style={{ animationDelay: '.25s' }}>
+      {can('analytics') && <Link to="/portal/analytics" className="pv3-card pv3-home-an pv3-rise pv3-hover" style={{ animationDelay: '.25s' }}>
         <div>
           <b>Analytics</b>
-          <span>Cost per kg, lanes, supplier scorecard and emissions</span>
+          <span>{can('billing') ? 'Cost per kg, lanes, supplier scorecard and emissions' : 'Lanes, supplier scorecard and emissions'}</span>
         </div>
         {analytics && (
           <div className="pv3-home-an__nums">
             <span><i>Shipments, 12 months</i>{fmtNum(analytics.totals.shipments)}</span>
-            <span><i>Freight spend</i>{fmtMoney(analytics.totals.spend, m.currency, true)}</span>
+            {can('billing') && <span><i>Freight spend</i>{fmtMoney(analytics.totals.spend, m.currency, true)}</span>}
             <span><i>Containers</i>{fmtNum(analytics.totals.containers)}</span>
           </div>
         )}
         <span className="pv3-link">Open analytics <ArrowRight size={14} /></span>
-      </Link>
+      </Link>}
     </div>
   )
 }

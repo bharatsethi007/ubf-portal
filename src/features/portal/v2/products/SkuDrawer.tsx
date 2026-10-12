@@ -7,7 +7,7 @@ import { money2 } from '../analytics/analyticsApi'
 const WHERE = { booked: { l: 'Booked', t: 'grey' }, transit: { l: 'In transit', t: 'blue' }, arrived: { l: 'Arrived', t: 'green' } } as const
 
 /** "Where is my SKU": every PO line for it and the shipments carrying it. */
-export default function SkuDrawer({ row, sc, onClose }: { row: SkuRow; sc: SupplyChain; onClose: () => void }) {
+export default function SkuDrawer({ row, sc, money = true, onClose }: { row: SkuRow; sc: SupplyChain; money?: boolean; onClose: () => void }) {
   const ship = new Map(sc.shipments.map((s) => [s.job_unique, s]))
   const lines = sc.lines.filter((l) => l.sku === row.sku)
   const p = row.product
@@ -32,7 +32,7 @@ export default function SkuDrawer({ row, sc, onClose }: { row: SkuRow; sc: Suppl
         <dl className="pv3-peek__facts">
           <div><dt>Next arrival</dt><dd>{row.nextEta ? fmtDay(row.nextEta) : '—'}</dd></div>
           <div><dt>Lead time</dt><dd>{row.leadDays != null ? `${row.leadDays} days order to arrival` : 'After first arrival'}</dd></div>
-          <div><dt>Freight per unit</dt><dd>{row.freightPerUnit != null ? money2(row.freightPerUnit) : '—'}</dd></div>
+          {money && <div><dt>Freight per unit</dt><dd>{row.freightPerUnit != null ? money2(row.freightPerUnit) : '—'}</dd></div>}
           <div><dt>Unit value</dt><dd>{p?.unit_value != null ? `${p.currency ?? ''} ${p.unit_value}` : '—'}</dd></div>
         </dl>
 

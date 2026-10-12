@@ -4,6 +4,7 @@ import { NavLink, useNavigate } from 'react-router-dom'
 import { BookUser, Bell, UserRound, ChevronDown, LogOut, MessageCircle, Search, Users } from 'lucide-react'
 import NotificationBell from './notifications/NotificationBell'
 import { portalSignOut } from '../auth/portalSignOut'
+import { usePortalAccess } from './access'
 
 const TABS = [
   { to: '/portal', label: 'Home', end: true },
@@ -27,6 +28,7 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
   const [menuOpen, setMenuOpen] = useState(false)
   const menuRef = useRef<HTMLDivElement>(null)
   const { unread, toggle: toggleMessages } = useMessageDock()
+  const { canPath } = usePortalAccess()
 
   useEffect(() => {
     if (!menuOpen) return
@@ -50,7 +52,7 @@ export default function PortalTopBar({ displayName, userEmail, initials, onSearc
       </NavLink>
 
       <nav className="pv2-top__nav" aria-label="Customer portal">
-        {TABS.map((t) => (
+        {TABS.filter((t) => canPath(t.to)).map((t) => (
           <NavLink key={t.to} to={t.to} end={t.end}
             className={({ isActive }) => `pv2-top__tab${isActive ? ' pv2-top__tab--on' : ''}`}>
             {t.label}

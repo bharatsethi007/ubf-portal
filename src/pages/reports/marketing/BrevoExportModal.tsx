@@ -1,4 +1,4 @@
-﻿import { useEffect, useState } from 'react'
+import { useEffect, useState } from 'react'
 import { toast } from 'sonner'
 import { listBrevoLists, syncToBrevo, type BrevoList, type MktContact } from './marketingApi'
 

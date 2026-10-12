@@ -16,14 +16,15 @@ function Days({ actual, sched }: { actual: number | null; sched?: number | null 
   return <span className="pv3-cell-sub">—</span>
 }
 
-export function LanesTable({ lanes, ports }: { lanes: ALane[]; ports: PortMap }) {
+/** money=false hides freight spend columns (no Finance & invoices access). */
+export function LanesTable({ lanes, ports, money = true }: { lanes: ALane[]; ports: PortMap; money?: boolean }) {
   const max = Math.max(1, ...lanes.map((l) => l.n))
   return (
     <section className="pv3-card pv3-table-card pv3-rise">
-      <header className="pv3-card__head"><h2>Lanes</h2><span className="pv3-muted">Volume, cost and reliability by route</span></header>
+      <header className="pv3-card__head"><h2>Lanes</h2><span className="pv3-muted">{money ? 'Volume, cost and reliability by route' : 'Volume and reliability by route'}</span></header>
       <div className="pv3-table-wrap">
         <table className="pv3-table pv3-an__table">
-          <thead><tr><th>Lane</th><th>Shipments</th><th>Weight</th><th>Freight</th><th>Per kg</th><th>Transit</th><th>On time</th><th>CO₂e</th></tr></thead>
+          <thead><tr><th>Lane</th><th>Shipments</th><th>Weight</th>{money && <><th>Freight</th><th>Per kg</th></>}<th>Transit</th><th>On time</th><th>CO₂e</th></tr></thead>
           <tbody>
             {lanes.map((l) => (
               <tr key={`${l.origin}-${l.destination}-${l.mode}`} className="pv3-an__static">
@@ -40,14 +41,14 @@ export function LanesTable({ lanes, ports }: { lanes: ALane[]; ports: PortMap })
                   <div className="pv3-an__nbar"><span>{l.n}</span><i><b style={{ width: `${(l.n / max) * 100}%` }} /></i></div>
                 </td>
                 <td>{fmtNum(l.kg / 1000, true)} t</td>
-                <td>{fmtMoney(l.spend, 'NZD', true)}</td>
-                <td>{l.cost_per_kg != null ? money2(l.cost_per_kg) : '—'}</td>
+                {money && <td>{fmtMoney(l.spend, 'NZD', true)}</td>}
+                {money && <td>{l.cost_per_kg != null ? money2(l.cost_per_kg) : '—'}</td>}
                 <td><Days actual={l.transit_days} sched={l.sched_days} /></td>
                 <td><Pct v={l.on_time_pct} /></td>
                 <td>{fmtNum(l.co2_kg / 1000, true)} t</td>
               </tr>
             ))}
-            {!lanes.length && <tr><td colSpan={8} className="pv3-empty-cell">No shipments in this period.</td></tr>}
+            {!lanes.length && <tr><td colSpan={money ? 8 : 6} className="pv3-empty-cell">No shipments in this period.</td></tr>}
           </tbody>
         </table>
       </div>
@@ -55,13 +56,13 @@ export function LanesTable({ lanes, ports }: { lanes: ALane[]; ports: PortMap })
   )
 }
 
-export function PartiesTable({ parties, ports }: { parties: AParty[]; ports: PortMap }) {
+export function PartiesTable({ parties, ports, money = true }: { parties: AParty[]; ports: PortMap; money?: boolean }) {
   return (
     <section className="pv3-card pv3-table-card pv3-rise">
       <header className="pv3-card__head"><h2>Suppliers & customers</h2><span className="pv3-muted">Suppliers on imports, customers on exports</span></header>
       <div className="pv3-table-wrap">
         <table className="pv3-table pv3-an__table">
-          <thead><tr><th>Name</th><th>Type</th><th>Ships from</th><th>Shipments</th><th>Weight</th><th>Freight</th><th>Transit</th><th>On time</th><th>Last shipped</th></tr></thead>
+          <thead><tr><th>Name</th><th>Type</th><th>Ships from</th><th>Shipments</th><th>Weight</th>{money && <th>Freight</th>}<th>Transit</th><th>On time</th><th>Last shipped</th></tr></thead>
           <tbody>
             {parties.map((p) => (
               <tr key={`${p.party}-${p.role ?? ''}`} className="pv3-an__static">
@@ -70,13 +71,13 @@ export function PartiesTable({ parties, ports }: { parties: AParty[]; ports: Por
                 <td className="pv3-ellipsis">{(p.origins ?? []).filter(Boolean).slice(0, 2).map((o) => placeName(o, ports)).join(', ') || '—'}</td>
                 <td>{p.n}</td>
                 <td>{fmtNum(p.kg / 1000, true)} t</td>
-                <td>{fmtMoney(p.spend, 'NZD', true)}</td>
+                {money && <td>{fmtMoney(p.spend, 'NZD', true)}</td>}
                 <td><Days actual={p.transit_days} /></td>
                 <td><Pct v={p.on_time_pct} /></td>
                 <td>{fmtDay(p.last)}</td>
               </tr>
             ))}
-            {!parties.length && <tr><td colSpan={9} className="pv3-empty-cell">No shipments in this period.</td></tr>}
+            {!parties.length && <tr><td colSpan={money ? 9 : 8} className="pv3-empty-cell">No shipments in this period.</td></tr>}
           </tbody>
         </table>
       </div>

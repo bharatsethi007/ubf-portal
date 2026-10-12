@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { ArrowRight, FileText, MessageSquare, Plane, Receipt, Ship, X } from 'lucide-react'
 import { useMessageDock } from './messages/MessagesDock'
+import { usePortalAccess } from './access'
 import type { PortMap } from '../../../hooks/usePorts'
 import type { HomeShipment } from './usePortalHome'
 import { detailPath, fmtDay, fmtNum, isSea, placeName, shipmentNo, shortCode, stageLabel, stageTone, titleCase } from './homeModel'
@@ -11,6 +12,7 @@ type Props = { s: HomeShipment; ports: PortMap; onClose?: () => void; compact?: 
 
 export default function ShipmentPeek({ s, ports, onClose, compact }: Props) {
   const { openMessages } = useMessageDock()
+  const { can } = usePortalAccess()
   const no = shipmentNo(s)
   const goods = titleCase(s.goods_desc)
   const party = titleCase(s.direction === 'import' ? s.shipper_name : s.consignee_name)
@@ -79,7 +81,7 @@ export default function ShipmentPeek({ s, ports, onClose, compact }: Props) {
       <div className="pv3-peek__actions">
         <Link to={detailPath(s)} className="pv3-btn pv3-btn--primary">View shipment <ArrowRight size={14} /></Link>
         <Link to={detailPath(s, 'Documents')} className="pv3-btn pv3-btn--ghost"><FileText size={14} /> Documents</Link>
-        <Link to={detailPath(s, 'Invoices')} className="pv3-btn pv3-btn--ghost"><Receipt size={14} /> Invoices</Link>
+        {can('billing') && <Link to={detailPath(s, 'Invoices')} className="pv3-btn pv3-btn--ghost"><Receipt size={14} /> Invoices</Link>}
         <button type="button" onClick={() => openMessages({ job: s.job_unique })} className="pv3-btn pv3-btn--ghost"><MessageSquare size={14} /> Message UBF</button>
       </div>
     </article>

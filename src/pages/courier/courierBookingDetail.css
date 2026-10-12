@@ -138,7 +138,7 @@
   gap: 16px 32px;
 }
 
-/* Carrier logo â€” match list size (72x40) */
+/* Carrier logo — match list size (72x40) */
 .cbd-carrier-logo { display: inline-flex; align-items: center; justify-content: center; height: 84px; line-height: 0; overflow: hidden; }
 .cbd-carrier-logo img { height: 84px; width: auto; max-width: 160px; object-fit: contain; display: block; }
 

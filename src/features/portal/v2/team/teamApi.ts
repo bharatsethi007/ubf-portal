@@ -5,8 +5,10 @@ export type Member = {
   user_id: string; email: string; name: string | null; phone?: string | null; role: Role; status: 'active' | 'pending' | 'revoked'
   last_login_at: string | null; activated_at: string | null; created_at: string | null; is_me: boolean
   invited_by: string | null; invite_expires_at: string | null
+  /** Module keys a member can use. Admins have everything regardless. */
+  modules: string[]
 }
-export type Team = { my_role: Role | null; members: Member[] }
+export type Team = { my_role: Role | null; my_modules?: string[] | null; members: Member[] }
 
 export async function fetchTeam(): Promise<Team> {
   const { data, error } = await supabase.rpc('portal_team_list')
@@ -27,7 +29,8 @@ async function call(body: Record<string, unknown>): Promise<Payload> {
   return p ?? { ok: true }
 }
 
-export const invite = (email: string, name: string, role: Role) => call({ action: 'invite', email, name, role })
+export const invite = (email: string, name: string, role: Role, modules: string[]) => call({ action: 'invite', email, name, role, modules })
+export const setModules = (userId: string, modules: string[]) => call({ action: 'set_modules', user_id: userId, modules })
 export const resend = (userId: string) => call({ action: 'resend', user_id: userId })
 export const setRole = (userId: string, role: Role) => call({ action: 'set_role', user_id: userId, role })
 export const remove = (userId: string) => call({ action: 'remove', user_id: userId })

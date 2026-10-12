@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { toast } from 'sonner'
 import { Plus, Save, Trash2 } from 'lucide-react'
 import { usePerm } from '../../access/PermissionsProvider'

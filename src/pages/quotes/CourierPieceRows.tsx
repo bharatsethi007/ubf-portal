@@ -1,4 +1,4 @@
-﻿import { Copy, Plus, X } from 'lucide-react'
+import { Copy, Plus, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { CourierPiece } from './CourierCargoPanel'
 import './courierPieceCards.css'

@@ -1,12 +1,20 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { ArrowLeft, Loader2, Pencil, RotateCcw, Send, ShieldCheck, UserMinus, UserPlus } from 'lucide-react'
+import { ArrowLeft, KeyRound, Loader2, Pencil, RotateCcw, Send, ShieldCheck, UserMinus, UserPlus } from 'lucide-react'
 import InviteForm from './InviteForm'
 import PersonEdit from './PersonEdit'
+import AccessEdit from './AccessEdit'
+import { MODULES } from '../access'
 import { fetchTeam, initials, lastSeen, remove, resend, restore, setRole, type Member, type Team } from './teamApi'
 import './team.css'
 
 /** Customer team: who has portal access. Admins invite, change roles and remove; members can see the list. */
+function accessText(m: Member): string {
+  if (m.role === 'admin') return 'Full access'
+  const on = MODULES.filter((x) => (m.modules ?? []).includes(x.key)).map((x) => x.label)
+  return on.length ? `Shipments, ${on.join(', ')}` : 'Shipments only'
+}
+
 export default function TeamPage() {
   const [team, setTeam] = useState<Team | null>(null)
   const [err, setErr] = useState('')
@@ -16,6 +24,7 @@ export default function TeamPage() {
   const [confirm, setConfirm] = useState<string | null>(null)
   const [params, setParams] = useSearchParams()
   const [editing, setEditing] = useState<string | null>(null)
+  const [granting, setGranting] = useState<string | null>(null)
 
   const load = useCallback(async () => {
     try { setTeam(await fetchTeam()); setErr('') } catch (e) { setErr(e instanceof Error ? e.message : 'Could not load') }
@@ -49,6 +58,7 @@ export default function TeamPage() {
         <div className="pv3-team__who">
           <b>{who}{m.is_me && <em> (you)</em>}</b>
           <span>{m.name ? m.email : ''}{m.name ? ' · ' : ''}{m.phone ? `${m.phone} · ` : ''}{lastSeen(m)}{m.invited_by ? ` · added by ${m.invited_by}` : ''}</span>
+          {m.status !== 'revoked' && <span className="pv3-team__access">{accessText(m)}</span>}
         </div>
         {m.status === 'pending' && <span className="pv3-team__pill pv3-team__pill--amber">Invited</span>}
         {m.role === 'admin' && m.status !== 'revoked' && <span className="pv3-team__pill"><ShieldCheck size={12} /> Admin</span>}
@@ -74,7 +84,8 @@ export default function TeamPage() {
                   <option value="member">Member</option>
                   <option value="admin">Admin</option>
                 </select>
-                <button type="button" className="pv3-iconbtn" aria-label={`Edit ${who}`} title="Edit name and phone" onClick={() => { setEditing(m.user_id); setNote(null) }}><Pencil size={15} /></button>
+                {m.role === 'member' && <button type="button" className="pv3-iconbtn" aria-label={`Access for ${who}`} title="Choose modules" onClick={() => { setGranting(m.user_id); setEditing(null); setNote(null) }}><KeyRound size={15} /></button>}
+                <button type="button" className="pv3-iconbtn" aria-label={`Edit ${who}`} title="Edit name and phone" onClick={() => { setEditing(m.user_id); setGranting(null); setNote(null) }}><Pencil size={15} /></button>
                 <button type="button" className="pv3-iconbtn" aria-label={`Remove ${who}`} title="Remove access" onClick={() => setConfirm(m.user_id)}><UserMinus size={16} /></button>
               </>
             )}
@@ -90,7 +101,7 @@ export default function TeamPage() {
       <div className="pv3-head pv3-rise">
         <div>
           <h1>Team</h1>
-          <p>{admin ? 'Give colleagues their own login. Everyone sees your company’s shipments, bookings and invoices.' : 'People at your company with portal access. Ask an admin to add or remove someone.'}</p>
+          <p>{admin ? 'Give colleagues their own login and choose what each person can see. Everyone sees shipments.' : 'People at your company with portal access. Ask an admin to add someone or change access.'}</p>
         </div>
         {admin && !inviting && (
           <div className="pv3-head__actions">
@@ -108,7 +119,9 @@ export default function TeamPage() {
         {!team && !err && <div className="pv3-skel-list" style={{ padding: 16 }}>{[0, 1, 2].map((i) => <span key={i} className="pv3-skel" />)}</div>}
         <ul>{active.map((m) => (editing === m.user_id
           ? <PersonEdit key={m.user_id} m={m} onCancel={() => setEditing(null)} onDone={(msg) => { setEditing(null); setNote({ ok: true, text: msg }); void load() }} />
-          : <Row key={m.user_id} m={m} />))}</ul>
+          : granting === m.user_id && admin
+            ? <AccessEdit key={m.user_id} m={m} onCancel={() => setGranting(null)} onDone={(msg) => { setGranting(null); setNote({ ok: true, text: msg }); void load() }} />
+            : <Row key={m.user_id} m={m} />))}</ul>
       </section>
 
       {removed.length > 0 && (
@@ -117,7 +130,7 @@ export default function TeamPage() {
           <ul>{removed.map((m) => <Row key={m.user_id} m={m} />)}</ul>
         </section>
       )}
-      <p className="pv3-foot">Admins can invite people, change roles and remove access. Your account always keeps at least one admin.</p>
+      <p className="pv3-foot">Admins see everything and manage the team. Members see only the modules ticked for them. Your account always keeps at least one admin.</p>
     </div>
   )
 }

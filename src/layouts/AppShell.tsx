@@ -1,4 +1,4 @@
-﻿import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
+import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronsLeft, ChevronsRight, ClipboardList,

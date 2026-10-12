@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { supabase } from '@/supabase'
 import Pagination from '@/components/Pagination'
@@ -99,7 +99,7 @@ export default function ExportAirTab() {
     setFrom(r.from); setTo(r.to); setPreset(k)
   }
 
-  // dropdown option lists â€” depend only on the date range
+  // dropdown option lists — depend only on the date range
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -116,7 +116,7 @@ export default function ExportAirTab() {
     return () => { cancelled = true }
   }, [from, to])
 
-  // report data â€” depends on all filters
+  // report data — depends on all filters
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -175,7 +175,7 @@ export default function ExportAirTab() {
         <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 10 }}>
             <Seg options={PRESETS as any} value={preset as any} onChange={(k) => pickPreset(k as Preset)} />
-            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loadingâ€¦</span>}
+            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loading…</span>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
             <Field label="From"><DateField value={from} onChange={(v) => { setFrom(v); setPreset('custom') }} /></Field>
@@ -197,7 +197,7 @@ export default function ExportAirTab() {
           { label: 'Revenue', value: cf.format(totals.rev) },
           { label: 'Gross profit', value: cf.format(totals.gp), delta: `${totals.margin.toFixed(1)}% margin`, accent: ORANGE },
           { label: 'Avg / house', value: cf.format(totals.avg), sub: `GP ${cf.format(totals.gpHouse)}` },
-          { label: 'Avg / kg', value: totals.kg ? cfKg.format(totals.rev / totals.kg) : 'â€”', sub: totals.kg ? `GP ${cfKg.format(totals.gpKg)}` : undefined },
+          { label: 'Avg / kg', value: totals.kg ? cfKg.format(totals.rev / totals.kg) : '—', sub: totals.kg ? `GP ${cfKg.format(totals.gpKg)}` : undefined },
         ]}
       />
 
@@ -254,8 +254,8 @@ export default function ExportAirTab() {
             <tbody>
               {partySlice.map((r, i) => (
                 <tr key={`${r.customer_account_id}-${r.consignee_name}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
-                  <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || 'â€”'}</Td>
-                  <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || 'â€”'}</Td>
+                  <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || '—'}</Td>
+                  <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || '—'}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
                   <Td right>{nf.format(Math.round(num(r.chargeable_kg)))}</Td><Td right strong>{cf.format(num(r.revenue))}</Td><Td right>{cf.format(num(r.gross_profit))}</Td>
                 </tr>

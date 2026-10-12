@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ResponsiveContainer, BarChart, Bar, Cell, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { supabase } from '@/supabase'
 import Pagination from '@/components/Pagination'
@@ -9,6 +9,7 @@ import {
   Card, Title, LegendDot, KpiRail, Th, Td, Seg, SearchSelect, type Opt,
 } from './reportsUi'
 import DateField from '@/components/DateField'
+import OpenInvoicesCard, { type OpenInv } from './OpenInvoicesCard'
 
 const PAGE_SIZE = 12
 
@@ -21,7 +22,6 @@ type Ar = {
   open_count: number; oldest_overdue_days: number; avg_overdue_days: number; dso_days: number | null; billed_12mo: number
   credit_limit: number | null; payment_alert: boolean | null; import_cod: boolean | null; account_terms: string | null
 }
-type OpenInv = { invoice_no: string; doctype: string; account_id: string; customer_name: string | null; doc_date: string; date_due: string; days_overdue: number; balance: number }
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
 const num = (v: any) => Number(v || 0)
@@ -63,13 +63,11 @@ function rangeFor(k: Preset): { from: string; to: string } {
 
 const AGING = [
   { key: 'not_due', name: 'Not due', color: C.green },
-  { key: 'd1_30', name: '1â€“30', color: BLUE },
-  { key: 'd31_60', name: '31â€“60', color: ORANGE },
-  { key: 'd61_90', name: '61â€“90', color: '#E8720C' },
+  { key: 'd1_30', name: '1–30', color: BLUE },
+  { key: 'd31_60', name: '31–60', color: ORANGE },
+  { key: 'd61_90', name: '61–90', color: '#E8720C' },
   { key: 'd90_plus', name: '90+', color: C.red },
 ] as const
-
-const docLabel: Record<string, string> = { FRT: 'Freight', FIN: 'Final', DIS: 'Disburse' }
 
 export default function CustomerInsightsTab() {
   const initial = rangeFor('1y')
@@ -89,7 +87,6 @@ export default function CustomerInsightsTab() {
   const [err, setErr] = useState<string | null>(null)
   const [listPage, setListPage] = useState(1)
   const [lanePage, setLanePage] = useState(1)
-  const [invPage, setInvPage] = useState(1)
 
   const { ports } = usePorts()
   const flag = (code: string, mode: string) => (
@@ -104,7 +101,7 @@ export default function CustomerInsightsTab() {
     const r = rangeFor(k); setFrom(r.from); setTo(r.to); setPreset(k)
   }
 
-  // customer list (picker + all-view ranking) â€” depends on range + mode
+  // customer list (picker + all-view ranking) — depends on range + mode
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -115,7 +112,7 @@ export default function CustomerInsightsTab() {
     return () => { cancelled = true }
   }, [from, to, p_direction, p_mode])
 
-  // trend + summary + lanes â€” depends on all filters incl. account
+  // trend + summary + lanes — depends on all filters incl. account
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -139,7 +136,7 @@ export default function CustomerInsightsTab() {
     return () => { cancelled = true }
   }, [from, to, account, p_direction, p_mode])
 
-  // AR + open invoices â€” point-in-time, depends only on account
+  // AR + open invoices — point-in-time, depends only on account
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -149,7 +146,7 @@ export default function CustomerInsightsTab() {
       ])
       if (cancelled) return
       setAr(((a.data ?? [])[0] ?? null) as Ar | null)
-      setOpenInv((oi.data ?? []) as OpenInv[]); setInvPage(1)
+      setOpenInv((oi.data ?? []) as OpenInv[])
     })()
     return () => { cancelled = true }
   }, [account])
@@ -163,7 +160,7 @@ export default function CustomerInsightsTab() {
   const pRev = num(summary?.prev_revenue), pGp = num(summary?.prev_gross_profit), pJobs = num(summary?.prev_jobs)
   const margin = rev ? (gp / rev) * 100 : 0
   const pct = (c: number, p: number) => (p ? ((c - p) / p) * 100 : null)
-  const deltaStr = (c: number, p: number) => { const x = pct(c, p); if (x === null) return undefined; return `${x >= 0 ? 'â–²' : 'â–¼'} ${Math.abs(x).toFixed(0)}% vs prev` }
+  const deltaStr = (c: number, p: number) => { const x = pct(c, p); if (x === null) return undefined; return `${x >= 0 ? '▲' : '▼'} ${Math.abs(x).toFixed(0)}% vs prev` }
 
   const overdue = ar ? num(ar.open_balance) - num(ar.not_due) : 0
 
@@ -185,7 +182,6 @@ export default function CustomerInsightsTab() {
 
   const listSlice = list.slice((listPage - 1) * PAGE_SIZE, listPage * PAGE_SIZE)
   const laneSlice = lanes.slice((lanePage - 1) * PAGE_SIZE, lanePage * PAGE_SIZE)
-  const invSlice = openInv.slice((invPage - 1) * PAGE_SIZE, invPage * PAGE_SIZE)
 
   function MoneyTip({ active, payload, label }: any) {
     if (!active || !payload?.length) return null
@@ -222,10 +218,6 @@ export default function CustomerInsightsTab() {
     border: `1px solid ${C.border}`, borderRadius: 9, padding: '7px 10px',
     fontSize: 13, color: C.ink, background: 'rgba(255,255,255,.7)', fontFamily: FONT,
   }
-  const dayPill = (d: number) => {
-    const c = d <= 0 ? C.green : d <= 30 ? BLUE : d <= 60 ? ORANGE : d <= 90 ? '#E8720C' : C.red
-    return <span style={{ color: c, fontWeight: 600 }}>{d <= 0 ? 'Current' : `${d}d`}</span>
-  }
 
   const scopeName = account ? (list.find((c) => c.customer_account_id === account)?.customer_name || account) : 'All customers'
 
@@ -240,7 +232,7 @@ export default function CustomerInsightsTab() {
               <Seg options={PRESETS as any} value={preset as any} onChange={(k) => pickPreset(k as Preset)} />
               <Seg options={MODES as any} value={modeKey} onChange={(k) => setModeKey(k as ModeKey)} />
             </div>
-            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loadingâ€¦</span>}
+            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loading…</span>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
             <Field label="From"><DateField value={from} onChange={(v) => { setFrom(v); setPreset('custom') }} /></Field>
@@ -259,13 +251,13 @@ export default function CustomerInsightsTab() {
           { label: 'Jobs', value: nf.format(jobs), delta: deltaStr(jobs, pJobs), accent: BLUE },
           { label: 'Pending', value: cf.format(num(ar?.open_balance)), sub: `${nf.format(num(ar?.open_count))} open invoices`, accent: overdue > 0 ? C.red : NAVY },
           { label: 'Overdue', value: cf.format(overdue), sub: `90+ : ${cf.format(num(ar?.d90_plus))}`, accent: C.red },
-          { label: 'Time to pay (DSO)', value: ar?.dso_days != null ? `${nf.format(num(ar?.dso_days))} days` : 'â€”', sub: `${nf.format(num(ar?.avg_overdue_days))}d avg overdue`, accent: NAVY },
+          { label: 'Time to pay (DSO)', value: ar?.dso_days != null ? `${nf.format(num(ar?.dso_days))} days` : '—', sub: `${nf.format(num(ar?.avg_overdue_days))}d avg overdue`, accent: NAVY },
         ]}
       />
 
       <Card>
         <Title right={<div style={{ display: 'flex', gap: 14 }}><LegendDot c={NAVY} t="Revenue" /><LegendDot c={ORANGE} t="Gross profit" /></div>}>
-          Revenue &amp; gross profit â€” {scopeName}
+          Revenue &amp; gross profit — {scopeName}
         </Title>
         <ResponsiveContainer width="100%" height={260}>
           <BarChart data={trendData} margin={{ top: 6, right: 6, left: -8, bottom: 0 }} barGap={4} barCategoryGap="22%">
@@ -281,8 +273,8 @@ export default function CustomerInsightsTab() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
         <Card>
-          <Title right={<span style={{ fontSize: 12, color: C.mut }}>{nf.format(num(ar?.open_count))} invoices Â· {cf.format(num(ar?.open_balance))}</span>}>
-            Invoice aging â€” {scopeName}
+          <Title right={<span style={{ fontSize: 12, color: C.mut }}>{nf.format(num(ar?.open_count))} invoices · {cf.format(num(ar?.open_balance))}</span>}>
+            Invoice aging — {scopeName}
           </Title>
           <ResponsiveContainer width="100%" height={230}>
             <BarChart data={agingData} margin={{ top: 6, right: 6, left: -8, bottom: 0 }}>
@@ -328,7 +320,7 @@ export default function CustomerInsightsTab() {
                     <Td right>{nf.format(num(r.jobs))}</Td>
                     <Td right strong>{cf.format(num(r.revenue))}</Td>
                     <Td right>{cf.format(num(r.gross_profit))}</Td>
-                    <Td right>{num(r.open_balance) > 0 ? <span style={{ color: C.red, fontWeight: 600 }}>{cf.format(num(r.open_balance))}</span> : 'â€”'}</Td>
+                    <Td right>{num(r.open_balance) > 0 ? <span style={{ color: C.red, fontWeight: 600 }}>{cf.format(num(r.open_balance))}</span> : '—'}</Td>
                   </tr>
                 ))}
                 {list.length === 0 && <tr><td colSpan={5} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>No customers in range.</td></tr>}
@@ -347,7 +339,7 @@ export default function CustomerInsightsTab() {
                   <tr key={`${r.origin}-${r.destination}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
                     <Td strong>{flag(r.origin, r.mode)}{r.origin}</Td>
                     <Td>{flag(r.destination, r.mode)}{r.destination}</Td>
-                    <Td muted>{r.direction === 'import' ? 'I' : 'E'}Â·{r.mode === 'air' ? 'Air' : 'Sea'}</Td>
+                    <Td muted>{r.direction === 'import' ? 'I' : 'E'}·{r.mode === 'air' ? 'Air' : 'Sea'}</Td>
                     <Td right>{nf.format(num(r.jobs))}</Td>
                     <Td right strong>{cf.format(num(r.revenue))}</Td>
                     <Td right>{cf.format(num(r.gross_profit))}</Td>
@@ -360,29 +352,7 @@ export default function CustomerInsightsTab() {
           </Card>
         )}
 
-        <Card pad={0}>
-          <div style={{ padding: '16px 18px 0', display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-            <span style={{ fontSize: 14, fontWeight: 600 }}>Open invoices</span>
-            <span style={{ fontSize: 12, color: C.mut }}>worst first</span>
-          </div>
-          <table style={{ width: '100%', borderCollapse: 'collapse', tableLayout: 'fixed' }}>
-            <colgroup><col style={{ width: 110 }} />{account === null ? <col /> : null}<col style={{ width: 92 }} /><col style={{ width: 72 }} /><col style={{ width: 92 }} /></colgroup>
-            <thead><tr><Th>Invoice</Th>{account === null ? <Th>Customer</Th> : null}<Th>Due</Th><Th right>Overdue</Th><Th right>Balance</Th></tr></thead>
-            <tbody>
-              {invSlice.map((r) => (
-                <tr key={r.invoice_no} style={{ borderTop: `1px solid ${C.line}` }}>
-                  <Td strong>{r.invoice_no}<span style={{ color: C.mut, fontWeight: 400 }}> Â· {docLabel[r.doctype] || r.doctype}</span></Td>
-                  {account === null ? <Td muted trunc title={r.customer_name || undefined}>{r.customer_name || r.account_id}</Td> : null}
-                  <Td muted>{r.date_due}</Td>
-                  <Td right>{dayPill(num(r.days_overdue))}</Td>
-                  <Td right strong>{cf.format(num(r.balance))}</Td>
-                </tr>
-              ))}
-              {openInv.length === 0 && <tr><td colSpan={account === null ? 5 : 4} style={{ padding: '24px 12px', textAlign: 'center', color: C.mut, fontSize: 12.5 }}>Nothing outstanding.</td></tr>}
-            </tbody>
-          </table>
-          <div style={{ padding: '10px 14px' }}><Pagination page={invPage} total={openInv.length} pageSize={PAGE_SIZE} onPageChange={setInvPage} /></div>
-        </Card>
+        <OpenInvoicesCard rows={openInv} showCustomer={account === null} />
       </div>
     </div>
   )

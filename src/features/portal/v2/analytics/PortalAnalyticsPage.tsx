@@ -7,6 +7,7 @@ import { CostPerKgChart, EmissionsChart, SpendChart, VolumeChart } from './Analy
 import { DelaysCard, LanesTable, PartiesTable } from './AnalyticsTables'
 import { delta, fetchAnalytics, insights, money2, perKg, rateDelta, type AnalyticsV2 } from './analyticsApi'
 import './analytics.css'
+import { usePortalAccess } from '../access'
 
 const RANGES = [3, 6, 12, 24] as const
 
@@ -31,6 +32,7 @@ function Kpi({ label, value, sub, d, goodDown, delay }: { label: string; value: 
 /** Customer analytics: volume, spend, cost per kg, lanes, suppliers, reliability and emissions. */
 export default function PortalAnalyticsPage() {
   const { ports } = usePorts()
+  const money = usePortalAccess().can('billing')
   const [months, setMonths] = useState<number>(12)
   const [a, setA] = useState<AnalyticsV2 | null>(null)
   const [err, setErr] = useState('')
@@ -71,8 +73,8 @@ export default function PortalAnalyticsPage() {
         <Kpi label="FCL TEUs" value={a ? fmtNum(teu) : '—'} d={a?.containers_prior ? delta(teu, a.containers_prior.teu) : null} sub={a ? `${fmtNum(a.containers.n)} containers` : ''} delay={0.05} />
         <Kpi label="LCL volume" value={t ? `${fmtNum(t.lcl_cbm ?? 0)} m³` : '—'} d={t && p ? delta(t.lcl_cbm ?? 0, p.lcl_cbm ?? 0) : null} sub={t ? `${t.lcl ?? 0} LCL shipments` : ''} delay={0.08} />
         <Kpi label="Air weight" value={t ? (airT >= 1 ? `${fmtNum(airT, true)} t` : `${fmtNum(t.air_kg ?? 0)} kg`) : '—'} d={t && p ? delta(t.air_kg ?? 0, p.air_kg ?? 0) : null} sub={t ? `${t.air} air shipments` : ''} delay={0.11} />
-        <Kpi label="Air cost per kg" value={airCpk != null ? money2(airCpk) : '—'} d={rateDelta(airCpk, airCpkPrev)} goodDown sub={vs} delay={0.14} />
-        <Kpi label="LCL cost per m³" value={lclCpm != null ? money2(lclCpm) : '—'} d={rateDelta(lclCpm, lclCpmPrev)} goodDown sub={vs} delay={0.17} />
+        {money && <Kpi label="Air cost per kg" value={airCpk != null ? money2(airCpk) : '—'} d={rateDelta(airCpk, airCpkPrev)} goodDown sub={vs} delay={0.14} />}
+        {money && <Kpi label="LCL cost per m³" value={lclCpm != null ? money2(lclCpm) : '—'} d={rateDelta(lclCpm, lclCpmPrev)} goodDown sub={vs} delay={0.17} />}
       </div>
 
       {tips.length > 0 && (
@@ -92,24 +94,24 @@ export default function PortalAnalyticsPage() {
         <>
           <div className="pv3-an__grid">
             <VolumeChart months={a.months} delay={0.14} />
-            <SpendChart months={a.months} total={a.totals.spend} delay={0.18} />
-            <CostPerKgChart months={a.months} delay={0.22} />
+            {money && <SpendChart months={a.months} total={a.totals.spend} delay={0.18} />}
+            {money && <CostPerKgChart months={a.months} delay={0.22} />}
             <EmissionsChart months={a.months} total={a.totals.co2_kg} delay={0.26} />
           </div>
-          <LanesTable lanes={a.lanes} ports={ports} />
-          <PartiesTable parties={a.parties} ports={ports} />
+          <LanesTable lanes={a.lanes} ports={ports} money={money} />
+          <PartiesTable parties={a.parties} ports={ports} money={money} />
           <div className="pv3-an__two">
             <DelaysCard delays={a.delays} ports={ports} />
             <section className="pv3-card pv3-an__cta pv3-rise">
               <Package size={22} />
               <div>
                 <b>Go down to SKU level</b>
-                <p>Upload your products and purchase orders to see where every SKU is, what's still to ship, lead times and landed cost per unit.</p>
+                <p>Upload your products and purchase orders to see where every SKU is, what's still to ship, lead times{money ? ' and landed cost per unit' : ''}.</p>
               </div>
               <Link to="/portal/products" className="pv3-btn pv3-btn--primary"><Boxes size={15} /> Products & POs</Link>
             </section>
           </div>
-          <p className="pv3-foot pv3-an__foot"><Info size={12} /> Spend is from UB Freight invoices. Transit and on-time use tracked actual dates where we have them. CO₂e is an estimate from great-circle distance and weight.</p>
+          <p className="pv3-foot pv3-an__foot"><Info size={12} /> {money ? 'Spend is from UB Freight invoices. ' : ''}Transit and on-time use tracked actual dates where we have them. CO₂e is an estimate from great-circle distance and weight.</p>
         </>
       ) : !err && (
         <div className="pv3-an__grid">{[0, 1, 2, 3].map((i) => <div key={i} className="pv3-card pv3-skel-card" />)}</div>

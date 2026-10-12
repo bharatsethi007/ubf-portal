@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { Search, Plus, Send, Undo2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
@@ -45,7 +46,8 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
   const [loading, setLoading] = useState(true)
   const [creating, setCreating] = useState(false)
   const [openId, setOpenId] = useState<string | null>(null)
-  const [tab, setTab] = useState<TabKey>('responses')
+  const [params] = useSearchParams()
+  const [tab, setTab] = useState<TabKey>(() => (TABS.find((t) => t.key === params.get('tab'))?.key ?? 'responses'))
   const [searchOpen, setSearchOpen] = useState(false)
   const [lclWm, setLclWm] = useState<number | undefined>(undefined)
   const [nzdRates, setNzdRates] = useState<Map<string, number>>(new Map())

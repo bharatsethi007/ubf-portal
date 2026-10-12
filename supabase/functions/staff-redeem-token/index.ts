@@ -1,4 +1,4 @@
-﻿// PUBLIC (verify_jwt = false). Single-use token in body authorises staff set-password.
+// PUBLIC (verify_jwt = false). Single-use token in body authorises staff set-password.
 // Body: { token: string, password: string }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { cors, json, serviceClient } from "../_shared/portalCommon.ts";

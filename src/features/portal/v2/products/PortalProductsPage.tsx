@@ -10,11 +10,13 @@ import { money2 } from '../analytics/analyticsApi'
 import '../shipments/shipments.css'
 import '../rates/rates.css'
 import './products.css'
+import { usePortalAccess } from '../access'
 
 type Tab = 'skus' | 'pos'
 
 /** SKUs and purchase orders: where every product is, what's still to ship, lead times and freight per unit. */
 export default function PortalProductsPage() {
+  const money = usePortalAccess().can('billing')
   const [params, setParams] = useSearchParams()
   const tab: Tab = params.get('tab') === 'pos' ? 'pos' : 'skus'
   const [sc, setSc] = useState<SupplyChain | null>(null)
@@ -79,7 +81,7 @@ export default function PortalProductsPage() {
         <section className="pv3-card pv3-prod__empty pv3-rise">
           <PackageSearch size={36} />
           <h2>See every SKU on the water</h2>
-          <p>Upload your purchase orders (PO number, SKU, quantity) from Excel. We match them to your shipments by PO reference, then show what's ordered, in transit and arrived, lead times per supplier and freight cost per unit.</p>
+          <p>Upload your purchase orders (PO number, SKU, quantity) from Excel. We match them to your shipments by PO reference, then show what's ordered, in transit and arrived, lead times per supplier{money ? ' and freight cost per unit' : ''}.</p>
           <button type="button" className="pv3-btn pv3-btn--primary" onClick={() => setUpload(true)}><Upload size={15} /> Upload purchase orders</button>
           <span className="pv3-muted">Tip: put your PO number in the booking reference when you book with us, and matching is automatic.</span>
         </section>
@@ -125,25 +127,25 @@ export default function PortalProductsPage() {
             {!sc ? <div className="pv3-skel-list">{[0, 1, 2, 3].map((i) => <span key={i} className="pv3-skel" />)}</div> : tab === 'skus' ? (
               <div className="pv3-table-wrap">
                 <table className="pv3-table">
-                  <thead><tr><th>SKU</th><th>Supplier</th><th>Pipeline</th><th>Not shipped</th><th>In transit</th><th>Arrived</th><th>Next arrival</th><th>Lead time</th><th>Freight / unit</th></tr></thead>
+                  <thead><tr><th>SKU</th><th>Supplier</th><th>Pipeline</th><th>Not shipped</th><th>In transit</th><th>Arrived</th><th>Next arrival</th><th>Lead time</th>{money && <th>Freight / unit</th>}</tr></thead>
                   <tbody>
-                    {skuShown.slice(0, 300).map((r) => <SkuLine key={r.sku} r={r} onOpen={() => setPicked(r.sku)} />)}
-                    {!skuShown.length && <tr><td colSpan={9} className="pv3-empty-cell">No SKUs match.</td></tr>}
+                    {skuShown.slice(0, 300).map((r) => <SkuLine key={r.sku} r={r} money={money} onOpen={() => setPicked(r.sku)} />)}
+                    {!skuShown.length && <tr><td colSpan={money ? 9 : 8} className="pv3-empty-cell">No SKUs match.</td></tr>}
                   </tbody>
                 </table>
               </div>
             ) : <PoList pos={poShown} sc={sc} onChanged={() => void load()} />}
           </section>
-          <p className="pv3-foot"><Boxes size={12} /> Freight per unit shares each shipment's UB Freight invoices across the PO lines on it, by value. Lead time runs from PO date to arrival.</p>
+          <p className="pv3-foot"><Boxes size={12} /> {money ? 'Freight per unit shares each shipment\'s UB Freight invoices across the PO lines on it, by value. ' : ''}Lead time runs from PO date to arrival.</p>
         </>
       )}
 
-      {row && sc && <SkuDrawer row={row} sc={sc} onClose={() => setPicked(null)} />}
+      {row && sc && <SkuDrawer row={row} sc={sc} money={money} onClose={() => setPicked(null)} />}
     </div>
   )
 }
 
-function SkuLine({ r, onOpen }: { r: SkuRow; onOpen: () => void }) {
+function SkuLine({ r, money, onOpen }: { r: SkuRow; money: boolean; onOpen: () => void }) {
   const total = r.open + r.booked + r.transit + r.arrived
   const seg = (v: number) => `${total ? (v / total) * 100 : 0}%`
   return (
@@ -163,7 +165,7 @@ function SkuLine({ r, onOpen }: { r: SkuRow; onOpen: () => void }) {
       <td>{r.arrived ? fmtNum(r.arrived) : '—'}</td>
       <td>{r.nextEta ? fmtDay(r.nextEta) : '—'}</td>
       <td>{r.leadDays != null ? `${r.leadDays} d` : '—'}</td>
-      <td>{r.freightPerUnit != null ? money2(r.freightPerUnit) : '—'}</td>
+      {money && <td>{r.freightPerUnit != null ? money2(r.freightPerUnit) : '—'}</td>}
     </tr>
   )
 }

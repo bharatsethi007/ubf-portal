@@ -1,4 +1,4 @@
-﻿import { supabase } from '../../supabase'
+import { supabase } from '../../supabase'
 
 export type AppModule = { key: string; label: string; sort_order: number }
 export type Role = {

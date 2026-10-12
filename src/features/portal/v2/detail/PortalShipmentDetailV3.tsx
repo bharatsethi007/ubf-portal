@@ -19,6 +19,7 @@ import { toBillInvoice, type BillInvoice } from '../billing/billingApi'
 import { usePortalTrack } from './usePortalTrack'
 import { useMessageDock } from '../messages/MessagesDock'
 import ContainerDatesCard from '../actions/ContainerDatesCard'
+import { usePortalAccess } from '../access'
 
 const TABS = ['Overview', 'Cargo & containers', 'Documents', 'Invoices', 'Tasks', 'Additional services'] as const
 type Tab = (typeof TABS)[number]
@@ -59,9 +60,11 @@ export default function PortalShipmentDetailV3() {
   const [copied, setCopied] = useState(false)
   const [openInv, setOpenInv] = useState<BillInvoice | null>(null)
   const { openMessages } = useMessageDock()
+  const { can } = usePortalAccess()
+  const tabs = TABS.filter((x) => x !== 'Invoices' || can('billing'))
 
   const raw = params.get('tab') ?? 'Overview'
-  const tab: Tab = (TABS as readonly string[]).includes(raw) ? (raw as Tab) : LEGACY[raw] ?? 'Overview'
+  const tab: Tab = (tabs as readonly string[]).includes(raw) ? (raw as Tab) : LEGACY[raw] ?? 'Overview'
   const setTab = (t: Tab) => setParams((p) => { const n = new URLSearchParams(p); n.set('tab', t); return n }, { replace: true })
 
   const padding = useMemo(() => (desktop
@@ -186,7 +189,7 @@ export default function PortalShipmentDetailV3() {
       {showCsat && <ShipmentCsatWidget bookingId={data.booking!.id} />}
 
       <div className="pv3-tabs" role="tablist" aria-label="Shipment sections">
-        {TABS.map((x) => (
+        {tabs.map((x) => (
           <button key={x} type="button" role="tab" aria-selected={tab === x}
             className={`pv3-tabs__btn${tab === x ? ' pv3-tabs__btn--on' : ''}`} onClick={() => setTab(x)}>
             {x}
@@ -231,7 +234,7 @@ export default function PortalShipmentDetailV3() {
         )}
         {tab === 'Cargo & containers' && <div className="pv3-card pv3-tabcard"><CargoContainersTab shipment={s} containers={data.containers} /></div>}
         {tab === 'Documents' && <div className="pv3-card pv3-tabcard"><DocumentsTab bookingId={data.booking?.id ?? null} /></div>}
-        {tab === 'Invoices' && <div className="pv3-card pv3-tabcard"><InvoicesTab invoices={data.invoices}
+        {tab === 'Invoices' && can('billing') && <div className="pv3-card pv3-tabcard"><InvoicesTab invoices={data.invoices}
           onOpen={(i) => setOpenInv(toBillInvoice(i, { shipment_no: shipmentNo(s), customer_ref: s.customer_ref, origin: s.origin, destination: s.destination }))} /></div>}
         {tab === 'Tasks' && data.booking?.id && <ContainerDatesCard bookingId={data.booking.id} docsTo={detailPath(s, 'Documents')} />}
         {tab === 'Tasks' && (data.tasks.length > 0 || !data.booking?.id) && <div className="pv3-card pv3-tabcard"><TaskTab tasks={data.tasks} /></div>}

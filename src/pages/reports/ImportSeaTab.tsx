@@ -1,4 +1,4 @@
-﻿import { useEffect, useMemo, useState, type CSSProperties } from 'react'
+import { useEffect, useMemo, useState, type CSSProperties } from 'react'
 import { ResponsiveContainer, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts'
 import { supabase } from '@/supabase'
 import Pagination from '@/components/Pagination'
@@ -76,7 +76,7 @@ export default function ImportSeaTab() {
 
   // FCL is measured in TEU, LCL in CBM. Only the active metric is shown.
   const metric: 'teu' | 'cbm' = load === 'LCL' ? 'cbm' : 'teu'
-  const metricLabel = metric === 'teu' ? 'TEU' : 'CBM (mÂ³)'
+  const metricLabel = metric === 'teu' ? 'TEU' : 'CBM (m³)'
   const metricCol = metric === 'teu' ? 'TEU' : 'CBM'
   const metricVal = (r: { teu: number; cbm: number }) => (metric === 'teu' ? num(r.teu) : num(r.cbm))
   const p_load_type = load
@@ -86,7 +86,7 @@ export default function ImportSeaTab() {
     setFrom(r.from); setTo(r.to); setPreset(k)
   }
 
-  // dropdown option lists â€” depend on date range + load type
+  // dropdown option lists — depend on date range + load type
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -103,7 +103,7 @@ export default function ImportSeaTab() {
     return () => { cancelled = true }
   }, [from, to, p_load_type])
 
-  // report data â€” depends on all filters
+  // report data — depends on all filters
   useEffect(() => {
     let cancelled = false
     ;(async () => {
@@ -162,7 +162,7 @@ export default function ImportSeaTab() {
             <span style={{ marginLeft: 'auto', fontWeight: 600 }}>
               {p.dataKey === 'revenue'
                 ? cf.format(num(p.value))
-                : nf.format(num(p.value)) + (metric === 'teu' ? ' TEU' : ' mÂ³')}
+                : nf.format(num(p.value)) + (metric === 'teu' ? ' TEU' : ' m³')}
             </span>
           </div>
         ))}
@@ -193,7 +193,7 @@ export default function ImportSeaTab() {
               <Seg options={PRESETS as any} value={preset as any} onChange={(k) => pickPreset(k as Preset)} />
               <Seg options={LOADS as any} value={load} onChange={(k) => setLoad(k as Load)} />
             </div>
-            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loadingâ€¦</span>}
+            {loading && <span style={{ fontSize: 12, color: C.mut }}>Loading…</span>}
           </div>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, alignItems: 'flex-end' }}>
             <Field label="From"><DateField value={from} onChange={(v) => { setFrom(v); setPreset('custom') }} /></Field>
@@ -272,8 +272,8 @@ export default function ImportSeaTab() {
             <tbody>
               {partySlice.map((r, i) => (
                 <tr key={`${r.customer_account_id}-${r.consignee_name}-${i}`} style={{ borderTop: `1px solid ${C.line}` }}>
-                  <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || 'â€”'}</Td>
-                  <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || 'â€”'}</Td>
+                  <Td strong trunc title={r.customer_name || undefined}>{r.customer_name || '—'}</Td>
+                  <Td muted trunc title={r.consignee_name || undefined}>{r.consignee_name || '—'}</Td>
                   <Td right>{nf.format(num(r.masters))}</Td><Td right>{nf.format(num(r.houses))}</Td>
                   <Td right strong>{nf.format(Math.round(metricVal(r)))}</Td>
                   <Td right strong>{cf.format(num(r.revenue))}</Td><Td right>{cf.format(num(r.gross_profit))}</Td>

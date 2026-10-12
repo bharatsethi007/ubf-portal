@@ -42,7 +42,29 @@
 .pv3-team__edit { display: block; background: #FAFBFD; }
 .pv3-team__edit form { display: flex; flex-direction: column; gap: 12px; }
 .pv3-team__edit-title { font-size: 14px; color: var(--ink); }
-.pv3-team__invite .pv3-team__fields { grid-template-columns: 1.4fr 1fr 1fr 1fr; }
+.pv3-team__invite .pv3-team__fields { grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, 1.2fr); }
 @media (max-width: 900px) { .pv3-team__invite .pv3-team__fields { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 560px) { .pv3-team__invite .pv3-team__fields { grid-template-columns: minmax(0, 1fr); } }
 .pv3-team__locked { display: flex; align-items: center; gap: 6px; height: 38px; padding: 0 10px; box-sizing: border-box; border: 1px dashed var(--line); border-radius: 8px; color: var(--muted); font-size: 14px; overflow: hidden; white-space: nowrap; text-overflow: ellipsis; font-weight: 400 !important; }
+
+/* Module access */
+.pv3-team__access { font-size: 12px; color: var(--ink-2); }
+.pv3-team__editbody { display: flex; flex-direction: column; gap: 12px; }
+.pv3-team__mods { border: 0; margin: 0; padding: 0; min-width: 0; }
+.pv3-team__mods legend { font-size: 12px; font-weight: 600; color: var(--ink-2); margin-bottom: 6px; padding: 0; }
+.pv3-team__mods legend i { font-style: normal; font-weight: 400; color: var(--muted); }
+.pv3-team__modgrid { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px; }
+.pv3-team__mod { display: flex; align-items: flex-start; gap: 8px; padding: 9px 10px; border: 1px solid var(--line); border-radius: 8px; background: #FFFFFF; cursor: pointer; }
+.pv3-team__mod--on { border-color: var(--blue); background: var(--blue-soft); }
+.pv3-team__mod input { position: absolute; opacity: 0; pointer-events: none; }
+.pv3-team__mod:focus-within { outline: 2px solid var(--blue-soft); }
+.pv3-team__modbox { flex: none; width: 16px; height: 16px; margin-top: 1px; border: 1px solid var(--line); border-radius: 4px; display: inline-flex; align-items: center; justify-content: center; background: #FFFFFF; color: var(--blue); }
+.pv3-team__mod--on .pv3-team__modbox { border-color: var(--blue); }
+.pv3-team__modtext { display: flex; flex-direction: column; gap: 1px; }
+.pv3-team__modtext b { font-size: 13px; font-weight: 500; color: var(--ink); }
+.pv3-team__modtext small { font-size: 11.5px; color: var(--muted); }
+.pv3-team__mods:disabled .pv3-team__mod { opacity: .6; cursor: default; }
+
+/* Fields never push past the card */
+.pv3-team__fields label { min-width: 0; }
+.pv3-team__fields input, .pv3-team__fields select { width: 100%; min-width: 0; box-sizing: border-box; }
