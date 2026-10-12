@@ -101,7 +101,7 @@ export default function QuoteCargoLineRow({ row, mode, onUpdate, onRemove, onDup
               className="cargo-table__input cargo-table__num cargo-table__input--readonly"
               readOnly
               tabIndex={-1}
-              value={fmt2(computed.grossTotal)}
+              value={fmt2(computed.enteredTotal)}
             />
           ) : (
             <input

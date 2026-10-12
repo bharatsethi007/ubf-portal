@@ -116,13 +116,20 @@ function ceilHalf(n: number): number {
   return Math.ceil(n * 2) / 2
 }
 
+// Weights are typed in KG or LB; every stored/derived weight (gross_wt,
+// chargeable, rate search, PDF) is in KG.
+const LB_TO_KG = 0.45359237
+export function toKg(value: number, unit: string | null | undefined): number {
+  return (unit || 'KG').toUpperCase() === 'LB' ? value * LB_TO_KG : value
+}
+
 // Air volumetric divisor: 1 CBM = 167 kg (IATA 6000 cm3/kg expressed per m3).
 const AIR_VOLUMETRIC_PER_CBM = 167
 
 export function computeCargoLine(
   row: QuoteCargoLine,
   mode: 'air' | 'sea',
-): { cbm: number; totalCbm: number; grossTotal: number; chargeable: number } {
+): { cbm: number; totalCbm: number; enteredTotal: number; grossTotal: number; chargeable: number } {
   const l = Number(row.length)
   const w = Number(row.width)
   const h = Number(row.height)
@@ -153,7 +160,9 @@ export function computeCargoLine(
   // fall back to a directly-typed total weight when there is no per-package
   // weight. Never read gross_wt here — it is a derived OUTPUT, and reading it
   // back would freeze the row against qty / weight edits once it has been saved.
-  const grossTotal = perPkgWeight > 0 ? perPkgWeight * qty : (Number(row.total_weight) || 0)
+  // enteredTotal stays in the typed unit (row display); grossTotal is always KG.
+  const enteredTotal = perPkgWeight > 0 ? perPkgWeight * qty : (Number(row.total_weight) || 0)
+  const grossTotal = toKg(enteredTotal, row.weight_unit)
 
   const volumetric = totalCbm * AIR_VOLUMETRIC_PER_CBM
   const chargeable =
@@ -162,6 +171,7 @@ export function computeCargoLine(
   return {
     cbm: round4(cbm),
     totalCbm: round4(totalCbm),
+    enteredTotal: round2(enteredTotal),
     grossTotal: round2(grossTotal),
     chargeable: mode === 'air' ? chargeable : round2(chargeable),
   }
@@ -226,7 +236,8 @@ export async function saveQuoteCargo(
         // Derived from per-pkg × qty when a per-package weight exists; otherwise
         // honour a directly-typed total. c.* is the single source of truth so a
         // stale stored value can never override a fresh qty / weight edit.
-        total_weight: hasPerPkg ? (c.grossTotal || null) : parseNumField(line.total_weight),
+        // total_weight is in weight_unit; gross_wt below is always KG.
+        total_weight: hasPerPkg ? (c.enteredTotal || null) : parseNumField(line.total_weight),
         length: parseNumField(line.length),
         width: parseNumField(line.width),
         height: parseNumField(line.height),

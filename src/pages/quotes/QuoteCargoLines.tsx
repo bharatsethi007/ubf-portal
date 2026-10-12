@@ -100,7 +100,7 @@ export default function QuoteCargoLines({ lines, mode, onChange }: Props) {
             <td>{fmtTotal(totalQty, 0)}</td>
             <td />
             <td />
-            <td>{fmtTotal(totalWeight, 2)}</td>
+            <td>{fmtTotal(totalWeight, 2)} kg</td>
             <td colSpan={4} />
             <td />
             <td>{fmtTotal(totalCbm, 4)}</td>
