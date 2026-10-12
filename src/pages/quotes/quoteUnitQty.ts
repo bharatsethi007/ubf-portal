@@ -2,13 +2,16 @@ import { computeCargoLine, type QuoteCargoLine } from './quoteCargoApi'
 import type { QuoteContainer } from './quoteContainersApi'
 
 /** Quantities from the quote request, used to fill Qty by unit. */
-export type UnitQty = { kg: number; cbm: number; wm: number; c20: number; c40: number; c40hc: number; total: number; teu: number }
+export type UnitQty = { kg: number; cbm: number; wm: number; c20: number; c40: number; c40hc: number; total: number; teu: number; pcs: number; pallets: number }
 
 const r3 = (n: number) => Math.round(n * 1000) / 1000
 
 export function buildUnitQty(cargo: QuoteCargoLine[], containers: QuoteContainer[], isAir: boolean): UnitQty {
-  let kg = 0, gross = 0, cbm = 0
+  let kg = 0, gross = 0, cbm = 0, pcs = 0, pallets = 0
   for (const cl of cargo) {
+    const n = Number(cl.quantity) || Number(cl.packages) || 0
+    pcs += n
+    if (/pallet|skid/i.test(cl.package_type || '')) pallets += n
     const a = computeCargoLine(cl, 'air')
     const s = computeCargoLine(cl, 'sea')
     kg += isAir ? (cl.override_chargeable ? Number(cl.chargeable_wt) || 0 : a.chargeable) : a.grossTotal
@@ -19,11 +22,11 @@ export function buildUnitQty(cargo: QuoteCargoLine[], containers: QuoteContainer
   const c20 = n((s) => s.startsWith('20')), c40 = n((s) => s === '40'), c40hc = n((s) => s === '40HC')
   return {
     kg: Math.round(kg * 100) / 100, cbm: r3(cbm), wm: r3(Math.max(cbm, gross / 1000)),
-    c20, c40, c40hc, total: c20 + c40 + c40hc, teu: c20 + 2 * (c40 + c40hc),
+    c20, c40, c40hc, total: c20 + c40 + c40hc, teu: c20 + 2 * (c40 + c40hc), pcs, pallets,
   }
 }
 
-const ONE = new Set(['perbl', 'pershipment', 'perawb', 'perclearance', 'flat', 'perhbl', 'permbl'])
+const ONE = new Set(['perbl', 'pershipment', 'perawb', 'perclearance', 'flat', 'perhbl', 'permbl', 'pertrip'])
 
 /** Qty for a unit (code or legacy label, e.g. 'per_wm' / 'Per W/M'). Null when the quote has no figure for it. */
 export function qtyForUnit(unit: string, q: UnitQty | undefined): string | null {
@@ -33,7 +36,7 @@ export function qtyForUnit(unit: string, q: UnitQty | undefined): string | null 
   if (!q) return null
   const v: Record<string, number> = {
     perkg: q.kg, percbm: q.cbm, perwm: q.wm, per20: q.c20, per40: q.c40, per40hc: q.c40hc,
-    percontainer: q.total, perteu: q.teu,
+    percontainer: q.total, perteu: q.teu, peritem: q.pcs, perpallet: q.pallets,
   }
   const x = v[k]
   return x && x > 0 ? String(x) : null

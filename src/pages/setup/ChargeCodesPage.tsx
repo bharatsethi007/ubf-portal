@@ -14,6 +14,7 @@ import {
   type ChargeGroup,
 } from './chargeCodesApi'
 import { useChargeUnits } from '../../hooks/useQuoteRefData'
+import ChargeUnitsSection from './ChargeUnitsSection'
 
 const ACCENT = '#3B5BFE'
 
@@ -29,7 +30,7 @@ export default function ChargeCodesPage() {
   const [loading, setLoading] = useState(true)
   const [newGroup, setNewGroup] = useState({ code: '', label: '' })
   const [newCode, setNewCode] = useState({ code: '', description: '', charge_group: 'freight', default_unit: '' })
-  const { items: units } = useChargeUnits()
+  const { items: units, refresh: refreshUnits } = useChargeUnits()
   const modeHint = (modes: string[]) => (modes.length === 1 ? ` (${modes[0]} only)` : '')
   const unitSelect = (value: string | null, onChange: (v: string | null) => void) => (
     <select className="input input--sm" value={value ?? ''} onChange={(e) => onChange(e.target.value || null)}>
@@ -158,6 +159,8 @@ export default function ChargeCodesPage() {
                 </tbody>
               </table>
             </div>
+
+            <ChargeUnitsSection onChanged={() => void refreshUnits()} />
 
             <h2 style={{ margin: '20px 0 8px', fontSize: 14, fontWeight: 600, color: ACCENT }}>Charge codes</h2>
             <div className="table-wrap">
