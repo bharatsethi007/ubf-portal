@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type MouseEvent } from 'react'
-import { Pencil, Trash2, Search, Plus, Send, Undo2, Copy } from 'lucide-react'
+import { Search, Plus, Send, Undo2 } from 'lucide-react'
 import { toast } from 'sonner'
 import {
   createQuoteResponse,
@@ -10,7 +10,9 @@ import {
   withdrawQuoteApproval,
   type QuoteResponseSummary,
 } from './quoteResponsesApi'
-import { canSendToPortal, fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
+import { canSendToPortal } from './quoteResponseUi'
+import QuoteResponseCard from './QuoteResponseCard'
+import { fetchRatesForBase } from '../setup/fxRatesApi'
 import { withLiveFx } from './responseFx'
 import QuoteResponseModal from './QuoteResponseModal'
 import QuoteVendorRates from './QuoteVendorRates'
@@ -46,6 +48,7 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
   const [tab, setTab] = useState<TabKey>('responses')
   const [searchOpen, setSearchOpen] = useState(false)
   const [lclWm, setLclWm] = useState<number | undefined>(undefined)
+  const [nzdRates, setNzdRates] = useState<Map<string, number>>(new Map())
 
   const reload = useCallback(async () => {
     setLoading(true)
@@ -62,6 +65,15 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
   useEffect(() => {
     reload()
   }, [reload])
+
+  // NZD per 1 unit of each foreign response currency, for the "≈ NZD" line on cards.
+  const needsFx = responses.some((r) => r.currency !== 'NZD')
+  useEffect(() => {
+    if (!needsFx) return
+    fetchRatesForBase('NZD')
+      .then((rows) => setNzdRates(new Map(rows.map((x) => [x.quote_currency, x.rate]))))
+      .catch(() => {})
+  }, [needsFx])
 
   useEffect(() => {
     let live = true
@@ -206,71 +218,15 @@ export default function QuoteResponsesPanel({ quoteId }: Props) {
           ) : (
             <div className="quote-responses__list">
               {responses.map((r, index) => (
-                <article
+                <QuoteResponseCard
                   key={r.id}
-                  className="quote-response-card"
-                  role="button"
-                  tabIndex={0}
-                  onClick={() => openEditor(r.id)}
-                  onKeyDown={(e) => {
-                    if (e.key === 'Enter' || e.key === ' ') openEditor(r.id)
-                  }}
-                >
-                  <div className="quote-response-card__top">
-                    <div className="quote-response-card__title-row">
-                      <h3 className="quote-response-card__title">
-                        # {index + 1} - {r.response_no ?? 'Draft'}
-                      </h3>
-                      {r.status !== 'draft' && responseStatusPill(r.status)}
-                    </div>
-                    <div className="quote-response-card__actions">
-                      <button
-                        type="button"
-                        className="quote-response-card__icon"
-                        aria-label="Edit response"
-                        onClick={(e) => { e.stopPropagation(); openEditor(r.id) }}
-                      >
-                        <Pencil size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="quote-response-card__icon"
-                        aria-label="Copy response"
-                        title="Copy response"
-                        onClick={(e) => handleCopy(e, r.id)}
-                      >
-                        <Copy size={14} />
-                      </button>
-                      <button
-                        type="button"
-                        className="quote-response-card__icon quote-response-card__icon--danger"
-                        aria-label="Delete response"
-                        onClick={(e) => handleDelete(e, r.id, r.response_no)}
-                      >
-                        <Trash2 size={14} />
-                      </button>
-                    </div>
-                  </div>
-                  <p className="quote-response-card__meta muted">
-                    {fmtDate(r.quotation_date)}
-                    {r.carrier ? ` · ${r.carrier}` : ''}
-                    {r.sent_to_portal_at ? ` · Sent to portal ${fmtDate(r.sent_to_portal_at)}` : ''}
-                    {r.decided_at ? ` · ${r.status === 'approved' ? 'Approved' : r.status === 'crosswin' ? 'Customer chose another option' : 'Rejected'} ${fmtDate(r.decided_at)}` : ''}
-                  </p>
-                  {r.decision_note && (r.status === 'approved' || r.status === 'rejected') && (
-                    <p className="quote-response-card__meta" style={{ color: r.status === 'rejected' ? '#B91C1C' : '#047857' }}>
-                      Customer: {r.decision_note}
-                    </p>
-                  )}
-                  <div className="quote-response-card__totals">
-                    <div>Quote Total NZD {fmtResponseMoney(r.total_sell)}</div>
-                    <div>Total Buy Amount {fmtResponseMoney(r.total_buy)}</div>
-                    <div className="quote-response-card__profit">
-                      Net Profit (Margin%): {fmtResponseMoney(r.net_profit)}
-                      {r.margin_pct != null ? ` (${r.margin_pct.toFixed(1)}%)` : ''}
-                    </div>
-                  </div>
-                </article>
+                  r={r}
+                  index={index}
+                  nzdRate={nzdRates.get(r.currency)}
+                  onOpen={openEditor}
+                  onCopy={handleCopy}
+                  onDelete={handleDelete}
+                />
               ))}
             </div>
           )}

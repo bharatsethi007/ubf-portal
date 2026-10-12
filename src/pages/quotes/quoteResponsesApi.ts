@@ -26,6 +26,8 @@ export type QuoteResponseSummary = {
   status: string
   quotation_date: string | null
   carrier: string | null
+  /** Response currency; all totals below are in it. */
+  currency: string
   total_sell: number | null
   total_buy: number | null
   net_profit: number | null
@@ -92,7 +94,7 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
   const { data, error } = await supabase
     .from('quote_responses')
     .select(
-      'id, response_no, status, quotation_date, carrier, total_sell, total_buy, net_profit, margin_pct, sent_to_portal_at, decided_at, decision_note',
+      'id, response_no, status, quotation_date, carrier, currency, total_sell, total_buy, net_profit, margin_pct, sent_to_portal_at, decided_at, decision_note',
     )
     .eq('quote_id', quoteId)
     .order('created_at', { ascending: true })
@@ -104,6 +106,7 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
     status: String(row.status),
     quotation_date: dateStr(row.quotation_date),
     carrier: row.carrier ?? null,
+    currency: row.currency ?? 'NZD',
     total_sell: row.total_sell == null ? null : Number(row.total_sell),
     total_buy: row.total_buy == null ? null : Number(row.total_buy),
     net_profit: row.net_profit == null ? null : Number(row.net_profit),
