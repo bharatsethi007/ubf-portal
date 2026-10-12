@@ -15,6 +15,8 @@ export type RateOption = {
   sell: number | null
   sell_min: number | null
   breaks: Record<string, number> | null
+  /** Priced by a contract rate agreed with this customer. */
+  contract?: boolean
   transit_days: number | null
   via: string | null
   frequency: string | null

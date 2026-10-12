@@ -21,6 +21,8 @@
 .pv3-rate__ico { width: 34px; height: 34px; border-radius: 10px; display: inline-flex; align-items: center; justify-content: center; background: var(--blue-soft); color: var(--blue); flex: none; }
 .pv3-rate__tags { margin-left: auto; display: flex; gap: 6px; flex-wrap: wrap; }
 .pv3-tag--green { background: var(--green-soft); color: var(--green); }
+.pv3-tag--navy { background: var(--navy); color: #FFFFFF; }
+.pv3-rate--contract { border-left: 3px solid var(--navy); }
 .pv3-rate__facts { list-style: none; margin: 0; padding: 0; display: flex; flex-wrap: wrap; gap: 6px 18px; font-size: 13px; color: var(--ink-2); }
 .pv3-rate__facts li { display: inline-flex; align-items: center; gap: 6px; }
 .pv3-rate__facts svg { color: var(--muted); }

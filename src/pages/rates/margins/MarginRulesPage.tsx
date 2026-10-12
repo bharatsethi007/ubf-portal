@@ -3,6 +3,8 @@ import { Link } from 'react-router-dom'
 import { ArrowLeft } from 'lucide-react'
 import CustomerPicker, { type CustomerPickerValue } from '@/components/bookings/CustomerPicker'
 import MarginRuleRow from './MarginRuleRow'
+import ContractRatesSection from './ContractRatesSection'
+import { isLaneRule } from './contractRatesApi'
 import { PRODUCTS, listMarginRules, listRecentSearches, type MarginRule, type Product, type RateSearch } from './marginRulesApi'
 
 const HEAD = (
@@ -35,8 +37,9 @@ export default function MarginRulesPage() {
 
   useEffect(() => { void load() }, [load])
 
-  const defaults = rules.filter((r) => r.account_id == null)
-  const overrides = rules.filter((r) => r.account_id != null)
+  const wide = rules.filter((r) => !isLaneRule(r))
+  const defaults = wide.filter((r) => r.account_id == null)
+  const overrides = wide.filter((r) => r.account_id != null)
 
   return (
     <div className="quotes-page">
@@ -46,10 +49,10 @@ export default function MarginRulesPage() {
             <Link to="/setup/rates" className="text-muted-foreground" style={{ display: 'inline-flex', alignItems: 'center', gap: 4, fontSize: 13 }}>
               <ArrowLeft size={14} /> Rates
             </Link>
-            <h1 style={{ marginTop: 4 }}>Customer margins</h1>
+            <h1 style={{ marginTop: 4 }}>Customer pricing</h1>
             <p style={{ margin: '4px 0 0', color: 'var(--muted-foreground)', fontSize: 14, maxWidth: 760 }}>
               Customers searching rates on the portal only ever see sell prices. For each rate line the price comes from the
-              first of: a customer margin below, a sell rate typed on the line, the line or card markup, then the default margin.
+              first of: a customer contract rate or margin below, a sell rate typed on the line, the line or card margin, then the default margin.
               A line with none of these shows as <b>price on request</b>.
             </p>
           </div>
@@ -99,6 +102,8 @@ export default function MarginRulesPage() {
             </table>
           </div>
         </section>
+
+        <ContractRatesSection />
 
         <section style={{ marginTop: 28 }}>
           <h2 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 8px' }}>Recent portal searches</h2>

@@ -19,7 +19,7 @@ export default function RateCard({ o, cheapest, fastest, input, onBook, onQuote,
   const priced = o.sell != null
   const air = o.product === 'AIR'
   return (
-    <article className={`pv3-card pv3-rate pv3-rise${priced ? '' : ' pv3-rate--ask'}`} style={{ animationDelay: `${delay}s` }}>
+    <article className={`pv3-card pv3-rate pv3-rise${priced ? '' : ' pv3-rate--ask'}${o.contract ? ' pv3-rate--contract' : ''}`} style={{ animationDelay: `${delay}s` }}>
       <div className="pv3-rate__main">
         <div className="pv3-rate__carrier">
           <span className="pv3-rate__ico">{air ? <Plane size={16} /> : <Ship size={16} />}</span>
@@ -28,6 +28,7 @@ export default function RateCard({ o, cheapest, fastest, input, onBook, onQuote,
             <span>{o.product === 'FCL' ? `Full container · ${o.container_type}` : o.product === 'LCL' ? 'Shared container (LCL)' : 'Air freight'}</span>
           </div>
           <div className="pv3-rate__tags">
+            {o.contract && <span className="pv3-tag pv3-tag--navy">Your contract rate</span>}
             {cheapest && priced && <span className="pv3-tag pv3-tag--green">Best price</span>}
             {fastest && <span className="pv3-tag pv3-tag--blue">Fastest</span>}
           </div>

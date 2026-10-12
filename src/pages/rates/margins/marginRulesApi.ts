@@ -13,6 +13,10 @@ export type MarginRule = {
   active: boolean
   notes: string | null
   updated_at: string
+  origin_code?: string | null
+  dest_code?: string | null
+  container_type?: string | null
+  carrier?: string | null
   customers?: { name: string | null } | null
 }
 
@@ -40,14 +44,14 @@ export const PRODUCTS: { v: Product; label: string; unit: string; defaultMethod:
 export async function listMarginRules(): Promise<MarginRule[]> {
   const { data, error } = await supabase
     .from('rate_margin_rules')
-    .select('id, account_id, product, method, value, min_margin, active, notes, updated_at, customers(name)')
+    .select('id, account_id, product, method, value, min_margin, active, notes, updated_at, origin_code, dest_code, container_type, carrier, customers(name)')
     .order('account_id', { ascending: true, nullsFirst: true })
     .order('product')
   if (error) throw error
   return (data ?? []) as unknown as MarginRule[]
 }
 
-/** One rule per customer + product (null customer = default), so save is an upsert on that pair. */
+/** One product-wide rule per customer + product (null customer = default). Lane rules live in contractRatesApi. */
 export async function saveMarginRule(draft: RuleDraft, id?: string): Promise<void> {
   const row = { ...draft, value: Number(draft.value), min_margin: draft.min_margin == null ? null : Number(draft.min_margin) }
   const { error } = id
