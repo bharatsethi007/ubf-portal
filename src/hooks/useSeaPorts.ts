@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../supabase'
+import { fetchAllPorts } from './fetchAllPorts'
 
 export type SeaPort = {
   code: string
@@ -13,12 +13,7 @@ let cache: SeaPort[] | null = null
 let pending: Promise<SeaPort[]> | null = null
 
 async function loadSeaPorts(): Promise<SeaPort[]> {
-  const { data, error } = await supabase
-    .from('ports')
-    .select('code,name,country_code,lat,lng')
-    .eq('kind', 'sea')
-    .order('name', { ascending: true })
-  if (error || !data) return []
+  const data = await fetchAllPorts({ kind: 'sea' })
   return data.map((r) => ({
     code: String(r.code),
     name: String(r.name ?? r.code),

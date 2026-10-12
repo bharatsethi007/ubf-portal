@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../supabase'
+import { fetchAllPorts } from './fetchAllPorts'
 
 export type PortMode = 'air' | 'sea'
 export type ModePort = { code: string; name: string; country_code: string | null }
@@ -8,12 +8,7 @@ const cache: Record<PortMode, ModePort[] | null> = { air: null, sea: null }
 const pending: Record<PortMode, Promise<ModePort[]> | null> = { air: null, sea: null }
 
 async function loadPorts(mode: PortMode): Promise<ModePort[]> {
-  const { data, error } = await supabase
-    .from('ports')
-    .select('code,name,country_code')
-    .eq('kind', mode)
-    .order('name', { ascending: true })
-  if (error || !data) return []
+  const data = await fetchAllPorts({ kind: mode })
   return data.map((r) => ({
     code: String(r.code),
     name: String(r.name ?? r.code),

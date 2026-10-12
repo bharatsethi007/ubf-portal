@@ -55,7 +55,8 @@ Deno.serve(async (req) => {
     const rulesText = [globalRule?.content, vendorRule?.content].filter(Boolean).join("\n\n")
 
     const { data: containers } = await db.from("container_types").select("code, label").eq("active", true).order("sort_order")
-    const { data: ports } = await db.from("ports").select("code, name, country_code").eq("kind", "sea").order("code")
+    // Core ports only: the full UN/LOCODE list (17k+) is too large for the prompt.
+    const { data: ports } = await db.from("ports").select("code, name, country_code").eq("kind", "sea").eq("is_core", true).order("code")
     const { data: aliases } = await db.from("port_aliases").select("alias, port_code")
 
     const userContent = buildUserContent({

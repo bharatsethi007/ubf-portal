@@ -1,14 +1,13 @@
 import { useEffect, useState } from 'react'
-import { supabase } from '../supabase'
+import { fetchAllPorts } from './fetchAllPorts'
 import type { Port, PortMap } from '../types/port'
 
 let cache: PortMap | null = null
 let pending: Promise<PortMap> | null = null
 
 async function loadPorts(): Promise<PortMap> {
-  const { data, error } = await supabase.from('ports').select('code,name,lat,lng,country_code')
+  const data = await fetchAllPorts({ withCoordsOnly: true })
   const map: PortMap = new Map()
-  if (error || !data) return map
   for (const row of data) {
     if (row.code == null || row.lat == null || row.lng == null) continue
     map.set(String(row.code), {
