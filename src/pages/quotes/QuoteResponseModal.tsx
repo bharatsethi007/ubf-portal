@@ -5,7 +5,7 @@ import RefSelect from '../../components/common/RefSelect'
 import AirlineSelect from '../../components/bookings/AirlineSelect'
 import IataPortSelect from '../../components/bookings/IataPortSelect'
 import { useShippingLines, useCurrencies, useTaxRates } from '../../hooks/useQuoteRefData'
-import { useSeaPorts } from '../../hooks/useSeaPorts'
+import SeaPortCell from '../../components/SeaPortCell'
 import {
   fetchQuoteResponse,
   updateQuoteResponseHeader,
@@ -69,7 +69,6 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
 
   const { items: shippingLines } = useShippingLines()
   const { items: currencies } = useCurrencies()
-  const { ports } = useSeaPorts()
 
   const isAir = quoteIsAir(quote?.shipment_type ?? null, quote?.shipment_mode ?? null)
 
@@ -80,10 +79,6 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
   const currencyOptions = useMemo(
     () => currencies.map((c) => ({ value: c.code, label: `${c.code} — ${c.name}` })),
     [currencies],
-  )
-  const portOptions = useMemo(
-    () => ports.map((p) => ({ value: p.code, label: `${p.code} — ${p.name}` })),
-    [ports],
   )
 
   const { items: taxes } = useTaxRates()
@@ -225,7 +220,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                   </Field>
                 ) : (
                   <Field label="Via Port">
-                    <RefSelect className="nqd-input" value={header.via_port} options={portOptions} placeholder="Select port…" onChange={(v) => patch({ via_port: v })} />
+                    <SeaPortCell className="nqd-input" width="100%" value={header.via_port ?? ''} placeholder="Search port" onChange={(v) => patch({ via_port: v || null })} />
                   </Field>
                 )}
 

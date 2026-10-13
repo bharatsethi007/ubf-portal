@@ -1,6 +1,6 @@
+import SeaPortCell from '../../../components/SeaPortCell'
 import type { CSSProperties } from 'react'
 import { Plus, Trash2 } from 'lucide-react'
-import { useSeaPorts } from '../../../hooks/useSeaPorts'
 import { useContainerTypes, useCurrencies } from '../../../hooks/useQuoteRefData'
 import type { FclLineDraft } from '../ratesApi'
 import MarginField from '../MarginField'
@@ -60,7 +60,6 @@ export default function FclLinesGrid({ lines, defaultCurrency, cardMargin = null
   const sel = useLineSelection(lines, lineText)
   const effective = (l: FclLineDraft) => resolveMargin(lineMargin(l.margin_type, l.margin_value), cardMargin)
   const hasOverride = (l: FclLineDraft) => lineMargin(l.margin_type, l.margin_value) != null
-  const { ports } = useSeaPorts()
   const { items: containers } = useContainerTypes()
   const { items: currencies } = useCurrencies()
 
@@ -134,16 +133,10 @@ export default function FclLinesGrid({ lines, defaultCurrency, cardMargin = null
               <tr key={l.key} style={rowStyle(l.confidence)} title={l.confidence && l.confidence !== 'green' ? (l.note || (l.raw_origin ? `Sheet said: ${l.raw_origin}` : '')) : undefined}>
                 <td><RowBox checked={sel.selected.has(l.key)} onToggle={(shift) => sel.toggle(l.key, shift)} /></td>
                 <td>
-                  <select className="input input--sm" value={l.origin_port_code} onChange={(e) => update(l.key, { origin_port_code: e.target.value })}>
-                    <option value="">—</option>
-                    {ports.map((p) => (<option key={p.code} value={p.code}>{p.code} · {p.name}</option>))}
-                  </select>
+                  <SeaPortCell value={l.origin_port_code} onChange={(code) => update(l.key, { origin_port_code: code })} />
                 </td>
                 <td>
-                  <select className="input input--sm" value={l.dest_port_code} onChange={(e) => update(l.key, { dest_port_code: e.target.value })}>
-                    <option value="">—</option>
-                    {ports.map((p) => (<option key={p.code} value={p.code}>{p.code} · {p.name}</option>))}
-                  </select>
+                  <SeaPortCell value={l.dest_port_code} onChange={(code) => update(l.key, { dest_port_code: code })} />
                 </td>
                 <td>
                   <select className="input input--sm" value={l.container_type} onChange={(e) => update(l.key, { container_type: e.target.value })}>
