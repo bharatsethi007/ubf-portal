@@ -9,6 +9,7 @@ import { btn, btnPrimary, Card, eaHref, lbl, StageBar, Tag } from './eaUi'
 import { allocateBookings } from './useEaBoard'
 import { useEaConsol } from './useEaConsol'
 import EaConsolDialog from './EaConsolDialog'
+import EaMailBubble from './mail/EaMailBubble'
 import EaConsolExport from './EaConsolExport'
 
 /** Consol planner: header, allocated houses, same-lane candidates, close + export to TradeWindow. */
@@ -83,6 +84,7 @@ export default function EaConsolPage() {
           </Card>
         </div>
       </div>
+      <EaMailBubble onChanged={() => void reload()} />
       {editing ? <EaConsolDialog consol={c} onClose={() => setEditing(false)} onSaved={() => void reload()} /> : null}
     </div>
   )

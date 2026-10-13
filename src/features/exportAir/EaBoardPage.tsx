@@ -12,6 +12,7 @@ import EaConsolDialog from './EaConsolDialog'
 import { buildGroups } from './eaGroups'
 import { btn, btnPrimary } from './eaUi'
 import { allocateBookings, assignOwner, useEaBoard } from './useEaBoard'
+import EaMailBubble from './mail/EaMailBubble'
 
 type Dialog = { consol: AirConsol | null; dest?: string } | null
 
@@ -157,6 +158,7 @@ export default function EaBoardPage() {
         </div>
       </div>
 
+      <EaMailBubble onChanged={() => void reload()} />
       {dialog ? <EaConsolDialog consol={dialog.consol} dest={dialog.dest} onClose={() => setDialog(null)} onSaved={() => void reload()} /> : null}
     </div>
   )

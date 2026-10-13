@@ -15,6 +15,7 @@ import EaMoveCard from './EaMoveCard'
 import EaExportCard from './EaExportCard'
 import EaSideRail from './EaSideRail'
 import EaEditPanel from './EaEditPanel'
+import EaMailBubble from './mail/EaMailBubble'
 import { patchBooking } from './useEaBooking'
 
 /** Export Air booking record: one page, one next action, nothing typed twice. */
@@ -117,6 +118,7 @@ export default function EaBookingPage() {
         </div>
         <EaSideRail b={b} threads={threads} docs={docs} hist={hist} onSaved={() => void reload()} />
       </div>
+      <EaMailBubble bookingId={b.id} bookingRef={b.booking_ref} onChanged={() => void reload()} />
       {editing ? <EaEditPanel b={b} onClose={() => setEditing(false)} onSaved={() => void reload()} /> : null}
     </div>
   )

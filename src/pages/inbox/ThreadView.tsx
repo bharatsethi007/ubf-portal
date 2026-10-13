@@ -17,7 +17,11 @@ import { contactTypeOf, isSales, isUnknown, setStatus, type EmailAttachment, typ
 import { avatarColors, CHANNEL_META, initials } from './inboxFormat'
 import { inboxAction } from './EmailParts'
 
-type Props = { detail: InboxDetail; staff: StaffOption[]; me: string; onChanged: () => void }
+type Props = {
+  detail: InboxDetail; staff: StaffOption[]; me: string; onChanged: () => void
+  /** When set, attachment clicks go here (e.g. a side preview) instead of the popup viewer. */
+  onPreview?: (p: { items: EmailAttachment[]; index: number }) => void
+}
 
 // Title = whoever wrote this thread. Account's WhatsApp contact only when this thread is that chat.
 export function whoOf(d: InboxDetail): string {
@@ -27,7 +31,7 @@ export function whoOf(d: InboxDetail): string {
     ?? d.conversation.contact_name ?? d.account?.name ?? d.contact?.display_name ?? d.conversation.contact_email ?? 'Unknown'
 }
 
-export default function ThreadView({ detail, staff, me, onChanged }: Props) {
+export default function ThreadView({ detail, staff, me, onChanged, onPreview }: Props) {
   const c = detail.conversation
   const [busy, setBusy] = useState(false)
   const [preview, setPreview] = useState<{ items: EmailAttachment[]; index: number } | null>(null)
@@ -39,10 +43,14 @@ export default function ThreadView({ detail, staff, me, onChanged }: Props) {
   const typeLabel = detail.account ? 'Customer' : contactTypeOf(detail) ?? (detail.email ? 'Unknown sender' : 'Unknown number')
 
   useEffect(() => {
-    const on = (e: Event) => setPreview((e as CustomEvent<{ items: EmailAttachment[]; index: number }>).detail)
+    const on = (e: Event) => {
+      const d = (e as CustomEvent<{ items: EmailAttachment[]; index: number }>).detail
+      if (onPreview) onPreview(d)
+      else setPreview(d)
+    }
     window.addEventListener('ibx:preview', on)
     return () => window.removeEventListener('ibx:preview', on)
-  }, [])
+  }, [onPreview])
   useEffect(() => { setPreview(null) }, [c.id])
 
   async function run(fn: () => Promise<void>, ok?: string) {

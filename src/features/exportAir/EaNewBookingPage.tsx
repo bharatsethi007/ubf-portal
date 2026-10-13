@@ -11,6 +11,7 @@ import { btn, btnPrimary, Card, eaHref, lbl } from './eaUi'
 import EaNewParties from './EaNewParties'
 import EaCargoLines, { emptyLine, lineTotals } from './EaCargoLines'
 import { cleanForTw } from './EaCargoCard'
+import EaMailBubble from './mail/EaMailBubble'
 import { createEaBooking, loadAccounts, newEaIssues, type NewEa } from './eaCreate'
 
 const DESTS = ['NAN', 'APW', 'TBU', 'VLI', 'HIR', 'PPG', 'RAR']
@@ -176,6 +177,7 @@ export default function EaNewBookingPage() {
           </Card>
         </aside>
       </div>
+      <EaMailBubble />
     </div>
   )
 }
