@@ -77,7 +77,7 @@ export default function MarginRulesPage() {
           <h2 style={{ fontSize: 15, fontWeight: 600, margin: '0 0 8px' }}>Customer margins</h2>
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 10, alignItems: 'flex-end', marginBottom: 10 }}>
             <div style={{ minWidth: 320 }}><CustomerPicker label="Add a margin for" value={cust} onChange={setCust} compact /></div>
-            <select className="input input--sm" value={newProduct} onChange={(e) => setNewProduct(e.target.value as Product)} aria-label="Product">
+            <select className="input input--sm" style={{ width: "auto" }} value={newProduct} onChange={(e) => setNewProduct(e.target.value as Product)} aria-label="Product">
               {PRODUCTS.map((p) => <option key={p.v} value={p.v}>{p.label}</option>)}
             </select>
           </div>

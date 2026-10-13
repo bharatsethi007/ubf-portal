@@ -132,7 +132,7 @@ export default function FclLocalChargeSheetDetail({ mode = 'fcl' }: { mode?: Loc
   if (notFound) return (
     <div className="quotes-page"><div className="card quotes-page__card">
       <p>Sheet not found.</p>
-      <button type="button" className="btn" onClick={() => navigate(cfg.base)}>Back to {cfg.title}</button>
+      <button type="button" className="btn btn--secondary" onClick={() => navigate(cfg.base)}>Back to {cfg.title}</button>
     </div></div>
   )
   if (!sheet) return null

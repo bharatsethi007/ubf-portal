@@ -62,7 +62,7 @@
 .comms-field .input { font-weight: 400; }
 .comms-composer__textarea { resize: vertical; min-height: 76px; font-family: inherit; }
 .comms-complaint-fields { display: flex; flex-direction: column; gap: 8px; padding: 10px; border: 1px solid #fecdca; background: #fffbfa; border-radius: 10px; }
-.comms-composer__submit { margin-top: 4px; background: #0A2472; color: #fff; }
+.comms-composer__submit { width: 100%; margin-top: 4px; background: #0A2472; color: #fff; }
 .comms-mention-wrap { position: relative; }
 .comms-mention-menu { position: absolute; left: 0; right: 0; bottom: calc(100% + 4px); z-index: 20; margin: 0; padding: 4px; list-style: none; background: #fff; border: 1px solid #e6e8ec; border-radius: 10px; box-shadow: 0 8px 24px rgba(16,24,40,.12); max-height: 200px; overflow-y: auto; }
 .comms-mention-item { display: flex; align-items: baseline; gap: 8px; padding: 6px 8px; border-radius: 6px; cursor: pointer; font-size: 12px; }

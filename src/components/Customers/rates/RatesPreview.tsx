@@ -28,7 +28,7 @@ export default function RatesPreview({ accountId }: { accountId: string }) {
     <section className="cp-card">
       <h3 style={{ margin: '0 0 10px', fontSize: 15, fontWeight: 600 }}>Search as this customer</h3>
       <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, alignItems: 'center' }}>
-        <select className="input input--sm" value={q.mode === 'air' ? 'AIR' : q.load} aria-label="Service"
+        <select className="input input--sm" style={{ width: "auto" }} value={q.mode === 'air' ? 'AIR' : q.load} aria-label="Service"
           onChange={(e) => { const v = e.target.value; set(v === 'AIR' ? { mode: 'air', origin: '', destination: '' } : { mode: 'sea', load: v as 'FCL' | 'LCL', ...(q.mode === 'air' ? { origin: '', destination: '' } : {}) }); setRows(null) }}>
           <option value="FCL">Sea FCL</option><option value="LCL">Sea LCL</option><option value="AIR">Air</option>
         </select>
@@ -36,7 +36,7 @@ export default function RatesPreview({ accountId }: { accountId: string }) {
         <span className="text-muted-foreground">→</span>
         <Port key={`d-${q.mode}`} value={q.destination} onChange={(c) => set({ destination: c })} width={190} />
         {q.mode === 'sea' && q.load === 'FCL' && (
-          <select className="input input--sm" value={q.container} onChange={(e) => set({ container: e.target.value })} aria-label="Container">
+          <select className="input input--sm" style={{ width: "auto" }} value={q.container} onChange={(e) => set({ container: e.target.value })} aria-label="Container">
             <option value="">All containers</option>
             {containers.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
           </select>

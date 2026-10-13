@@ -146,7 +146,7 @@ export default function FclRateCardDetail() {
   if (notFound) return (
     <div className="quotes-page"><div className="card quotes-page__card">
       <p>Rate card not found.</p>
-      <button type="button" className="btn" onClick={() => navigate('/setup/rates/fcl')}>Back to Sea FCL Charges</button>
+      <button type="button" className="btn btn--secondary" onClick={() => navigate('/setup/rates/fcl')}>Back to Sea FCL Charges</button>
     </div></div>
   )
   if (!card) return null

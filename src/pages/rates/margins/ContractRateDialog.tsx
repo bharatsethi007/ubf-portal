@@ -121,11 +121,11 @@ export default function ContractRateDialog({ open, rule, defaultCustomer = null,
             <span style={lbl}>{method === 'fixed' ? `Sell ${unit}` : method === 'pct' ? 'Margin %' : `Margin ${unit}`}</span>
             <div style={{ display: 'flex', gap: 6 }}>
               {method === 'fixed' && (
-                <select className="input input--sm" value={currency} onChange={(e) => setCurrency(e.target.value)} aria-label="Currency">
+                <select className="input input--sm" style={{ width: 86, flex: "none" }} value={currency} onChange={(e) => setCurrency(e.target.value)} aria-label="Currency">
                   {(currencies.length ? currencies : [{ code: 'USD' }, { code: 'NZD' }]).map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}
                 </select>
               )}
-              <input className="input input--sm" style={{ flex: 1 }} inputMode="decimal" value={value} onChange={(e) => setValue(e.target.value)} />
+              <input className="input input--sm" style={{ flex: 1, minWidth: 0 }} inputMode="decimal" placeholder={method === "fixed" ? "e.g. 2100" : method === "pct" ? "e.g. 12" : "e.g. 150"} value={value} onChange={(e) => setValue(e.target.value)} />
             </div>
           </div>
           {method !== 'fixed' && (
@@ -159,7 +159,7 @@ export default function ContractRateDialog({ open, rule, defaultCustomer = null,
         <datalist id="cr-carriers">{codes.carriers.map((c) => <option key={c} value={c} />)}</datalist>
 
         <DialogFooter>
-          <button type="button" className="btn" onClick={onClose}>Cancel</button>
+          <button type="button" className="btn btn--secondary" onClick={onClose}>Cancel</button>
           <button type="button" className="btn quotes-page__new-btn" disabled={!canSave || busy} onClick={() => void save()}>
             {busy ? <Loader2 size={14} className="animate-spin" /> : 'Save'}
           </button>

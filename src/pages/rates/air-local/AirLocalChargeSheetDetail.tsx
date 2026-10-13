@@ -136,7 +136,7 @@ export default function AirLocalChargeSheetDetail() {
   if (notFound) return (
     <div className="quotes-page"><div className="card quotes-page__card">
       <p>Sheet not found.</p>
-      <button type="button" className="btn" onClick={() => navigate('/setup/rates/air-local')}>Back to Air Local / Port Charges</button>
+      <button type="button" className="btn btn--secondary" onClick={() => navigate('/setup/rates/air-local')}>Back to Air Local / Port Charges</button>
     </div></div>
   )
   if (!sheet) return null

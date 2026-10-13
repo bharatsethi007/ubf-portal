@@ -216,12 +216,21 @@ a:hover { text-decoration: underline; }
   box-shadow: 0 0 0 2px color-mix(in srgb, var(--color-accent) 30%, transparent);
 }
 .btn {
-  width: 100%; margin-top: 12px; padding: 0 16px; height: 36px;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: auto; margin-top: 0; padding: 0 16px; height: 36px; white-space: nowrap; cursor: pointer;
   border: none; border-radius: 6px; background: var(--color-accent); color: #fff; font-weight: 500; font-size: 14px;
 }
 .btn:hover { background: var(--primary-ink); }
 .btn:disabled { opacity: .55; cursor: not-allowed; }
 .btn--inline { width: auto; }
+.btn--block { width: 100%; }
+.auth-card .btn { width: 100%; margin-top: 12px; }
+/* Secondary (Cancel, Back) and icon-only row actions. */
+.btn--secondary { background: #fff; color: var(--color-ink); border: 1px solid var(--color-line); }
+.btn--secondary:hover { background: var(--bg, #f8fafc); }
+.btn--icon { width: 32px; height: 32px; padding: 0; background: #fff; color: #0A2472; border: 1px solid var(--color-line); }
+.btn--icon:hover { background: #EAEDF6; }
+.btn--icon.btn--danger:hover { background: #FDECEC; color: #b42318; border-color: #f5c2c0; }
 .text-link { background: none; border: none; color: var(--color-accent); font-size: 13px; font-weight: 500; padding: 0; }
 .text-link:hover { text-decoration: underline; }
 .error { color: #dc2626; font-size: 14px; margin-top: 10px; }

@@ -39,7 +39,7 @@ export default function SharedCardsList({ accountId }: { accountId: string }) {
                 <td>{fmt(c.valid_to)}</td>
                 <td>{c.others ? `${c.others} other${c.others > 1 ? 's' : ''}` : <span className="text-muted-foreground">Only them</span>}</td>
                 <td style={{ textAlign: 'right' }}>
-                  <button type="button" className="btn" onClick={() => void remove(c)} aria-label="Stop sharing" title="Stop sharing"><X size={14} /></button>
+                  <button type="button" className="btn btn--icon btn--danger" onClick={() => void remove(c)} aria-label="Stop sharing" title="Stop sharing"><X size={14} /></button>
                 </td>
               </tr>
             ))}

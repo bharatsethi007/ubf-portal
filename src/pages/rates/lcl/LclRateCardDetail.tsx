@@ -121,7 +121,7 @@ export default function LclRateCardDetail() {
   if (notFound) return (
     <div className="quotes-page"><div className="card quotes-page__card">
       <p>Rate card not found.</p>
-      <button type="button" className="btn" onClick={() => navigate('/setup/rates/lcl')}>Back to Sea LCL Charges</button>
+      <button type="button" className="btn btn--secondary" onClick={() => navigate('/setup/rates/lcl')}>Back to Sea LCL Charges</button>
     </div></div>
   )
   if (!card) return null

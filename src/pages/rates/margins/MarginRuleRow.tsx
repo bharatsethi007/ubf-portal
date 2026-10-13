@@ -80,11 +80,11 @@ export default function MarginRuleRow({ rule, product, accountId, label, sub, on
         </label>
       </td>
       <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-        <button type="button" className="btn" disabled={busy || !dirty} onClick={() => void save()}>
+        <button type="button" className="btn" style={{ height: 32 }} disabled={busy || !dirty} onClick={() => void save()}>
           {busy ? <Loader2 size={14} className="animate-spin" /> : 'Save'}
         </button>
         {rule && (
-          <button type="button" className="btn" style={{ marginLeft: 6 }} disabled={busy} onClick={() => void remove()} aria-label={`Remove ${label} margin`}>
+          <button type="button" className="btn btn--icon btn--danger" style={{ marginLeft: 6 }} disabled={busy} onClick={() => void remove()} aria-label={`Remove ${label} margin`}>
             <Trash2 size={14} />
           </button>
         )}

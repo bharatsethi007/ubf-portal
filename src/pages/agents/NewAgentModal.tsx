@@ -105,7 +105,7 @@ export default function NewAgentModal({ networks, onClose, onCreated }: Props) {
         </div>
 
         <div className="agent-modal__actions">
-          <button type="button" className="btn" onClick={onClose} disabled={saving}>
+          <button type="button" className="btn btn--secondary" onClick={onClose} disabled={saving}>
             Cancel
           </button>
           <button type="button" className="btn quotes-page__new-btn" onClick={save} disabled={saving}>

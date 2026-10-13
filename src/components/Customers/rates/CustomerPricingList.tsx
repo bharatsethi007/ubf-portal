@@ -55,8 +55,8 @@ export default function CustomerPricingList({ accountId, name }: { accountId: st
                   <td style={{ whiteSpace: 'nowrap' }}>{r.valid_from || r.valid_to ? `${fmt(r.valid_from) || 'Now'} to ${fmt(r.valid_to) || 'open'}` : <span className="text-muted-foreground">Always</span>}</td>
                   <td>{live(r) ? 'Live' : r.active ? 'Out of date' : 'Off'}</td>
                   <td style={{ whiteSpace: 'nowrap', textAlign: 'right' }}>
-                    <button type="button" className="btn" onClick={() => { setEdit(r); setOpen(true) }} aria-label="Edit"><Pencil size={14} /></button>
-                    <button type="button" className="btn" style={{ marginLeft: 6 }} onClick={() => void remove(r)} aria-label="Remove"><Trash2 size={14} /></button>
+                    <button type="button" className="btn btn--icon" onClick={() => { setEdit(r); setOpen(true) }} aria-label="Edit" title="Edit"><Pencil size={14} /></button>
+                    <button type="button" className="btn btn--icon btn--danger" style={{ marginLeft: 6 }} onClick={() => void remove(r)} aria-label="Remove" title="Remove"><Trash2 size={14} /></button>
                   </td>
                 </tr>
               )
