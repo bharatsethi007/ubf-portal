@@ -37,6 +37,8 @@ import QuoteRespondPage from './pages/public/QuoteRespondPage'
 import ModuleTextScale from './components/staff/ModuleTextScale'
 import RatePage from './pages/public/RatePage'
 import BookingsWorkspacePage from './features/bookingsWorkspace/BookingsWorkspacePage'
+import EaBookingPage from './features/exportAir/EaBookingPage'
+import EaConsolPage from './features/exportAir/EaConsolPage'
 import CourierBookingsList from './pages/courier/CourierBookingsList'
 import CourierBookingDetail from './pages/courier/CourierBookingDetail'
 import SetupPage from './pages/setup/SetupPage'
@@ -190,6 +192,8 @@ export default function App() {
             <Route path="/bookings/import-air" element={<StaffRoute><BookingsWorkspacePage slug="import-air" /></StaffRoute>} />
             <Route path="/bookings/export-sea" element={<StaffRoute><BookingsWorkspacePage slug="export-sea" /></StaffRoute>} />
             <Route path="/bookings/export-air" element={<StaffRoute><BookingsWorkspacePage slug="export-air" /></StaffRoute>} />
+            <Route path="/bookings/export-air/:bookingId" element={<StaffRoute><EaBookingPage /></StaffRoute>} />
+            <Route path="/bookings/export-air/consol/:consolId" element={<StaffRoute><EaConsolPage /></StaffRoute>} />
             <Route
               path="/bookings/courier"
               element={<StaffRoute><CourierBookingsList /></StaffRoute>}

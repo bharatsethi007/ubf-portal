@@ -1,0 +1,117 @@
+import { useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+import { format, parseISO } from 'date-fns'
+import { toast } from 'sonner'
+import '@/features/bookingsWorkspace/bookingsTheme.css'
+import { cargoOf, fmtNum, type EaRow } from './eaTypes'
+import { btn, btnPrimary, Card, eaHref, lbl, StageBar, Tag } from './eaUi'
+import { allocateBookings } from './useEaBoard'
+import { patchConsol, useEaConsol } from './useEaConsol'
+import EaConsolExport from './EaConsolExport'
+
+/** Consol planner: header, allocated houses, same-lane candidates, close + export to TradeWindow. */
+export default function EaConsolPage() {
+  const { consolId } = useParams()
+  const { consol: c, houses, candidates, error, reload } = useEaConsol(consolId)
+  const [mawb, setMawb] = useState<string | null>(null)
+
+  if (error) return <div className="bk-root p-6 text-[#B42318]">{error}</div>
+  if (!c) return <div className="bk-root p-6 text-[#6B7280]">Loading…</div>
+
+  const locked = c.status === 'exported' || c.status === 'departed'
+  const tot = houses.reduce((a, h) => { const x = cargoOf(h); return { pcs: a.pcs + Number(x.pcs ?? 0), kg: a.kg + Number(x.kg ?? 0), chg: a.chg + Number(x.chg ?? 0) } }, { pcs: 0, kg: 0, chg: 0 })
+
+  async function move(ids: string[], to: string | null) {
+    try { await allocateBookings(ids, to); await reload() } catch (e) { toast.error((e as Error).message) }
+  }
+  async function saveMawb() {
+    if (mawb == null) return
+    try { await patchConsol(c!.id, { mawb: mawb.trim() || null, status: mawb.trim() && c!.status === 'planned' ? 'confirmed' : c!.status }); setMawb(null); await reload() } catch (e) { toast.error((e as Error).message) }
+  }
+
+  return (
+    <div className="bk-root mx-auto w-full max-w-[1440px] bg-white text-[12.5px] text-[#14161A]">
+      <div className="text-[12px] text-[#6B7280]">
+        <Link to="/bookings/export-air" className="text-[#6B7280] hover:underline">Export air</Link>
+        <span className="mx-1">/</span>Consol <span className="bk-mono text-[#14161A]">{c.flight_no}</span>
+      </div>
+
+      <div className="flex flex-wrap items-start justify-between gap-4">
+        <div className="flex flex-col gap-1.5">
+          <div className="flex flex-wrap items-center gap-2.5">
+            <h1 className="bk-mono m-0 text-[19px] font-medium">{c.flight_no}</h1>
+            <Tag tone={locked ? 'green' : c.status === 'planned' ? 'grey' : 'navy'}>{c.status}</Tag>
+            <Tag>{c.origin} → {c.destination}</Tag>
+          </div>
+          <div className="text-[12.5px] text-[#5B616E]">
+            {format(parseISO(c.flight_date), 'EEEE d MMM')}{c.cutoff_at ? ` · cutoff ${format(parseISO(c.cutoff_at), 'EEE d MMM HH:mm')}` : ''} · consignee UBNAN
+          </div>
+        </div>
+        <div className="flex items-end gap-2">
+          <label className="flex flex-col gap-1">
+            <span className={lbl}>MAWB</span>
+            <input
+              value={mawb ?? c.mawb ?? ''}
+              disabled={locked}
+              onChange={(e) => setMawb(e.target.value)}
+              onBlur={() => void saveMawb()}
+              placeholder="086-65575823"
+              className="bk-mono h-[30px] w-[150px] rounded-[7px] border border-[#E3E6EB] px-2 text-[12.5px] outline-none focus:border-[#0A2472]"
+            />
+          </label>
+          <div className="flex gap-4 pb-1.5 text-[12px] text-[#5B616E]">
+            <span><b className="bk-mono font-medium text-[#14161A]">{houses.length}</b> houses</span>
+            <span><b className="bk-mono font-medium text-[#14161A]">{fmtNum(tot.pcs)}</b> pcs</span>
+            <span><b className="bk-mono font-medium text-[#14161A]">{fmtNum(tot.kg)}</b> kg</span>
+            <span><b className="bk-mono font-medium text-[#14161A]">{fmtNum(tot.chg)}</b> chg</span>
+          </div>
+        </div>
+      </div>
+
+      <EaConsolExport consol={c} houses={houses} onDone={() => void reload()} />
+
+      <div className="flex flex-wrap items-start gap-4">
+        <div className="min-w-0 flex-[999_1_620px]">
+          <Card title={`On this consol · ${houses.length}`}>
+            <HouseList rows={houses} empty="Nothing allocated yet. Add from the right."
+              action={locked ? undefined : { label: 'Remove', run: (id) => void move([id], null) }} />
+          </Card>
+        </div>
+        <div className="min-w-0 flex-[1_1_420px]">
+          <Card title={`Open on AKL → ${c.destination} · ${candidates.length}`}
+            aside={!locked && candidates.some((r) => r.stage >= 2)
+              ? <button type="button" className={btn} onClick={() => void move(candidates.filter((r) => r.stage >= 2).map((r) => r.id), c.id)}>Add all checked in</button>
+              : null}>
+            <HouseList rows={candidates} empty="No open bookings on this lane."
+              action={locked ? undefined : { label: 'Add', run: (id) => void move([id], c.id), primary: true }} />
+          </Card>
+        </div>
+      </div>
+    </div>
+  )
+}
+
+function HouseList({ rows, empty, action }: { rows: EaRow[]; empty: string; action?: { label: string; run: (id: string) => void; primary?: boolean } }) {
+  if (!rows.length) return <p className="m-0 px-4 py-4 text-[12px] text-[#6B7280]">{empty}</p>
+  return (
+    <ul className="m-0 list-none py-1">
+      {rows.map((r) => {
+        const x = cargoOf(r)
+        return (
+          <li key={r.id} className="grid grid-cols-[112px_minmax(0,1fr)_120px_100px_auto] items-center gap-3 border-t border-[#F6F7F9] px-4 py-2 first:border-t-0 hover:bg-[#F8F9FB]">
+            <Link to={eaHref(r.id)} className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</Link>
+            <div className="flex min-w-0 flex-col">
+              <span className="truncate font-medium">{r.consignee_code_name ?? r.consignee_name ?? '—'}</span>
+              <span className="truncate text-[11px] text-[#6B7280]">from {r.shipper_code_name ?? r.shipper_name ?? '—'}</span>
+            </div>
+            <span className="bk-mono text-right text-[11.5px]">{fmtNum(x.pcs)} · {fmtNum(x.kg)} · <b className="font-medium">{fmtNum(x.chg)}</b></span>
+            <span className="flex flex-col gap-1"><StageBar stage={r.stage} /><span className="text-[10.5px] text-[#6B7280]">{r.stage >= 2 ? 'Checked in' : 'Not in yet'}</span></span>
+            {action ? (
+              <button type="button" className={action.primary ? btnPrimary : btn} onClick={() => action.run(r.id)}>{action.label}</button>
+            ) : <span />}
+          </li>
+        )
+      })}
+    </ul>
+  )
+}
