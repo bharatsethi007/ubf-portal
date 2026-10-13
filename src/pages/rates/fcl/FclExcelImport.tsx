@@ -75,6 +75,7 @@ export default function FclExcelImport({ cardId, defaultCurrency, onImported }: 
       const lines: any[] = Array.isArray(data?.lines) ? data.lines : []
       const drafts: FclLineDraft[] = lines.map((l, i) => {
         const rate = l.base_rate != null ? String(l.base_rate) : ''
+        const sell = l.sell_rate != null ? String(l.sell_rate) : ''
         return {
           key: `ai-${i}`,
           dbId: null,
@@ -82,7 +83,8 @@ export default function FclExcelImport({ cardId, defaultCurrency, onImported }: 
           dest_port_code: l.dest_port_code || '',
           container_type: l.container_type || '',
           base_rate: mode === 'buy' ? rate : '',
-          sell_rate: mode === 'sell' ? rate : '',
+          // Sheets with both cost and sell columns now return both.
+          sell_rate: mode === 'sell' ? (sell || rate) : sell,
           currency_code: l.currency_code || defaultCurrency || '',
           transit_days: l.transit_days != null ? String(l.transit_days) : '',
           via: l.via || '',

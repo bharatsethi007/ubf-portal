@@ -49,20 +49,28 @@ export default function RatesPreview({ accountId }: { accountId: string }) {
       {rows && (
         <div className="table-wrap" style={{ marginTop: 12 }}>
           <table className="data-table">
-            <thead><tr><th>Carrier</th><th>Service</th><th>Sell</th><th>Min</th><th>Transit</th><th>Valid to</th><th /></tr></thead>
+            <thead><tr><th>Carrier</th><th>Service</th><th>Sell</th><th>Others pay</th><th>Min</th><th>Transit</th><th>Valid to</th><th /></tr></thead>
             <tbody>
               {rows.map((r) => (
                 <tr key={r.ref}>
                   <td>{r.carrier ?? '-'}</td>
                   <td>{r.product}{r.container_type ? ` · ${r.container_type}` : ''}</td>
                   <td style={{ fontWeight: 600 }}>{money(r.sell, r.currency) ?? <span className="text-muted-foreground">On request</span>} <span className="text-muted-foreground" style={{ fontWeight: 400, fontSize: 12 }}>{r.sell != null ? r.unit : ''}</span></td>
+                  <td>
+                    {r.public_sell == null ? <span className="text-muted-foreground">{r.contract ? 'Private' : '-'}</span> : (
+                      <span style={{ color: r.sell != null && r.sell > r.public_sell ? '#b45309' : undefined }}
+                        title={r.sell != null && r.sell > r.public_sell ? 'This customer pays more than the public price' : undefined}>
+                        {money(r.public_sell, r.currency)}{r.sell != null && r.sell > r.public_sell ? ' ▲' : ''}
+                      </span>
+                    )}
+                  </td>
                   <td>{money(r.sell_min, r.currency) ?? ''}</td>
                   <td>{r.transit_days ? `${r.transit_days} d` : ''}{r.via ? ` via ${r.via}` : ''}</td>
                   <td>{fmtDate(r.valid_to)}</td>
                   <td>{r.contract && <span style={{ fontSize: 11, fontWeight: 600, padding: '2px 7px', borderRadius: 5, background: '#0A2472', color: '#fff' }}>Contract</span>}</td>
                 </tr>
               ))}
-              {rows.length === 0 && <tr><td colSpan={7} className="text-muted-foreground pad-inline">No rates on this lane. Customer would see "Get a price".</td></tr>}
+              {rows.length === 0 && <tr><td colSpan={8} className="text-muted-foreground pad-inline">No rates on this lane. Customer would see "Get a price".</td></tr>}
             </tbody>
           </table>
         </div>

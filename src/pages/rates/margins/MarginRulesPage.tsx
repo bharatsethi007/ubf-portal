@@ -51,9 +51,9 @@ export default function MarginRulesPage() {
             </Link>
             <h1 style={{ marginTop: 4 }}>Customer pricing</h1>
             <p style={{ margin: '4px 0 0', color: 'var(--muted-foreground)', fontSize: 14, maxWidth: 760 }}>
-              Customers searching rates on the portal only ever see sell prices. For each rate line the price comes from the
-              first of: a customer contract rate or margin below, a sell rate typed on the line, the line or card margin, then the default margin.
-              A line with none of these shows as <b>price on request</b>.
+              Customers searching rates on the portal only ever see sell prices. For each rate line the price comes from the first of:
+              the customer's lane contract, their own private rate card, their customer margin, the public card's sell or margin, then the
+              default margin. Lines with only a sell rate use it unless the customer has a fixed contract price. Otherwise the line shows as <b>price on request</b>.
             </p>
           </div>
         </header>

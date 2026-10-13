@@ -42,6 +42,7 @@ import CourierBookingDetail from './pages/courier/CourierBookingDetail'
 import SetupPage from './pages/setup/SetupPage'
 import RatesPage from './pages/rates/RatesPage'
 import MarginRulesPage from './pages/rates/margins/MarginRulesPage'
+import BulkUploadPage from './pages/rates/bulk/BulkUploadPage'
 import CartageSetupPage from './pages/cartage/CartageSetupPage'
 import RateModulePage from './pages/rates/RateModulePage'
 import RateRulesPage from './pages/rates/RateRulesPage'
@@ -233,6 +234,7 @@ export default function App() {
             <Route path="/users" element={<UsersArea />} />
             <Route path="/setup/rates" element={<StaffRoute><RatesPage /></StaffRoute>} />
             <Route path="/setup/rates/margins" element={<StaffRoute><MarginRulesPage /></StaffRoute>} />
+            <Route path="/setup/rates/bulk" element={<StaffRoute><BulkUploadPage /></StaffRoute>} />
             <Route path="/setup/cartage" element={<StaffRoute><CartageSetupPage /></StaffRoute>} />
             <Route path="/setup/rates/fcl" element={<StaffRoute><FclRateCardsList /></StaffRoute>} />
             <Route path="/setup/rates/fcl/new" element={<StaffRoute><FclRateCardForm /></StaffRoute>} />

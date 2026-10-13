@@ -31,6 +31,7 @@ const GROUPS: ModuleGroup[] = [
     icon: SlidersHorizontal,
     title: 'Rate Setup',
     links: [
+      { label: 'Bulk Excel upload', to: '/setup/rates/bulk' },
       { label: 'Rules', to: '/setup/rates/rules' },
       { label: 'Ports & Groups', to: '/setup/rates/ports' },
       { label: 'Customer pricing and contract rates', to: '/setup/rates/margins' },

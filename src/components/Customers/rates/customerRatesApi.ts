@@ -11,6 +11,8 @@ export type PreviewOption = {
   sell: number | null
   sell_min: number | null
   contract?: boolean
+  /** What any other customer sees for the same line. Null = not visible to them (private card) or not priced. */
+  public_sell?: number | null
   transit_days: number | null
   via: string | null
   valid_to: string | null
