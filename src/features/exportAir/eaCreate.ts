@@ -1,6 +1,7 @@
 import { supabase } from '@/supabase'
 import type { CustomerPickerValue } from '@/components/bookings/CustomerPicker'
 import { lineCbm, lineTotals, type Line } from './EaCargoLines'
+import { bookingAccountId } from './intake/customerAccount'
 
 export type NewEa = {
   shipper: CustomerPickerValue | null
@@ -52,11 +53,12 @@ export function newEaIssues(f: NewEa) {
 export async function createEaBooking(f: NewEa, opts: { draft: boolean; bookPickup: boolean }) {
   const t = lineTotals(f.lines)
   const { data: auth } = await supabase.auth.getUser()
+  const accountId = await bookingAccountId([f.billTo?.account_id, f.consignee?.account_id, f.shipper?.account_id])
   const { data, error } = await supabase.from('bookings').insert({
     module: 'EA',
     source: 'manual',
     status: opts.draft ? 'draft' : 'confirmed',
-    account_id: f.billTo?.account_id ?? f.consignee?.account_id ?? null,
+    account_id: accountId,
     origin: 'AKL',
     destination: f.destination.trim().toUpperCase(),
     incoterm: nul(f.incoterm),
