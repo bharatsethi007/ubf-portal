@@ -61,3 +61,5 @@
 
 .pv3-rnote { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 0; padding: 12px 16px; background: #FDECEC; border: 1px solid #F6C9C9; border-radius: 10px; font-size: 13px; line-height: 1.45; color: #8A2C2C; }
 .pv3-rnote svg { flex: none; margin-top: 2px; color: #C24848; }
+.pv3-rnote { margin: 0; }
+.pv3-rate__price .pv3-rate__full { margin-top: 6px; }

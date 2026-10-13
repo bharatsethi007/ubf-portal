@@ -1,21 +1,25 @@
 import { useState } from 'react'
 import { CheckCircle2, Loader2, X } from 'lucide-react'
 import DateField from '../../../../components/DateField'
-import { directionOf, requestQuote, type QuoteRequest, type RateQuery } from './ratesApi'
+import { directionOf, requestQuote, type QuoteRequest, type RateOption, type RateQuery } from './ratesApi'
 
 type Props = {
   query: RateQuery
   cargo: { kg: string; cbm: string; boxes: string }
+  /** Rate the customer wants fully quoted (freight + origin + destination). */
+  option?: RateOption | null
   onClose: () => void
 }
 
 /** Lane without a published price: send the details to the team as a quote request. */
-export default function QuoteRequestPanel({ query, cargo, onClose }: Props) {
+export default function QuoteRequestPanel({ query, cargo, option, onClose }: Props) {
+  const full = !!option
+  const seed = option ? `Full quote incl. origin and destination charges. Based on ${option.carrier ?? 'rate'} ${option.product}${option.container_type ? ` ${option.container_type}` : ''} (ref ${option.ref}).` : ''
   const [f, setF] = useState<QuoteRequest>({
     mode: query.mode, load_type: query.mode === 'sea' ? query.load : '', direction: directionOf(query.origin, query.destination),
-    origin: query.origin, destination: query.destination, container_type: query.load === 'FCL' ? query.container : '',
+    origin: query.origin, destination: query.destination, container_type: query.load === 'FCL' ? option?.container_type ?? query.container : '',
     container_count: cargo.boxes || '1', cargo_ready_date: '', goods_description: '', weight_kg: cargo.kg, cbm: cargo.cbm,
-    is_dg: false, is_temp_controlled: false, customer_ref: '', notes: '',
+    is_dg: false, is_temp_controlled: false, customer_ref: '', notes: seed,
   })
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
@@ -40,7 +44,7 @@ export default function QuoteRequestPanel({ query, cargo, onClose }: Props) {
   return (
     <section className="pv3-card pv3-form pv3-quote pv3-rise" aria-label="Request a quote">
       <header className="pv3-quote__head">
-        <h2>Get a price for {query.origin} → {query.destination}</h2>
+        <h2>{full ? 'Full quote' : 'Get a price'} for {query.origin} → {query.destination}</h2>
         <button type="button" className="pv3-iconbtn" onClick={onClose} aria-label="Close"><X size={16} /></button>
       </header>
       {done ? (

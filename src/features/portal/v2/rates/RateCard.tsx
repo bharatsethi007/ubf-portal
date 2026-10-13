@@ -59,6 +59,7 @@ export default function RateCard({ o, cheapest, fastest, input, onBook, onQuote,
             <span className="pv3-rate__unit">{o.unit}{o.sell_min ? ` · min ${money(o.sell_min, o.currency)}` : ''}</span>
             {total != null && <span className="pv3-rate__total">About {money(Math.round(total), o.currency)} for your cargo</span>}
             <button type="button" className="pv3-btn pv3-btn--primary" onClick={() => onBook(o)}>Book this rate <ArrowRight size={14} /></button>
+            <button type="button" className="pv3-btn pv3-btn--ghost pv3-rate__full" onClick={() => onQuote(o)}><MessageSquareQuote size={14} /> Get full quote</button>
           </>
         ) : (
           <>

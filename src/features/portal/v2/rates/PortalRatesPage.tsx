@@ -40,6 +40,8 @@ export default function PortalRatesPage() {
   const [busy, setBusy] = useState(false)
   const [err, setErr] = useState('')
   const [asking, setAsking] = useState(false)
+  const [quoteFor, setQuoteFor] = useState<RateOption | null>(null)
+  const ask = (o: RateOption | null) => { setQuoteFor(o); setAsking(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   const set = <K extends keyof RateQuery>(k: K, v: RateQuery[K]) => setQ((s) => ({ ...s, [k]: v }))
   const tab = params.get('tab') === 'search' || params.has('from') || params.has('rate') ? 'search' : 'quotes'
   const [pending, setPending] = useState(0)
@@ -96,6 +98,11 @@ export default function PortalRatesPage() {
 
       {tab === 'quotes' ? <PortalQuotesTab focusId={params.get('q')} onCount={onCount} /> : <>
 
+      <p className="pv3-rnote pv3-rise" role="note">
+        <Info size={15} />
+        <span>* Prices are indicative only. Availability is subject to change without notice. Air, FCL and LCL prices shown are freight only. Origin and destination charges are not applicable to these prices. Ask for a full quote to include them.</span>
+      </p>
+
       <section className="pv3-card pv3-rsearch pv3-rise" style={{ animationDelay: '.04s' }}>
         <div className="pv3-rsearch__row">
           <Seg label="Mode" value={q.mode} onChange={(v) => setQ((s) => ({ ...s, mode: v, origin: '', destination: '' }))}
@@ -136,7 +143,7 @@ export default function PortalRatesPage() {
         {err && <div className="pv3-form__err" role="alert">{err}</div>}
       </section>
 
-      {asking && searched && <QuoteRequestPanel query={searched} cargo={cargo} onClose={() => setAsking(false)} />}
+      {asking && searched && <QuoteRequestPanel key={quoteFor?.ref ?? 'lane'} query={searched} cargo={cargo} option={quoteFor} onClose={() => setAsking(false)} />}
 
       {results && searched && (
         <section className="pv3-rresults" aria-live="polite">
@@ -148,14 +155,8 @@ export default function PortalRatesPage() {
           </div>
           {results.map((o, i) => (
             <RateCard key={o.ref} o={o} input={input} delay={0.03 * i} cheapest={o.ref === cheapestRef} fastest={o.ref === fastestRef}
-              onBook={book} onQuote={() => setAsking(true)} />
+              onBook={book} onQuote={ask} />
           ))}
-          {results.length > 0 && (
-            <p className="pv3-rnote" role="note">
-              <Info size={15} />
-              <span>* Prices are indicative only. Availability is subject to change without notice. The shown prices for LCL are subject to local charges both ends. Only {searched.mode === 'air' ? 'air' : 'ocean'} freight displayed.</span>
-            </p>
-          )}
           {results.length === 0 && !asking && (
             <div className="pv3-card pv3-rempty pv3-rise">
               <MessageSquareQuote size={28} />
@@ -163,7 +164,7 @@ export default function PortalRatesPage() {
                 <b>We can still move it.</b>
                 <p>There's no published price for this lane, but most lanes are a quick quote away.</p>
               </div>
-              <button type="button" className="pv3-btn pv3-btn--primary" onClick={() => setAsking(true)}>Request a quote</button>
+              <button type="button" className="pv3-btn pv3-btn--primary" onClick={() => ask(null)}>Request a quote</button>
             </div>
           )}
         </section>
