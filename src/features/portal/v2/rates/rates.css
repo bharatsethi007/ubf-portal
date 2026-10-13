@@ -58,3 +58,6 @@
 .pv3-ratebanner { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 14px; padding: 14px 18px; border: 1px solid #A7F3D0; background: var(--green-soft); border-radius: 12px; color: var(--ink-2); font-size: 14px; }
 .pv3-ratebanner b { color: var(--ink); font-variant-numeric: tabular-nums; }
 .pv3-ratebanner .pv3-textbtn { margin-left: auto; }
+
+.pv3-rnote { display: flex; align-items: flex-start; gap: 10px; margin: 4px 0 0; padding: 12px 16px; background: #FDECEC; border: 1px solid #F6C9C9; border-radius: 10px; font-size: 13px; line-height: 1.45; color: #8A2C2C; }
+.pv3-rnote svg { flex: none; margin-top: 2px; color: #C24848; }
