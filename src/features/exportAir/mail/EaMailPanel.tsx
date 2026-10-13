@@ -39,11 +39,25 @@ export default function EaMailPanel({ bookingId, bookingRef, onClose, onChanged 
   const loadList = useCallback(async () => {
     try {
       if (tab === 'job') {
-        const { data } = await supabase.from('booking_threads').select('conversation_id').eq('booking_id', bookingId ?? '')
-        const ids = new Set((data ?? []).map((x) => x.conversation_id as string))
-        setJobIds(ids)
-        const [open, closed] = await Promise.all([fetchList('all', null, null, debounced), fetchList('closed', null, null, debounced)])
-        setRows([...open, ...closed].filter((r) => ids.has(r.id) || (!!bookingRef && r.booking_ref === bookingRef)))
+        // Read the job's threads directly: inbox_list is capped, so older linked threads would be missed.
+        const [links, legacy] = await Promise.all([
+          supabase.from('booking_threads').select('conversation_id').eq('booking_id', bookingId ?? ''),
+          supabase.from('inbox_conversations').select('id').eq('booking_id', bookingId ?? ''),
+        ])
+        const ids = [...new Set([...(links.data ?? []).map((x) => x.conversation_id as string), ...(legacy.data ?? []).map((x) => x.id as string)])]
+        setJobIds(new Set(ids))
+        if (!ids.length) { setRows([]); return }
+        const { data, error } = await supabase.from('inbox_conversations')
+          .select('id, subject, who, contact_name, contact_email, account_id, team, assignee_id, last_message_at, last_preview, last_channel, last_sender, reply_due_at, email_mailbox, channels, contact_type')
+          .in('id', ids).order('last_message_at', { ascending: false })
+        if (error) throw new Error(error.message)
+        const needle = debounced.toLowerCase()
+        setRows(((data ?? []) as Record<string, unknown>[]).map((c) => ({
+          ...(c as unknown as InboxRow),
+          who: (c.who as string) ?? (c.contact_name as string) ?? (c.contact_email as string) ?? 'Unknown',
+          account_name: null, assignee_name: null, assignee_initials: null, wa_id: null, quote_no: null,
+          booking_ref: bookingRef ?? null, unread: 0, channels: (c.channels as InboxRow['channels']) ?? [],
+        })).filter((r) => !needle || [r.who, r.subject, r.last_preview].some((x) => x?.toLowerCase().includes(needle))))
       } else {
         setRows(await fetchList(tab, null, EA_MAILBOX, debounced))
       }
@@ -111,7 +125,7 @@ export default function EaMailPanel({ bookingId, bookingRef, onClose, onChanged 
           <EaMailList rows={rows} tab={tab} tabs={tabs} q={q} selected={selected} loading={loading}
             onTab={(t) => { setTab(t); setSelected(null); setDetail(null); setPreview(null) }} onQ={setQ} onPick={pick} />
           {preview ? <EaMailPreview items={preview.items} index={preview.index} onIndex={(i) => setPreview({ ...preview, index: i })} onClose={() => setPreview(null)} /> : null}
-          <div className="flex min-w-0 flex-col" style={preview ? { flex: '0 0 600px' } : { flex: '1 1 auto' }}>
+          <div className="flex min-h-0 min-w-0 [&_.ibx-msgs]:min-h-0" style={preview ? { flex: '0 0 600px' } : { flex: '1 1 auto' }}>
             {detail && detail.conversation.id === selected
               ? <ThreadView detail={detail} staff={staff} me={me} onChanged={refresh} onPreview={onPreview} />
               : <div className="ibx-empty m-auto text-[12.5px] text-[#6B7280]">{selected ? 'Loading conversation…' : 'Pick an email. Attachments open on the left.'}</div>}
