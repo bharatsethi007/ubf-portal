@@ -12,6 +12,7 @@ import QuotesKanban from './QuotesKanban'
 import QuotesCalendar from './QuotesCalendar'
 import QuotesStatsStrip from './QuotesStatsStrip'
 import QuotesPortFilter from './QuotesPortFilter'
+import QuoteMailBubble from './QuoteMailBubble'
 import type { PortPair } from './quotesStatsApi'
 
 type View = 'list' | 'kanban' | 'calendar'
@@ -149,6 +150,7 @@ export default function QuotesPage() {
           <QuotesCalendar search={debouncedSearch} lane={lane} onOpen={openQuote} />
         )}
       </div>
+      <QuoteMailBubble onChanged={() => setStatsKey((k) => k + 1)} />
     </div>
   )
 }

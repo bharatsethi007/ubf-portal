@@ -9,16 +9,30 @@ import {
   fetchDetail, fetchList, fetchStaff, markRead,
   type EmailAttachment, type InboxDetail, type InboxRow, type StaffOption,
 } from '@/pages/inbox/inboxApi'
-import EaMailList, { type MailTab } from './EaMailList'
-import EaMailPreview from './EaMailPreview'
+import MailList, { type MailTab } from './MailList'
+import MailPreview from './MailPreview'
+import type { MailboxConfig, MailRecord } from './mailTypes'
 
-export const EA_MAILBOX = 'exportair.nz@ubfreight.com'
+type Props = { box: MailboxConfig; record?: MailRecord; onClose: () => void; onChanged: () => void }
 
-type Props = { bookingId?: string; bookingRef?: string; onClose: () => void; onChanged: () => void }
+const COLS = 'id, subject, who, contact_name, contact_email, account_id, team, assignee_id, last_message_at, last_preview, last_channel, last_sender, reply_due_at, email_mailbox, channels, contact_type'
 
-/** Export air mailbox over any EA screen: list, docked doc preview, full thread (reply, create booking, add docs to job). */
-export default function EaMailPanel({ bookingId, bookingRef, onClose, onChanged }: Props) {
-  const [tab, setTab] = useState<MailTab>(bookingId ? 'job' : 'all')
+// Threads linked to the record, read directly: inbox_list is capped, so older linked threads would be missed.
+async function recordThreadIds(r: MailRecord): Promise<string[]> {
+  if (r.kind === 'quote') {
+    const { data } = await supabase.from('inbox_conversations').select('id').eq('quote_id', r.id)
+    return (data ?? []).map((x) => x.id as string)
+  }
+  const [links, legacy] = await Promise.all([
+    supabase.from('booking_threads').select('conversation_id').eq('booking_id', r.id),
+    supabase.from('inbox_conversations').select('id').eq('booking_id', r.id),
+  ])
+  return [...new Set([...(links.data ?? []).map((x) => x.conversation_id as string), ...(legacy.data ?? []).map((x) => x.id as string)])]
+}
+
+/** Shared mailbox over any screen: list, docked doc preview, full thread (reply, create booking or quote, link). */
+export default function MailPanel({ box, record, onClose, onChanged }: Props) {
+  const [tab, setTab] = useState<MailTab>(record ? 'job' : 'all')
   const [q, setQ] = useState('')
   const [debounced, setDebounced] = useState('')
   const [rows, setRows] = useState<InboxRow[]>([])
@@ -38,35 +52,30 @@ export default function EaMailPanel({ bookingId, bookingRef, onClose, onChanged 
 
   const loadList = useCallback(async () => {
     try {
-      if (tab === 'job') {
-        // Read the job's threads directly: inbox_list is capped, so older linked threads would be missed.
-        const [links, legacy] = await Promise.all([
-          supabase.from('booking_threads').select('conversation_id').eq('booking_id', bookingId ?? ''),
-          supabase.from('inbox_conversations').select('id').eq('booking_id', bookingId ?? ''),
-        ])
-        const ids = [...new Set([...(links.data ?? []).map((x) => x.conversation_id as string), ...(legacy.data ?? []).map((x) => x.id as string)])]
+      if (tab === 'job' && record) {
+        const ids = await recordThreadIds(record)
         setJobIds(new Set(ids))
         if (!ids.length) { setRows([]); return }
-        const { data, error } = await supabase.from('inbox_conversations')
-          .select('id, subject, who, contact_name, contact_email, account_id, team, assignee_id, last_message_at, last_preview, last_channel, last_sender, reply_due_at, email_mailbox, channels, contact_type')
-          .in('id', ids).order('last_message_at', { ascending: false })
+        const { data, error } = await supabase.from('inbox_conversations').select(COLS).in('id', ids).order('last_message_at', { ascending: false })
         if (error) throw new Error(error.message)
         const needle = debounced.toLowerCase()
+        const ref = record.ref ?? null
         setRows(((data ?? []) as Record<string, unknown>[]).map((c) => ({
           ...(c as unknown as InboxRow),
           who: (c.who as string) ?? (c.contact_name as string) ?? (c.contact_email as string) ?? 'Unknown',
-          account_name: null, assignee_name: null, assignee_initials: null, wa_id: null, quote_no: null,
-          booking_ref: bookingRef ?? null, unread: 0, channels: (c.channels as InboxRow['channels']) ?? [],
+          account_name: null, assignee_name: null, assignee_initials: null, wa_id: null,
+          quote_no: record.kind === 'quote' ? ref : null, booking_ref: record.kind === 'booking' ? ref : null,
+          unread: 0, channels: (c.channels as InboxRow['channels']) ?? [],
         })).filter((r) => !needle || [r.who, r.subject, r.last_preview].some((x) => x?.toLowerCase().includes(needle))))
       } else {
-        setRows(await fetchList(tab, null, EA_MAILBOX, debounced))
+        setRows(await fetchList(tab === 'job' ? 'all' : tab, null, box.mailbox, debounced))
       }
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not load mailbox')
     } finally {
       setLoading(false)
     }
-  }, [tab, debounced, bookingId, bookingRef])
+  }, [tab, debounced, record, box.mailbox])
 
   useEffect(() => { setLoading(true); void loadList() }, [loadList])
   useEffect(() => { const t = window.setInterval(() => void loadList(), 60_000); return () => window.clearInterval(t) }, [loadList])
@@ -98,33 +107,36 @@ export default function EaMailPanel({ bookingId, bookingRef, onClose, onChanged 
     return () => window.removeEventListener('keydown', esc)
   }, [preview, onClose])
 
+  const fallback = record?.kind === 'quote' ? 'This quote' : 'This job'
   const tabs = useMemo(() => [
-    ...(bookingId ? [{ id: 'job' as const, label: bookingRef ?? 'This job', n: tab === 'job' ? rows.length : jobIds.size || undefined }] : []),
+    ...(record ? [{ id: 'job' as const, label: record.ref ?? fallback, n: tab === 'job' ? rows.length : jobIds.size || undefined }] : []),
     { id: 'all' as const, label: 'Open' },
     { id: 'mine' as const, label: 'Mine' },
     { id: 'unassigned' as const, label: 'Unassigned' },
-  ], [bookingId, bookingRef, tab, rows.length, jobIds.size])
+  ], [record, fallback, tab, rows.length, jobIds.size])
 
   const onPreview = useCallback((p: { items: EmailAttachment[]; index: number }) => setPreview(p), [])
+  const empty = record?.kind === 'quote' ? 'No email threads linked to this quote.' : 'No email threads linked to this job.'
 
   return (
     <div className="fixed inset-0 z-[60] bg-[rgba(15,23,42,.18)]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
-      <div role="dialog" aria-label="Export air mailbox"
+      <div role="dialog" aria-label={box.title}
         className="ibx absolute bottom-3 right-3 top-3 flex-col overflow-hidden rounded-xl shadow-[0_24px_64px_rgba(15,23,42,.22)]"
         style={{ margin: 0, height: 'auto', minHeight: 0, width: 'min(1560px, calc(100vw - 24px))', display: 'flex', flexDirection: 'column', borderTop: 0 }}>
         <header className="flex shrink-0 items-center gap-3 border-b border-[#E6E8EE] bg-white px-4 py-2.5">
-          <span className="text-[13.5px] font-semibold text-[#14161A]">Export air mail</span>
-          <span className="bk-mono text-[11px] text-[#6B7280]">{EA_MAILBOX}</span>
+          <span className="text-[13.5px] font-semibold text-[#14161A]">{box.title}</span>
+          <span className="bk-mono text-[11px] text-[#6B7280]">{box.mailbox}</span>
           <span className="flex-1" />
-          <Link to={`/inbox?team=${encodeURIComponent(EA_MAILBOX)}${selected ? `&c=${selected}` : ''}`} onClick={onClose}
+          <Link to={`/inbox?team=${encodeURIComponent(box.mailbox)}${selected ? `&c=${selected}` : ''}`} onClick={onClose}
             className="inline-flex items-center gap-1 text-[12px] text-[#0A2472] hover:underline">Open full inbox <ExternalLink size={12} /></Link>
           <button type="button" aria-label="Close mailbox" title="Close" onClick={onClose}
             className="inline-flex h-7 w-7 items-center justify-center rounded-md border-0 bg-transparent text-[#5B616E] hover:bg-[#F2F4F7]"><X size={16} /></button>
         </header>
         <div className="flex min-h-0 flex-1">
-          <EaMailList rows={rows} tab={tab} tabs={tabs} q={q} selected={selected} loading={loading}
+          <MailList rows={rows} tab={tab} tabs={tabs} q={q} selected={selected} loading={loading} empty={empty}
             onTab={(t) => { setTab(t); setSelected(null); setDetail(null); setPreview(null) }} onQ={setQ} onPick={pick} />
-          {preview ? <EaMailPreview items={preview.items} index={preview.index} onIndex={(i) => setPreview({ ...preview, index: i })} onClose={() => setPreview(null)} /> : null}
+          {preview ? <MailPreview items={preview.items} index={preview.index} docsToJob={!!box.docsToJob}
+            onIndex={(i) => setPreview({ ...preview, index: i })} onClose={() => setPreview(null)} /> : null}
           <div className="flex min-h-0 min-w-0 [&_.ibx-msgs]:min-h-0" style={preview ? { flex: '0 0 600px' } : { flex: '1 1 auto' }}>
             {detail && detail.conversation.id === selected
               ? <ThreadView detail={detail} staff={staff} me={me} onChanged={refresh} onPreview={onPreview} />

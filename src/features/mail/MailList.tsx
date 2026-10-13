@@ -11,13 +11,14 @@ type Props = {
   q: string
   selected: string | null
   loading: boolean
+  empty: string
   onTab: (t: MailTab) => void
   onQ: (q: string) => void
   onPick: (id: string) => void
 }
 
-/** Compact conversation list for the export air mailbox. */
-export default function EaMailList({ rows, tab, tabs, q, selected, loading, onTab, onQ, onPick }: Props) {
+/** Compact conversation list for a shared mailbox. */
+export default function MailList({ rows, tab, tabs, q, selected, loading, empty, onTab, onQ, onPick }: Props) {
   return (
     <aside className="flex w-[300px] shrink-0 flex-col border-r border-[#E6E8EE] bg-[#FAFBFC]">
       <div className="flex flex-col gap-2 border-b border-[#E6E8EE] px-3 pb-2 pt-3">
@@ -38,7 +39,7 @@ export default function EaMailList({ rows, tab, tabs, q, selected, loading, onTa
       </div>
       <ul className="m-0 min-h-0 flex-1 list-none overflow-y-auto p-0">
         {loading && !rows.length ? <li className="px-4 py-6 text-center text-[12px] text-[#6B7280]">Loading…</li> : null}
-        {!loading && !rows.length ? <li className="px-4 py-6 text-center text-[12px] text-[#6B7280]">{tab === 'job' ? 'No email threads linked to this job.' : 'Nothing here.'}</li> : null}
+        {!loading && !rows.length ? <li className="px-4 py-6 text-center text-[12px] text-[#6B7280]">{tab === 'job' ? empty : 'Nothing here.'}</li> : null}
         {rows.map((r) => {
           const on = r.id === selected
           return (
@@ -53,7 +54,7 @@ export default function EaMailList({ rows, tab, tabs, q, selected, loading, onTa
                 <span className="truncate text-[12px] text-[#334155]">{r.subject || '(no subject)'}</span>
                 <span className="flex items-center gap-1.5">
                   <span className="min-w-0 flex-1 truncate text-[11.5px] text-[#6B7280]">{r.last_preview}</span>
-                  {r.booking_ref ? <span className="bk-mono shrink-0 rounded bg-[#EEF1F9] px-1 text-[10px] leading-[15px] text-[#0A2472]">{r.booking_ref}</span> : null}
+                  {r.booking_ref || r.quote_no ? <span className="bk-mono shrink-0 rounded bg-[#EEF1F9] px-1 text-[10px] leading-[15px] text-[#0A2472]">{r.booking_ref ?? r.quote_no}</span> : null}
                   {r.assignee_initials ? <span className="shrink-0 text-[10px] font-semibold text-[#5B616E]">{r.assignee_initials}</span> : null}
                 </span>
               </button>

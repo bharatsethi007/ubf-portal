@@ -3,12 +3,12 @@ import AttachmentPane, { downloadAttachment } from '@/pages/inbox/AttachmentPane
 import { inboxAction, kb } from '@/pages/inbox/EmailParts'
 import type { EmailAttachment } from '@/pages/inbox/inboxApi'
 
-type Props = { items: EmailAttachment[]; index: number; onIndex: (i: number) => void; onClose: () => void }
+type Props = { items: EmailAttachment[]; index: number; docsToJob: boolean; onIndex: (i: number) => void; onClose: () => void }
 
 const icon = 'inline-flex h-7 w-7 shrink-0 items-center justify-center rounded-md border-0 bg-transparent text-[#5B616E] hover:bg-[#F2F4F7] disabled:opacity-30'
 
 /** Docked document preview, left of the thread. Same viewer as the inbox popup. */
-export default function EaMailPreview({ items, index, onIndex, onClose }: Props) {
+export default function MailPreview({ items, index, docsToJob, onIndex, onClose }: Props) {
   const a = items[index]
   if (!a) return null
   return (
@@ -24,10 +24,12 @@ export default function EaMailPreview({ items, index, onIndex, onClose }: Props)
             <button type="button" className={icon} title="Next" aria-label="Next document" disabled={index === items.length - 1} onClick={() => onIndex(index + 1)}><ChevronRight size={16} /></button>
           </>
         ) : null}
-        <button type="button" onClick={() => inboxAction('job', { mode: 'docs', attachmentIds: [a.id] })}
-          className="inline-flex h-7 w-auto items-center gap-1.5 rounded-md border border-[#E3E6EB] bg-white px-2.5 text-[12px] font-medium text-[#0A2472] hover:bg-[#F6F7F9]">
-          <FilePlus2 size={14} /> Add to job
-        </button>
+        {docsToJob ? (
+          <button type="button" onClick={() => inboxAction('job', { mode: 'docs', attachmentIds: [a.id] })}
+            className="inline-flex h-7 w-auto items-center gap-1.5 rounded-md border border-[#E3E6EB] bg-white px-2.5 text-[12px] font-medium text-[#0A2472] hover:bg-[#F6F7F9]">
+            <FilePlus2 size={14} /> Add to job
+          </button>
+        ) : null}
         <button type="button" className={icon} title="Download" aria-label="Download document" onClick={() => void downloadAttachment(a)}><Download size={15} /></button>
         <button type="button" className={icon} title="Close preview" aria-label="Close preview" onClick={onClose}><X size={15} /></button>
       </header>
