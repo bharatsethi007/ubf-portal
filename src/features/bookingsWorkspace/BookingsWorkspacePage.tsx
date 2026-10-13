@@ -2,6 +2,7 @@ import { useEffect } from 'react'
 import { Navigate, useParams } from 'react-router-dom'
 import ImportSeaBoardPage from '@/features/importSea/ImportSeaBoardPage'
 import BookingsPage from '@/pages/BookingsPage'
+import EaBoardPage from '@/features/exportAir/EaBoardPage'
 import { useStaffPref } from '@/hooks/useStaffPref'
 import './bookingsTheme.css'
 import BookingModeTabs from './BookingModeTabs'
@@ -32,7 +33,7 @@ export default function BookingsWorkspacePage({ slug: slugProp }: Props) {
       <header className="bk-head">
         <BookingModeTabs counts={counts} />
       </header>
-      {mode.module === 'IS' ? <ImportSeaBoardPage /> : <BookingsPage module={mode.module} embedded />}
+      {mode.module === 'IS' ? <ImportSeaBoardPage /> : mode.module === 'EA' ? <EaBoardPage /> : <BookingsPage module={mode.module} embedded />}
     </div>
   )
 }
