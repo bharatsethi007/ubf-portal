@@ -1,76 +1,101 @@
 // src/features/sli/SliUpload.tsx
-// Document attachments — upload to sli-uploads, tagged by doc_type.
-import React, { useState, useRef } from "react";
-import { Section, Label } from "./SliUI";
+// Section 6: documents. Drag and drop or browse; pick the type first with one click.
+import React, { useRef, useState } from "react";
+import { CloudUpload, FileText, X } from "lucide-react";
+import { Section, type SecState } from "./SliUI";
 
 const DOC_TYPES = [
-  { v: "commercial_invoice", t: "Commercial Invoice" },
-  { v: "packing_list", t: "Packing List" },
-  { v: "dg_cert", t: "Dangerous Goods Cert" },
-  { v: "cert_origin", t: "Certificate of Origin" },
-  { v: "export_permit", t: "Export Permit" },
-  { v: "letter_of_credit", t: "Letter of Credit" },
+  { v: "commercial_invoice", t: "Commercial invoice" },
+  { v: "packing_list", t: "Packing list" },
+  { v: "dg_cert", t: "DG declaration" },
+  { v: "cert_origin", t: "Certificate of origin" },
+  { v: "export_permit", t: "Export permit" },
+  { v: "letter_of_credit", t: "Letter of credit" },
   { v: "other", t: "Other" },
 ];
+const label = (v: string) => DOC_TYPES.find((d) => d.v === v)?.t ?? v;
 
-export default function SliUpload({
-  attachments, uploadFile, removeAttachment, dgRequired, errors,
-}: {
-  attachments: any[];
-  uploadFile: (f: File, t: string) => Promise<any>;
-  removeAttachment: (path: string) => void;
-  dgRequired: boolean;
-  errors: string[];
-}) {
-  const [docType, setDocType] = useState("commercial_invoice");
-  const [busy, setBusy] = useState(false);
+type Props = {
+  attachments: any[]; uploadFile: (f: File, t: string) => Promise<any>; removeAttachment: (path: string) => void;
+  dgRequired: boolean; errors: string[]; state: SecState;
+};
+
+export default function SliUpload({ attachments, uploadFile, removeAttachment, dgRequired, errors, state }: Props) {
+  const hasInvoice = attachments.some((a) => a.doc_type === "commercial_invoice");
+  const [docType, setDocType] = useState(dgRequired && hasInvoice ? "dg_cert" : hasInvoice ? "packing_list" : "commercial_invoice");
+  const [busy, setBusy] = useState(0);
+  const [over, setOver] = useState(false);
+  const [failed, setFailed] = useState("");
   const inputRef = useRef<HTMLInputElement>(null);
 
-  const onPick = async (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    setBusy(true);
-    try { await uploadFile(file, docType); } catch { alert("Upload failed, please retry."); }
-    finally { setBusy(false); if (inputRef.current) inputRef.current.value = ""; }
-  };
+  async function add(files: FileList | File[] | null) {
+    const list = Array.from(files ?? []);
+    if (!list.length) return;
+    setFailed("");
+    setBusy((n) => n + list.length);
+    for (const f of list) {
+      try { await uploadFile(f, docType); } catch { setFailed(`Couldn't upload ${f.name}. Please try again.`); }
+      finally { setBusy((n) => n - 1); }
+    }
+    if (inputRef.current) inputRef.current.value = "";
+  }
 
-  const dgMissing = dgRequired && !attachments.some((a) => a.doc_type === "dg_cert") && errors.includes("dg_cert_attachment");
+  const dgMissing = dgRequired && !attachments.some((a) => a.doc_type === "dg_cert");
+  const showDgErr = dgMissing && errors.includes("dg_cert_attachment");
 
   return (
-    <Section title="Documents">
-      <Label>Attach supporting documents</Label>
-      <div className="flex gap-2">
-        <select value={docType} onChange={(e) => setDocType(e.target.value)}
-          className="flex-1 rounded-lg border border-slate-200 px-3 py-2 text-sm bg-white">
-          {DOC_TYPES.map((d) => <option key={d.v} value={d.v}>{d.t}</option>)}
-        </select>
-        <button type="button" disabled={busy} onClick={() => inputRef.current?.click()}
-          className="rounded-lg bg-[#0A2472] text-white text-sm font-semibold px-4 disabled:opacity-50">
-          {busy ? "Uploading…" : "Add file"}
-        </button>
-        <input ref={inputRef} type="file" hidden onChange={onPick}
-          accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
+    <Section id="sec-docs" n={6} title="Documents" state={state}
+      sub={dgRequired ? "Commercial invoice recommended. DG declaration required." : "Commercial invoice and packing list help us clear faster."}>
+      <div className="mb-3 flex flex-wrap gap-1.5">
+        {DOC_TYPES.map((d) => {
+          const on = docType === d.v;
+          const need = d.v === "dg_cert" && dgMissing;
+          return (
+            <button key={d.v} type="button" onClick={() => setDocType(d.v)}
+              className={`h-8 rounded-full border px-3 text-[13px] font-medium transition ${on ? "border-[#0A2472] bg-[#0A2472] text-white"
+                : need ? "border-[#FEC84B] bg-[#FFFAEB] text-[#93370D]" : "border-[#D5D9E0] bg-white text-[#344054] hover:border-[#B4BBC6]"}`}>
+              {d.t}{need ? " *" : ""}
+            </button>
+          );
+        })}
       </div>
 
-      {dgMissing && (
-        <p className="text-[12px] text-red-500 font-medium">A Dangerous Goods certificate is required before you can submit.</p>
-      )}
+      <div onDragOver={(e) => { e.preventDefault(); setOver(true); }} onDragLeave={() => setOver(false)}
+        onDrop={(e) => { e.preventDefault(); setOver(false); void add(e.dataTransfer.files); }}
+        onClick={() => inputRef.current?.click()} role="button" tabIndex={0}
+        onKeyDown={(e) => { if (e.key === "Enter" || e.key === " ") inputRef.current?.click(); }}
+        className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 border-dashed px-5 py-5 transition ${
+          over ? "border-[#0A2472] bg-[#EEF2FB]" : showDgErr ? "border-[#FDA29B] bg-[#FFFBFA]" : "border-[#D5D9E0] bg-[#FCFCFD] hover:border-[#98A2B3]"}`}>
+        <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-full bg-white text-[#0A2472] ring-1 ring-[#E4E7EC]"><CloudUpload size={20} /></span>
+        <div className="min-w-0">
+          <div className="text-[14px] font-medium text-[#101828]">
+            {busy ? `Uploading ${busy} file${busy > 1 ? "s" : ""}…` : <>Drop files here or <span className="text-[#0A2472] underline underline-offset-2">browse</span></>}
+          </div>
+          <div className="text-[12.5px] text-[#667085]">Saved as <b className="text-[#344054]">{label(docType)}</b> · PDF, image, Word or Excel</div>
+        </div>
+        <input ref={inputRef} type="file" hidden multiple onChange={(e) => void add(e.target.files)} accept=".pdf,.jpg,.jpeg,.png,.doc,.docx,.xls,.xlsx" />
+      </div>
 
-      <ul className="space-y-1.5 mt-2">
-        {attachments.map((a) => (
-          <li key={a.storage_path} className="flex items-center justify-between rounded-lg bg-slate-50 px-3 py-2 text-sm">
-            <span className="truncate">
-              <b className="text-[11px] uppercase text-slate-400 mr-2">
-                {DOC_TYPES.find((d) => d.v === a.doc_type)?.t ?? a.doc_type}
-              </b>
-              {a.file_name}
-            </span>
-            <button type="button" onClick={() => removeAttachment(a.storage_path)}
-              className="text-slate-400 hover:text-red-500 text-xs ml-2">Remove</button>
-          </li>
-        ))}
-        {attachments.length === 0 && <li className="text-[12px] text-slate-400">No documents attached yet.</li>}
-      </ul>
+      {showDgErr ? <p className="m-0 mt-2 text-[13px] font-medium text-[#B42318]">A DG declaration is required before you can submit.</p> : null}
+      {failed ? <p className="m-0 mt-2 text-[13px] text-[#B42318]">{failed}</p> : null}
+
+      {attachments.length ? (
+        <ul className="m-0 mt-3 grid list-none grid-cols-1 gap-2 p-0 sm:grid-cols-2">
+          {attachments.map((a) => (
+            <li key={a.storage_path ?? a.id ?? a.file_name} className="flex items-center gap-3 rounded-lg border border-[#EAECF0] bg-white px-3 py-2.5">
+              <FileText size={18} className="shrink-0 text-[#0A2472]" />
+              <div className="min-w-0 flex-1">
+                <div className="truncate text-[13.5px] font-medium text-[#101828]">{a.file_name}</div>
+                <div className="text-[12px] text-[#667085]">{label(a.doc_type)}</div>
+              </div>
+              {a.storage_path ? (
+                <button type="button" aria-label={`Remove ${a.file_name}`} onClick={() => removeAttachment(a.storage_path)}
+                  className="flex h-8 w-8 items-center justify-center rounded-md text-[#667085] hover:bg-[#FEF3F2] hover:text-[#B42318]"><X size={16} /></button>
+              ) : null}
+            </li>
+          ))}
+        </ul>
+      ) : null}
     </Section>
   );
 }

@@ -1,97 +1,164 @@
 // src/features/sli/SliUI.tsx
-// Small shared primitives for the SLI page. UBF branding: navy #0A2472, orange #F7941D.
+// Shared primitives for the public SLI page. White, roomy type, compact grids. UBF navy #0A2472, orange #F7941D.
 import React from "react";
+import { Check, Lock, Mail, Phone, Sparkles } from "lucide-react";
 
 export const err = (errors: string[], key: string) => errors.includes(key);
+export const isYes = (v: any) => v === true || v === "yes";
+export const isNo = (v: any) => v === false || v === "no";
 
-export function Label({ children, required }: { children: React.ReactNode; required?: boolean }) {
+const ring = (bad?: boolean) =>
+  bad ? "border-[#F04438] ring-2 ring-[#FEE4E2]" : "border-[#D5D9E0] hover:border-[#B4BBC6] focus:border-[#0A2472] focus:ring-2 focus:ring-[#E4E9F7]";
+export const inputCls = (bad?: boolean, ro?: boolean) =>
+  `h-10 w-full rounded-lg border bg-white px-3 text-[14px] text-[#101828] outline-none transition placeholder:text-[#98A2B3] ${ring(bad)} ${ro ? "bg-[#F8F9FB] text-[#475467]" : ""}`;
+
+/** "Prefilled" or "Suggested" marker next to a label. */
+export function Tag({ kind }: { kind: "prefilled" | "suggested" }) {
   return (
-    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">
-      {children} {required && <span className="text-[#F7941D]">*</span>}
+    <span title={kind === "prefilled" ? "Filled in by UB Freight from your booking. Change it if it's wrong." : "UB Freight's best guess. Please confirm."}
+      className={`ml-1.5 inline-flex items-center gap-0.5 rounded px-1.5 py-[1px] text-[10.5px] font-medium ${
+        kind === "prefilled" ? "bg-[#EEF2FB] text-[#0A2472]" : "bg-[#FFF4E5] text-[#B54708]"}`}>
+      <Sparkles size={10} /><span className="hidden sm:inline">{kind === "prefilled" ? "Prefilled" : "Suggested"}</span>
+    </span>
+  );
+}
+
+export function Label({ children, required, tag, htmlFor }: { children: React.ReactNode; required?: boolean; tag?: "prefilled" | "suggested" | null; htmlFor?: string }) {
+  return (
+    <label htmlFor={htmlFor} className="mb-1.5 flex items-center text-[13px] font-medium text-[#344054]">
+      {children}{required ? <span className="ml-0.5 text-[#F7941D]">*</span> : null}
+      {tag ? <Tag kind={tag} /> : null}
     </label>
   );
 }
 
-export function Field({
-  label, value, onChange, required, error, type = "text", readOnly, placeholder,
-}: {
-  label: string; value: any; onChange?: (v: string) => void; required?: boolean;
-  error?: boolean; type?: string; readOnly?: boolean; placeholder?: string;
-}) {
-  return (
-    <div>
-      <Label required={required}>{label}</Label>
-      <input
-        type={type} value={value ?? ""} placeholder={placeholder}
-        readOnly={readOnly} onChange={(e) => onChange?.(e.target.value)}
-        className={`w-full rounded-lg border px-3 py-2 text-sm ${
-          readOnly ? "bg-slate-50 text-slate-500" : "bg-white"
-        } ${error ? "border-red-400 ring-1 ring-red-300" : "border-slate-200"}`}
-      />
-    </div>
-  );
-}
+type FieldProps = {
+  label: string; value: any; onChange?: (v: string) => void; required?: boolean; error?: boolean;
+  type?: string; readOnly?: boolean; placeholder?: string; tag?: "prefilled" | "suggested" | null;
+  className?: string; suffix?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+};
 
-export function YesNo({
-  label, value, onChange, required, error,
-}: {
-  label: string; value: any; onChange: (v: "yes" | "no") => void;
-  required?: boolean; error?: boolean;
-}) {
-  const opt = (v: "yes" | "no", txt: string) => {
-    const active = value === v || value === (v === "yes");
-    return (
-      <button type="button" onClick={() => onChange(v)}
-        className={`flex-1 rounded-lg border px-3 py-2 text-sm font-semibold transition-colors ${
-          active ? "bg-[#0A2472] text-white border-[#0A2472]" : "bg-white text-slate-600 border-slate-200"
-        }`}>
-        {txt}
-      </button>
-    );
-  };
+export function Field({ label, value, onChange, required, error, type = "text", readOnly, placeholder, tag, className, suffix, inputMode }: FieldProps) {
+  const id = `f-${label.replace(/\W+/g, "-").toLowerCase()}`;
   return (
-    <div>
-      <Label required={required}>{label}</Label>
-      <div className={`flex gap-2 ${error ? "rounded-lg ring-1 ring-red-300 p-0.5" : ""}`}>
-        {opt("yes", "Yes")}{opt("no", "No")}
+    <div className={className}>
+      <Label htmlFor={id} required={required} tag={tag}>{label}</Label>
+      <div className="relative">
+        <input id={id} type={type} value={value ?? ""} placeholder={placeholder} readOnly={readOnly} inputMode={inputMode}
+          onChange={(e) => onChange?.(e.target.value)} className={`${inputCls(error, readOnly)} ${suffix ? "pr-12" : ""}`} />
+        {suffix ? <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-[#667085]">{suffix}</span> : null}
       </div>
     </div>
   );
 }
 
-export function Section({ title, children }: { title: string; children: React.ReactNode }) {
+/** Segmented control. Used for yes/no and short option sets. */
+export function Segmented<T extends string>({ value, options, onChange, error }: {
+  value: any; options: { v: T; t: string }[]; onChange: (v: T) => void; error?: boolean;
+}) {
   return (
-    <section className="bg-white rounded-2xl border border-slate-200 p-5">
-      <h2 className="text-sm font-bold text-[#0A2472] mb-4">{title}</h2>
-      <div className="space-y-4">{children}</div>
+    <div role="radiogroup" className={`inline-flex rounded-lg border bg-[#F2F4F7] p-0.5 ${error ? "border-[#F04438] ring-2 ring-[#FEE4E2]" : "border-[#E4E7EC]"}`}>
+      {options.map((o) => {
+        const on = value === o.v || (o.v === "yes" && value === true) || (o.v === "no" && value === false);
+        return (
+          <button key={o.v} type="button" role="radio" aria-checked={on} onClick={() => onChange(o.v)}
+            className={`h-9 min-w-[64px] rounded-md px-3.5 text-[13.5px] font-medium transition ${
+              on ? "bg-white text-[#0A2472] shadow-[0_1px_2px_rgba(16,24,40,.12)] ring-1 ring-[#D0D5DD]" : "text-[#475467] hover:text-[#101828]"}`}>
+            {o.t}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
+export const YN = [{ v: "yes" as const, t: "Yes" }, { v: "no" as const, t: "No" }];
+
+/** One question per row: text on the left, answer on the right. Fast to scan, easy to tap. */
+export function QRow({ q, hint, required, tag, error, children, below }: {
+  q: React.ReactNode; hint?: React.ReactNode; required?: boolean; tag?: "prefilled" | "suggested" | null;
+  error?: boolean; children: React.ReactNode; below?: React.ReactNode;
+}) {
+  return (
+    <div className={`py-3.5 ${error ? "-mx-2 rounded-lg bg-[#FFFBFA] px-2" : ""}`}>
+      <div className="flex flex-col gap-2.5 sm:flex-row sm:items-center sm:justify-between sm:gap-6">
+        <div className="min-w-0">
+          <div className="flex flex-wrap items-center text-[14px] font-medium text-[#101828]">
+            {q}{required ? <span className="ml-0.5 text-[#F7941D]">*</span> : null}{tag ? <Tag kind={tag} /> : null}
+          </div>
+          {hint ? <div className="mt-0.5 text-[12.5px] leading-snug text-[#667085]">{hint}</div> : null}
+        </div>
+        <div className="shrink-0">{children}</div>
+      </div>
+      {below ? <div className="mt-3">{below}</div> : null}
+    </div>
+  );
+}
+
+export type SecState = "done" | "todo" | "error" | "optional";
+
+/** Numbered card. Its id is what the progress rail jumps to. */
+export function Section({ id, n, title, sub, state, children, right }: {
+  id: string; n: number; title: string; sub?: string; state: SecState; children: React.ReactNode; right?: React.ReactNode;
+}) {
+  const badge = state === "done"
+    ? <span className="flex h-7 w-7 items-center justify-center rounded-full bg-[#ECFDF3] text-[#067647] ring-1 ring-[#ABEFC6]"><Check size={15} strokeWidth={2.5} /></span>
+    : <span className={`flex h-7 w-7 items-center justify-center rounded-full text-[13px] font-semibold ring-1 ${
+        state === "error" ? "bg-[#FEF3F2] text-[#B42318] ring-[#FECDCA]" : "bg-white text-[#0A2472] ring-[#D0D5DD]"}`}>{n}</span>;
+  return (
+    <section id={id} className={`scroll-mt-24 rounded-xl border bg-white ${state === "error" ? "border-[#FECDCA]" : "border-[#E4E7EC]"}`}>
+      <header className="flex items-center gap-3 border-b border-[#F2F4F7] px-5 py-3.5">
+        {badge}
+        <div className="min-w-0 flex-1">
+          <h2 className="m-0 text-[15.5px] font-semibold tracking-[-0.01em] text-[#101828]">{title}</h2>
+          {sub ? <p className="m-0 text-[12.5px] text-[#667085]">{sub}</p> : null}
+        </div>
+        {right}
+      </header>
+      <div className="px-5 py-4">{children}</div>
     </section>
   );
 }
 
-export function Shell({ children }: { children: React.ReactNode }) {
+export function Shell({ children, right }: { children: React.ReactNode; right?: React.ReactNode }) {
   return (
-    <div className="min-h-screen bg-slate-50 font-sans">
-      <header className="bg-[#0A2472] text-white px-5 py-4">
-        <div className="max-w-2xl mx-auto flex items-center justify-between">
-          <span className="font-bold tracking-tight">UB FREIGHT</span>
-          <span className="text-xs text-blue-200">Shipper's Letter of Instruction</span>
+    <div className="min-h-screen bg-[#F7F8FA] font-sans text-[#101828] antialiased">
+      <header className="sticky top-0 z-30 border-b border-[#E4E7EC] bg-white/95 backdrop-blur">
+        <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-4 px-4 sm:px-6">
+          <img src="/ub-freight-logo.png" alt="UB Freight" className="h-9 w-auto rounded-[3px]" />
+          <div className="hidden h-7 w-px bg-[#E4E7EC] sm:block" />
+          <div className="hidden min-w-0 sm:block">
+            <div className="text-[15px] font-semibold leading-tight">Shipper's Letter of Instruction</div>
+            <div className="text-[12px] text-[#667085]">Export air · UB Freight Limited</div>
+          </div>
+          <span className="flex-1" />
+          {right}
+          <span className="hidden items-center gap-1 text-[12px] text-[#667085] md:flex"><Lock size={12} /> Secure link</span>
         </div>
       </header>
-      <main className="max-w-2xl mx-auto p-4 sm:p-6 space-y-4">{children}</main>
-      <footer className="max-w-2xl mx-auto px-5 py-6 text-[11px] text-slate-400">
-        173 Montgomerie Road, Mangere, Auckland 2022 · Ph: 09 966 3850
+      <main className="mx-auto max-w-[1240px] px-4 pb-28 pt-5 sm:px-6 lg:pb-12">{children}</main>
+      <footer className="border-t border-[#E4E7EC] bg-white">
+        <div className="mx-auto flex max-w-[1240px] flex-wrap items-center gap-x-5 gap-y-1 px-4 py-4 text-[12px] text-[#667085] sm:px-6">
+          <span className="font-medium text-[#344054]">UB Freight Limited</span>
+          <span>173 Montgomerie Road, Airport Oaks, Auckland 2022</span>
+          <a href="tel:+6499663850" className="inline-flex items-center gap-1 text-[#667085] no-underline hover:text-[#0A2472]"><Phone size={12} /> +64 9 966 3850</a>
+          <a href="mailto:exportair.nz@ubfreight.com" className="inline-flex items-center gap-1 text-[#667085] no-underline hover:text-[#0A2472]"><Mail size={12} /> exportair.nz@ubfreight.com</a>
+        </div>
       </footer>
     </div>
   );
 }
 
 export function Notice({ kind, title, msg }: { kind: "expired" | "invalid" | "error" | "success"; title: string; msg: string }) {
-  const color = kind === "success" ? "text-emerald-600" : "text-slate-700";
+  const ok = kind === "success";
   return (
     <Shell>
-      <div className="bg-white rounded-2xl border border-slate-200 p-8 text-center">
-        <h1 className={`text-lg font-bold ${color} mb-2`}>{title}</h1>
-        <p className="text-sm text-slate-500">{msg}</p>
+      <div className="mx-auto mt-10 max-w-[520px] rounded-xl border border-[#E4E7EC] bg-white p-10 text-center">
+        <div className={`mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full ${ok ? "bg-[#ECFDF3] text-[#067647]" : "bg-[#F2F4F7] text-[#475467]"}`}>
+          {ok ? <Check size={24} strokeWidth={2.5} /> : <Lock size={22} />}
+        </div>
+        <h1 className="m-0 mb-2 text-[20px] font-semibold">{title}</h1>
+        <p className="m-0 text-[14px] text-[#667085]">{msg}</p>
       </div>
     </Shell>
   );

@@ -1,69 +1,84 @@
 // src/features/sli/SliCargo.tsx
-// Shipment header (read-only, staff-set) + editable shipper/cargo with live volumetric weight.
+// Sections 1–2: shipper and cargo. Editable, prefilled from the booking, live chargeable weight.
 import React from "react";
-import { Field, Section, Label } from "./SliUI";
+import { Field, Label, Section, inputCls, type SecState } from "./SliUI";
 
-const VOL_FACTOR = 167; // 1 m³ = 167 kg (air), per SLI rule
+const VOL_FACTOR = 167; // 1 m³ = 167 kg (air)
+const n1 = (v: number) => (v ? v.toLocaleString("en-NZ", { maximumFractionDigits: 1 }) : "0");
 
-export default function SliCargo({
-  staff, prefilled, edits, setEdit, errors,
-}: {
-  staff: any; prefilled: any; edits: Record<string, any>; setEdit: (k: string, v: any) => void; errors: string[];
-}) {
-  const val = (k: string) => (k in edits ? edits[k] : prefilled?.[k]);
+type Props = {
+  prefilled: any; edits: Record<string, any>; setEdit: (k: string, v: any) => void;
+  states: { shipper: SecState; cargo: SecState };
+};
+
+export default function SliCargo({ prefilled, edits, setEdit, states }: Props) {
+  const p = prefilled ?? {};
+  const val = (k: string) => (k in edits ? edits[k] : p[k]);
+  const tag = (k: string) => (!(k in edits) && p[k] != null && p[k] !== "" ? "prefilled" as const : null);
+  const f = (k: string, label: string, extra: Partial<React.ComponentProps<typeof Field>> = {}) => (
+    <Field label={label} value={val(k)} onChange={(v) => setEdit(k, v)} tag={tag(k)} {...extra} />
+  );
 
   const actual = Number(val("weight_kg")) || 0;
-  const cbm = Number(val("cbm")) || 0;
-  const volumetric = cbm * VOL_FACTOR;
+  const volumetric = (Number(val("cbm")) || 0) * VOL_FACTOR;
   const chargeable = Math.max(actual, volumetric);
+  const lines: any[] = Array.isArray(p.lines) ? p.lines.filter((l: any) => l.l || l.w || l.h) : [];
 
   return (
     <>
-      <Section title="Shipment">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Origin" value={staff?.origin} readOnly />
-          <Field label="Destination" value={staff?.destination} readOnly />
-          <Field label="Incoterm" value={staff?.incoterm} readOnly />
-          <Field label="Airline" value={staff?.airline_name} readOnly />
-          <Field label="Flight #" value={staff?.flight_no} readOnly />
-          <Field label="Booking Ref" value={staff?.booking_ref} readOnly />
+      <Section id="sec-shipper" n={1} title="Shipper" sub="Who is sending the goods" state={states.shipper}>
+        <div className="grid grid-cols-1 gap-x-4 gap-y-3.5 sm:grid-cols-6">
+          {f("supplier_name", "Company", { className: "sm:col-span-4", required: true })}
+          {f("supplier_contact", "Contact person", { className: "sm:col-span-2" })}
+          {f("supplier_address", "Street address", { className: "sm:col-span-4", required: true })}
+          {f("supplier_city", "City", { className: "sm:col-span-2" })}
+          {f("supplier_phone", "Phone", { className: "sm:col-span-2", type: "tel" })}
+          {f("supplier_email", "Email", { className: "sm:col-span-3", type: "email" })}
+          {f("supplier_country", "Country", { className: "sm:col-span-1" })}
         </div>
-        <p className="text-[11px] text-slate-400">
-          These details are set by UB Freight. If anything looks wrong, note it in special instructions below.
-        </p>
       </Section>
 
-      <Section title="Shipper / Sender">
-        <Field label="Company" value={val("supplier_name")} onChange={(v) => setEdit("supplier_name", v)} />
-        <Field label="Address" value={val("supplier_address")} onChange={(v) => setEdit("supplier_address", v)} />
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="City" value={val("supplier_city")} onChange={(v) => setEdit("supplier_city", v)} />
-          <Field label="Phone" value={val("supplier_phone")} onChange={(v) => setEdit("supplier_phone", v)} />
+      <Section id="sec-cargo" n={2} title="Cargo" state={states.cargo}
+        sub={p.measured ? "Measured by our warehouse on arrival" : "As booked. Correct anything that has changed."}>
+        <div className="grid grid-cols-2 gap-x-4 gap-y-3.5 sm:grid-cols-4">
+          {f("pieces", "Pieces", { type: "number", inputMode: "numeric", required: true })}
+          {f("weight_kg", "Gross weight", { type: "number", inputMode: "decimal", suffix: "kg", required: true })}
+          {f("cbm", "Volume", { type: "number", inputMode: "decimal", suffix: "m³" })}
+          {f("po_number", "PO / order no.")}
+          <div className="col-span-2 sm:col-span-4">
+            <Label required tag={tag("goods_description")}>Description of goods</Label>
+            <textarea value={val("goods_description") ?? ""} rows={2} onChange={(e) => setEdit("goods_description", e.target.value)}
+              placeholder="e.g. 4 cartons of stainless kitchen equipment"
+              className={`${inputCls()} h-auto resize-y py-2 leading-snug`} />
+          </div>
         </div>
-        <Field label="Email" value={val("supplier_email")} onChange={(v) => setEdit("supplier_email", v)} type="email" />
-      </Section>
 
-      <Section title="Cargo">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="No. of Pieces" value={val("pieces")} onChange={(v) => setEdit("pieces", v)} type="number" />
-          <Field label="PO Number" value={val("po_number")} onChange={(v) => setEdit("po_number", v)} />
-          <Field label="Gross Weight (kg)" value={val("weight_kg")} onChange={(v) => setEdit("weight_kg", v)} type="number" />
-          <Field label="Volume (m³ / CBM)" value={val("cbm")} onChange={(v) => setEdit("cbm", v)} type="number" />
+        {lines.length ? (
+          <div className="mt-4 overflow-hidden rounded-lg border border-[#EAECF0]">
+            <table className="w-full border-collapse text-[13px]">
+              <thead className="bg-[#F9FAFB] text-left text-[12px] text-[#667085]">
+                <tr><th className="px-3 py-2 font-medium">Pieces</th><th className="px-3 py-2 font-medium">Dimensions (L × W × H)</th><th className="px-3 py-2 text-right font-medium">Weight</th><th className="px-3 py-2 text-right font-medium">Volume</th></tr>
+              </thead>
+              <tbody>
+                {lines.map((l, i) => (
+                  <tr key={i} className="border-t border-[#F2F4F7]">
+                    <td className="px-3 py-2">{l.pieces ?? "—"}</td>
+                    <td className="px-3 py-2 font-mono text-[12.5px]">{[l.l, l.w, l.h].map((x) => x ?? "?").join(" × ")} {l.unit}</td>
+                    <td className="px-3 py-2 text-right">{l.weight != null ? `${l.weight} kg` : "—"}</td>
+                    <td className="px-3 py-2 text-right">{l.cbm != null ? `${l.cbm} m³` : "—"}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        ) : null}
+
+        <div className="mt-4 flex flex-wrap items-center gap-2 text-[13px]">
+          <span className="rounded-md bg-[#F2F4F7] px-2.5 py-1.5 text-[#475467]">Actual <b className="text-[#101828]">{n1(actual)} kg</b></span>
+          <span className="rounded-md bg-[#F2F4F7] px-2.5 py-1.5 text-[#475467]">Volumetric <b className="text-[#101828]">{n1(volumetric)} kg</b></span>
+          <span className="rounded-md bg-[#EEF2FB] px-2.5 py-1.5 text-[#0A2472]">Chargeable <b>{n1(chargeable)} kg</b></span>
+          <span className="text-[12px] text-[#667085]">1 m³ = 167 kg. Charged on the greater of actual or volumetric.</span>
         </div>
-        <div>
-          <Label>Goods Description</Label>
-          <textarea
-            value={val("goods_description") ?? ""} rows={2}
-            onChange={(e) => setEdit("goods_description", e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm"
-          />
-        </div>
-        {/* live volumetric calc */}
-        <div className="rounded-lg bg-slate-50 px-3 py-2 text-[12px] text-slate-600 flex justify-between">
-          <span>Volumetric: <b>{volumetric ? volumetric.toFixed(1) : "0"} kg</b></span>
-          <span>Chargeable: <b className="text-[#0A2472]">{chargeable ? chargeable.toFixed(1) : "0"} kg</b></span>
-        </div>
-        <p className="text-[11px] text-slate-400">1 m³ = 167 kg. Freight charged on actual or volumetric, whichever is greater.</p>
       </Section>
     </>
   );

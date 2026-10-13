@@ -1,123 +1,122 @@
 // src/features/sli/SliDeclarations.tsx
-// All required SLI answers + battery/DG linkage + country dropdown (auto-suggested).
+// Sections 3–5: payment & customs, dangerous goods, security. One question per row.
 import React from "react";
-import { Field, YesNo, Section, Label, err } from "./SliUI";
+import { TriangleAlert } from "lucide-react";
+import { Field, QRow, Section, Segmented, YN, err, inputCls, isYes, type SecState } from "./SliUI";
 
 const BATTERY_OPTS = [
   { v: "consumer", t: "Consumer (AA, AAA)" },
-  { v: "lithium_ion", t: "Lithium Ion" },
-  { v: "lithium_metal", t: "Lithium Metal" },
-  { v: "lead_acid", t: "Lead Acid" },
+  { v: "lithium_ion", t: "Lithium ion" },
+  { v: "lithium_metal", t: "Lithium metal" },
+  { v: "lead_acid", t: "Lead acid" },
 ];
-const PURPOSE_OPTS = [
-  { v: "sold", t: "Sold" },
-  { v: "repair_return", t: "Repair & Return" },
-  { v: "other", t: "Other" },
-];
+const PURPOSE_OPTS = [{ v: "sold", t: "Sold" }, { v: "repair_return", t: "Repair & return" }, { v: "other", t: "Other" }];
+const TOP_COUNTRIES = ["NZ", "AU", "CN", "US", "GB", "DE", "JP", "IN", "FJ"];
 
-export default function SliDeclarations({
-  answers, setAnswer, countries, errors, declaredValue,
-}: {
+type Props = {
   answers: Record<string, any>; setAnswer: (k: string, v: any) => void;
-  countries: { code: string; name: string }[]; errors: string[]; declaredValue?: number;
-}) {
-  const a = answers;
-  const isYes = (v: any) => v === true || v === "yes";
-  const toggleBattery = (v: string) => {
-    const cur: string[] = Array.isArray(a.batteries) ? a.batteries : [];
-    setAnswer("batteries", cur.includes(v) ? cur.filter((x) => x !== v) : [...cur, v]);
-  };
-  const hasLithium = (Array.isArray(a.batteries) ? a.batteries : []).some((b: string) => /lithium/i.test(b));
+  countries: { code: string; name: string }[]; errors: string[]; suggested: (k: string) => boolean;
+  states: { customs: SecState; dg: SecState; security: SecState };
+};
+
+export default function SliDeclarations({ answers: a, setAnswer, countries, errors, suggested, states }: Props) {
+  const tag = (k: string) => (suggested(k) ? "suggested" as const : null);
+  const batteries: string[] = Array.isArray(a.batteries) ? a.batteries : [];
+  const toggleBattery = (v: string) => setAnswer("batteries", batteries.includes(v) ? batteries.filter((x) => x !== v) : [...batteries, v]);
+  const hasLithium = batteries.some((b) => /lithium/i.test(b));
+  const top = TOP_COUNTRIES.map((c) => countries.find((x) => x.code === c)).filter(Boolean) as { code: string; name: string }[];
 
   return (
     <>
-      <Section title="Payment & Insurance">
-        <YesNo label="Are you paying for this shipment?" value={a.is_paying} required
-          error={err(errors, "is_paying")} onChange={(v) => setAnswer("is_paying", v)} />
-        <YesNo label="Is insurance required?" value={a.insurance_required} required
-          error={err(errors, "insurance_required")} onChange={(v) => {
-            setAnswer("insurance_required", v);
-            if (isYes(v) && !a.insurance_amount && declaredValue) setAnswer("insurance_amount", declaredValue);
-          }} />
-        {isYes(a.insurance_required) && (
-          <Field label="Amount to be covered" value={a.insurance_amount} type="number" required
-            error={err(errors, "insurance_amount")} onChange={(v) => setAnswer("insurance_amount", v)} />
-        )}
-      </Section>
-
-      <Section title="Customs">
-        <div className="grid grid-cols-2 gap-3">
-          <Field label="Declared Value" value={a.declared_value} type="number"
-            onChange={(v) => setAnswer("declared_value", v)} />
-          <Field label="Currency" value={a.declared_currency} placeholder="NZD"
-            onChange={(v) => setAnswer("declared_currency", v)} />
+      <Section id="sec-customs" n={3} title="Payment & customs" sub="Needed for the export entry" state={states.customs}>
+        <div className="divide-y divide-[#F2F4F7]">
+          <QRow q="Are you paying the freight for this shipment?" required tag={tag("is_paying")} error={err(errors, "is_paying")}>
+            <Segmented value={a.is_paying} options={YN} onChange={(v) => setAnswer("is_paying", v)} error={err(errors, "is_paying")} />
+          </QRow>
+          <QRow q="Do you need cargo insurance?" hint="We insure for the amount you enter." required tag={tag("insurance_required")}
+            error={err(errors, "insurance_required") || err(errors, "insurance_amount")}
+            below={isYes(a.insurance_required) ? (
+              <Field label="Amount to insure" value={a.insurance_amount} type="number" inputMode="decimal" required className="max-w-[260px]"
+                suffix={a.declared_currency || "NZD"} error={err(errors, "insurance_amount")} onChange={(v) => setAnswer("insurance_amount", v)} />
+            ) : null}>
+            <Segmented value={a.insurance_required} options={YN} error={err(errors, "insurance_required")} onChange={(v) => {
+              setAnswer("insurance_required", v);
+              if (v === "yes" && !a.insurance_amount && Number(a.declared_value) > 0) setAnswer("insurance_amount", a.declared_value);
+            }} />
+          </QRow>
+          <QRow q="Is a duty drawback required?" required tag={tag("drawback_required")} error={err(errors, "drawback_required")}>
+            <Segmented value={a.drawback_required} options={YN} onChange={(v) => setAnswer("drawback_required", v)} error={err(errors, "drawback_required")} />
+          </QRow>
+          <QRow q="Purpose of export" required tag={tag("purpose_of_export")} error={err(errors, "purpose_of_export") || err(errors, "purpose_other")}
+            below={a.purpose_of_export === "other" ? (
+              <input value={a.purpose_other ?? ""} placeholder="Tell us the purpose" onChange={(e) => setAnswer("purpose_other", e.target.value)}
+                className={`${inputCls(err(errors, "purpose_other"))} max-w-[420px]`} />
+            ) : null}>
+            <Segmented value={a.purpose_of_export} options={PURPOSE_OPTS} onChange={(v) => setAnswer("purpose_of_export", v)} error={err(errors, "purpose_of_export")} />
+          </QRow>
         </div>
-        <div>
-          <Label required>Country of Origin</Label>
-          <select value={a.country_of_origin ?? ""} onChange={(e) => setAnswer("country_of_origin", e.target.value)}
-            className={`w-full rounded-lg border px-3 py-2 text-sm bg-white ${
-              err(errors, "country_of_origin") ? "border-red-400 ring-1 ring-red-300" : "border-slate-200"
-            }`}>
-            <option value="">Select…</option>
-            {countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}
-          </select>
-        </div>
-        <YesNo label="Is drawback required?" value={a.drawback_required} required
-          error={err(errors, "drawback_required")} onChange={(v) => setAnswer("drawback_required", v)} />
-        <div>
-          <Label required>Purpose of Export</Label>
-          <div className="flex gap-2 flex-wrap">
-            {PURPOSE_OPTS.map((p) => (
-              <button key={p.v} type="button" onClick={() => setAnswer("purpose_of_export", p.v)}
-                className={`rounded-lg border px-3 py-2 text-sm font-medium ${
-                  a.purpose_of_export === p.v ? "bg-[#0A2472] text-white border-[#0A2472]" : "bg-white text-slate-600 border-slate-200"
-                } ${err(errors, "purpose_of_export") ? "ring-1 ring-red-300" : ""}`}>{p.t}</button>
-            ))}
+        <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-3.5 border-t border-[#F2F4F7] pt-4 sm:grid-cols-6">
+          <div className="sm:col-span-3">
+            <label className="mb-1.5 flex items-center text-[13px] font-medium text-[#344054]">
+              Country of origin<span className="ml-0.5 text-[#F7941D]">*</span>
+              {tag("country_of_origin") ? <span className="ml-1.5 rounded bg-[#FFF4E5] px-1.5 py-[1px] text-[10.5px] font-medium text-[#B54708]">Suggested</span> : null}
+            </label>
+            <select value={a.country_of_origin ?? ""} onChange={(e) => setAnswer("country_of_origin", e.target.value)} className={inputCls(err(errors, "country_of_origin"))}>
+              <option value="">Where were the goods made?</option>
+              {top.length ? <optgroup label="Common">{top.map((c) => <option key={`t-${c.code}`} value={c.code}>{c.name}</option>)}</optgroup> : null}
+              <optgroup label="All countries">{countries.map((c) => <option key={c.code} value={c.code}>{c.name}</option>)}</optgroup>
+            </select>
           </div>
-          {a.purpose_of_export === "other" && (
-            <input value={a.purpose_other ?? ""} placeholder="Please specify"
-              onChange={(e) => setAnswer("purpose_other", e.target.value)}
-              className={`mt-2 w-full rounded-lg border px-3 py-2 text-sm ${
-                err(errors, "purpose_other") ? "border-red-400" : "border-slate-200"}`} />
-          )}
+          <Field className="sm:col-span-2" label="Declared value" value={a.declared_value} type="number" inputMode="decimal" tag={tag("declared_value")}
+            onChange={(v) => setAnswer("declared_value", v)} placeholder="Invoice total" />
+          <Field className="sm:col-span-1" label="Currency" value={a.declared_currency} placeholder="NZD" tag={null}
+            onChange={(v) => setAnswer("declared_currency", v.toUpperCase().slice(0, 3))} />
         </div>
       </Section>
 
-      <Section title="Dangerous Goods & Batteries">
-        <YesNo label="Does this shipment contain dangerous goods?" value={a.dangerous_goods} required
-          error={err(errors, "dangerous_goods")} onChange={(v) => setAnswer("dangerous_goods", v)} />
-        <div>
-          <Label>Does it contain any of these batteries?</Label>
-          <div className="grid grid-cols-2 gap-2">
-            {BATTERY_OPTS.map((b) => {
-              const on = (Array.isArray(a.batteries) ? a.batteries : []).includes(b.v);
-              return (
-                <button key={b.v} type="button" onClick={() => toggleBattery(b.v)}
-                  className={`rounded-lg border px-3 py-2 text-xs font-medium text-left ${
-                    on ? "bg-[#0A2472] text-white border-[#0A2472]" : "bg-white text-slate-600 border-slate-200"
-                  }`}>{b.t}</button>
-              );
-            })}
+      <Section id="sec-dg" n={4} title="Dangerous goods" sub="Airlines must know before loading" state={states.dg}>
+        <div className="divide-y divide-[#F2F4F7]">
+          <QRow q="Does this shipment contain dangerous goods?" hint="Flammables, aerosols, chemicals, magnets, dry ice and similar." required
+            tag={tag("dangerous_goods")} error={err(errors, "dangerous_goods")}>
+            <Segmented value={a.dangerous_goods} options={YN} onChange={(v) => setAnswer("dangerous_goods", v)} error={err(errors, "dangerous_goods")} />
+          </QRow>
+          <div className="py-3.5">
+            <div className="text-[14px] font-medium text-[#101828]">Batteries in the shipment <span className="font-normal text-[#667085]">(tick any that apply)</span></div>
+            <div className="mt-2.5 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {BATTERY_OPTS.map((b) => {
+                const on = batteries.includes(b.v);
+                return (
+                  <label key={b.v} className={`flex h-10 cursor-pointer items-center gap-2.5 rounded-lg border px-3 text-[13.5px] transition ${
+                    on ? "border-[#0A2472] bg-[#EEF2FB] text-[#0A2472]" : "border-[#D5D9E0] text-[#344054] hover:border-[#B4BBC6]"}`}>
+                    <input type="checkbox" checked={on} onChange={() => toggleBattery(b.v)} className="h-4 w-4 accent-[#0A2472]" />{b.t}
+                  </label>
+                );
+              })}
+            </div>
           </div>
-          {(isYes(a.dangerous_goods) || hasLithium) && (
-            <p className="mt-2 text-[12px] text-[#F7941D] font-medium">
-              ⚠ A Dangerous Goods certificate must be attached below.
-            </p>
-          )}
         </div>
+        {isYes(a.dangerous_goods) || hasLithium ? (
+          <div className="mt-1 flex items-start gap-2.5 rounded-lg border border-[#FEDF89] bg-[#FFFAEB] px-3.5 py-2.5 text-[13px] text-[#93370D]">
+            <TriangleAlert size={16} className="mt-0.5 shrink-0" />
+            <span>Attach a Dangerous Goods Declaration (or lithium battery declaration) in <a href="#sec-docs" className="font-semibold text-[#93370D]">Documents</a>. We can't submit the SLI without it.</span>
+          </div>
+        ) : null}
       </Section>
 
-      <Section title="Security & Instructions">
-        <YesNo
-          label="Do you authorise UB Freight to physically screen the cargo (NZ CAA security clearing), including opening packages?"
-          value={a.caa_screening_auth} required error={err(errors, "caa_screening_auth")}
-          onChange={(v) => setAnswer("caa_screening_auth", v)} />
-        <Field label="Notify Party" value={a.notify_party} onChange={(v) => setAnswer("notify_party", v)} />
-        <div>
-          <Label>Special Instructions</Label>
-          <textarea value={a.special_instructions ?? ""} rows={3}
-            onChange={(e) => setAnswer("special_instructions", e.target.value)}
-            className="w-full rounded-lg border border-slate-200 px-3 py-2 text-sm" />
+      <Section id="sec-security" n={5} title="Security & notes" state={states.security}>
+        <div className="divide-y divide-[#F2F4F7]">
+          <QRow q="Do you authorise UB Freight to screen this cargo?" required error={err(errors, "caa_screening_auth")}
+            hint="NZ CAA security clearance. This can include opening packages. Without consent, cargo may be delayed or rejected.">
+            <Segmented value={a.caa_screening_auth} options={YN} onChange={(v) => setAnswer("caa_screening_auth", v)} error={err(errors, "caa_screening_auth")} />
+          </QRow>
+        </div>
+        <div className="mt-2 grid grid-cols-1 gap-x-4 gap-y-3.5 border-t border-[#F2F4F7] pt-4 sm:grid-cols-2">
+          <Field label="Notify party" value={a.notify_party} tag={tag("notify_party")} onChange={(v) => setAnswer("notify_party", v)} placeholder="Who to notify on arrival" />
+          <div>
+            <label className="mb-1.5 block text-[13px] font-medium text-[#344054]">Special instructions</label>
+            <textarea value={a.special_instructions ?? ""} rows={1} placeholder="Handling, delivery or anything we got wrong above"
+              onChange={(e) => setAnswer("special_instructions", e.target.value)} className={`${inputCls()} h-10 min-h-10 resize-y py-2 leading-snug`} />
+          </div>
         </div>
       </Section>
     </>

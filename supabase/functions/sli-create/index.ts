@@ -2,6 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
+import { BOOKING_COLS, inviteHtml, singlePrefill } from "./prefill.ts";
 setApiFn("sli-create");
 
 const cors = {
@@ -32,12 +33,13 @@ Deno.serve(async (req) => {
     const db = createClient(url, service);
 
     const { data: bk, error: bkErr } = await db.from("bookings")
-      .select("id, booking_ref, module, origin, destination, incoterm, airline_name, flight_no, is_consolidation, account_id, consignee_account_id")
+      .select(BOOKING_COLS)
       .eq("id", booking_id).single();
     if (bkErr || !bk) return json({ error: "booking not found" }, 404);
 
     let supplierAcct: string | null = null;
     let supplierSnap: Record<string, unknown> = {};
+    let single: Awaited<ReturnType<typeof singlePrefill>> | null = null;
     if (booking_supplier_id) {
       const { data: sup } = await db.from("booking_suppliers")
         .select("*").eq("id", booking_supplier_id).eq("booking_id", booking_id).single();
@@ -52,9 +54,9 @@ Deno.serve(async (req) => {
         pickup_location: sup.pickup_location,
       };
     } else {
-      supplierAcct = bk.account_id ?? null;
-      const { data: cust } = await db.from("customers").select("name, account_id").eq("account_id", supplierAcct).maybeSingle();
-      supplierSnap = { supplier_name: cust?.name ?? null, supplier_account_id: supplierAcct };
+      single = await singlePrefill(db, bk);
+      supplierAcct = (single.prefilled.supplier_account_id as string) ?? null;
+      supplierSnap = single.prefilled;
     }
 
     let recipient: string | null = (supplierSnap.supplier_email as string) ?? null;
@@ -77,13 +79,20 @@ Deno.serve(async (req) => {
       ? expireMatch.eq("booking_supplier_id", booking_supplier_id)
       : expireMatch.is("booking_supplier_id", null));
 
+    const answers = { ...(single?.answers ?? {}), country_of_origin: originCountry };
     const staff_fields = {
       booking_ref: bk.booking_ref, module: bk.module,
       origin: bk.origin, destination: bk.destination, incoterm: bk.incoterm,
       airline_name: bk.airline_name, flight_no: bk.flight_no,
       is_consolidation: bk.is_consolidation, consignee_account_id: bk.consignee_account_id,
+      customer_ref: bk.customer_ref, cargo_ready_date: bk.cargo_ready_date, hs_code: bk.hs_code,
+      is_dg: bk.is_dg, un_number: bk.un_number, dg_class: bk.dg_class,
+      ...(single?.consignee ?? {}),
+      ...Object.fromEntries(Object.entries(single?.flight ?? {}).filter(([, v]) => v != null)),
+      // Answers UB Freight filled in for the supplier; the page marks them "suggested" until touched.
+      suggested: Object.keys(answers).filter((k) => (answers as Record<string, unknown>)[k] != null),
     };
-    const sli_answers = { country_of_origin: originCountry };
+    const sli_answers = answers;
 
     const { data: created, error: insErr } = await db.from("sli_documents").insert({
       booking_id, booking_supplier_id, supplier_account_id: supplierAcct,
@@ -108,14 +117,12 @@ Deno.serve(async (req) => {
               sender: { email: from, name: "UB Freight" },
               to: [{ email: recipient, name: (supplierSnap.supplier_name as string) ?? undefined }],
               subject: `SLI for endorsement – ${bk.booking_ref} – ${bk.origin} to ${bk.destination}`,
-              htmlContent:
-                `<p>Dear ${(supplierSnap.supplier_name as string) ?? "Customer"},</p>
-                 <p>Please review and endorse the Shipper's Letter of Instruction for the shipment below.</p>
-                 <p><b>Booking:</b> ${bk.booking_ref}<br>
-                 <b>Route:</b> ${bk.origin} &rarr; ${bk.destination}</p>
-                 <p><a href="${link}" style="background:#0A2472;color:#fff;padding:10px 18px;border-radius:8px;text-decoration:none;display:inline-block">Open &amp; endorse SLI</a></p>
-                 <p style="color:#64748b;font-size:12px">This link expires in 14 days. If the button doesn't work, paste this into your browser:<br>${link}</p>
-                 <p>Kind regards,<br>UB Freight</p>`,
+              htmlContent: inviteHtml({
+                base, link, name: (supplierSnap.supplier_name as string) ?? "Customer", ref: bk.booking_ref,
+                route: `${bk.origin ?? "AKL"} → ${bk.destination ?? ""}`,
+                flight: [staff_fields.flight_no, staff_fields.flight_date].filter(Boolean).join(" · "),
+                cargo: [supplierSnap.pieces && `${supplierSnap.pieces} pcs`, supplierSnap.weight_kg && `${supplierSnap.weight_kg} kg`].filter(Boolean).join(" · "),
+              }),
             }),
           });
           emailStatus = r.ok ? "sent" : "failed";

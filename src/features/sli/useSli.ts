@@ -104,6 +104,6 @@ export function useSli(token: string) {
 
   return {
     state, data, countries, attachments, edits, answers, fieldErrors, submitting,
-    setEdit, setAnswer, uploadFile, removeAttachment, submit,
+    setEdit, setAnswer, uploadFile, removeAttachment, submit, validate,
   };
 }
