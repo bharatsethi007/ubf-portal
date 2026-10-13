@@ -31,6 +31,7 @@ import PartyPicker from './PartyPicker'
 import QuoteContactSelect from './QuoteContactSelect'
 import ExternalNotesField from './ExternalNotesField'
 import QuotePreviewBubble from './QuotePreviewBubble'
+import QuoteMailBubble from './QuoteMailBubble'
 import CopyQuoteButton from './CopyQuoteButton'
 import QuoteBookingAction from '../../features/quoteBooking/QuoteBookingAction'
 import QuoteAddressField from './QuoteAddressField'
@@ -615,6 +616,7 @@ export default function QuoteDetailPage() {
         </div>
       </div>
       <QuotePreviewBubble quoteId={quote.id} quoteNo={quote.quote_no} />
+      <QuoteMailBubble quoteId={quote.id} quoteNo={quote.quote_no} />
       {emailOpen && (
         <Suspense fallback={null}>
           <QuoteEmailDialog quoteId={quote.id} onClose={() => setEmailOpen(false)} />

@@ -32,6 +32,7 @@ import { useEffectiveRates } from '../../hooks/useEffectiveRates'
 import { chargeLegsFor, serviceTypeForIncoterm, defaultFreightTerms } from '../rates/incotermLegs'
 import PartySearch from './PartySearch'
 import FreightIntelligence from './FreightIntelligence'
+import QuoteMailBubble from './QuoteMailBubble'
 import { type Party } from './partySearchApi'
 import { type AgentPick } from './agentLookupApi'
 import { overseasOfficeForPort } from '../rates/offices'
@@ -706,7 +707,7 @@ export default function NewQuoteSearch() {
           </div>
         </div>
       )}
-
+      <QuoteMailBubble bottom={88} />
     </div>
   )
 }
