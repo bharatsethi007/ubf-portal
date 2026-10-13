@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { cardVisibleFor } from './cardVisibility'
 import { attachLocalCharges, type OptionLocalCharge } from './localChargeMatch'
 import { applyMargin, cardMargin, lineMargin, resolveMargin } from './margin'
 
@@ -79,7 +80,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
 
   const { data: lines, error } = await supabase
     .from('rate_card_fcl_lines')
-    .select('base_rate, sell_rate, margin_type, margin_value, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, account_id, shipping_line_code, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, shipping_lines(name))')
+    .select('base_rate, sell_rate, margin_type, margin_value, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, rate_card_customers(account_id), shipping_line_code, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, shipping_lines(name))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
     .in('container_type', wantedCodes)
@@ -92,7 +93,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     if (!card) continue
     const status = String(card.status)
     if (status !== 'active' && status !== 'validated') continue
-    if (card.account_id && card.account_id !== (lane.account_id ?? null)) continue
+    if (!cardVisibleFor(card, lane.account_id)) continue
     const vf = raw.valid_from ?? card.valid_from ?? null
     const vt = raw.valid_to ?? card.valid_to ?? null
     if (!withinValidity(vf, vt, today)) continue

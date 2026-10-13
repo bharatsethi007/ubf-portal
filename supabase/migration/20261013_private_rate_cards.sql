@@ -1,12 +1,21 @@
--- Private rate cards + LCL co-loader name fix. Idempotent.
---   * rate_cards.account_id: blank = every customer sees it. Set = only that customer (e.g. carrier named-account rates).
---   * Portal search only returns public cards plus the customer's own private cards.
---   * Lines from the customer's own private card are tagged as contract rates.
+-- Private rate cards (one or more customers) + LCL co-loader name fix. Idempotent.
+--   * rate_card_customers: no rows = every customer sees the card. Rows = only those customers.
+--   * Portal search only returns public cards plus cards shared with the searching customer.
+--   * Lines from a card shared with the customer are tagged as contract rates.
 --   * LCL options show "UB Freight" as carrier. Co-loaders are never shown to customers.
 
-alter table public.rate_cards
-  add column if not exists account_id text references public.customers(account_id) on delete set null;
-create index if not exists rate_cards_account_idx on public.rate_cards (account_id) where account_id is not null;
+create table if not exists public.rate_card_customers (
+  rate_card_id uuid not null references public.rate_cards(id) on delete cascade,
+  account_id text not null references public.customers(account_id) on delete cascade,
+  created_by uuid default auth.uid(),
+  created_at timestamptz not null default now(),
+  primary key (rate_card_id, account_id)
+);
+create index if not exists rate_card_customers_account_idx on public.rate_card_customers (account_id);
+alter table public.rate_card_customers enable row level security;
+drop policy if exists rcc_staff_all on public.rate_card_customers;
+create policy rcc_staff_all on public.rate_card_customers for all to authenticated
+  using (public.is_staff()) with check (public.is_staff());
 
 create or replace function public.portal_rate_options(p_account text, p_pol text, p_pod text, p_mode text, p_load text, p_container text, p_ref text default null)
 returns jsonb
@@ -17,10 +26,11 @@ language sql stable security definer set search_path = public as $$
   ),
   live as (
     select c.*, array[c.shipping_line_code, c.co_loader_code, c.vendor_name] as carriers,
-           (c.account_id is not null) as is_private
+           exists (select 1 from public.rate_card_customers x where x.rate_card_id = c.id and x.account_id = p_account) as is_private
       from public.rate_cards c
      where c.status in ('active', 'validated') and (c.valid_to is null or c.valid_to >= current_date)
-       and (c.account_id is null or c.account_id = p_account)
+       and (not exists (select 1 from public.rate_card_customers x where x.rate_card_id = c.id)
+            or exists (select 1 from public.rate_card_customers x where x.rate_card_id = c.id and x.account_id = p_account))
   ),
   fcl as (
     select l.*, c.id as card_id, c.carriers, c.is_private, coalesce(c.vendor_name, c.shipping_line_code) as carrier_name,

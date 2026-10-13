@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { cardVisibleFor } from './cardVisibility'
 import { attachAirLocalCharges, type OptionAirLocalCharge } from './airLocalChargeMatch'
 import { applyMargin, cardMargin, lineMargin, resolveMargin } from './margin'
 import { asAirProduct, cargoClassFor, isSellOnlyProduct, nextConsolDeparture, parseSchedule, type AirCargoClass, type AirProduct, type ConsolDeparture } from './airConsol'
@@ -143,7 +144,7 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_air_lines')
-    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, margin_type, margin_value, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, account_id, vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, air_product, consol_schedule, consol_skip_dates)')
+    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, margin_type, margin_value, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, rate_card_customers(account_id), vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, air_product, consol_schedule, consol_skip_dates)')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -155,7 +156,7 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
     if (!card) continue
     const status = String(card.status)
     if (status !== 'active' && status !== 'validated') continue
-    if (card.account_id && card.account_id !== (lane.account_id ?? null)) continue
+    if (!cardVisibleFor(card, lane.account_id)) continue
     if (!withinValidity(card.valid_from ?? null, card.valid_to ?? null, today)) continue
     // UBF consol / personal effects don't carry DG — those go airline direct.
     if (lane.cargoClass === 'dg' && isSellOnlyProduct(asAirProduct(card.air_product))) continue

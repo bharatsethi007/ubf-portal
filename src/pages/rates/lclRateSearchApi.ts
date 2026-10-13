@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { cardVisibleFor } from './cardVisibility'
 import { attachLclLocalCharges, type OptionLclLocalCharge } from './lclLocalChargeMatch'
 import { applyMargin, cardMargin, lineMargin, resolveMargin, type Margin } from './margin'
 
@@ -117,7 +118,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_lcl_lines')
-    .select('origin_agent, rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, account_id, co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, terms, co_loaders(name, logo_url))')
+    .select('origin_agent, rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, rate_card_customers(account_id), co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, terms, co_loaders(name, logo_url))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -129,7 +130,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
     if (!card) continue
     const status = String(card.status)
     if (status !== 'active' && status !== 'validated') continue
-    if (card.account_id && card.account_id !== (lane.account_id ?? null)) continue
+    if (!cardVisibleFor(card, lane.account_id)) continue
     const vf = raw.valid_from ?? card.valid_from ?? null
     const vt = raw.valid_to ?? card.valid_to ?? null
     if (!withinValidity(vf, vt, today)) continue
