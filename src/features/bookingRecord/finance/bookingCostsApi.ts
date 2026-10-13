@@ -38,6 +38,8 @@ export type FinanceLane = {
   wm: number
   cbm: number
   toDoor: boolean
+  /** Booking customer. Rate cards shared only with other customers stay hidden. */
+  accountId: string | null
 }
 
 const COLS = 'id, booking_id, cost_type, vendor_name, vendor_code, charge_group, description, qty, unit, rate, currency, amount, fx_rate, amount_nzd, source, source_ref, note, sort_order, created_at'
@@ -85,7 +87,7 @@ export const fetchFx = () => fetchEffectiveRates('NZD')
 
 export async function fetchFinanceLane(bookingId: string): Promise<FinanceLane> {
   const { data: b, error } = await supabase.from('bookings')
-    .select('origin, destination, m_discharge_port, incoterm, load_type, container_type, container_count, cbm, volume_m3, gross_weight_kg, weight_kg, service_type, delivery_mode, quote_id')
+    .select('origin, destination, m_discharge_port, incoterm, load_type, container_type, container_count, cbm, volume_m3, gross_weight_kg, weight_kg, service_type, delivery_mode, quote_id, account_id')
     .eq('id', bookingId).maybeSingle()
   if (error || !b) throw new Error(error?.message ?? 'Booking not found')
 
@@ -121,6 +123,7 @@ export async function fetchFinanceLane(bookingId: string): Promise<FinanceLane> 
     loadType: lt === 'FCL' || lt === 'LCL' ? lt : null,
     containers, wm, cbm,
     toDoor: b.delivery_mode != null || /door$/i.test(b.service_type ?? ''),
+    accountId: b.account_id ?? null,
   }
 }
 

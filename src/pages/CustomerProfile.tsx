@@ -13,11 +13,12 @@ import OverdueBadge from '../components/OverdueBadge'
 import { CustomerOverviewTab } from '../components/Customers/CustomerOverviewTab'
 import { CustomerShipmentsTab } from '../components/Customers/CustomerShipmentsTab'
 import { CustomerInfoTab } from '../components/Customers/CustomerInfoTab'
+import { CustomerRatesTab } from '../components/Customers/rates/CustomerRatesTab'
 import InvoicesTable from '../components/InvoicesTable'
 import { useCustomerInvoices } from '../hooks/useInvoices'
 import { KpiCard, fmt } from '../components/Customers/profileUi'
 
-type Tab = 'overview' | 'shipments' | 'info' | 'invoices'
+type Tab = 'overview' | 'shipments' | 'info' | 'invoices' | 'rates'
 
 export default function CustomerProfile() {
   const { accountId } = useParams()
@@ -104,12 +105,14 @@ export default function CustomerProfile() {
           </TabBtn>
           <TabBtn active={tab === 'info'} onClick={() => setTab('info')}>Info</TabBtn>
           <TabBtn active={tab === 'invoices'} onClick={() => setTab('invoices')}>Invoices</TabBtn>
+          <TabBtn active={tab === 'rates'} onClick={() => setTab('rates')}>Rates</TabBtn>
         </div>
       </header>
 
       <div className="cp-body">
         {tab === 'overview' && <CustomerOverviewTab insights={insights} />}
         {tab === 'shipments' && <CustomerShipmentsTab accountId={accountId} />}
+        {tab === 'rates' && <CustomerRatesTab accountId={accountId} />}
         {tab === 'info' && (
           <CustomerInfoTab accountId={accountId} stats={stats} onReload={() => load(false)} />
         )}

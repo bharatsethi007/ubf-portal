@@ -8,13 +8,13 @@ import { useDebouncedValue } from '@/hooks/useDebouncedValue'
 import { PRODUCTS, type Product } from './marginRulesApi'
 import { laneBuyHint, laneCodes, saveContractRule, type BuyHint, type ContractMethod, type ContractRule } from './contractRatesApi'
 
-type Props = { open: boolean; rule: ContractRule | null; onClose: () => void; onSaved: () => void }
+type Props = { open: boolean; rule: ContractRule | null; defaultCustomer?: CustomerPickerValue | null; onClose: () => void; onSaved: () => void }
 
 const lbl = { fontSize: 12, color: 'var(--muted-foreground)', marginBottom: 4, display: 'block' } as const
 const up = (s: string) => s.trim().toUpperCase()
 
 /** Add or edit one customer contract rate (lane price or lane margin). */
-export default function ContractRateDialog({ open, rule, onClose, onSaved }: Props) {
+export default function ContractRateDialog({ open, rule, defaultCustomer = null, onClose, onSaved }: Props) {
   const [cust, setCust] = useState<CustomerPickerValue | null>(null)
   const [product, setProduct] = useState<Product>('FCL')
   const [origin, setOrigin] = useState('')
@@ -36,12 +36,12 @@ export default function ContractRateDialog({ open, rule, onClose, onSaved }: Pro
 
   useEffect(() => {
     if (!open) return
-    setCust(rule ? { account_id: rule.account_id, name: rule.customers?.name ?? rule.account_id } as CustomerPickerValue : null)
+    setCust(rule ? { account_id: rule.account_id, name: rule.customers?.name ?? rule.account_id } as CustomerPickerValue : defaultCustomer)
     setProduct(rule?.product ?? 'FCL')
     setOrigin(rule?.origin_code ?? ''); setDest(rule?.dest_code ?? ''); setCtr(rule?.container_type ?? ''); setCarrier(rule?.carrier ?? '')
     setMethod(rule?.method ?? 'fixed'); setValue(rule ? String(rule.value) : ''); setCurrency(rule?.currency_code ?? 'USD')
     setFloor(rule?.min_margin != null ? String(rule.min_margin) : ''); setFrom(rule?.valid_from ?? ''); setTo(rule?.valid_to ?? ''); setNotes(rule?.notes ?? '')
-  }, [open, rule])
+  }, [open, rule, defaultCustomer])
 
   useEffect(() => { if (open) void laneCodes(product).then(setCodes) }, [open, product])
 
