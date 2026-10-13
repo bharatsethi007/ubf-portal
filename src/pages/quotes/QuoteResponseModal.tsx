@@ -236,7 +236,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                 </Field>
               </div>
 
-              <ResponseGapsNote lines={lines} ai={response?.ai_generated === true} />
+              <ResponseGapsNote lines={lines} ai={response?.ai_generated === true} ctx={quote ?? undefined} />
               <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} mode={quote ? (isAir ? 'air' : 'sea') : undefined} quoteId={quoteId} unitQty={unitQty} onChange={setLines} />
 
               <div className="qrm-totals">
