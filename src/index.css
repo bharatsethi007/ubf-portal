@@ -1689,6 +1689,13 @@ a:hover { text-decoration: underline; }
   white-space: nowrap;
 }
 .quote-pill--open { color: #475569; background: #F1F5F9; }
+.quote-no { display: inline-flex; align-items: center; gap: 7px; white-space: nowrap; }
+.quote-no__dot { width: 7px; height: 7px; border-radius: 50%; flex: none; background: transparent; }
+.quote-no__dot--unsent { background: #2563EB; box-shadow: 0 0 0 3px rgba(37, 99, 235, .15); }
+.quote-no__dot--ai { background: #7C3AED; box-shadow: 0 0 0 3px rgba(124, 58, 237, .18); }
+.data-table tr.quote-row--ai > td { background: #F7F3FF; }
+.data-table tr.quote-row--ai:hover > td { background: #EFE7FF; }
+.quote-response-pill--ai { display: inline-flex; align-items: center; gap: 4px; color: #6D28D9; background: #F3EEFF; }
 .quote-pill--published { color: #1D4ED8; background: #EFF6FF; }
 .quote-pill--sent { color: #4338CA; background: #EEF2FF; }
 .quote-pill--won { color: #047857; background: #ECFDF5; }

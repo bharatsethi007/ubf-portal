@@ -31,6 +31,9 @@ type QuoteDbRow = {
   lost_reason: string | null
   lost_note: string | null
   expires_at: string | null
+  sent_for_approval_at: string | null
+  last_reminded_at: string | null
+  ai_priced_at: string | null
 }
 
 type Props = {
@@ -99,6 +102,9 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
           lost_reason: r.lost_reason,
           lost_note: r.lost_note,
           expires_at: r.expires_at,
+          sent_for_approval_at: r.sent_for_approval_at,
+          last_reminded_at: r.last_reminded_at,
+          ai_priced_at: r.ai_priced_at,
           from_port_code: r.from_port_code,
           to_port_code: r.to_port_code,
           source: r.source,

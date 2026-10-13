@@ -35,6 +35,8 @@ export type QuoteResponseSummary = {
   sent_to_portal_at: string | null
   decided_at: string | null
   decision_note: string | null
+  /** Drafted by UBF Intelligence from a published rate. */
+  ai_generated?: boolean
 }
 
 export type QuoteResponseRecord = QuoteResponseHeader & {
@@ -94,7 +96,7 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
   const { data, error } = await supabase
     .from('quote_responses')
     .select(
-      'id, response_no, status, quotation_date, carrier, currency, total_sell, total_buy, net_profit, margin_pct, sent_to_portal_at, decided_at, decision_note',
+      'id, response_no, status, quotation_date, carrier, currency, total_sell, total_buy, net_profit, margin_pct, sent_to_portal_at, decided_at, decision_note, ai_generated',
     )
     .eq('quote_id', quoteId)
     .order('created_at', { ascending: true })
@@ -114,6 +116,7 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
     sent_to_portal_at: row.sent_to_portal_at ?? null,
     decided_at: row.decided_at ?? null,
     decision_note: row.decision_note ?? null,
+    ai_generated: row.ai_generated === true,
   }))
 }
 

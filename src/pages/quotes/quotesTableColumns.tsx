@@ -1,5 +1,6 @@
 import type { ColumnDef } from '@tanstack/react-table'
 import CopyQuoteButton from './CopyQuoteButton'
+import { QuoteNoCell } from './quoteUnsent'
 import { AUTO_EXPIRED } from './quoteLostReasons'
 import {
   Files, FolderOpen, Trophy, XCircle, Repeat2,
@@ -22,6 +23,9 @@ export type QuoteRow = {
   lost_reason?: string | null
   lost_note?: string | null
   expires_at?: string | null
+  sent_for_approval_at?: string | null
+  last_reminded_at?: string | null
+  ai_priced_at?: string | null
 }
 
 export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
@@ -128,7 +132,7 @@ export function quotesTableColumns(
     {
       accessorKey: 'quote_no',
       header: 'Quote #',
-      cell: ({ getValue }) => getValue<string | null>() ?? '—',
+      cell: ({ row }) => <QuoteNoCell row={row.original} />,
     },
     {
       accessorKey: 'customer_name',

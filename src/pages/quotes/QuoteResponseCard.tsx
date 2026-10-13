@@ -1,7 +1,8 @@
 import type { MouseEvent } from 'react'
-import { Pencil, Trash2, Copy } from 'lucide-react'
+import { Pencil, Trash2, Copy, Sparkles } from 'lucide-react'
 import type { QuoteResponseSummary } from './quoteResponsesApi'
 import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
+import { AI_TIP } from './quoteUnsent'
 
 type Props = {
   r: QuoteResponseSummary
@@ -33,6 +34,9 @@ export default function QuoteResponseCard({ r, index, nzdRate, onOpen, onCopy, o
           <h3 className="quote-response-card__title"># {index + 1} - {r.response_no ?? 'Draft'}</h3>
           {foreign && (
             <span className="quote-response-pill" style={FX_PILL} title={`Quote priced in ${cur}`}>{cur}</span>
+          )}
+          {r.ai_generated && !r.sent_to_portal_at && (
+            <span className="quote-response-pill quote-response-pill--ai" title={AI_TIP}><Sparkles size={11} /> UBF Intelligence</span>
           )}
           {r.status !== 'draft' && responseStatusPill(r.status)}
         </div>
