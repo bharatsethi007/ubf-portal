@@ -91,8 +91,8 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
     { v: String(t.won), l: 'Won' },
     { v: String(t.lost), l: 'Lost' },
     { v: fmtPct(t.win_rate), l: 'Win rate' },
-    { v: fmtHrs(t.avg_hrs_to_quote), l: 'Avg time to quote' },
-    { v: fmtHrs(t.avg_hrs_email_to_quote), l: 'Avg email to quote' },
+    { v: fmtHrs(t.avg_hrs_to_quote), l: 'Median time to quote' },
+    { v: fmtHrs(t.avg_hrs_email_to_quote), l: 'Median email to quote' },
     { v: String(t.customers), l: 'Customers quoted' },
   ]
   const r = (w: number, right?: boolean) => [s.td, { width: w, textAlign: right ? 'right' as const : 'left' as const }]
@@ -137,7 +137,7 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
         ))}
 
         <Text style={s.note}>
-          Time to quote: quote created to first rate response. Email to quote: customer email received to first rate response
+          Time to quote: median, quote created to last rate line added. Email to quote: median, customer email received to last rate line added
           (matched by account or contact email, within 3 days). Per day uses working days. Win rate = won / (won + lost).
         </Text>
         <View style={s.foot} fixed>

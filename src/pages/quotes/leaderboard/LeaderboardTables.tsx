@@ -1,4 +1,4 @@
-import type { LbCustomer, LbStaff } from './leaderboardApi'
+import type { LbAgent, LbCustomer, LbStaff } from './leaderboardApi'
 import { fmtDay, fmtHrs, fmtPct } from './leaderboardFormat'
 
 const MEDAL = ['#C9A227', '#9AA4B2', '#B87333']
@@ -49,6 +49,7 @@ function QuotesBar({ v, max }: { v: number; max: number }) {
   )
 }
 
+const TTQ = 'Median: quote created to last rate line added'
 const th = 'px-3 py-2 text-left text-[11px] font-normal uppercase tracking-wide text-slate-500 whitespace-nowrap'
 const td = 'px-3 py-2 whitespace-nowrap'
 const num = `${td} text-right tabular-nums`
@@ -69,8 +70,8 @@ export function StaffTable({ rows }: { rows: LbStaff[] }) {
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
           <th className={th}>Win rate</th>
-          <th className={`${th} text-right`} title="Quote created to first rate response">Time to quote</th>
-          <th className={`${th} text-right`} title="Customer email received to first rate response">Email → quote</th>
+          <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
+          <th className={`${th} text-right`} title="Median: customer email received to last rate line added">Email → quote</th>
         </tr>
       </thead>
       <tbody>
@@ -110,7 +111,7 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
           <th className={th}>Win rate</th>
-          <th className={`${th} text-right`}>Time to quote</th>
+          <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
           <th className={`${th} text-right`}>Last quote</th>
         </tr>
       </thead>
@@ -124,6 +125,48 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
             <td className={num} style={{ color: '#047857' }}>{r.won}</td>
             <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
             <td className={td}><WinBar v={r.win_rate} /></td>
+            <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
+            <td className={num}>{fmtDay(r.last_quote)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+export function AgentTable({ rows }: { rows: LbAgent[] | undefined }) {
+  if (!rows) return <p className="px-3 py-8 text-center text-sm text-slate-500">Agents report not available yet.</p>
+  if (!rows.length) return <p className="px-3 py-8 text-center text-sm text-slate-500">No agent quotes in this period.</p>
+  const max = Math.max(...rows.map((r) => r.quotes))
+  return (
+    <table className="w-full text-sm">
+      <thead className="bg-slate-50">
+        <tr>
+          <th className={th}>#</th>
+          <th className={th}>Agent</th>
+          <th className={th}>Country</th>
+          <th className={th}>Quotes</th>
+          <th className={`${th} text-right`}>Open</th>
+          <th className={`${th} text-right`}>Won</th>
+          <th className={`${th} text-right`}>Lost</th>
+          <th className={th}>Win rate</th>
+          <th className={th} title="Most quoted origin to destination country">Top lane</th>
+          <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
+          <th className={`${th} text-right`}>Last quote</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={r.agent_id ?? r.name} className="border-t border-slate-100">
+            <td className={td}><Rank i={i} /></td>
+            <td className={`${td} max-w-[260px] truncate text-slate-900`} title={r.name}>{r.name}</td>
+            <td className={`${td} text-slate-600`}>{r.country ?? '–'}</td>
+            <td className={td}><QuotesBar v={r.quotes} max={max} /></td>
+            <td className={num}>{r.open}</td>
+            <td className={num} style={{ color: '#047857' }}>{r.won}</td>
+            <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
+            <td className={td}><WinBar v={r.win_rate} /></td>
+            <td className={`${td} tabular-nums text-slate-600`}>{r.top_lane ? r.top_lane.replace('>', ' > ') : '–'}</td>
             <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
             <td className={num}>{fmtDay(r.last_quote)}</td>
           </tr>

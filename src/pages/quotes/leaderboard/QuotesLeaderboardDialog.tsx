@@ -1,15 +1,15 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Trophy, X, FileSpreadsheet, FileDown, Users, Building2, PieChart } from 'lucide-react'
+import { Trophy, X, FileSpreadsheet, FileDown, Users, Building2, PieChart, Handshake } from 'lucide-react'
 import { toast } from 'sonner'
 import type { QuotesMode, StatsPeriod } from '../quotesStatsApi'
 import { fetchLeaderboard, fmtDay, fmtHrs, fmtPct, modeLabel, PERIOD_LABEL, type Leaderboard } from './leaderboardApi'
-import { StaffTable, CustomerTable } from './LeaderboardTables'
+import { StaffTable, CustomerTable, AgentTable } from './LeaderboardTables'
 import LeaderboardInsights from './LeaderboardInsights'
 import { downloadLeaderboardCsv } from './leaderboardCsv'
 import { downloadLeaderboardPdf } from './leaderboardPdfExport'
 
 type Props = { open: boolean; onClose: () => void; mode: QuotesMode; initialPeriod: StatsPeriod }
-type Tab = 'team' | 'customers' | 'insights'
+type Tab = 'team' | 'customers' | 'agents' | 'insights'
 
 const PERIODS: StatsPeriod[] = ['week', 'month', 'quarter', 'year']
 
@@ -58,8 +58,8 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
     { l: 'Won', v: t ? String(t.won) : '–', c: '#047857' },
     { l: 'Lost', v: t ? String(t.lost) : '–', c: '#B91C1C' },
     { l: 'Win rate', v: fmtPct(t?.win_rate) },
-    { l: 'Avg time to quote', v: fmtHrs(t?.avg_hrs_to_quote) },
-    { l: 'Avg email to quote', v: fmtHrs(t?.avg_hrs_email_to_quote) },
+    { l: 'Median time to quote', v: fmtHrs(t?.avg_hrs_to_quote) },
+    { l: 'Median email to quote', v: fmtHrs(t?.avg_hrs_email_to_quote) },
     { l: 'Customers', v: t ? String(t.customers) : '–' },
   ]
 
@@ -109,11 +109,15 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
         <div className="quotes-tabs mx-5 mt-3" role="tablist">
           <button type="button" role="tab" aria-selected={tab === 'team'} onClick={() => setTab('team')}
             className={`quotes-tabs__btn${tab === 'team' ? ' quotes-tabs__btn--on' : ''}`}>
-            <Users size={14} strokeWidth={2} /> Team
+            <Users size={14} strokeWidth={2} /> Team{lb ? ` (${lb.staff.length})` : ''}
           </button>
           <button type="button" role="tab" aria-selected={tab === 'customers'} onClick={() => setTab('customers')}
             className={`quotes-tabs__btn${tab === 'customers' ? ' quotes-tabs__btn--on' : ''}`}>
-            <Building2 size={14} strokeWidth={2} /> Customers
+            <Building2 size={14} strokeWidth={2} /> Customers{lb ? ` (${lb.totals.customers})` : ''}
+          </button>
+          <button type="button" role="tab" aria-selected={tab === 'agents'} onClick={() => setTab('agents')}
+            className={`quotes-tabs__btn${tab === 'agents' ? ' quotes-tabs__btn--on' : ''}`}>
+            <Handshake size={14} strokeWidth={2} /> Agents{lb?.agents ? ` (${lb.agents.length})` : ''}
           </button>
           <button type="button" role="tab" aria-selected={tab === 'insights'} onClick={() => setTab('insights')}
             className={`quotes-tabs__btn${tab === 'insights' ? ' quotes-tabs__btn--on' : ''}`}>
@@ -124,11 +128,11 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
         <div className="min-h-[200px] flex-1 overflow-auto px-5 pb-4" style={{ opacity: loading ? 0.55 : 1 }}>
           {!lb ? (
             <p className="py-10 text-center text-sm text-slate-500">{loading ? 'Loading…' : 'No data.'}</p>
-          ) : tab === 'team' ? <StaffTable rows={lb.staff} /> : tab === 'customers' ? <CustomerTable rows={lb.customers} /> : <LeaderboardInsights lb={lb} />}
+          ) : tab === 'team' ? <StaffTable rows={lb.staff} /> : tab === 'customers' ? <CustomerTable rows={lb.customers} /> : tab === 'agents' ? <AgentTable rows={lb.agents} /> : <LeaderboardInsights lb={lb} />}
         </div>
 
         <div className="border-t border-slate-100 px-5 py-2 text-[11px] text-slate-500">
-          Time to quote: quote created to first rate response. Email to quote: customer email to first rate response (matched by account or contact, within 3 days). Per day uses working days.
+          Time to quote: median, quote created to last rate line added. Email to quote: median, customer email to last rate line added (matched by account or contact, within 3 days). Per day uses working days.
         </div>
       </div>
     </div>
