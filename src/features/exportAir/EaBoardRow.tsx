@@ -1,4 +1,5 @@
-import type { ReactNode } from 'react'
+import type { DragEvent, ReactNode } from 'react'
+import { GripVertical } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import { cargoOf, fmtNum, SOURCE_LABEL, STAGE_LABELS, type EaRow } from './eaTypes'
@@ -12,9 +13,12 @@ export function Cell({ children, className = '' }: { children?: ReactNode; class
   return <div className={`flex min-w-0 items-center px-3 py-[9px] ${className}`}>{children}</div>
 }
 
-type Props = { row: EaRow; selected: boolean; onToggle: () => void; onOpen?: (id: string) => void }
+type Props = {
+  row: EaRow; selected: boolean; onToggle: () => void; onOpen?: (id: string) => void
+  drag?: { onStart: (e: DragEvent) => void; onEnd: () => void; dragging: boolean; locked: boolean }
+}
 
-export default function EaBoardRow({ row: r, selected, onToggle, onOpen }: Props) {
+export default function EaBoardRow({ row: r, selected, onToggle, onOpen, drag }: Props) {
   const c = cargoOf(r)
   const consignee = r.consignee_code_name ?? r.consignee_name ?? 'No consignee'
   const shipper = r.shipper_code_name ?? r.shipper_name ?? 'No shipper'
@@ -25,7 +29,12 @@ export default function EaBoardRow({ row: r, selected, onToggle, onOpen }: Props
   const srcText = r.quote_no ? `Quote ${r.quote_no}` : r.thread_count > 0 ? `${src} · ${r.thread_count} thread${r.thread_count > 1 ? 's' : ''}` : src
 
   return (
-    <div className={`${EA_COLS} border-t border-[#F1F2F5] ${selected ? 'bg-[#F3F5FB]' : 'hover:bg-[#F8F9FB]'}`}>
+    <div draggable={!!drag && !drag.locked} onDragStart={drag?.onStart} onDragEnd={drag?.onEnd}
+      title={drag?.locked ? 'Exported to TradeWindow, locked' : undefined}
+      className={`group/row relative ${EA_COLS} border-t border-[#F1F2F5] transition-opacity ${selected ? 'bg-[#F3F5FB]' : 'hover:bg-[#F8F9FB]'} ${drag?.dragging ? 'opacity-40' : ''} ${drag && !drag.locked ? 'cursor-grab active:cursor-grabbing' : ''}`}>
+      {drag && !drag.locked ? (
+        <GripVertical aria-hidden size={13} className="pointer-events-none absolute left-0.5 top-1/2 -translate-y-1/2 text-[#C4C9D2] opacity-0 transition-opacity group-hover/row:opacity-100" />
+      ) : null}
       <Cell className="justify-center">
         <input type="checkbox" aria-label={`Select ${r.booking_ref}`} checked={selected} onChange={onToggle}
           className="m-0 h-3.5 w-3.5 cursor-pointer accent-[#0A2472]" />

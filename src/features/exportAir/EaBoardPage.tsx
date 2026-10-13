@@ -12,6 +12,7 @@ import EaConsolDialog from './EaConsolDialog'
 import { buildGroups } from './eaGroups'
 import { btn, btnPrimary } from './eaUi'
 import { allocateBookings, assignOwner, useEaBoard } from './useEaBoard'
+import { useEaDrag } from './useEaDrag'
 import EaMailBubble from './mail/EaMailBubble'
 import EaHawbDrawer from './EaHawbDrawer'
 
@@ -51,6 +52,7 @@ export default function EaBoardPage() {
   }), [rows, view, needle])
 
   const groups = useMemo(() => buildGroups(visible, consols, stars, view, !!needle), [visible, consols, stars, view, needle])
+  const dnd = useEaDrag(visible, sel, async () => { setSel(new Set()); await reload() })
 
   const open = rows.filter((r) => viewOf(r) !== 'departed')
   const today = open.filter((r) => r.urgency === 'today' || r.urgency === 'blocked').length
@@ -135,8 +137,16 @@ export default function EaBoardPage() {
           {error ? <div className="border-t border-[#EEF0F3] px-3 py-4 text-[#B42318]">{error}</div> : null}
           {groups.map((g) => {
             const isOpen = !collapsed.has(g.key) || !!needle
+            const hot = dnd.over === g.key
+            const dropOk = dnd.dragIds.length > 0 && dnd.canDrop(g)
             return (
-              <div key={g.key}>
+              <div key={g.key} {...dnd.target(g)}
+                className={`relative transition-[box-shadow,background-color] ${hot ? 'bg-[#F3F6FD] shadow-[inset_0_0_0_2px_#0A2472]' : dropOk ? 'shadow-[inset_0_0_0_1px_#C9D4EA]' : ''}`}>
+                {hot ? (
+                  <div className="pointer-events-none absolute right-3 top-2 z-10 rounded-md bg-[#0A2472] px-2 py-0.5 text-[11px] font-medium text-white shadow">
+                    {g.kind === 'consol' ? `Drop on ${g.consol.flight_no}` : 'Drop to unallocate'}
+                  </div>
+                ) : null}
                 {g.kind === 'consol' ? (
                   <ConsolGroupHeader c={g.consol} open={isOpen} starred={g.starred} shown={g.rows.length}
                     onToggle={() => toggleCollapsed(g.key)} onStar={() => toggleStar(g.consol.id)} onEdit={() => setDialog({ consol: g.consol })} />
@@ -144,9 +154,12 @@ export default function EaBoardPage() {
                   <LaneGroupHeader dest={g.dest} count={g.rows.length} open={isOpen} onToggle={() => toggleCollapsed(g.key)}
                     onPlan={g.dest === 'UNSET' ? undefined : () => setDialog({ consol: null, dest: g.dest })} />
                 )}
-                {isOpen ? g.rows.map((r) => <EaBoardRow key={r.id} row={r} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} onOpen={setHawb} />) : null}
+                {isOpen ? g.rows.map((r) => (
+                  <EaBoardRow key={r.id} row={r} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} onOpen={setHawb}
+                    drag={{ onStart: dnd.start(r), onEnd: dnd.end, dragging: dnd.dragIds.includes(r.id), locked: r.consol_status === 'exported' || r.consol_status === 'departed' }} />
+                )) : null}
                 {isOpen && g.kind === 'consol' && g.rows.length === 0 ? (
-                  <div className="border-t border-[#F1F2F5] px-12 py-2.5 text-[12px] text-[#98A2B3]">No houses yet. Tick bookings below and allocate.</div>
+                  <div className="border-t border-[#F1F2F5] px-12 py-2.5 text-[12px] text-[#98A2B3]">No houses yet. Drag bookings here, or tick and allocate.</div>
                 ) : null}
               </div>
             )

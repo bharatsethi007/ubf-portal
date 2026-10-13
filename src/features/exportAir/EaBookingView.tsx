@@ -17,6 +17,10 @@ import EaSideRail from './EaSideRail'
 import EaEditPanel from './EaEditPanel'
 import EaDocViewer from './EaDocViewer'
 import EaMailBubble from './mail/EaMailBubble'
+import EaQuoteAttach from './progress/EaQuoteAttach'
+import EaSliDialog from './progress/EaSliDialog'
+import EaBcDialog from './bc/EaBcDialog'
+import { viewCheckinSheet } from './progress/checkinSheet'
 
 type Props = { bookingId: string; embedded?: boolean; onClose?: () => void; onChanged?: () => void }
 
@@ -27,6 +31,9 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
   const [editing, setEditing] = useState(false)
   const [doc, setDoc] = useState<number | null>(null)
   const [tmsSignal, setTmsSignal] = useState(0)
+  const [quoteOpen, setQuoteOpen] = useState(false)
+  const [sliOpen, setSliOpen] = useState(false)
+  const [bcOpen, setBcOpen] = useState(false)
 
   if (error) return <div className="bk-root p-6 text-[#B42318]">{error}</div>
   if (!b) return <div className="bk-root p-6 text-[#6B7280]">Loading…</div>
@@ -45,7 +52,13 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
       else if (a === 'match') return document.getElementById('ea-parties')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       else if (a === 'book_pickup') return document.getElementById('ea-move')?.scrollIntoView({ behavior: 'smooth', block: 'center' })
       else if (a === 'open_tms') return setTmsSignal((n) => n + 1)
-      else if (a === 'mail_supplier') return window.dispatchEvent(new CustomEvent('ea-mail:open'))
+      else if (a === 'mail_supplier') return window.dispatchEvent(new CustomEvent('mail:open'))
+      else if (a === 'attach_quote') return setQuoteOpen(true)
+      else if (a === 'get_quote') { onClose?.(); navigate('/quotes/new'); return }
+      else if (a === 'view_quote') { if (b!.quote_id) { onClose?.(); navigate(`/quotes/${b!.quote_id}`) } return }
+      else if (a === 'open_sli') return setSliOpen(true)
+      else if (a === 'view_checkin') { if (tms) await viewCheckinSheet(tms.id); return }
+      else if (a === 'send_bc') return setBcOpen(true)
       else if (a === 'allocate' && best) { await allocateBookings([b!.id], best.id); toast.success(`Allocated to ${best.flight_no}`) }
       else if (a === 'open_consol') {
         const id = b!.consol_id ?? best?.id
@@ -92,7 +105,7 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
         </div>
       </div>
 
-      <EaProgressPanel b={b} best={best} onAction={(a) => void act(a)} onChanged={() => void changed()} />
+      <EaProgressPanel b={b} tms={tms} best={best} onAction={(a) => void act(a)} onChanged={() => void changed()} />
 
       {b.stage < 0 ? (
         <div className="flex justify-end">
@@ -112,6 +125,9 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
       </div>
       {embedded ? null : <EaMailBubble bookingId={b.id} bookingRef={b.booking_ref} onChanged={() => void changed()} />}
       {editing ? <EaEditPanel b={b} onClose={() => setEditing(false)} onSaved={() => void changed()} /> : null}
+      {quoteOpen ? <EaQuoteAttach bookingId={b.id} hint={b.consignee_code_name ?? b.consignee_name ?? b.shipper_name ?? ''} onClose={() => setQuoteOpen(false)} onDone={() => { setQuoteOpen(false); void changed() }} /> : null}
+      {sliOpen ? <EaSliDialog bookingId={b.id} isConsolidation={!!b.is_consolidation} onClose={() => { setSliOpen(false); void changed() }} /> : null}
+      {bcOpen ? <EaBcDialog b={b} consol={consols.find((x) => x.id === b.consol_id)} onClose={() => setBcOpen(false)} onSent={() => void changed()} /> : null}
       {doc != null ? <EaDocViewer docs={docs} index={doc} onIndex={setDoc} onClose={() => setDoc(null)} /> : null}
     </div>
   )

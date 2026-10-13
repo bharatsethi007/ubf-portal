@@ -22,6 +22,12 @@ export type EaDetail = EaRow & {
   sli_signed_at: string | null
   consol_mawb: string | null
   hold_code: string | null
+  customer_ref: string | null
+  special_instructions: string | null
+  shipper_email: string | null
+  consignee_email: string | null
+  owner_email: string | null
+  bc_sent_at: string | null
 }
 
 export type CargoLine = { id: string; kind: 'booked' | 'actual'; pieces: number | null; weight: number | null; cbm: number | null }

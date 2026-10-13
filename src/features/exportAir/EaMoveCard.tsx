@@ -6,7 +6,6 @@ import { supabase } from '@/supabase'
 import ConsignmentDetailWindow from '@/features/tms/ConsignmentDetailWindow'
 import LabelsModal from '@/features/tms/LabelsModal'
 import ConsignmentNoteModal from '@/features/tms/ConsignmentNoteModal'
-import CheckInSheetForm from '@/features/tms/CheckInSheetForm'
 import { checkinSheetIdForConsignment } from '@/features/tms/checkinSheetApi'
 import { openCheckinSheetPdf } from '@/features/tms/pdf/checkinPdf'
 import { btn, Card, lbl } from './eaUi'
@@ -23,7 +22,6 @@ export default function EaMoveCard({ b, tms, onSaved, openTmsSignal }: Props) {
   const [tmsOpen, setTmsOpen] = useState(false)
   const [labels, setLabels] = useState(false)
   const [note, setNote] = useState(false)
-  const [checkin, setCheckin] = useState(false)
   const [sheetId, setSheetId] = useState<string | null>(null)
   const mode = b.collection_mode ?? 'pickup'
   const checkedIn = !!(tms?.wms_checkin_at ?? b.wms_checkin_at)
@@ -50,7 +48,7 @@ export default function EaMoveCard({ b, tms, onSaved, openTmsSignal }: Props) {
   }
 
   async function viewSheet() {
-    if (!sheetId) return setCheckin(true)
+    if (!sheetId) return
     try { if (!(await openCheckinSheetPdf(sheetId))) toast.error('Check-in sheet not found') } catch (e) { toast.error((e as Error).message) }
   }
 
@@ -96,8 +94,9 @@ export default function EaMoveCard({ b, tms, onSaved, openTmsSignal }: Props) {
         {mode === 'pickup' && b.pickup_address ? <span className="mr-auto truncate text-[12px] text-[#5B616E]">Pickup from {b.pickup_address}</span> : <span className="mr-auto" />}
         <button type="button" className={docBtn} disabled={!tms} onClick={() => setLabels(true)} title={tms ? 'Print or email labels' : 'Book the pickup first'}><TagIcon size={13} /> Labels</button>
         <button type="button" className={docBtn} disabled={!tms} onClick={() => setNote(true)} title={tms ? 'Consignment note' : 'Book the pickup first'}><FileText size={13} /> Consignment note</button>
-        <button type="button" className={docBtn} disabled={!tms} onClick={() => void viewSheet()} title={sheetId ? 'View check-in sheet PDF' : 'Fill the check-in sheet'}>
-          <ClipboardCheck size={13} /> {sheetId ? 'Check-in sheet' : 'Check in'}
+        <button type="button" className={docBtn} disabled={!sheetId} onClick={() => void viewSheet()}
+          title={sheetId ? 'Check-in sheet PDF' : 'Available once the warehouse checks the cargo in'}>
+          <ClipboardCheck size={13} /> Check-in sheet
         </button>
       </div>
 
@@ -106,7 +105,6 @@ export default function EaMoveCard({ b, tms, onSaved, openTmsSignal }: Props) {
         <>
           <LabelsModal id={tms.id} open={labels} onClose={() => setLabels(false)} />
           <ConsignmentNoteModal id={tms.id} open={note} onClose={() => setNote(false)} />
-          <CheckInSheetForm open={checkin} consignmentId={tms.id} sheetId={sheetId} onClose={() => setCheckin(false)} onDone={() => { setCheckin(false); onSaved() }} />
         </>
       ) : null}
     </Card>

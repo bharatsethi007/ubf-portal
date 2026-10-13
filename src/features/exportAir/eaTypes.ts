@@ -32,6 +32,7 @@ export type EaRow = {
   consol_date: string | null
   consol_status: string | null
   quote_no: string | null
+  quote_id: string | null
   tms_no: string | null
   thread_count: number
   owner_initials: string | null

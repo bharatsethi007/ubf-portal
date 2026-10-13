@@ -1,17 +1,17 @@
 import { useEffect, useState } from 'react'
 import { AlertTriangle, ArrowRight, Building2, Check, ChevronDown, Mail, MessageCircle, MonitorSmartphone, Plane, Sparkles, Truck, User } from 'lucide-react'
-import { dmy, type Milestone } from '@/features/bookingRecord/progress/progressApi'
+import { dmy } from '@/features/bookingRecord/progress/progressApi'
 import CustomerUpdateDialog, { type Channel } from '@/features/bookingRecord/progress/CustomerUpdateDialog'
 import '@/features/bookingRecord/progress/progress.css'
-import type { EaDetail } from '../useEaBooking'
+import type { EaDetail, TmsJob } from '../useEaBooking'
 import type { AirConsol } from '../eaTypes'
-import { eaPlan, eaProgress, type EaAction } from './eaProgress'
+import { eaMilestones, eaPlan, eaProgress, type EaAction, type EaMilestone } from './eaProgress'
 
 const OWNER_ICON = { ubf: Building2, customer: User, carrier: Plane, port: Truck } as const
 const OWNER_LABEL = { ubf: 'UBF', customer: 'Supplier', carrier: 'Airline', port: 'Port' } as const
 const KEY = 'bp-collapsed-ea'
 
-function Step({ m, current }: { m: Milestone; current: boolean }) {
+function Step({ m, current, onAction }: { m: EaMilestone; current: boolean; onAction: (a: EaAction) => void }) {
   const Icon = OWNER_ICON[m.owner] ?? Building2
   const when = m.done ? dmy(m.at) : m.due ? `by ${dmy(m.due)}` : ''
   return (
@@ -20,16 +20,29 @@ function Step({ m, current }: { m: Milestone; current: boolean }) {
       <span className="bp-step__l">{m.label}</span>
       <span className="bp-step__w">{[when, m.note].filter(Boolean).join(' · ')}</span>
       {!m.done && <span className="bp-step__o" title={`Waiting on ${OWNER_LABEL[m.owner]}`}><Icon size={10} /> {OWNER_LABEL[m.owner]}</span>}
+      {m.ctas.length ? (
+        <span className="mt-1.5 flex flex-wrap gap-1">
+          {m.ctas.map((c) => (
+            <button key={c.label} type="button" disabled={c.disabled} title={c.title} onClick={() => onAction(c.action)}
+              className={`inline-flex h-[22px] w-auto items-center rounded-full px-2 text-[10.5px] font-medium transition-colors disabled:cursor-not-allowed disabled:opacity-45 ${
+                c.tone === 'quiet' ? 'border border-[#D6DCE6] bg-white text-[#0A2472] hover:border-[#0A2472]'
+                  : 'border border-[#0A2472] bg-[#0A2472] text-white hover:bg-[#081C5A]'}`}>
+              {c.label}
+            </button>
+          ))}
+        </span>
+      ) : null}
     </div>
   )
 }
 
-type Props = { b: EaDetail; best: AirConsol | undefined; onAction: (a: EaAction) => void; onChanged: () => void }
+type Props = { b: EaDetail; tms: TmsJob | null; best: AirConsol | undefined; onAction: (a: EaAction) => void; onChanged: () => void }
 
 /** Import Sea style progress for export air: segmented bar, milestone track, one next step with its button. Collapsible. */
-export default function EaProgressPanel({ b, best, onAction, onChanged }: Props) {
-  const p = eaProgress(b)
-  const plan = eaPlan(b, best)
+export default function EaProgressPanel({ b, tms, best, onAction, onChanged }: Props) {
+  const ms = eaMilestones(b, tms)
+  const p = eaProgress(b, ms)
+  const plan = eaPlan(b, tms, best)
   const [fill, setFill] = useState(0)
   const [dialog, setDialog] = useState<Channel | null>(null)
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem(KEY) === '1' } catch { return false } })
@@ -64,7 +77,7 @@ export default function EaProgressPanel({ b, best, onAction, onChanged }: Props)
         </div>
       ) : (
         <div className="bp-body">
-          <div className="bp-track">{p.milestones.map((m, i) => <Step key={m.key} m={m} current={i === currentIdx} />)}</div>
+          <div className="bp-track">{ms.map((m, i) => <Step key={m.key} m={m} current={i === currentIdx} onAction={onAction} />)}</div>
           <div className={`bp-ai bp-ai--${plan.tone}`}>
             <span className="bp-ai__icon"><Sparkles size={14} /></span>
             <div className="bp-ai__body">
