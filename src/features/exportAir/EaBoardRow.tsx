@@ -12,9 +12,9 @@ export function Cell({ children, className = '' }: { children?: ReactNode; class
   return <div className={`flex min-w-0 items-center px-3 py-[9px] ${className}`}>{children}</div>
 }
 
-type Props = { row: EaRow; selected: boolean; onToggle: () => void }
+type Props = { row: EaRow; selected: boolean; onToggle: () => void; onOpen?: (id: string) => void }
 
-export default function EaBoardRow({ row: r, selected, onToggle }: Props) {
+export default function EaBoardRow({ row: r, selected, onToggle, onOpen }: Props) {
   const c = cargoOf(r)
   const consignee = r.consignee_code_name ?? r.consignee_name ?? 'No consignee'
   const shipper = r.shipper_code_name ?? r.shipper_name ?? 'No shipper'
@@ -31,7 +31,8 @@ export default function EaBoardRow({ row: r, selected, onToggle }: Props) {
           className="m-0 h-3.5 w-3.5 cursor-pointer accent-[#0A2472]" />
       </Cell>
       <Cell className="flex-col !items-start justify-center gap-0.5">
-        <Link to={eaHref(r.id)} className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</Link>
+        <Link to={eaHref(r.id)} onClick={(e) => { if (!onOpen || e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); onOpen(r.id) }}
+          className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</Link>
         <span className="w-full truncate text-[11px] text-[#6B7280]">{srcText}</span>
       </Cell>
       <Cell className="flex-col !items-start justify-center gap-0.5">

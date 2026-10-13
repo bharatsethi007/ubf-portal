@@ -11,12 +11,14 @@ import { useEaConsol } from './useEaConsol'
 import EaConsolDialog from './EaConsolDialog'
 import EaMailBubble from './mail/EaMailBubble'
 import EaConsolExport from './EaConsolExport'
+import EaHawbDrawer from './EaHawbDrawer'
 
 /** Consol planner: header, allocated houses, same-lane candidates, close + export to TradeWindow. */
 export default function EaConsolPage() {
   const { consolId } = useParams()
   const { consol: c, houses, candidates, error, reload } = useEaConsol(consolId)
   const [editing, setEditing] = useState(false)
+  const [hawb, setHawb] = useState<string | null>(null)
 
   if (error) return <div className="bk-root p-6 text-[#B42318]">{error}</div>
   if (!c) return <div className="bk-root p-6 text-[#6B7280]">Loading…</div>
@@ -70,7 +72,7 @@ export default function EaConsolPage() {
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-[999_1_620px]">
           <Card title={`On this consol · ${houses.length}`}>
-            <HouseList rows={houses} empty="Nothing allocated yet. Add from the right."
+            <HouseList rows={houses} onOpen={setHawb} empty="Nothing allocated yet. Add from the right."
               action={locked ? undefined : { label: 'Remove', run: (id) => void move([id], null) }} />
           </Card>
         </div>
@@ -79,12 +81,13 @@ export default function EaConsolPage() {
             aside={!locked && candidates.some((r) => r.stage >= 2)
               ? <button type="button" className={btn} onClick={() => void move(candidates.filter((r) => r.stage >= 2).map((r) => r.id), c.id)}>Add all checked in</button>
               : null}>
-            <HouseList rows={candidates} empty="No open bookings on this lane."
+            <HouseList rows={candidates} onOpen={setHawb} empty="No open bookings on this lane."
               action={locked ? undefined : { label: 'Add', run: (id) => void move([id], c.id), primary: true }} />
           </Card>
         </div>
       </div>
       <EaMailBubble onChanged={() => void reload()} />
+      <EaHawbDrawer bookingId={hawb} onClose={() => setHawb(null)} onChanged={() => void reload()} />
       {editing ? <EaConsolDialog consol={c} onClose={() => setEditing(false)} onSaved={() => void reload()} /> : null}
     </div>
   )
@@ -99,7 +102,7 @@ function Fact({ k, v }: { k: string; v: ReactNode }) {
   )
 }
 
-function HouseList({ rows, empty, action }: { rows: EaRow[]; empty: string; action?: { label: string; run: (id: string) => void; primary?: boolean } }) {
+function HouseList({ rows, empty, action, onOpen }: { rows: EaRow[]; empty: string; onOpen?: (id: string) => void; action?: { label: string; run: (id: string) => void; primary?: boolean } }) {
   if (!rows.length) return <p className="m-0 px-4 py-4 text-[12px] text-[#6B7280]">{empty}</p>
   return (
     <ul className="m-0 list-none py-1">
@@ -107,7 +110,8 @@ function HouseList({ rows, empty, action }: { rows: EaRow[]; empty: string; acti
         const x = cargoOf(r)
         return (
           <li key={r.id} className="grid grid-cols-[112px_minmax(0,1fr)_120px_100px_auto] items-center gap-3 border-t border-[#F6F7F9] px-4 py-2 first:border-t-0 hover:bg-[#F8F9FB]">
-            <Link to={eaHref(r.id)} className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</Link>
+            <a href={eaHref(r.id)} onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || !onOpen) return; e.preventDefault(); onOpen(r.id) }}
+              className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</a>
             <div className="flex min-w-0 flex-col">
               <span className="truncate font-medium">{r.consignee_code_name ?? r.consignee_name ?? '—'}</span>
               <span className="truncate text-[11px] text-[#6B7280]">from {r.shipper_code_name ?? r.shipper_name ?? '—'}</span>

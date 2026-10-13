@@ -13,6 +13,7 @@ import { buildGroups } from './eaGroups'
 import { btn, btnPrimary } from './eaUi'
 import { allocateBookings, assignOwner, useEaBoard } from './useEaBoard'
 import EaMailBubble from './mail/EaMailBubble'
+import EaHawbDrawer from './EaHawbDrawer'
 
 type Dialog = { consol: AirConsol | null; dest?: string } | null
 
@@ -27,6 +28,7 @@ export default function EaBoardPage() {
   const [q, setQ] = useState('')
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState<Dialog>(null)
+  const [hawb, setHawb] = useState<string | null>(null)
 
   const counts = useMemo(() => {
     const c: Record<EaView, number> = { open: 0, review: 0, pickup: 0, warehouse: 0, allocated: 0, departed: 0 }
@@ -142,7 +144,7 @@ export default function EaBoardPage() {
                   <LaneGroupHeader dest={g.dest} count={g.rows.length} open={isOpen} onToggle={() => toggleCollapsed(g.key)}
                     onPlan={g.dest === 'UNSET' ? undefined : () => setDialog({ consol: null, dest: g.dest })} />
                 )}
-                {isOpen ? g.rows.map((r) => <EaBoardRow key={r.id} row={r} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} />) : null}
+                {isOpen ? g.rows.map((r) => <EaBoardRow key={r.id} row={r} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} onOpen={setHawb} />) : null}
                 {isOpen && g.kind === 'consol' && g.rows.length === 0 ? (
                   <div className="border-t border-[#F1F2F5] px-12 py-2.5 text-[12px] text-[#98A2B3]">No houses yet. Tick bookings below and allocate.</div>
                 ) : null}
@@ -159,6 +161,7 @@ export default function EaBoardPage() {
       </div>
 
       <EaMailBubble onChanged={() => void reload()} />
+      <EaHawbDrawer bookingId={hawb} onClose={() => setHawb(null)} onChanged={() => void reload()} />
       {dialog ? <EaConsolDialog consol={dialog.consol} dest={dialog.dest} onClose={() => setDialog(null)} onSaved={() => void reload()} /> : null}
     </div>
   )

@@ -27,6 +27,7 @@ export type EaDetail = EaRow & {
 export type CargoLine = { id: string; kind: 'booked' | 'actual'; pieces: number | null; weight: number | null; cbm: number | null }
 export type ThreadRow = { conversation_id: string; subject: string | null; last_preview: string | null; last_sender: string | null; last_message_at: string | null; email_mailbox: string | null }
 export type DocRow = { id: string; file_name: string; storage_path: string; created_at: string; uploaded_via: string | null }
+export type TmsJob = { id: string; consignment_no: string | null; status: string | null; order_type: string | null; wms_checkin_at: string | null; picked_up_at: string | null }
 export type HistRow = { id: number; field: string | null; action: string | null; new_value: string | null; actor_name: string | null; created_at: string }
 
 export function useEaBooking(id: string | undefined) {
@@ -36,11 +37,12 @@ export function useEaBooking(id: string | undefined) {
   const [docs, setDocs] = useState<DocRow[]>([])
   const [hist, setHist] = useState<HistRow[]>([])
   const [consols, setConsols] = useState<AirConsol[]>([])
+  const [tms, setTms] = useState<TmsJob | null>(null)
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
     if (!id) return
-    const [bk, cl, th, dc, hs] = await Promise.all([
+    const [bk, cl, th, dc, hs, tj] = await Promise.all([
       supabase.from('v_ea_bookings').select('*').eq('id', id).maybeSingle(),
       supabase.from('booking_cargo_lines').select('id, kind, pieces, weight, cbm').eq('booking_id', id),
       supabase.from('booking_threads')
@@ -50,6 +52,8 @@ export function useEaBooking(id: string | undefined) {
         .eq('booking_id', id).order('created_at', { ascending: false }),
       supabase.from('booking_history').select('id, field, action, new_value, actor_name, created_at')
         .eq('booking_id', id).order('created_at', { ascending: false }).limit(12),
+      supabase.from('tms_consignments').select('id, consignment_no, status, order_type, wms_checkin_at, picked_up_at')
+        .eq('booking_id', id).order('created_at', { ascending: false }).limit(1),
     ])
     if (bk.error || !bk.data) { setError(bk.error?.message ?? 'Booking not found'); return }
     const row = bk.data as EaDetail
@@ -60,6 +64,7 @@ export function useEaBooking(id: string | undefined) {
       .sort((a, c) => (c.last_message_at ?? '').localeCompare(a.last_message_at ?? '')))
     setDocs((dc.data ?? []) as DocRow[])
     setHist((hs.data ?? []) as HistRow[])
+    setTms(((tj.data ?? [])[0] as TmsJob | undefined) ?? null)
     const cs = await supabase.from('v_air_consols').select('*')
       .eq('destination', (row.destination || 'NAN').toUpperCase())
       .not('status', 'in', '(departed,cancelled)')
@@ -70,7 +75,7 @@ export function useEaBooking(id: string | undefined) {
 
   useEffect(() => { void load() }, [load])
 
-  return { b, lines, threads, docs, hist, consols, error, reload: load }
+  return { b, lines, threads, docs, hist, consols, tms, error, reload: load }
 }
 
 export async function patchBooking(id: string, patch: Record<string, unknown>) {

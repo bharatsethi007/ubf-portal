@@ -11,6 +11,12 @@ export default function EaMailBubble({ bookingId, bookingRef, onChanged }: Props
   const [n, setN] = useState<number | null>(null)
 
   useEffect(() => {
+    const on = () => setOpen(true)
+    window.addEventListener('ea-mail:open', on)
+    return () => window.removeEventListener('ea-mail:open', on)
+  }, [])
+
+  useEffect(() => {
     let live = true
     const load = () => void fetchCounts().then((c) => { if (live) setN(c?.mailboxes?.[EA_MAILBOX] ?? 0) }).catch(() => {})
     load()
