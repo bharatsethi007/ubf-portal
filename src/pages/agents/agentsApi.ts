@@ -89,7 +89,7 @@ export async function listAgents(
       'id, erp_account_code, name, country, source, status, trusted, approved_by, approved_at, notes, created_at, last_activity, job_count, agent_networks(freight_networks(code))',
       { count: 'exact' },
     )
-    .order(sortCol, { ascending: !sortDesc, nullsFirst: sortCol === 'last_activity' ? false : true })
+    .order(sortCol, { ascending: !sortDesc, nullsFirst: sortCol === 'job_count' })
 
   if (status !== 'all') query = query.eq('status', status)
   if (trusted === 'yes') query = query.eq('trusted', true)

@@ -39,7 +39,7 @@ const TRUSTED_TABS = [
 function toListSort(sorting: SortingState): AgentListSort | undefined {
   const col = sorting[0]
   if (!col) return undefined
-  if (col.id !== 'last_activity' && col.id !== 'job_count') return undefined
+  if (col.id !== 'last_activity' && col.id !== 'job_count' && col.id !== 'name') return undefined
   return { id: col.id, desc: col.desc }
 }
 

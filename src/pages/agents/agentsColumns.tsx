@@ -55,8 +55,14 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
     {
       id: 'name',
       accessorKey: 'name',
-      header: 'Agent',
-      enableSorting: false,
+      header: ({ column }) => (
+        <SortableHeader
+          label="Agent"
+          sorted={column.getIsSorted()}
+          onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')}
+        />
+      ),
+      enableSorting: true,
       cell: ({ row }) => (
         <div className="customer-name-cell">
           <span className="customer-name-cell__name agent-name-row">
