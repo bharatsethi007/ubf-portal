@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react'
 import { useNavigate, useSearchParams } from 'react-router-dom'
-import { Loader2, MessageSquareQuote, Plane, Search, Ship } from 'lucide-react'
+import { Info, Loader2, MessageSquareQuote, Plane, Search, Ship } from 'lucide-react'
 import { usePorts } from '../../../../hooks/usePorts'
 import PortPicker from '../bookings/PortPicker'
 import { CONTAINER_TYPES } from '../bookings/bookingsApi'
@@ -150,6 +150,12 @@ export default function PortalRatesPage() {
             <RateCard key={o.ref} o={o} input={input} delay={0.03 * i} cheapest={o.ref === cheapestRef} fastest={o.ref === fastestRef}
               onBook={book} onQuote={() => setAsking(true)} />
           ))}
+          {results.length > 0 && (
+            <p className="pv3-rnote" role="note">
+              <Info size={15} />
+              <span>* Prices are indicative only. Availability is subject to change without notice. The shown prices for LCL are subject to local charges both ends. Only {searched.mode === 'air' ? 'air' : 'ocean'} freight displayed.</span>
+            </p>
+          )}
           {results.length === 0 && !asking && (
             <div className="pv3-card pv3-rempty pv3-rise">
               <MessageSquareQuote size={28} />
