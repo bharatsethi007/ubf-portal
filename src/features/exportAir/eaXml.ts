@@ -1,6 +1,6 @@
 import { supabase } from '@/supabase'
 import { cleanForTw } from './EaCargoCard'
-import { cargoOf, type AirConsol, type EaRow } from './eaTypes'
+import { awbOk, cargoOf, type AirConsol, type EaRow } from './eaTypes'
 
 /** TradeWindow Export Air consol import (Consolidation2). Matches the shape TW's own Extract XML produces. */
 
@@ -19,6 +19,8 @@ export type XmlIssue = { ref: string; problem: string }
 export function xmlIssues(consol: AirConsol, houses: House[]): XmlIssue[] {
   const out: XmlIssue[] = []
   if (!houses.length) out.push({ ref: consol.flight_no, problem: 'No houses allocated' })
+  if (!consol.mawb) out.push({ ref: consol.flight_no, problem: 'MAWB missing' })
+  else if (!awbOk(consol.mawb)) out.push({ ref: consol.flight_no, problem: 'MAWB check digit looks wrong' })
   for (const h of houses) {
     const c = cargoOf(h)
     if (!h.shipper_account_id) out.push({ ref: h.booking_ref, problem: 'Shipper code missing' })
@@ -89,7 +91,7 @@ export async function buildConsolXml(consol: AirConsol, houses: House[]) {
     ' <Sender_Fax>64 9 966 3859</Sender_Fax>',
     '  <Consignment>',
     tag('NATURE', 'AIR'), tag('AGENT', 'UB'), tag('AIRLINE_REF', ''), tag('ARRIVAL', ''),
-    tag('EXPECTED', iso(consol.flight_date)), tag('FLIGHT', consol.flight_no),
+    tag('EXPECTED', iso(consol.eta_date ?? consol.flight_date)), tag('FLIGHT', consol.flight_no),
     tag('MASTERBILL', (consol.mawb ?? '').replace(/\D/g, '')), tag('MASTERBILL_DATE', iso(consol.flight_date)),
     tag('PKGS_CONSOLIDATION', String(pkgs)), tag('PORT_DISCHARGE', dest), tag('PORT_LOADING', 'AKL'),
     ...houses.map((h) => job(h, cust, dest)),

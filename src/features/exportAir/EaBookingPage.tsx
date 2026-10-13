@@ -72,7 +72,7 @@ export default function EaBookingPage() {
       {b.stage < 0 ? (
         <Strip bg="#FFFAEB" dot="#F79009">
           <span><b className="font-semibold">Draft from {b.source === 'customer_portal' ? 'portal' : b.source.startsWith('email') ? 'email' : 'manual entry'}.</b>{' '}
-            <span className="text-[#5B616E]">Check the fields below, fix anything with Edit, then confirm. Confirming books the pickup if there is a pickup address.</span></span>
+            <span className="text-[#5B616E]">Check the fields below, fix anything with Edit, then confirm.</span></span>
           <div className="ml-auto flex gap-2">
             <button type="button" className={btn} onClick={() => void setStatus('rejected')}>Reject</button>
             <button type="button" className={btnPrimary} onClick={() => void setStatus('confirmed')}>Confirm booking</button>

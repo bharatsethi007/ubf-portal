@@ -56,6 +56,12 @@ export type AirConsol = {
   mawb: string | null
   status: 'planned' | 'confirmed' | 'closed' | 'exported' | 'departed' | 'cancelled'
   exported_at: string | null
+  transit_port: string | null
+  flight2_no: string | null
+  flight2_date: string | null
+  eta_date: string | null
+  handled_by: string | null
+  notes: string | null
   houses: number
   pieces: number
   kg: number
@@ -112,3 +118,15 @@ export function cargoOf(r: EaRow) {
 
 export const fmtNum = (n: number | null | undefined, d = 0) =>
   n == null ? '—' : Number(n).toLocaleString('en-NZ', { maximumFractionDigits: d })
+
+/** IATA AWB: 3-digit prefix + 7-digit serial + check digit (serial mod 7). */
+export function awbOk(mawb: string | null | undefined) {
+  const d = (mawb ?? '').replace(/\D/g, '')
+  if (d.length !== 11) return false
+  return Number(d.slice(3, 10)) % 7 === Number(d[10])
+}
+
+export const fmtAwb = (mawb: string | null | undefined) => {
+  const d = (mawb ?? '').replace(/\D/g, '')
+  return d.length === 11 ? `${d.slice(0, 3)}-${d.slice(3)}` : (mawb ?? '')
+}

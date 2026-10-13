@@ -39,6 +39,8 @@ import RatePage from './pages/public/RatePage'
 import BookingsWorkspacePage from './features/bookingsWorkspace/BookingsWorkspacePage'
 import EaBookingPage from './features/exportAir/EaBookingPage'
 import EaConsolPage from './features/exportAir/EaConsolPage'
+import EaNewBookingPage from './features/exportAir/EaNewBookingPage'
+import { EaLegacyEditRedirect } from './features/exportAir/eaUi'
 import CourierBookingsList from './pages/courier/CourierBookingsList'
 import CourierBookingDetail from './pages/courier/CourierBookingDetail'
 import SetupPage from './pages/setup/SetupPage'
@@ -192,6 +194,9 @@ export default function App() {
             <Route path="/bookings/import-air" element={<StaffRoute><BookingsWorkspacePage slug="import-air" /></StaffRoute>} />
             <Route path="/bookings/export-sea" element={<StaffRoute><BookingsWorkspacePage slug="export-sea" /></StaffRoute>} />
             <Route path="/bookings/export-air" element={<StaffRoute><BookingsWorkspacePage slug="export-air" /></StaffRoute>} />
+            <Route path="/bookings/export-air/new" element={<StaffRoute><EaNewBookingPage /></StaffRoute>} />
+            <Route path="/bookings/EA/new" element={<Navigate to="/bookings/export-air/new" replace />} />
+            <Route path="/bookings/EA/:id/edit" element={<EaLegacyEditRedirect />} />
             <Route path="/bookings/export-air/:bookingId" element={<StaffRoute><EaBookingPage /></StaffRoute>} />
             <Route path="/bookings/export-air/consol/:consolId" element={<StaffRoute><EaConsolPage /></StaffRoute>} />
             <Route

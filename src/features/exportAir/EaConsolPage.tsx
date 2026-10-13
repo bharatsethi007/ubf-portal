@@ -1,19 +1,21 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 import '@/features/bookingsWorkspace/bookingsTheme.css'
-import { cargoOf, fmtNum, type EaRow } from './eaTypes'
+import { Pencil } from 'lucide-react'
+import { awbOk, cargoOf, fmtAwb, fmtNum, type EaRow } from './eaTypes'
 import { btn, btnPrimary, Card, eaHref, lbl, StageBar, Tag } from './eaUi'
 import { allocateBookings } from './useEaBoard'
-import { patchConsol, useEaConsol } from './useEaConsol'
+import { useEaConsol } from './useEaConsol'
+import EaConsolDialog from './EaConsolDialog'
 import EaConsolExport from './EaConsolExport'
 
 /** Consol planner: header, allocated houses, same-lane candidates, close + export to TradeWindow. */
 export default function EaConsolPage() {
   const { consolId } = useParams()
   const { consol: c, houses, candidates, error, reload } = useEaConsol(consolId)
-  const [mawb, setMawb] = useState<string | null>(null)
+  const [editing, setEditing] = useState(false)
 
   if (error) return <div className="bk-root p-6 text-[#B42318]">{error}</div>
   if (!c) return <div className="bk-root p-6 text-[#6B7280]">Loading…</div>
@@ -24,11 +26,6 @@ export default function EaConsolPage() {
   async function move(ids: string[], to: string | null) {
     try { await allocateBookings(ids, to); await reload() } catch (e) { toast.error((e as Error).message) }
   }
-  async function saveMawb() {
-    if (mawb == null) return
-    try { await patchConsol(c!.id, { mawb: mawb.trim() || null, status: mawb.trim() && c!.status === 'planned' ? 'confirmed' : c!.status }); setMawb(null); await reload() } catch (e) { toast.error((e as Error).message) }
-  }
-
   return (
     <div className="bk-root mx-auto w-full max-w-[1440px] bg-white text-[12.5px] text-[#14161A]">
       <div className="text-[12px] text-[#6B7280]">
@@ -47,26 +44,25 @@ export default function EaConsolPage() {
             {format(parseISO(c.flight_date), 'EEEE d MMM')}{c.cutoff_at ? ` · cutoff ${format(parseISO(c.cutoff_at), 'EEE d MMM HH:mm')}` : ''} · consignee UBNAN
           </div>
         </div>
-        <div className="flex items-end gap-2">
-          <label className="flex flex-col gap-1">
-            <span className={lbl}>MAWB</span>
-            <input
-              value={mawb ?? c.mawb ?? ''}
-              disabled={locked}
-              onChange={(e) => setMawb(e.target.value)}
-              onBlur={() => void saveMawb()}
-              placeholder="086-65575823"
-              className="bk-mono h-[30px] w-[150px] rounded-[7px] border border-[#E3E6EB] px-2 text-[12.5px] outline-none focus:border-[#0A2472]"
-            />
-          </label>
-          <div className="flex gap-4 pb-1.5 text-[12px] text-[#5B616E]">
+        <div className="flex items-center gap-4">
+          <div className="flex gap-4 text-[12px] text-[#5B616E]">
             <span><b className="bk-mono font-medium text-[#14161A]">{houses.length}</b> houses</span>
             <span><b className="bk-mono font-medium text-[#14161A]">{fmtNum(tot.pcs)}</b> pcs</span>
             <span><b className="bk-mono font-medium text-[#14161A]">{fmtNum(tot.kg)}</b> kg</span>
             <span><b className="bk-mono font-medium text-[#14161A]">{fmtNum(tot.chg)}</b> chg</span>
           </div>
+          <button type="button" className={btn} onClick={() => setEditing(true)}><Pencil size={13} /> {locked ? 'Details' : 'Edit details'}</button>
         </div>
       </div>
+
+      <dl className="m-0 grid grid-cols-2 divide-x divide-[#F1F2F5] rounded-[10px] border border-[#EEF0F3] md:grid-cols-6">
+        <Fact k="MAWB" v={c.mawb ? <span className="bk-mono" style={{ color: awbOk(c.mawb) ? undefined : '#B54708' }}>{fmtAwb(c.mawb)}</span> : <span className="text-[#B54708]">Not yet</span>} />
+        <Fact k="Flight 1" v={<><span className="bk-mono">{c.flight_no}</span> · {format(parseISO(c.flight_date), 'EEE d MMM')}</>} />
+        <Fact k="Transit · flight 2" v={c.transit_port || c.flight2_no ? <span className="bk-mono">{[c.transit_port, c.flight2_no].filter(Boolean).join(' · ')}{c.flight2_date ? ` · ${format(parseISO(c.flight2_date), 'd MMM')}` : ''}</span> : 'Direct'} />
+        <Fact k="Cutoff" v={c.cutoff_at ? format(parseISO(c.cutoff_at), 'EEE d MMM HH:mm') : '—'} />
+        <Fact k="ETA" v={c.eta_date ? format(parseISO(c.eta_date), 'EEE d MMM') : '—'} />
+        <Fact k="Notes" v={c.notes || '—'} />
+      </dl>
 
       <EaConsolExport consol={c} houses={houses} onDone={() => void reload()} />
 
@@ -87,6 +83,16 @@ export default function EaConsolPage() {
           </Card>
         </div>
       </div>
+      {editing ? <EaConsolDialog consol={c} onClose={() => setEditing(false)} onSaved={() => void reload()} /> : null}
+    </div>
+  )
+}
+
+function Fact({ k, v }: { k: string; v: ReactNode }) {
+  return (
+    <div className="flex min-w-0 flex-col gap-1 px-3.5 py-2.5">
+      <dt className={lbl}>{k}</dt>
+      <dd className="m-0 truncate text-[12.5px] text-[#14161A]">{v}</dd>
     </div>
   )
 }

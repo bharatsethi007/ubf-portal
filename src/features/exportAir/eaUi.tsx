@@ -1,4 +1,5 @@
 import type { ReactNode } from 'react'
+import { Navigate, useParams } from 'react-router-dom'
 import { format, isToday, isTomorrow, parseISO } from 'date-fns'
 import type { EaUrgency } from './eaTypes'
 
@@ -100,3 +101,9 @@ export const btnPrimary =
 export const lbl = 'text-[10.5px] uppercase tracking-[.04em] text-[#6B7280]'
 
 export const fmtDay = (iso: string | null) => (iso ? format(parseISO(iso), 'EEE d MMM') : '—')
+
+/** Old /bookings/EA/:id/edit links land on the new booking page. */
+export function EaLegacyEditRedirect() {
+  const { id } = useParams()
+  return <Navigate to={id ? eaHref(id) : '/bookings/export-air'} replace />
+}

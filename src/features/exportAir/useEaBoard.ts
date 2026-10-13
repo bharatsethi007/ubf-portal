@@ -4,7 +4,7 @@ import type { AirConsol, EaRow } from './eaTypes'
 
 const REFRESH_MS = 60_000
 
-/** EA bookings + open air consols. Polls every minute. */
+/** EA bookings + live air consols (not departed or cancelled, flight within the last 3 days or later). */
 export function useEaBoard() {
   const [rows, setRows] = useState<EaRow[]>([])
   const [consols, setConsols] = useState<AirConsol[]>([])
@@ -12,14 +12,14 @@ export function useEaBoard() {
   const [error, setError] = useState('')
 
   const load = useCallback(async () => {
-    const today = new Date(Date.now() - 86_400_000).toISOString().slice(0, 10)
+    const since = new Date(Date.now() - 3 * 86_400_000).toISOString().slice(0, 10)
     const [b, c] = await Promise.all([
       supabase.from('v_ea_bookings').select('*').order('priority', { ascending: false }),
       supabase
         .from('v_air_consols')
         .select('*')
-        .gte('flight_date', today)
-        .not('status', 'in', '(exported,departed,cancelled)')
+        .gte('flight_date', since)
+        .not('status', 'in', '(departed,cancelled)')
         .order('flight_date'),
     ])
     if (b.error) setError(b.error.message)
@@ -51,15 +51,29 @@ export async function assignOwner(ids: string[], userId: string | null) {
   if (error) throw new Error(error.message)
 }
 
-export type NewConsol = {
+export type ConsolInput = {
   destination: string
   airline: string | null
   flight_no: string
   flight_date: string
   cutoff_at: string | null
+  mawb: string | null
+  transit_port: string | null
+  flight2_no: string | null
+  flight2_date: string | null
+  eta_date: string | null
+  handled_by: string | null
+  notes: string | null
+  status: 'planned' | 'confirmed'
 }
 
-export async function planConsol(c: NewConsol) {
+/** Create (id null) or update a consol. Returns its id. */
+export async function saveConsol(id: string | null, c: ConsolInput) {
+  if (id) {
+    const { error } = await supabase.from('air_consols').update(c).eq('id', id)
+    if (error) throw new Error(error.message)
+    return id
+  }
   const { data, error } = await supabase.from('air_consols').insert({ ...c, origin: 'AKL' }).select('id').single()
   if (error) throw new Error(error.message)
   return data.id as string
