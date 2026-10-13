@@ -1,5 +1,5 @@
 import type { MouseEvent } from 'react'
-import { Pencil, Trash2, Copy, Sparkles } from 'lucide-react'
+import { AlertTriangle, Pencil, Trash2, Copy, Sparkles } from 'lucide-react'
 import type { QuoteResponseSummary } from './quoteResponsesApi'
 import { fmtDate, fmtResponseMoney, responseStatusPill } from './quoteResponseUi'
 import { AI_TIP } from './quoteUnsent'
@@ -37,6 +37,11 @@ export default function QuoteResponseCard({ r, index, nzdRate, onOpen, onCopy, o
           )}
           {r.ai_generated && !r.sent_to_portal_at && (
             <span className="quote-response-pill quote-response-pill--ai" title={AI_TIP}><Sparkles size={11} /> UBF Intelligence</span>
+          )}
+          {!r.sent_to_portal_at && r.gaps && r.gaps.length > 0 && (
+            <span className="quote-response-pill quote-response-pill--gap" title={`${r.gaps.join('. ')}. Add before sending for approval.`}>
+              <AlertTriangle size={11} /> {r.gaps.length === 1 ? r.gaps[0] : 'Not a full quote'}
+            </span>
           )}
           {r.status !== 'draft' && responseStatusPill(r.status)}
         </div>

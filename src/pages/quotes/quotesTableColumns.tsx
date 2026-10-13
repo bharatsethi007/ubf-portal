@@ -26,6 +26,7 @@ export type QuoteRow = {
   sent_for_approval_at?: string | null
   last_reminded_at?: string | null
   ai_priced_at?: string | null
+  ai_gaps?: string[] | null
 }
 
 export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [

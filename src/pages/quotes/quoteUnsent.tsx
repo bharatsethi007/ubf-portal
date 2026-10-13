@@ -8,6 +8,12 @@ export const AI_TIP = 'UBF Intelligence has quoted this. Please check, approve a
  * Email requests: until sent for approval or emailed to the customer.
  * 'ai' = same, but UBF Intelligence already drafted an option.
  */
+/** Row tooltip for an AI-priced quote, naming what UBF Intelligence could not price. */
+export function aiTip(r: QuoteRow): string {
+  const gaps = r.ai_gaps?.filter(Boolean) ?? []
+  return gaps.length ? `UBF Intelligence has quoted freight only. ${gaps.join(', ')}. Please check, complete, approve and send for approval.` : AI_TIP
+}
+
 export function quoteUnsentFlag(r: QuoteRow): 'ai' | 'unsent' | null {
   if (r.status !== 'open' || r.sent_for_approval_at) return null
   const src = (r.source ?? '').toLowerCase()
@@ -20,7 +26,7 @@ export function quoteUnsentFlag(r: QuoteRow): 'ai' | 'unsent' | null {
 
 export function QuoteNoCell({ row }: { row: QuoteRow }) {
   const flag = quoteUnsentFlag(row)
-  const tip = flag === 'ai' ? AI_TIP
+  const tip = flag === 'ai' ? aiTip(row)
     : flag ? `New ${(row.source ?? '').toLowerCase().includes('portal') ? 'portal' : 'email'} request, not sent to the customer yet`
     : undefined
   return (

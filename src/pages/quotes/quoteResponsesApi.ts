@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { responseGaps } from './quoteResponseGaps'
 
 export type QuoteResponseHeader = {
   quotation_date: string | null
@@ -37,6 +38,8 @@ export type QuoteResponseSummary = {
   decision_note: string | null
   /** Drafted by UBF Intelligence from a published rate. */
   ai_generated?: boolean
+  /** Live gaps from the lines: origin / destination charges, buy rate. */
+  gaps?: string[]
 }
 
 export type QuoteResponseRecord = QuoteResponseHeader & {
@@ -44,6 +47,7 @@ export type QuoteResponseRecord = QuoteResponseHeader & {
   response_no: string | null
   quote_id: string
   status: string
+  ai_generated?: boolean
 }
 
 function dateStr(v: unknown): string | null {
@@ -66,6 +70,7 @@ function mapRecord(row: Record<string, unknown>): QuoteResponseRecord {
     response_no: (row.response_no as string | null) ?? null,
     quote_id: String(row.quote_id),
     status: String(row.status),
+    ai_generated: row.ai_generated === true,
     quotation_date: dateStr(row.quotation_date),
     valid_from: dateStr(row.valid_from),
     valid_till: dateStr(row.valid_till),
@@ -96,7 +101,7 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
   const { data, error } = await supabase
     .from('quote_responses')
     .select(
-      'id, response_no, status, quotation_date, carrier, currency, total_sell, total_buy, net_profit, margin_pct, sent_to_portal_at, decided_at, decision_note, ai_generated',
+      'id, response_no, status, quotation_date, carrier, currency, total_sell, total_buy, net_profit, margin_pct, sent_to_portal_at, decided_at, decision_note, ai_generated, quote_response_lines(charge_group, buy_rate, sell_rate)',
     )
     .eq('quote_id', quoteId)
     .order('created_at', { ascending: true })
@@ -117,6 +122,7 @@ export async function fetchQuoteResponses(quoteId: string): Promise<QuoteRespons
     decided_at: row.decided_at ?? null,
     decision_note: row.decision_note ?? null,
     ai_generated: row.ai_generated === true,
+    gaps: responseGaps((row.quote_response_lines ?? []) as { charge_group: string | null; buy_rate: number | null; sell_rate: number | null }[]),
   }))
 }
 

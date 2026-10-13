@@ -1695,7 +1695,6 @@ a:hover { text-decoration: underline; }
 .quote-no__dot--ai { background: #7C3AED; box-shadow: 0 0 0 3px rgba(124, 58, 237, .18); }
 .data-table tr.quote-row--ai > td { background: #F7F3FF; }
 .data-table tr.quote-row--ai:hover > td { background: #EFE7FF; }
-.quote-response-pill--ai { display: inline-flex; align-items: center; gap: 4px; color: #6D28D9; background: #F3EEFF; }
 .quote-pill--published { color: #1D4ED8; background: #EFF6FF; }
 .quote-pill--sent { color: #4338CA; background: #EEF2FF; }
 .quote-pill--won { color: #047857; background: #ECFDF5; }
@@ -2359,3 +2358,12 @@ a:hover { text-decoration: underline; }
 
 /* Portal messages inbox (console) */
 .wa-inbox-chip--warn { background: #FFF7E6; color: #B45309; }
+
+/* UBF Intelligence + gap pills sit after the base .quote-response-pill rule so they win. */
+.quote-response-pill.quote-response-pill--ai,
+.quote-response-pill.quote-response-pill--gap { display: inline-flex; flex-direction: row; align-items: center; gap: 4px; line-height: 1.4; vertical-align: middle; }
+.quote-response-pill.quote-response-pill--ai { color: #6D28D9; background: #F3EEFF; }
+.quote-response-pill.quote-response-pill--gap { color: #B45309; background: #FFF7ED; }
+.qr-gaps { display: flex; align-items: flex-start; gap: 10px; margin: 0 0 12px; padding: 10px 14px; border: 1px solid #E9DDFE; background: #F7F3FF; border-radius: 8px; font-size: 13px; color: #4C1D95; }
+.qr-gaps svg { flex: none; margin-top: 2px; color: #7C3AED; }
+.qr-gaps b { font-weight: 600; }

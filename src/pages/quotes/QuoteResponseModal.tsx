@@ -17,6 +17,7 @@ import { fetchQuoteCargo, computeCargoLine } from './quoteCargoApi'
 import { fetchQuoteContainers } from './quoteContainersApi'
 import { buildUnitQty, type UnitQty } from './quoteUnitQty'
 import QuoteResponseLinesGrid from './QuoteResponseLinesGrid'
+import { ResponseGapsNote } from './quoteResponseGaps'
 import {
   fetchQuoteResponseLines,
   saveQuoteResponseLines,
@@ -235,6 +236,7 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
                 </Field>
               </div>
 
+              <ResponseGapsNote lines={lines} ai={response?.ai_generated === true} />
               <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} mode={quote ? (isAir ? 'air' : 'sea') : undefined} quoteId={quoteId} unitQty={unitQty} onChange={setLines} />
 
               <div className="qrm-totals">

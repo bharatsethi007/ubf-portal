@@ -1,6 +1,6 @@
 import { flexRender, getCoreRowModel, useReactTable, type ColumnDef } from '@tanstack/react-table'
 import type { QuoteRow } from './quotesTableColumns'
-import { AI_TIP, quoteUnsentFlag } from './quoteUnsent'
+import { aiTip, quoteUnsentFlag } from './quoteUnsent'
 
 type Props = {
   rows: QuoteRow[]
@@ -71,7 +71,7 @@ export default function QuotesTable({
               <tr
                 key={row.id}
                 className={`row-clickable${quoteUnsentFlag(row.original) === 'ai' ? ' quote-row--ai' : ''}`}
-                title={quoteUnsentFlag(row.original) === 'ai' ? AI_TIP : undefined}
+                title={quoteUnsentFlag(row.original) === 'ai' ? aiTip(row.original) : undefined}
                 onClick={() => onRowClick(row.original.id)}
               >
                 {selectable && (
