@@ -9,6 +9,8 @@ export type LclQuoteLane = {
   wm: number   // chargeable W/M (revenue tonnes)
   cbm: number  // total volume, for per_cbm surcharges; falls back to wm when unknown
   movement?: string | null  // 'import' | 'export' — scopes LCL local charge sheets
+  /** Quote customer. Private rate cards show only when it matches. */
+  account_id?: string | null
 }
 
 export type LclLaneCharge = { code: string; label: string; perWm: number; sellPerWm: number; min: number | null }
@@ -91,7 +93,7 @@ export function wmFromCargo(rows: { total_cbm: number | null; gross_wt: number |
 
 export async function fetchLclQuoteLane(quoteId: string): Promise<LclQuoteLane> {
   const { data: q, error } = await supabase
-    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type').eq('id', quoteId).single()
+    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type, customer_account_id').eq('id', quoteId).single()
   if (error) throw error
   const { data: cargo } = await supabase.from('quote_cargo_lines').select('total_cbm, gross_wt').eq('quote_id', quoteId)
   const r = q as Record<string, any>
@@ -103,6 +105,7 @@ export async function fetchLclQuoteLane(quoteId: string): Promise<LclQuoteLane> 
     wm,
     cbm,
     movement: r.movement_type ?? null,
+    account_id: r.customer_account_id ?? null,
   }
 }
 
@@ -114,7 +117,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_lcl_lines')
-    .select('origin_agent, rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, terms, co_loaders(name, logo_url))')
+    .select('origin_agent, rate_per_wm, sell_per_wm, min_charge, sell_min, margin_type, margin_value, currency_code, transit_days, via, frequency, valid_from, valid_to, lane_charges, rate_card_id, rate_cards!inner(id, title, account_id, co_loader_code, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, terms, co_loaders(name, logo_url))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -126,6 +129,7 @@ export async function searchLclRates(lane: LclQuoteLane): Promise<LclRateOption[
     if (!card) continue
     const status = String(card.status)
     if (status !== 'active' && status !== 'validated') continue
+    if (card.account_id && card.account_id !== (lane.account_id ?? null)) continue
     const vf = raw.valid_from ?? card.valid_from ?? null
     const vt = raw.valid_to ?? card.valid_to ?? null
     if (!withinValidity(vf, vt, today)) continue

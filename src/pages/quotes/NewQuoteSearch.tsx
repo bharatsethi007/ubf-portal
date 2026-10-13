@@ -317,6 +317,7 @@ export default function NewQuoteSearch() {
           hasPickup: !!draft.pickup_address,
           hasDelivery: !!draft.drop_address,
           cargoClass: cargoClassFor(draft.is_hazardous, draft.reefer_temp_c, draft.need_refrigeration),
+          account_id: customer?.account_id ?? null,
         }))
       } else if (draft.shipment_type === 'LCL') {
         const lane: LclQuoteLane = {
@@ -326,6 +327,7 @@ export default function NewQuoteSearch() {
           wm: wmNum,
           cbm: cbmNum,
           movement: draft.movement_type ?? null,
+          account_id: customer?.account_id ?? null,
         }
         setLclOptions(await searchLclRates(lane))
       } else {
@@ -335,6 +337,7 @@ export default function NewQuoteSearch() {
           currency: null,
           movement: draft.movement_type ?? null,
           containers: groups.map((g) => ({ size: g.container_size, qty: g.qty })),
+          account_id: customer?.account_id ?? null,
         }
         setOptions(await searchFclRates(lane))
       }

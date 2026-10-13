@@ -10,6 +10,7 @@ import {
 } from '../ratesApi'
 import FclLinesGrid from './FclLinesGrid'
 import CardDefaultMargin from '../CardDefaultMargin'
+import CardCustomerScope from '../CardCustomerScope'
 import { cardMargin } from '../margin'
 import FclSurchargesGrid from './FclSurchargesGrid'
 import FclExcelImport from './FclExcelImport'
@@ -193,6 +194,7 @@ export default function FclRateCardDetail() {
                 {STATUSES.map((s) => (<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>))}
               </select>
             </div>
+            <CardCustomerScope cardId={card.id} labelStyle={labelStyle} fieldStyle={fieldStyle} />
             <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Title</label>
               <input className="input" value={card.title ?? ''} onChange={(e) => setField('title', e.target.value)} />

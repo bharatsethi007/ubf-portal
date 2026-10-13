@@ -11,6 +11,7 @@ import {
 import { listFclSurcharges, saveFclSurcharges, type FclSurchargeDraft } from '../ratesApi'
 import AirLinesGrid from './AirLinesGrid'
 import CardDefaultMargin from '../CardDefaultMargin'
+import CardCustomerScope from '../CardCustomerScope'
 import { cardMargin } from '../margin'
 import AirSurchargesGrid from './AirSurchargesGrid'
 import AirExcelImport from './AirExcelImport'
@@ -174,6 +175,7 @@ export default function AirRateCardDetail() {
                 {STATUSES.map((s) => (<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>))}
               </select>
             </div>
+            <CardCustomerScope cardId={card.id} labelStyle={labelStyle} fieldStyle={fieldStyle} />
             <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Title</label>
               <input className="input" value={card.title ?? ''} onChange={(e) => setField('title', e.target.value)} />

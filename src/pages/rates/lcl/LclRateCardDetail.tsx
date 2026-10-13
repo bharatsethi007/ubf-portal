@@ -10,6 +10,7 @@ import {
 } from '../ratesApi'
 import LclLinesGrid from './LclLinesGrid'
 import CardDefaultMargin from '../CardDefaultMargin'
+import CardCustomerScope from '../CardCustomerScope'
 import { cardMargin } from '../margin'
 import LclSurchargesGrid from './LclSurchargesGrid'
 import LclExcelImport from './LclExcelImport'
@@ -173,6 +174,7 @@ export default function LclRateCardDetail() {
                 {STATUSES.map((s) => (<option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>))}
               </select>
             </div>
+            <CardCustomerScope cardId={card.id} labelStyle={labelStyle} fieldStyle={fieldStyle} />
             <div style={{ ...fieldStyle, gridColumn: '1 / -1' }}>
               <label style={labelStyle}>Title</label>
               <input className="input" value={card.title ?? ''} onChange={(e) => setField('title', e.target.value)} />

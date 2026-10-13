@@ -19,6 +19,7 @@ export type AirQuoteLane = {
   hasDelivery?: boolean      // drop address set → destination cartage in play
   cargoClass?: AirCargoClass // general | temp | dg — picks THC lines and DG sheets
   suppliers?: number         // export clearance is charged per supplier (default 1)
+  account_id?: string | null // quote customer; private rate cards show only when it matches
 }
 
 export type AirRateSurcharge = { label: string; amount: number; sellAmount: number; basis: string; scope: string | null }
@@ -99,14 +100,14 @@ export function chargeableKgFromCargo(rows: { total_cbm: number | null; gross_wt
 
 export async function fetchAirQuoteLane(quoteId: string): Promise<AirQuoteLane> {
   const { data: q, error } = await supabase
-    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type, incoterms, pickup_address, drop_address, is_hazardous, reefer_temp_c, need_refrigeration').eq('id', quoteId).single()
+    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type, incoterms, pickup_address, drop_address, is_hazardous, reefer_temp_c, need_refrigeration, customer_account_id').eq('id', quoteId).single()
   if (error) throw error
   const { data: cargo } = await supabase.from('quote_cargo_lines').select('total_cbm, gross_wt').eq('quote_id', quoteId)
   const r = q as Record<string, any>
   const { chargeableKg, grossKg, cbm } = chargeableKgFromCargo(((cargo as any[]) ?? []).map((c) => ({ total_cbm: c.total_cbm, gross_wt: c.gross_wt })))
   return { from_port_code: r.from_port_code ?? null, to_port_code: r.to_port_code ?? null, currency: r.cargo_value_currency ?? null, chargeableKg, grossKg, cbm,
     movement: r.movement_type ?? null, incoterm: r.incoterms ?? null, hasPickup: !!r.pickup_address, hasDelivery: !!r.drop_address,
-    cargoClass: cargoClassFor(r.is_hazardous, r.reefer_temp_c, r.need_refrigeration) }
+    cargoClass: cargoClassFor(r.is_hazardous, r.reefer_temp_c, r.need_refrigeration), account_id: r.customer_account_id ?? null }
 }
 
 // When no freight card matches the lane we still want to surface matching local
@@ -142,7 +143,7 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
 
   const { data: lines, error } = await supabase
     .from('rate_card_air_lines')
-    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, margin_type, margin_value, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, air_product, consol_schedule, consol_skip_dates)')
+    .select('min_charge, rate_n, rate_45, rate_100, rate_250, rate_500, rate_1000, markup_pct, margin_type, margin_value, currency_code, transit_days, via, frequency, rate_card_id, rate_cards!inner(id, title, account_id, vendor_account_id, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, air_product, consol_schedule, consol_skip_dates)')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
   if (error) throw error
@@ -154,6 +155,7 @@ export async function searchAirRates(lane: AirQuoteLane): Promise<AirRateOption[
     if (!card) continue
     const status = String(card.status)
     if (status !== 'active' && status !== 'validated') continue
+    if (card.account_id && card.account_id !== (lane.account_id ?? null)) continue
     if (!withinValidity(card.valid_from ?? null, card.valid_to ?? null, today)) continue
     // UBF consol / personal effects don't carry DG — those go airline direct.
     if (lane.cargoClass === 'dg' && isSellOnlyProduct(asAirProduct(card.air_product))) continue

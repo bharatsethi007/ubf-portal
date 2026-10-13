@@ -14,6 +14,8 @@ export type QuoteLane = {
   currency: string | null
   movement?: string | null
   containers: { size: string; qty: number }[]
+  /** Quote customer. Private rate cards show only when it matches. */
+  account_id?: string | null
 }
 
 export type RateOptionChip = { container_type: string; base_rate: number; sell_rate: number }
@@ -43,7 +45,7 @@ export type RateOption = {
 
 export async function fetchQuoteLane(quoteId: string): Promise<QuoteLane> {
   const { data: q, error } = await supabase
-    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type').eq('id', quoteId).single()
+    .from('quotes').select('from_port_code, to_port_code, cargo_value_currency, movement_type, customer_account_id').eq('id', quoteId).single()
   if (error) throw error
   const { data: cons } = await supabase.from('quote_containers').select('container_size, qty').eq('quote_id', quoteId)
   const r = q as Record<string, any>
@@ -52,6 +54,7 @@ export async function fetchQuoteLane(quoteId: string): Promise<QuoteLane> {
     to_port_code: r.to_port_code ?? null,
     currency: r.cargo_value_currency ?? null,
     movement: r.movement_type ?? null,
+    account_id: r.customer_account_id ?? null,
     containers: ((cons as any[]) ?? []).map((c) => ({ size: String(c.container_size ?? ''), qty: Number(c.qty) || 1 })),
   }
 }
@@ -76,7 +79,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
 
   const { data: lines, error } = await supabase
     .from('rate_card_fcl_lines')
-    .select('base_rate, sell_rate, margin_type, margin_value, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, shipping_line_code, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, shipping_lines(name))')
+    .select('base_rate, sell_rate, margin_type, margin_value, container_type, transit_days, via, valid_from, valid_to, rate_card_id, rate_cards!inner(id, title, account_id, shipping_line_code, vendor_name, status, valid_from, valid_to, currency_code, default_markup_pct, default_margin_type, default_margin_fixed, shipping_lines(name))')
     .eq('origin_port_code', lane.from_port_code)
     .eq('dest_port_code', lane.to_port_code)
     .in('container_type', wantedCodes)
@@ -89,6 +92,7 @@ export async function searchFclRates(lane: QuoteLane): Promise<RateOption[]> {
     if (!card) continue
     const status = String(card.status)
     if (status !== 'active' && status !== 'validated') continue
+    if (card.account_id && card.account_id !== (lane.account_id ?? null)) continue
     const vf = raw.valid_from ?? card.valid_from ?? null
     const vt = raw.valid_to ?? card.valid_to ?? null
     if (!withinValidity(vf, vt, today)) continue
