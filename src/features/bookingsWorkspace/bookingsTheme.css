@@ -109,7 +109,7 @@
 .bk-board .import-sea-client-wrap { max-width: 150px; }
 .bk-board .import-sea-client { font-weight: 500; color: var(--bk-ink); }
 .bk-board a.import-sea-client:hover { color: var(--bk-blue); }
-.bk-board .import-sea-col-line { max-width: 140px; overflow: hidden; text-overflow: ellipsis; }
+.bk-board .import-sea-col-line { width: 56px; max-width: 72px; text-align: center; overflow: hidden; }
 .bk-board .link-mono { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; font-weight: 500; color: var(--bk-blue); text-decoration: none; }
 .bk-board .link-mono:hover { text-decoration: underline; }
 .bk-board .mono, .bk-board .import-sea-date { font-family: 'IBM Plex Mono', ui-monospace, monospace; font-size: 11.5px; }
