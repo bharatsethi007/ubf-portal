@@ -5,6 +5,8 @@ import { cargoOf, type EaRow } from './eaTypes'
 import type { EaDetail } from './useEaBooking'
 import { eaFacts, eaMilestones, eaPlan, type EaAction, type EaMilestone, type EaPlan } from './progress/eaProgress'
 import type { TmsJob } from './useEaBooking'
+import type { Line } from './EaCargoLines'
+import { lineRows, totalsPatch } from './eaDims'
 
 export const isMaster = (r: { is_consolidation: boolean | null }) => !!r.is_consolidation
 export const supplierOf = (r: EaRow) => r.shipper_code_name ?? r.shipper_name ?? 'Supplier?'
@@ -115,12 +117,11 @@ export const dissolve = (master: string) => rpc<void>('ea_dissolve', { p_master:
 
 export type ManualSub = {
   shipper_account_id: string; shipper_name: string; shipper_address: string; shipper_city: string; shipper_contact: string; shipper_phone: string; shipper_email: string
-  pieces: string; weight_kg: string; volume_m3: string; goods_description: string; cargo_ready_date: string; collection_mode: 'pickup' | 'dropoff'
+  lines: Line[]; goods_description: string; cargo_ready_date: string; collection_mode: 'pickup' | 'dropoff'
 }
 
 /** Sub-HAWB typed in by staff: supplier and cargo here, buyer and flight copied from the main HAWB. */
 export async function addManualSub(m: EaDetail, f: ManualSub) {
-  const n = (v: string) => (v.trim() ? Number(v) : null)
   const t = (v: string) => v.trim() || null
   const { data: auth } = await supabase.auth.getUser()
   const { data, error } = await supabase.from('bookings').insert({
@@ -130,14 +131,16 @@ export async function addManualSub(m: EaDetail, f: ManualSub) {
     consignee_city: m.consignee_city, bill_to_account_id: m.bill_to_account_id,
     shipper_account_id: t(f.shipper_account_id), shipper_name: t(f.shipper_name), shipper_address: t(f.shipper_address), shipper_city: t(f.shipper_city),
     shipper_contact: t(f.shipper_contact), shipper_phone: t(f.shipper_phone), shipper_email: t(f.shipper_email),
-    pieces: n(f.pieces), weight_kg: n(f.weight_kg), gross_weight_kg: n(f.weight_kg), volume_m3: n(f.volume_m3), cbm: n(f.volume_m3),
+    ...totalsPatch(f.lines),
     goods_description: t(f.goods_description), cargo_ready_date: f.cargo_ready_date || null,
     collection_mode: f.collection_mode, pickup_address: f.collection_mode === 'pickup' ? t(f.shipper_address) : null,
     created_by: auth.user?.id ?? null,
   }).select('id').single()
   if (error) throw new Error(error.message)
-  if (n(f.pieces) || n(f.weight_kg)) {
-    await supabase.from('booking_cargo_lines').insert({ booking_id: data.id, ord: 1, kind: 'booked', pieces: n(f.pieces), weight: n(f.weight_kg), cbm: n(f.volume_m3), goods_desc: t(f.goods_description) })
+  const rows = lineRows(data.id, f.lines, t(f.goods_description))
+  if (rows.length) {
+    const { error: le } = await supabase.from('booking_cargo_lines').insert(rows)
+    if (le) throw new Error(`Sub-HAWB saved, cargo lines failed: ${le.message}`)
   }
   return data.id as string
 }

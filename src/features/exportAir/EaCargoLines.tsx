@@ -2,7 +2,8 @@ import { Copy, Plus, Trash2 } from 'lucide-react'
 import { fmtNum } from './eaTypes'
 import { lbl } from './eaUi'
 
-export type Line = { pcs: string; l: string; w: string; h: string; kg: string }
+/** m3 is only used when no dims are given (volume typed straight in). */
+export type Line = { pcs: string; l: string; w: string; h: string; kg: string; m3?: string }
 export const emptyLine = (): Line => ({ pcs: '', l: '', w: '', h: '', kg: '' })
 
 const n = (s: string) => (s.trim() === '' ? null : Number(s))
@@ -10,8 +11,10 @@ const n = (s: string) => (s.trim() === '' ? null : Number(s))
 /** Per line: kg is per line total, dims per piece in cm. */
 export function lineCbm(x: Line) {
   const [p, l, w, h] = [n(x.pcs) ?? 1, n(x.l), n(x.w), n(x.h)]
-  return l && w && h ? (p * l * w * h) / 1_000_000 : null
+  if (l && w && h) return (p * l * w * h) / 1_000_000
+  return x.m3 ? n(x.m3) : null
 }
+export const hasDims = (x: Line) => !!(n(x.l) && n(x.w) && n(x.h))
 
 export function lineTotals(lines: Line[]) {
   let pcs = 0, kg = 0, cbm = 0, anyCbm = false
@@ -44,7 +47,9 @@ export default function EaCargoLines({ lines, onChange }: { lines: Line[]; onCha
           {(['pcs', 'l', 'w', 'h', 'kg'] as const).map((k) => (
             <input key={k} inputMode="decimal" aria-label={`Line ${i + 1} ${k}`} value={x[k]} onChange={(e) => set(i, k, e.target.value)} className={cell} />
           ))}
-          <span className="bk-mono text-right text-[12px] text-[#5B616E]">{fmtNum(lineCbm(x), 3)}</span>
+          {hasDims(x) || !(x.m3 ?? '') && (x.l || x.w || x.h)
+            ? <span className="bk-mono text-right text-[12px] text-[#5B616E]" title={hasDims(x) ? `Volumetric ${fmtNum(Math.ceil((lineCbm(x) ?? 0) * 167))} kg` : 'Enter L, W and H'}>{fmtNum(lineCbm(x), 3)}</span>
+            : <input inputMode="decimal" aria-label={`Line ${i + 1} m3`} placeholder="m³" title="No dims? Type the volume" value={x.m3 ?? ''} onChange={(e) => set(i, 'm3', e.target.value)} className={`${cell} border-dashed`} />}
           <span className="flex justify-end">
             <button type="button" className={icon} title="Copy line" aria-label={`Copy line ${i + 1}`} onClick={() => onChange([...lines.slice(0, i + 1), { ...x }, ...lines.slice(i + 1)])}><Copy size={13} /></button>
             <button type="button" className={icon} title="Remove line" aria-label={`Remove line ${i + 1}`} disabled={lines.length === 1} onClick={() => onChange(lines.filter((_, j) => j !== i))}><Trash2 size={13} /></button>
@@ -58,6 +63,7 @@ export default function EaCargoLines({ lines, onChange }: { lines: Line[]; onCha
           <span><b className="font-medium text-[#14161A]">{fmtNum(t.pcs)}</b> pcs</span>
           <span><b className="font-medium text-[#14161A]">{fmtNum(t.kg, 1)}</b> kg</span>
           <span><b className="font-medium text-[#14161A]">{fmtNum(t.cbm, 3)}</b> m³</span>
+          <span title="m³ × 167">vol <b className="font-medium text-[#14161A]">{fmtNum(t.cbm ? Math.ceil(t.cbm * 167) : null)}</b> kg</span>
           <span>chg <b className="font-medium text-[#14161A]">{fmtNum(t.chg)}</b>{t.volumetric ? <span className="ml-1 text-[#B54708]">volumetric</span> : null}</span>
         </div>
       </div>

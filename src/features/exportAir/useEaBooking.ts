@@ -30,7 +30,11 @@ export type EaDetail = EaRow & {
   bc_sent_at: string | null
 }
 
-export type CargoLine = { id: string; kind: 'booked' | 'actual'; pieces: number | null; weight: number | null; cbm: number | null }
+export type CargoLine = {
+  id: string; booking_id?: string; ord: number | null; kind: 'booked' | 'actual'; pieces: number | null; weight: number | null; cbm: number | null
+  length: number | null; width: number | null; height: number | null; length_unit: string | null; weight_unit: string | null; goods_desc: string | null
+}
+export const CARGO_LINE_COLS = 'id, booking_id, ord, kind, pieces, weight, cbm, length, width, height, length_unit, weight_unit, goods_desc'
 export type ThreadRow = { from?: string; conversation_id: string; subject: string | null; last_preview: string | null; last_sender: string | null; last_message_at: string | null; email_mailbox: string | null }
 export type DocRow = { from?: string; id: string; file_name: string; storage_path: string; created_at: string; uploaded_via: string | null }
 export type TmsJob = { id: string; consignment_no: string | null; status: string | null; order_type: string | null; wms_checkin_at: string | null; picked_up_at: string | null }
@@ -50,7 +54,7 @@ export function useEaBooking(id: string | undefined) {
     if (!id) return
     const [bk, cl, th, dc, hs, tj] = await Promise.all([
       supabase.from('v_ea_bookings').select('*').eq('id', id).maybeSingle(),
-      supabase.from('booking_cargo_lines').select('id, kind, pieces, weight, cbm').eq('booking_id', id),
+      supabase.from('booking_cargo_lines').select(CARGO_LINE_COLS).eq('booking_id', id).order('ord'),
       supabase.from('booking_threads')
         .select('conversation_id, inbox_conversations(subject, last_preview, last_sender, last_message_at, email_mailbox)')
         .eq('booking_id', id),

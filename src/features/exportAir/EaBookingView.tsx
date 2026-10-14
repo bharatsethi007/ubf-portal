@@ -177,7 +177,7 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged,
         <EaSideRail b={b} threads={allThreads} docs={allDocs} hist={hist} onSaved={() => void changed()} onOpenDoc={setDoc} activeDoc={doc} />
       </div>
       {embedded ? null : <EaMailBubble bookingId={b.id} bookingRef={b.booking_ref} onChanged={() => void changed()} />}
-      {editing ? <EaEditPanel b={b} onClose={() => setEditing(false)} onSaved={() => void changed()} /> : null}
+      {editing ? <EaEditPanel b={b} lines={lines} onClose={() => setEditing(false)} onSaved={() => void changed()} /> : null}
       {quoteOpen ? <EaQuoteAttach bookingId={b.id} hint={b.consignee_code_name ?? b.consignee_name ?? b.shipper_name ?? ''} onClose={() => setQuoteOpen(false)} onDone={() => { setQuoteOpen(false); void changed() }} /> : null}
       {sliOpen ? <EaSliDialog bookingId={b.id} isConsolidation={!!b.is_consolidation && !asMaster} onClose={() => { setSliOpen(false); void changed() }} /> : null}
       {bcOpen ? <EaBcDialog b={asMaster ? masterAsHouse(b, subs) : b} consol={consols.find((x) => x.id === b.consol_id)} onClose={() => setBcOpen(false)} onSent={() => void changed()} /> : null}

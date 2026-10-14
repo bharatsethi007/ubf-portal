@@ -1,6 +1,7 @@
 import { cargoOf, fmtNum } from './eaTypes'
 import { Card, lbl, Tag } from './eaUi'
 import type { CargoLine, EaDetail } from './useEaBooking'
+import EaPieceLines from './EaPieceLines'
 
 /** TradeWindow chokes on line breaks, smart quotes and stray symbols. Same rule the XML export uses. */
 export function cleanForTw(s: string | null | undefined) {
@@ -58,6 +59,10 @@ export default function EaCargoCard({ b, lines }: { b: EaDetail; lines: CargoLin
             </div>
           )
         })}
+        <div className="mt-3.5">
+          <span className={lbl}>Dimensions</span>
+          <EaPieceLines lines={lines} />
+        </div>
         <div className="mt-3.5 grid grid-cols-1 gap-4 md:grid-cols-3">
           <div className="flex flex-col gap-1 md:col-span-2">
             <span className={lbl}>Goods description</span>

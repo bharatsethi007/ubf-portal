@@ -4,27 +4,31 @@ import { toast } from 'sonner'
 import DateField from '@/components/DateField'
 import { useStaffList } from '@/hooks/useStaffList'
 import { btn, btnPrimary, lbl } from './eaUi'
-import { patchBooking, type EaDetail } from './useEaBooking'
+import { patchBooking, type CargoLine, type EaDetail } from './useEaBooking'
+import EaCargoLines, { type Line } from './EaCargoLines'
+import { linesForEdit, saveBookedLines, totalsPatch } from './eaDims'
 
 type Form = Record<string, string | boolean | null>
 
 const KEYS = [
   'destination', 'incoterm', 'cargo_ready_date', 'handled_by',
-  'pieces', 'weight_kg', 'volume_m3', 'chargeable_weight_kg',
   'goods_description', 'cargo_value', 'cargo_value_currency', 'is_dg', 'un_number',
   'shipper_name', 'shipper_address', 'shipper_city', 'pickup_address',
   'consignee_name', 'consignee_address', 'consignee_city', 'consignee_contact', 'consignee_phone',
   'customer_ref', 'special_instructions',
 ] as const
-const NUM = new Set(['pieces', 'weight_kg', 'volume_m3', 'chargeable_weight_kg', 'cargo_value'])
+const NUM = new Set(['cargo_value'])
 const INCOTERMS = ['EXW', 'FCA', 'FOB', 'CPT', 'CIP', 'CFR', 'CIF', 'DAP', 'DPU', 'DDP']
 
 /** Slide-over editor for the whole EA booking. Replaces the legacy form for EA. */
-export default function EaEditPanel({ b, onClose, onSaved }: { b: EaDetail; onClose: () => void; onSaved: () => void }) {
+export default function EaEditPanel({ b, lines: saved = [], onClose, onSaved }: { b: EaDetail; lines?: CargoLine[]; onClose: () => void; onSaved: () => void }) {
   const { staff } = useStaffList()
   const src = b as unknown as Record<string, unknown>
   const [f, setF] = useState<Form>(() => Object.fromEntries(KEYS.map((k) => [k, src[k] == null ? null : typeof src[k] === 'boolean' ? (src[k] as boolean) : String(src[k])])))
   const [busy, setBusy] = useState(false)
+  const [start] = useState<Line[]>(() => linesForEdit(saved, b))
+  const [lines, setLines] = useState<Line[]>(start)
+  const master = !!b.is_consolidation
   const set = (k: string) => (v: string | boolean | null) => setF((p) => ({ ...p, [k]: v }))
 
   async function save() {
@@ -37,7 +41,10 @@ export default function EaEditPanel({ b, onClose, onSaved }: { b: EaDetail; onCl
       patch[k] = NUM.has(k) ? (v === '' || v == null ? null : Number(v)) : v === '' ? null : v
     }
     if (patch.destination) patch.destination = String(patch.destination).toUpperCase()
+    const linesChanged = !master && JSON.stringify(lines) !== JSON.stringify(start)
+    if (linesChanged) Object.assign(patch, totalsPatch(lines))
     try {
+      if (linesChanged) await saveBookedLines(b.id, lines, (f.goods_description as string) || null)
       if (Object.keys(patch).length) await patchBooking(b.id, patch)
       toast.success('Saved')
       onSaved()
@@ -61,7 +68,7 @@ export default function EaEditPanel({ b, onClose, onSaved }: { b: EaDetail; onCl
 
   return (
     <div className="fixed inset-0 z-50 flex justify-end bg-[rgba(15,23,42,.18)]" onClick={onClose}>
-      <div role="dialog" aria-label={`Edit ${b.booking_ref}`} className="flex h-full w-full max-w-[560px] flex-col bg-white shadow-[-12px_0_32px_rgba(15,23,42,.12)]" onClick={(e) => e.stopPropagation()}>
+      <div role="dialog" aria-label={`Edit ${b.booking_ref}`} className="flex h-full w-full max-w-[620px] flex-col bg-white shadow-[-12px_0_32px_rgba(15,23,42,.12)]" onClick={(e) => e.stopPropagation()}>
         <header className="flex items-center justify-between border-b border-[#EEF0F3] px-5 py-3.5">
           <h2 className="m-0 text-[14px] font-semibold">Edit <span className="bk-mono">{b.booking_ref}</span></h2>
           <button type="button" aria-label="Close" title="Close" onClick={onClose} className="inline-flex h-7 w-7 items-center justify-center rounded-md border-0 bg-transparent text-[#5B616E] hover:bg-[#F2F4F7]"><X size={15} /></button>
@@ -85,10 +92,9 @@ export default function EaEditPanel({ b, onClose, onSaved }: { b: EaDetail; onCl
             {t('customer_ref', 'Customer ref / PO', { w: 'w-[180px]' })}
           </Section>
           <Section title="Cargo (booked)">
-            {t('pieces', 'Pieces', { w: 'w-[90px]', mono: true })}
-            {t('weight_kg', 'Gross kg', { w: 'w-[100px]', mono: true })}
-            {t('volume_m3', 'Volume m³', { w: 'w-[100px]', mono: true })}
-            {t('chargeable_weight_kg', 'Chargeable kg', { w: 'w-[110px]', mono: true })}
+            {master
+              ? <p className="m-0 w-full text-[12px] text-[#6B7280]">Main HAWB totals come from its sub-HAWBs. Edit dimensions on each sub.</p>
+              : <div className="w-full"><EaCargoLines lines={lines} onChange={setLines} /><p className="m-0 mt-1.5 text-[11px] text-[#98A2B3]">L × W × H per piece in cm, kg per line. m³ and chargeable (max of kg and m³ × 167) are worked out.</p></div>}
             {t('goods_description', 'Goods description', { w: 'w-full', area: true })}
             {t('cargo_value', 'Value', { w: 'w-[120px]', mono: true })}
             {t('cargo_value_currency', 'Currency', { w: 'w-[80px]', mono: true })}

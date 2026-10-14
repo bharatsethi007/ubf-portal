@@ -7,11 +7,12 @@ import { btn, btnPrimary, Code, lbl, Tag } from '../eaUi'
 import CustomerPicker, { type CustomerPickerValue } from '@/components/bookings/CustomerPicker'
 import { addManualSub, consolidate, supplierOf, type ManualSub } from '../eaMaster'
 import type { EaDetail } from '../useEaBooking'
+import EaCargoLines, { emptyLine } from '../EaCargoLines'
 
 type Props = { m: EaDetail; onClose: () => void; onDone: (firstNewId: string | null) => void }
 
 const inp = 'h-[30px] w-full rounded-[7px] border border-[#E3E6EB] bg-white px-2 text-[12.5px] outline-none focus:border-[#0A2472]'
-const EMPTY: ManualSub = { shipper_account_id: '', shipper_name: '', shipper_address: '', shipper_city: '', shipper_contact: '', shipper_phone: '', shipper_email: '', pieces: '', weight_kg: '', volume_m3: '', goods_description: '', cargo_ready_date: '', collection_mode: 'pickup' }
+const EMPTY: ManualSub = { shipper_account_id: '', shipper_name: '', shipper_address: '', shipper_city: '', shipper_contact: '', shipper_phone: '', shipper_email: '', lines: [emptyLine()], goods_description: '', cargo_ready_date: '', collection_mode: 'pickup' }
 const sameBuyer = (m: EaDetail, r: EaRow) =>
   m.consignee_account_id ? r.consignee_account_id === m.consignee_account_id
     : !!m.consignee_name && (r.consignee_name ?? '').trim().toLowerCase() === m.consignee_name.trim().toLowerCase()
@@ -42,7 +43,8 @@ export default function EaAddSubDialog({ m, onClose, onDone }: Props) {
 
   const needle = q.trim().toLowerCase()
   const shown = (rows ?? []).filter((r) => !needle || [r.booking_ref, r.shipper_name, r.shipper_code_name].some((s) => s?.toLowerCase().includes(needle)))
-  const set = (k: keyof ManualSub) => (v: string) => setF((p) => ({ ...p, [k]: v }))
+  type Txt = Exclude<keyof ManualSub, 'lines'>
+  const set = (k: Txt) => (v: string) => setF((p) => ({ ...p, [k]: v }))
 
   async function save() {
     setBusy(true)
@@ -61,7 +63,7 @@ export default function EaAddSubDialog({ m, onClose, onDone }: Props) {
     } catch (e) { toast.error((e as Error).message) } finally { setBusy(false) }
   }
 
-  const field = (k: keyof ManualSub, label: string, cls = '', type = 'text') => (
+  const field = (k: Txt, label: string, cls = '', type = 'text') => (
     <label className={`flex flex-col gap-1 ${cls}`}><span className={lbl}>{label}</span><input type={type} value={f[k]} onChange={(e) => set(k)(e.target.value)} className={inp} /></label>
   )
   const tabBtn = (t: 'pick' | 'manual', label: string, icon: React.ReactNode) => (
@@ -130,10 +132,12 @@ export default function EaAddSubDialog({ m, onClose, onDone }: Props) {
               {field('shipper_name', 'Supplier', 'col-span-4')}{field('shipper_contact', 'Contact', 'col-span-2')}
               {field('shipper_address', 'Address', 'col-span-4')}{field('shipper_city', 'City', 'col-span-2')}
               {field('shipper_phone', 'Phone', 'col-span-2')}{field('shipper_email', 'Email', 'col-span-4', 'email')}
-              {field('pieces', 'Pieces', 'col-span-1', 'number')}{field('weight_kg', 'Kg', 'col-span-1', 'number')}{field('volume_m3', 'm³', 'col-span-1', 'number')}
+              <div className="col-span-6 flex flex-col gap-1"><span className={lbl}>Cargo · L × W × H cm per piece</span>
+                <EaCargoLines lines={f.lines} onChange={(lines) => setF((p) => ({ ...p, lines }))} />
+              </div>
+              {field('goods_description', 'Goods', 'col-span-6')}
               {field('cargo_ready_date', 'Ready', 'col-span-3', 'date')}
-              {field('goods_description', 'Goods', 'col-span-4')}
-              <div className="col-span-2 flex flex-col gap-1"><span className={lbl}>Collection</span>
+              <div className="col-span-3 flex flex-col gap-1"><span className={lbl}>Collection</span>
                 <select value={f.collection_mode} onChange={(e) => set('collection_mode')(e.target.value)} className={inp}>
                   <option value="pickup">UBF pickup</option><option value="dropoff">Supplier drop-off</option>
                 </select>
