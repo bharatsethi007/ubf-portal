@@ -44,6 +44,7 @@ import { EaLegacyEditRedirect } from './features/exportAir/eaUi'
 import CourierBookingsList from './pages/courier/CourierBookingsList'
 import CourierBookingDetail from './pages/courier/CourierBookingDetail'
 import SetupPage from './pages/setup/SetupPage'
+import BrainboxPage from './pages/brainbox/BrainboxPage'
 import RatesPage from './pages/rates/RatesPage'
 import MarginRulesPage from './pages/rates/margins/MarginRulesPage'
 import BulkUploadPage from './pages/rates/bulk/BulkUploadPage'
@@ -245,6 +246,7 @@ export default function App() {
             <Route path="/setup/rates/margins" element={<StaffRoute><MarginRulesPage /></StaffRoute>} />
             <Route path="/setup/rates/bulk" element={<StaffRoute><BulkUploadPage /></StaffRoute>} />
             <Route path="/setup/cartage" element={<StaffRoute><CartageSetupPage /></StaffRoute>} />
+            <Route path="/setup/brainbox" element={<StaffRoute><BrainboxPage /></StaffRoute>} />
             <Route path="/setup/rates/fcl" element={<StaffRoute><FclRateCardsList /></StaffRoute>} />
             <Route path="/setup/rates/fcl/new" element={<StaffRoute><FclRateCardForm /></StaffRoute>} />
             <Route path="/setup/rates/fcl/:id" element={<StaffRoute><FclRateCardDetail /></StaffRoute>} />

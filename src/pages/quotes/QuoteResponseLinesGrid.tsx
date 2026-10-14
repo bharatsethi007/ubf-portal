@@ -18,6 +18,8 @@ import CartageSearchDialog from './CartageSearchDialog'
 import ChargeCodeEditDialog, { type EditableCode } from './ChargeCodeEditDialog'
 import { qtyForUnit, type UnitQty } from './quoteUnitQty'
 import { useResponseLineUnits } from './useResponseLineUnits'
+import { useChargeStats } from '../brainbox/brainboxApi'
+import { LineSellHint, LineSourceChip } from '../brainbox/LineSourceHints'
 import './quoteResponseLinesGrid.css'
 
 type Props = {
@@ -44,6 +46,9 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
   const { items: groups } = useChargeGroups()
   const { items: chargeCodes, refresh: refreshCodes } = useChargeCodes()
   const { rates: fxRates, loading: fxLoading, base: fxBase, reload: reloadFx } = useEffectiveRates(currency)
+  const teamStats = useChargeStats()
+  const [compare, setCompare] = useState<boolean>(() => { try { return localStorage.getItem('brainbox.compare') === '1' } catch { return false } })
+  const toggleCompare = (v: boolean) => { setCompare(v); try { localStorage.setItem('brainbox.compare', v ? '1' : '0') } catch { /* private window */ } }
   const [addingFor, setAddingFor] = useState<string | null>(null)
   const [templates, setTemplates] = useState<ChargeTemplate[]>([])
   const [useTplOpen, setUseTplOpen] = useState(false)
@@ -218,6 +223,10 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
     <div className="qrl-wrap">
       <div className="qrl-table-head">
         <div className="qrl-tpl-actions">
+          <label className="mr-2 inline-flex cursor-pointer items-center gap-1.5 text-[11px] text-[#5B6577]">
+            <input type="checkbox" className="m-0" checked={compare} onChange={(e) => toggleCompare(e.target.checked)} />
+            Compare with card and team
+          </label>
           {quoteId && (
             <button type="button" className="qrl-tpl-btn" onClick={() => setCartageOpen(true)}>
               <Truck size={12} aria-hidden />
@@ -253,7 +262,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
               <th className="qrl-c-num">Min Buy</th>
               <th className="qrl-c-num">Min Sell</th>
               <th className="qrl-c-num">Buy</th>
-              <th className="qrl-c-num">Sell</th>
+              <th className="qrl-c-num" style={compare ? { width: 104 } : undefined}>Sell</th>
               <th className="qrl-c-tax">Tax</th>
               <th className="qrl-c-num">Ex Buy</th>
               <th className="qrl-c-num">Ex Sell</th>
@@ -286,6 +295,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
                         // Picked a known charge code: fill its group, and its default unit when valid for this mode.
                         update(l.id, { description: v, charge_group: grp, ...defaultUnitPatch(v) })
                       }} />
+                    {compare && <LineSourceChip line={l} />}
                     {codeObjByDesc.get(l.description.trim().toLowerCase()) && (
                       <button type="button" className="qrl-iconbtn" title="Edit charge code" aria-label="Edit charge code"
                         onClick={() => setEditCode(codeObjByDesc.get(l.description.trim().toLowerCase()) ?? null)}>
@@ -329,7 +339,8 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
                   <td className="qrl-c-num">{numInput(l.min_buy, (v) => update(l.id, { min_buy: v }))}</td>
                   <td className="qrl-c-num">{numInput(l.min_sell, (v) => update(l.id, { min_sell: v }))}</td>
                   <td className="qrl-c-num">{numInput(l.buy_rate, (v) => update(l.id, { buy_rate: v }))}</td>
-                  <td className="qrl-c-num">{numInput(l.sell_rate, (v) => update(l.id, { sell_rate: v }))}</td>
+                  <td className="qrl-c-num">{numInput(l.sell_rate, (v) => update(l.id, { sell_rate: v }))}
+                    {compare && <LineSellHint line={l} stats={teamStats} code={l.charge_code || codeObjByDesc.get(l.description.trim().toLowerCase())?.code || ''} />}</td>
                   <td className="qrl-c-tax"><RefSelect className="qrl-in" value={l.tax} options={taxOptions} placeholder="Tax" onChange={(v) => update(l.id, { tax: v ?? '' })} /></td>
                   <td className="qrl-c-num">{numInput(l.ex_rate_buy, (v) => update(l.id, { ex_rate_buy: v }))}</td>
                   <td className="qrl-c-num">{numInput(l.ex_rate_sell, (v) => update(l.id, { ex_rate_sell: v }))}</td>

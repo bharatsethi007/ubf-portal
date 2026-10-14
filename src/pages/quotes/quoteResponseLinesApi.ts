@@ -28,7 +28,7 @@ export type QuoteResponseLine = {
 
 export type RateSource =
   | 'rate_card' | 'local_charges' | 'cartage' | 'template' | 'lane_history'
-  | 'margin_rule' | 'brainbox_rule' | 'manual'
+  | 'margin_rule' | 'brainbox_rule' | 'manual' | 'legacy'
 
 /** Marks a line as system-proposed and freezes the proposed buy/sell for later diffing. */
 export function stampProposal(l: QuoteResponseLine, source: RateSource, ref?: string | null): QuoteResponseLine {
