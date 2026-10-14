@@ -13,6 +13,7 @@ import {
 import PortalLinkCopy from '../portalAccess/PortalLinkCopy';
 import PortalUserRow from './PortalUserRow';
 import { Card, fmt } from './profileUi';
+import { SliPrefsCard } from './SliPrefsCard';
 
 export function CustomerInfoTab({
   accountId, stats, onReload,
@@ -85,6 +86,8 @@ export function CustomerInfoTab({
         active={!!stats?.has_portal_access}
         onChange={async () => { await reloadPortal(); onReload(); }}
       />
+
+      <SliPrefsCard accountId={accountId} />
 
       <NotesCard meta={meta} setMeta={setMeta} />
     </div>

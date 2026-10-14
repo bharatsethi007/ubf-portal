@@ -14,7 +14,7 @@ export const BOOKING_COLS = [
   "shipper_name, shipper_address, shipper_city, shipper_country, shipper_phone, shipper_email, shipper_contact, shipper_postcode",
   "consignee_name, consignee_address, consignee_city, consignee_country, consignee_contact, notify_name",
   "pieces, gross_weight_kg, weight_kg, cbm, volume_m3, goods_description, commodity, packing_type, hs_code, pickup_address",
-  "cargo_value, cargo_value_currency, needs_insurance, is_dg, un_number, dg_class",
+  "cargo_value, cargo_value_currency, needs_insurance, is_dg, un_number, dg_class, collection_mode",
 ].join(", ");
 
 async function account(db: Db, id: string | null) {
@@ -103,9 +103,11 @@ export async function singlePrefill(db: Db, bk: any) {
     declared_value: bk.cargo_value != null ? Number(bk.cargo_value) : undefined,
     declared_currency: bk.cargo_value_currency ?? "NZD",
     dangerous_goods: yn(bk.is_dg),
-    drawback_required: "no",
     purpose_of_export: "sold",
-    notify_party: bk.notify_name ?? consignee.consignee_name ?? undefined,
+    collection_mode: bk.collection_mode === "dropoff" ? "dropoff" : bk.collection_mode ? "pickup" : undefined,
+    cargo_ready_date: bk.cargo_ready_date ?? undefined,
+    pickup_same: bk.pickup_address ? false : undefined,
+    pickup_address: bk.pickup_address ?? undefined,
   };
   for (const k of Object.keys(answers)) if (answers[k] === undefined || answers[k] === null) delete answers[k];
 
@@ -119,7 +121,7 @@ export function inviteHtml(o: { base: string; link: string; name: string; ref: s
   const row = (k: string, v: string) => v ? `<tr><td style="padding:4px 0;color:#64748b;width:90px">${k}</td><td style="padding:4px 0;color:#0f172a;font-weight:600">${esc(v)}</td></tr>` : "";
   return `<div style="font-family:Segoe UI,Arial,sans-serif;background:#f4f6fa;padding:24px">
   <div style="max-width:560px;margin:0 auto;background:#fff;border:1px solid #e3e6eb;border-radius:12px;overflow:hidden">
-    <div style="padding:18px 24px;border-bottom:1px solid #eef0f4"><img src="${o.base}/ub-freight-logo.png" alt="UB Freight" height="34" style="display:block"></div>
+    <div style="padding:18px 24px;border-bottom:1px solid #eef0f4"><img src="${o.base}/ub-freight-logo-ink.png" alt="UB Freight" height="34" style="display:block"></div>
     <div style="padding:22px 24px;font-size:14px;color:#334155;line-height:1.55">
       <p style="margin:0 0 12px">Dear ${esc(o.name)},</p>
       <p style="margin:0 0 16px">Your Shipper's Letter of Instruction is ready. We've filled in everything we know, so it should only take a couple of minutes to check, attach your invoice and sign.</p>
@@ -131,4 +133,33 @@ export function inviteHtml(o: { base: string; link: string; name: string; ref: s
     </div>
     <div style="padding:14px 24px;background:#f8fafc;color:#94a3b8;font-size:11px">UB Freight Limited · 173 Montgomerie Road, Airport Oaks, Auckland 2022 · +64 9 966 3850</div>
   </div></div>`;
+}
+
+// ---- Saved templates (sli_profiles) ----
+// Shipper and standing answers only. Cargo, value and DG change every shipment, so they never carry over.
+export const TEMPLATE_PREFILL = ["supplier_name", "supplier_contact", "supplier_address", "supplier_city", "supplier_postcode",
+  "supplier_country", "supplier_phone", "supplier_email"];
+export const TEMPLATE_ANSWERS = ["is_paying", "insurance_required", "declared_currency", "country_of_origin", "purpose_of_export",
+  "purpose_other", "caa_screening_auth", "collection_mode", "pickup_same", "pickup_address", "pickup_contact", "pickup_phone"];
+
+export const profileKey = (acct: string | null, email: string | null) =>
+  acct ? acct : email ? `email:${email.trim().toLowerCase()}` : null;
+
+// Answers we only guess from the booking. The supplier's saved answer beats our guess; real booking data
+// (cartage, ready date) beats the template.
+const GUESSED = new Set(["is_paying", "insurance_required", "declared_currency", "country_of_origin", "purpose_of_export"]);
+
+/** Booking data wins for shipper fields and cartage; the template wins over our guesses. */
+export function applyTemplate(prefilled: Record<string, unknown>, answers: Record<string, unknown>, tpl: any) {
+  const fromTemplate: string[] = [];
+  const empty = (v: unknown) => v == null || v === "";
+  for (const k of TEMPLATE_PREFILL) {
+    const v = tpl?.prefilled?.[k];
+    if (!empty(v) && empty(prefilled[k])) { prefilled[k] = v; fromTemplate.push(k); }
+  }
+  for (const k of TEMPLATE_ANSWERS) {
+    const v = tpl?.answers?.[k];
+    if (!empty(v) && (GUESSED.has(k) || empty(answers[k]))) { answers[k] = v; fromTemplate.push(k); }
+  }
+  return fromTemplate;
 }

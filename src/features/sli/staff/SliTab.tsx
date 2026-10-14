@@ -3,6 +3,7 @@
 import React, { useState } from "react";
 import { useSliStaff } from "./useSliStaff";
 import SliEndorsedView from "./SliEndorsedView";
+import SliSendPanel from "./SliSendPanel";
 
 const STATUS_STYLE: Record<string, string> = {
   none: "bg-slate-100 text-slate-500",
@@ -19,6 +20,15 @@ export default function SliTab({ bookingId, isConsolidation }: { bookingId: stri
     useSliStaff(bookingId, isConsolidation);
   const [expanded, setExpanded] = useState<string | null>(null);
   const [copied, setCopied] = useState<string | null>(null);
+  const [sending, setSending] = useState<string | null>(null);
+  const [recipient, setRecipient] = useState<Record<string, string | null>>({});
+  const create = async (sid: string | null, id: string) => {
+    try {
+      const r = await generate(sid);
+      setRecipient((p) => ({ ...p, [id]: r?.recipient ?? null }));
+      setSending(id);
+    } catch (e) { alert((e as Error).message); }
+  };
 
   if (loading) return <div className="p-6 text-sm text-slate-400">Loading SLI status…</div>;
 
@@ -54,17 +64,23 @@ export default function SliTab({ bookingId, isConsolidation }: { bookingId: stri
               </div>
               <div className="flex items-center gap-2 shrink-0">
                 {!r.sli ? (
-                  <button onClick={() => generate(r.booking_supplier_id)} disabled={isBusy}
+                  <button onClick={() => void create(r.booking_supplier_id, id)} disabled={isBusy}
                     className="bg-[#0A2472] text-white text-xs font-semibold rounded-lg px-3 py-1.5 disabled:opacity-50">
-                    {isBusy ? "Generating…" : "Generate & send"}
+                    {isBusy ? "Creating…" : "Create link"}
                   </button>
                 ) : (
                   <>
+                    {r.sli.status !== "endorsed" ? (
+                      <button onClick={() => setSending(sending === id ? null : id)}
+                        className="bg-[#0A2472] text-white text-xs font-semibold rounded-lg px-3 py-1.5">
+                        {sending === id ? "Hide" : "Send link"}
+                      </button>
+                    ) : null}
                     <button onClick={() => copy(r.sli.token, id)}
                       className="text-xs font-semibold text-[#0A2472] border border-slate-200 rounded-lg px-3 py-1.5">
                       {copied === id ? "Copied!" : "Copy link"}
                     </button>
-                    <button onClick={() => generate(r.booking_supplier_id)} disabled={isBusy}
+                    <button onClick={() => void create(r.booking_supplier_id, id)} disabled={isBusy}
                       className="text-xs text-slate-500 border border-slate-200 rounded-lg px-3 py-1.5 disabled:opacity-50">
                       {isBusy ? "…" : "Regenerate"}
                     </button>
@@ -78,6 +94,11 @@ export default function SliTab({ bookingId, isConsolidation }: { bookingId: stri
                 )}
               </div>
             </div>
+
+            {sending === id && r.sli && r.sli.status !== "endorsed" ? (
+              <SliSendPanel bookingId={bookingId} link={linkFor(r.sli.token)} sli={r.sli} recipient={recipient[id]}
+                onSent={() => setSending(null)} />
+            ) : null}
 
             {expanded === id && r.sli?.status === "endorsed" && (
               <SliEndorsedView sli={r.sli} onAccept={acceptEdits}

@@ -1,9 +1,15 @@
 // src/features/sli/SliPage.tsx
 // Public route /sli/:token. Wide two-column form with a sticky progress rail. No auth guard.
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { useSli } from "./useSli";
-import { Notice, Shell } from "./SliUI";
+import { Notice, Shell, type TagKind } from "./SliUI";
+import { HelpProvider } from "./SliHelp";
+import SliCartage from "./SliCartage";
+import SliFinish from "./SliFinish";
+import { DECLARATION } from "./SliSign";
+import { buildSliPdf } from "./sliPdfData";
+import { dgHints } from "./dgHints";
 import SliSummary from "./SliSummary";
 import SliCargo from "./SliCargo";
 import SliDeclarations from "./SliDeclarations";
@@ -44,17 +50,33 @@ export default function SliPage() {
   const errors = useMemo(() => [...sli.fieldErrors, ...localErr], [sli.fieldErrors, localErr]);
   const val = (k: string) => (k in sli.edits ? sli.edits[k] : prefilled[k]);
   const suggestedKeys: string[] = Array.isArray(staff.suggested) ? staff.suggested : [];
-  const suggested = (k: string) => suggestedKeys.includes(k) && !touched.has(k) && a[k] != null && a[k] !== "";
+  const fromTemplate: string[] = Array.isArray(staff.from_template) ? staff.from_template : [];
+  const tagOf = (k: string): TagKind | null =>
+    touched.has(k) || a[k] == null || a[k] === "" ? null : fromTemplate.includes(k) ? "template" : suggestedKeys.includes(k) ? "suggested" : null;
+
+  // Name from the saved template; the signature itself is always typed fresh.
+  useEffect(() => { if (staff.template_signed_name && !signedName) setSignedName(staff.template_signed_name); }, [staff.template_signed_name]); // eslint-disable-line react-hooks/exhaustive-deps
   const setAnswer = (k: string, v: any) => { setTouched((p) => new Set(p).add(k)); sli.setAnswer(k, v); };
 
   const states = sectionStates({ val, a, attachments: sli.attachments, errors, signedName, signature, accepted });
-  const prefilledCount = EDIT_KEYS.filter((k) => prefilled[k] != null && prefilled[k] !== "").length + suggestedKeys.length;
+  const prefilledCount = EDIT_KEYS.filter((k) => prefilled[k] != null && prefilled[k] !== "").length + suggestedKeys.length
+    + fromTemplate.filter((k) => !EDIT_KEYS.includes(k)).length;
+  const hints = dgHints(val("goods_description"));
+  const buildPdf = async () => {
+    const { renderSliPdf } = await import("./SliPdf");
+    return renderSliPdf(buildSliPdf({ staff, val, a, attachments: sli.attachments, signedName, signature, declaration: DECLARATION }));
+  };
 
   if (sli.state === "loading") return <Skeleton />;
   if (sli.state === "expired") return <Notice kind="expired" title="This link has expired" msg="Please contact UB Freight for a new link." />;
   if (sli.state === "invalid") return <Notice kind="invalid" title="Link not found" msg="This SLI link is invalid. Please check the link or contact UB Freight." />;
   if (sli.state === "error") return <Notice kind="error" title="Something went wrong" msg="Please refresh, or contact UB Freight." />;
-  if (sli.state === "success") return <Notice kind="success" title="Thank you, your SLI is signed" msg="UB Freight has been notified and will take it from here. You can close this page." />;
+  if (sli.state === "success") return (
+    <>
+      <Notice kind="success" title="Thank you, your SLI is signed" msg="UB Freight has been notified and will take it from here. You can close this page." />
+      <SliFinish ref_={staff.booking_ref ?? ""} prefs={staff.prefs ?? null} supplierEmail={val("supplier_email") ?? ""} buildPdf={buildPdf} finish={sli.finish} />
+    </>
+  );
   if (sli.state === "endorsed") return <Notice kind="success" title="Already signed" msg="This SLI has already been completed and submitted." />;
 
   const jump = (errs: string[]) => {
@@ -70,6 +92,7 @@ export default function SliPage() {
   };
 
   return (
+    <HelpProvider>
     <Shell right={staff.booking_ref ? <span className="rounded-md bg-[#F2F4F7] px-2 py-1 font-mono text-[12.5px] font-medium text-[#344054]">{staff.booking_ref}</span> : null}>
       <SliSummary staff={staff} expiresAt={sli.data?.expires_at} />
 
@@ -81,9 +104,12 @@ export default function SliPage() {
 
       <div className="mt-5 grid items-start gap-5 lg:grid-cols-[minmax(0,1fr)_300px]">
         <div className="flex min-w-0 flex-col gap-4">
-          <SliCargo prefilled={prefilled} edits={sli.edits} setEdit={sli.setEdit} states={{ shipper: states.shipper, cargo: states.cargo }} />
-          <SliDeclarations answers={a} setAnswer={setAnswer} countries={sli.countries} errors={errors} suggested={suggested}
-            states={{ customs: states.customs, dg: states.dg, security: states.security }} />
+          <SliCargo prefilled={prefilled} edits={sli.edits} setEdit={sli.setEdit} answers={a} setAnswer={setAnswer}
+            fromTemplate={fromTemplate} states={{ shipper: states.shipper, cargo: states.cargo }} />
+          <SliCartage a={a} setAnswer={setAnswer} errors={errors} state={states.cartage} tag={tagOf} cutoff={staff.cutoff_at}
+            shipperAddress={[val("supplier_address"), val("supplier_city")].filter(Boolean).join(", ")} />
+          <SliDeclarations answers={a} setAnswer={setAnswer} countries={sli.countries} errors={errors} tag={tagOf} hints={hints}
+            states={{ customs: states.customs, dg: states.dg }} />
           <SliUpload attachments={sli.attachments} uploadFile={sli.uploadFile} removeAttachment={sli.removeAttachment}
             dgRequired={dgRequired(a)} errors={errors} state={states.docs} />
           <SliSign signedName={signedName} setSignedName={setSignedName} signature={signature} setSignature={setSignature}
@@ -92,5 +118,6 @@ export default function SliPage() {
         <SliRail states={states} prefilledCount={prefilledCount} submitting={sli.submitting} onSubmit={() => void onSubmit()} />
       </div>
     </Shell>
+    </HelpProvider>
   );
 }

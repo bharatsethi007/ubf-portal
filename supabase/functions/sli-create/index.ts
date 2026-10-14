@@ -2,7 +2,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { apiFetch, setApiFn } from "../_shared/apiFetch.ts";
-import { BOOKING_COLS, inviteHtml, singlePrefill } from "./prefill.ts";
+import { BOOKING_COLS, applyTemplate, inviteHtml, profileKey, singlePrefill } from "./prefill.ts";
 setApiFn("sli-create");
 
 const cors = {
@@ -27,7 +27,7 @@ Deno.serve(async (req) => {
     const { data: staff } = await userClient.from("staff_users").select("user_id").eq("user_id", ures.user.id).maybeSingle();
     if (!staff) return json({ error: "forbidden" }, 403);
 
-    const { booking_id, booking_supplier_id = null } = await req.json();
+    const { booking_id, booking_supplier_id = null, send = true } = await req.json();
     if (!booking_id) return json({ error: "booking_id required" }, 400);
 
     const db = createClient(url, service);
@@ -79,7 +79,14 @@ Deno.serve(async (req) => {
       ? expireMatch.eq("booking_supplier_id", booking_supplier_id)
       : expireMatch.is("booking_supplier_id", null));
 
-    const answers = { ...(single?.answers ?? {}), country_of_origin: originCountry };
+    const answers: Record<string, unknown> = { ...(single?.answers ?? {}), country_of_origin: originCountry };
+
+    // Saved template + preferences from the supplier's last SLI.
+    const pkey = profileKey(supplierAcct, (supplierSnap.supplier_email as string) ?? null);
+    const { data: prof } = pkey
+      ? await db.from("sli_profiles").select("save_template, email_pdf, pdf_email, template").eq("key", pkey).maybeSingle()
+      : { data: null };
+    const fromTemplate = prof?.save_template && prof.template ? applyTemplate(supplierSnap, answers, prof.template) : [];
     const staff_fields = {
       booking_ref: bk.booking_ref, module: bk.module,
       origin: bk.origin, destination: bk.destination, incoterm: bk.incoterm,
@@ -90,7 +97,10 @@ Deno.serve(async (req) => {
       ...(single?.consignee ?? {}),
       ...Object.fromEntries(Object.entries(single?.flight ?? {}).filter(([, v]) => v != null)),
       // Answers UB Freight filled in for the supplier; the page marks them "suggested" until touched.
-      suggested: Object.keys(answers).filter((k) => (answers as Record<string, unknown>)[k] != null),
+      suggested: Object.keys(answers).filter((k) => answers[k] != null && !fromTemplate.includes(k)),
+      from_template: fromTemplate,
+      template_signed_name: prof?.save_template ? prof?.template?.signed_name ?? null : null,
+      prefs: prof ? { save_template: prof.save_template, email_pdf: prof.email_pdf, pdf_email: prof.pdf_email } : null,
     };
     const sli_answers = answers;
 
@@ -105,7 +115,7 @@ Deno.serve(async (req) => {
     const link = base ? `${base}/sli/${created.token}` : `/sli/${created.token}`;
 
     let emailStatus: "sent" | "skipped" | "failed" = "skipped";
-    if (recipient && base) {
+    if (send && recipient && base) {
       try {
         const key = Deno.env.get("BREVO_API_KEY");
         const from = Deno.env.get("SLI_FROM_EMAIL") ?? "no-reply@ubfreight.com";
@@ -138,7 +148,12 @@ Deno.serve(async (req) => {
       detail: { recipient, email_status: emailStatus },
     });
 
-    return json({ token: created.token, link, recipient, email_status: emailStatus });
+    return json({
+      token: created.token, link, recipient, email_status: emailStatus, name: supplierSnap.supplier_name ?? null,
+      summary: { ref: bk.booking_ref, route: `${bk.origin ?? "AKL"} → ${bk.destination ?? ""}`,
+        flight: [staff_fields.flight_no, staff_fields.flight_date].filter(Boolean).join(" · "),
+        cargo: [supplierSnap.pieces && `${supplierSnap.pieces} pcs`, supplierSnap.weight_kg && `${supplierSnap.weight_kg} kg`].filter(Boolean).join(" · ") },
+    });
   } catch (e) {
     return json({ error: String(e) }, 500);
   }

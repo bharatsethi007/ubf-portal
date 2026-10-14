@@ -72,10 +72,12 @@ export function useSli(token: string) {
     if (isYes(a.insurance_required) && !(Number(a.insurance_amount) > 0)) errs.push("insurance_amount");
     if (!yn(a.dangerous_goods)) errs.push("dangerous_goods");
     if (!a.country_of_origin) errs.push("country_of_origin");
-    if (!yn(a.drawback_required)) errs.push("drawback_required");
     if (!a.purpose_of_export) errs.push("purpose_of_export");
     if (a.purpose_of_export === "other" && !a.purpose_other?.trim()) errs.push("purpose_other");
     if (!yn(a.caa_screening_auth)) errs.push("caa_screening_auth");
+    if (a.collection_mode !== "pickup" && a.collection_mode !== "dropoff") errs.push("collection_mode");
+    if (!a.cargo_ready_date) errs.push("cargo_ready_date");
+    if (a.collection_mode === "pickup" && a.pickup_same === false && !a.pickup_address?.trim()) errs.push("pickup_address");
     const batteries = Array.isArray(a.batteries) ? a.batteries : [];
     const dgReq = isYes(a.dangerous_goods) || batteries.some((b: string) => /lithium/i.test(b));
     if (dgReq && !attachments.some((x) => x.doc_type === "dg_cert")) errs.push("dg_cert_attachment");
@@ -91,7 +93,7 @@ export function useSli(token: string) {
       const res = await fetch(`${FN}/sli-submit`, {
         method: "POST", headers: anonHeaders,
         body: JSON.stringify({
-          token, customer_edits: edits, sli_answers: answers,
+          token, customer_edits: edits, sli_answers: { ...answers, _form: 2 },
           signed_name: signedName, signature, attachments,
         }),
       });
@@ -102,7 +104,26 @@ export function useSli(token: string) {
     } finally { setSubmitting(false); }
   }, [token, edits, answers, attachments, validate]);
 
+  /** After signing: save template / PDF preferences, optionally email the PDF copy. */
+  const finish = useCallback(async (opts: { save_template: boolean; email_pdf: boolean; pdf_email?: string; pdf?: Blob | null }) => {
+    let pdf_base64: string | undefined;
+    if (opts.pdf) {
+      const buf = new Uint8Array(await opts.pdf.arrayBuffer());
+      let bin = "";
+      for (let i = 0; i < buf.length; i += 0x8000) bin += String.fromCharCode(...buf.subarray(i, i + 0x8000));
+      pdf_base64 = btoa(bin);
+    }
+    const res = await fetch(`${FN}/sli-finish`, {
+      method: "POST", headers: anonHeaders,
+      body: JSON.stringify({ token, save_template: opts.save_template, email_pdf: opts.email_pdf, pdf_email: opts.pdf_email, pdf_base64 }),
+    });
+    const body = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(body.error ?? "Could not save your choices");
+    return body as { ok: boolean; emailed: boolean };
+  }, [token]);
+
   return {
+    finish,
     state, data, countries, attachments, edits, answers, fieldErrors, submitting,
     setEdit, setAnswer, uploadFile, removeAttachment, submit, validate,
   };

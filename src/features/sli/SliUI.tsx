@@ -1,7 +1,8 @@
 // src/features/sli/SliUI.tsx
 // Shared primitives for the public SLI page. White, roomy type, compact grids. UBF navy #0A2472, orange #F7941D.
 import React from "react";
-import { Check, Lock, Mail, Phone, Sparkles } from "lucide-react";
+import { Bookmark, Check, Lock, Mail, Phone, Sparkles } from "lucide-react";
+import { HelpBubble, InfoButton, useTip } from "./SliHelp";
 
 export const err = (errors: string[], key: string) => errors.includes(key);
 export const isYes = (v: any) => v === true || v === "yes";
@@ -12,39 +13,50 @@ const ring = (bad?: boolean) =>
 export const inputCls = (bad?: boolean, ro?: boolean) =>
   `h-10 w-full rounded-lg border bg-white px-3 text-[14px] text-[#101828] outline-none transition placeholder:text-[#98A2B3] ${ring(bad)} ${ro ? "bg-[#F8F9FB] text-[#475467]" : ""}`;
 
-/** "Prefilled" or "Suggested" marker next to a label. */
-export function Tag({ kind }: { kind: "prefilled" | "suggested" }) {
+export type TagKind = "prefilled" | "suggested" | "template";
+const TAGS: Record<TagKind, { t: string; tip: string; cls: string }> = {
+  prefilled: { t: "Prefilled", tip: "Filled in by UB Freight from your booking. Change it if it's wrong.", cls: "bg-[#EEF2FB] text-[#0A2472]" },
+  suggested: { t: "Suggested", tip: "UB Freight's best guess. Please confirm.", cls: "bg-[#FFF4E5] text-[#B54708]" },
+  template: { t: "From template", tip: "Saved from your last SLI. Change it if it's different this time.", cls: "bg-[#ECFDF3] text-[#067647]" },
+};
+
+/** Marker next to a label showing where the value came from. */
+export function Tag({ kind }: { kind: TagKind }) {
+  const k = TAGS[kind];
   return (
-    <span title={kind === "prefilled" ? "Filled in by UB Freight from your booking. Change it if it's wrong." : "UB Freight's best guess. Please confirm."}
-      className={`ml-1.5 inline-flex items-center gap-0.5 rounded px-1.5 py-[1px] text-[10.5px] font-medium ${
-        kind === "prefilled" ? "bg-[#EEF2FB] text-[#0A2472]" : "bg-[#FFF4E5] text-[#B54708]"}`}>
-      <Sparkles size={10} /><span className="hidden sm:inline">{kind === "prefilled" ? "Prefilled" : "Suggested"}</span>
+    <span title={k.tip} className={`ml-1.5 inline-flex items-center gap-0.5 rounded px-1.5 py-[1px] text-[10.5px] font-medium ${k.cls}`}>
+      {kind === "template" ? <Bookmark size={10} /> : <Sparkles size={10} />}<span className="hidden sm:inline">{k.t}</span>
     </span>
   );
 }
 
-export function Label({ children, required, tag, htmlFor }: { children: React.ReactNode; required?: boolean; tag?: "prefilled" | "suggested" | null; htmlFor?: string }) {
+export function Label({ children, required, tag, htmlFor, help }: {
+  children: React.ReactNode; required?: boolean; tag?: TagKind | null; htmlFor?: string; help?: { id: string; label: string } | null;
+}) {
   return (
-    <label htmlFor={htmlFor} className="mb-1.5 flex items-center text-[13px] font-medium text-[#344054]">
-      {children}{required ? <span className="ml-0.5 text-[#F7941D]">*</span> : null}
+    <div className="mb-1.5 flex items-center text-[13px] font-medium text-[#344054]">
+      <label htmlFor={htmlFor}>{children}</label>{required ? <span className="ml-0.5 text-[#F7941D]">*</span> : null}
+      {help ? <InfoButton id={help.id} label={help.label} /> : null}
       {tag ? <Tag kind={tag} /> : null}
-    </label>
+    </div>
   );
 }
 
 type FieldProps = {
   label: string; value: any; onChange?: (v: string) => void; required?: boolean; error?: boolean;
-  type?: string; readOnly?: boolean; placeholder?: string; tag?: "prefilled" | "suggested" | null;
-  className?: string; suffix?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
+  type?: string; readOnly?: boolean; placeholder?: string; tag?: TagKind | null;
+  className?: string; suffix?: string; inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"]; help?: string;
 };
 
-export function Field({ label, value, onChange, required, error, type = "text", readOnly, placeholder, tag, className, suffix, inputMode }: FieldProps) {
+export function Field({ label, value, onChange, required, error, type = "text", readOnly, placeholder, tag, className, suffix, inputMode, help }: FieldProps) {
   const id = `f-${label.replace(/\W+/g, "-").toLowerCase()}`;
+  const tip = useTip(id, help);
   return (
     <div className={className}>
-      <Label htmlFor={id} required={required} tag={tag}>{label}</Label>
+      <Label htmlFor={id} required={required} tag={tag} help={help ? { id, label } : null}>{label}</Label>
       <div className="relative">
-        <input id={id} type={type} value={value ?? ""} placeholder={placeholder} readOnly={readOnly} inputMode={inputMode}
+        <HelpBubble id={id} text={help} />
+        <input id={id} type={type} value={value ?? ""} placeholder={placeholder} readOnly={readOnly} inputMode={inputMode} {...tip}
           onChange={(e) => onChange?.(e.target.value)} className={`${inputCls(error, readOnly)} ${suffix ? "pr-12" : ""}`} />
         {suffix ? <span className="pointer-events-none absolute inset-y-0 right-3 flex items-center text-[13px] text-[#667085]">{suffix}</span> : null}
       </div>
@@ -76,7 +88,7 @@ export const YN = [{ v: "yes" as const, t: "Yes" }, { v: "no" as const, t: "No" 
 
 /** One question per row: text on the left, answer on the right. Fast to scan, easy to tap. */
 export function QRow({ q, hint, required, tag, error, children, below }: {
-  q: React.ReactNode; hint?: React.ReactNode; required?: boolean; tag?: "prefilled" | "suggested" | null;
+  q: React.ReactNode; hint?: React.ReactNode; required?: boolean; tag?: TagKind | null;
   error?: boolean; children: React.ReactNode; below?: React.ReactNode;
 }) {
   return (
@@ -125,7 +137,7 @@ export function Shell({ children, right }: { children: React.ReactNode; right?: 
     <div className="min-h-screen bg-[#F7F8FA] font-sans text-[#101828] antialiased">
       <header className="sticky top-0 z-30 border-b border-[#E4E7EC] bg-white/95 backdrop-blur">
         <div className="mx-auto flex h-16 max-w-[1240px] items-center gap-4 px-4 sm:px-6">
-          <img src="/ub-freight-logo.png" alt="UB Freight" className="h-9 w-auto rounded-[3px]" />
+          <img src="/ub-freight-logo-ink.png" alt="UB Freight" className="h-9 w-auto rounded-[3px]" />
           <div className="hidden h-7 w-px bg-[#E4E7EC] sm:block" />
           <div className="hidden min-w-0 sm:block">
             <div className="text-[15px] font-semibold leading-tight">Shipper's Letter of Instruction</div>

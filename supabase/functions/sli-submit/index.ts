@@ -65,10 +65,14 @@ Deno.serve(async (req) => {
     if (isYes(a.insurance_required) && !(Number(a.insurance_amount) > 0)) errs.push("insurance_amount");
     if (!yn(a.dangerous_goods)) errs.push("dangerous_goods");
     if (!a.country_of_origin) errs.push("country_of_origin");
-    if (!yn(a.drawback_required)) errs.push("drawback_required");
     if (!a.purpose_of_export) errs.push("purpose_of_export");
     if (a.purpose_of_export === "other" && !(a.purpose_other as string)?.trim()) errs.push("purpose_other");
     if (!yn(a.caa_screening_auth)) errs.push("caa_screening_auth");
+    // Cartage questions arrived with form v2; older open tabs still submit without them.
+    const v2 = Number(a._form) >= 2;
+    if (v2 && a.collection_mode !== "pickup" && a.collection_mode !== "dropoff") errs.push("collection_mode");
+    if (v2 && !a.cargo_ready_date) errs.push("cargo_ready_date");
+    if (v2 && a.collection_mode === "pickup" && a.pickup_same === false && !(a.pickup_address as string)?.trim()) errs.push("pickup_address");
 
     // DG / lithium battery -> DG cert attachment required
     const batteries = Array.isArray(a.batteries) ? (a.batteries as string[]) : [];
@@ -117,7 +121,8 @@ Deno.serve(async (req) => {
                <b>Lane:</b> ${sf.origin ?? "-"} → ${sf.destination ?? "-"}<br>
                <b>Signed by:</b> ${signed_name} at ${nowIso}<br>
                <b>Proposed edits:</b> ${Object.keys(customer_edits).length ? "yes — review in portal" : "none"}<br>
-               <b>Attachments:</b> ${(attachments as unknown[]).length}</p>
+               <b>Attachments:</b> ${(attachments as unknown[]).length}<br>
+               <b>Cartage:</b> ${a.collection_mode === "pickup" ? `UBF pickup${a.pickup_same === false ? ` from ${a.pickup_address ?? "?"}` : " from shipper"}` : a.collection_mode === "dropoff" ? "Supplier drop-off" : "-"}${a.cargo_ready_date ? `, ready ${a.cargo_ready_date}` : ""}</p>
                <p>Open the booking in the portal to review and accept changes.</p>`,
           }),
         });

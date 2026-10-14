@@ -73,8 +73,11 @@ export function useSliStaff(bookingId: string, isConsolidation: boolean) {
   const generate = useCallback(async (booking_supplier_id: string | null) => {
     setBusyId(booking_supplier_id ?? "single");
     try {
-      await authedPost("sli-create", { booking_id: bookingId, booking_supplier_id });
+      // Link only. Staff choose how to send it (email, thread reply or copy).
+      const r = await authedPost("sli-create", { booking_id: bookingId, booking_supplier_id, send: false });
+      if (r?.error) throw new Error(r.error);
       await load();
+      return r as { token: string; link: string; recipient: string | null };
     } finally { setBusyId(null); }
   }, [bookingId, load]);
 
