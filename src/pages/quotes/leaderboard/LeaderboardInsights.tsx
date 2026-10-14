@@ -15,7 +15,7 @@ export default function LeaderboardInsights({ lb }: { lb: Leaderboard }) {
           <ul className="list-disc pl-5 text-xs leading-5 text-slate-700">{takeaways.map((t) => <li key={t}>{t}</li>)}</ul>
         </div>
       )}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
         {charts.map((c) => <DonutCard key={c.key} chart={c} />)}
       </div>
       {lanes.length > 0 && (

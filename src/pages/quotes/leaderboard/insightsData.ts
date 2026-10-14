@@ -5,6 +5,14 @@ import { chartColorFor } from '../quoteTones'
 export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7']
 export const OTHER = '#a3a39e'
 const MAX_SLICES = 5
+const STATUS_ORDER = ['Open', 'Held', 'Won', 'Lost', 'Cross win']
+const PARTY: Record<string, string> = { Customer: '#2a78d6', Agent: '#eda100' }
+const HELD_AGE: Record<string, string> = { 'Under 7 days': '#f5c451', '7 to 30 days': '#eda100', 'Over 30 days': '#b54708' }
+
+function agentLine(slices: Slice[]) {
+  const a = slices.find((x) => x.label === 'Agent')
+  return a ? `Agents are ${a.pct}% of quotes` : 'All quotes from direct customers'
+}
 
 export type Slice = { label: string; n: number; pct: number; color: string; won?: number; lost?: number }
 export type InsightChart = { key: string; title: string; headline: string; total: number; slices: Slice[]; empty: string }
@@ -23,8 +31,9 @@ const winRate = (r: { won?: number; lost?: number; n: number }) => {
 }
 
 /** Top N slices, the rest folded into "Other". Colors follow position in the fixed order. */
-function toSlices(rows: MixRow[], colorFor?: (label: string) => string): { slices: Slice[]; total: number } {
-  const sorted = [...rows].filter((r) => r.n > 0).sort((a, b) => b.n - a.n)
+function toSlices(rows: MixRow[], colorFor?: (label: string) => string, order?: string[]): { slices: Slice[]; total: number } {
+  const rank = (l: string) => { const i = order?.indexOf(l) ?? -1; return i < 0 ? 99 : i }
+  const sorted = [...rows].filter((r) => r.n > 0).sort((a, b) => (order ? rank(a.label) - rank(b.label) : 0) || b.n - a.n)
   const total = sorted.reduce((s, r) => s + r.n, 0)
   const head = sorted.length > MAX_SLICES + 1 ? sorted.slice(0, MAX_SLICES) : sorted
   const rest = sorted.slice(head.length)
@@ -42,7 +51,9 @@ export function buildInsights(lb: Leaderboard): { charts: InsightChart[]; lanes:
   if (!m) return { charts: [], lanes: [], takeaways: [] }
   const t = lb.totals
 
-  const status = toSlices(m.status, (l) => chartColorFor(l) ?? OTHER)
+  const status = toSlices(m.status, (l) => chartColorFor(l) ?? OTHER, STATUS_ORDER)
+  const party = toSlices(m.party ?? [], (l) => PARTY[l] ?? OTHER)
+  const held = toSlices(m.held_age ?? [], (l) => HELD_AGE[l] ?? OTHER, Object.keys(HELD_AGE))
   const mode = toSlices(m.mode, (l) => chartColorFor(l) ?? OTHER)
   const dir = toSlices(m.direction.map((r) => ({ ...r, label: r.label === 'Unknown' ? 'Not set' : r.label })), (l) => chartColorFor(l) ?? OTHER)
   const staff = toSlices(lb.staff.map((s) => ({ label: s.name, n: s.quotes, won: s.won, lost: s.lost })))
@@ -61,6 +72,10 @@ export function buildInsights(lb: Leaderboard): { charts: InsightChart[]; lanes:
       headline: lead(staff) ? `${lead(staff).label} handles ${lead(staff).pct}%` : '' },
     { key: 'destination', title: 'Destination countries', total: dest.total, slices: dest.slices, empty: 'No quotes',
       headline: lead(dest) ? `${lead(dest).label} is the top destination (${lead(dest).n})` : '' },
+    { key: 'party', title: 'Customers vs agents', total: party.total, slices: party.slices, empty: 'No quotes',
+      headline: agentLine(party.slices) },
+    { key: 'held', title: 'Held quotes by age', total: held.total, slices: held.slices, empty: 'Nothing on hold',
+      headline: held.total ? `${held.total} on hold, oldest bucket ${held.slices[held.slices.length - 1].label.toLowerCase()}` : 'Nothing on hold' },
     { key: 'lost', title: 'Why quotes are lost', total: lost.total, slices: lost.slices, empty: 'No lost quotes in this period',
       headline: lead(lost) ? `Top reason: ${lead(lost).label}` : 'Nothing lost yet' },
   ]
@@ -74,6 +89,15 @@ export function buildInsights(lb: Leaderboard): { charts: InsightChart[]; lanes:
   const takeaways: string[] = []
   if (t.quotes) takeaways.push(`${t.quotes} quotes for ${t.customers} customers. ${t.open} still open (${pct(t.open, t.quotes)}%).`)
   if (t.held) takeaways.push(`${t.held} quote${t.held === 1 ? '' : 's'} on hold. Follow up before they go cold.`)
+  const stale = (m.held_age ?? []).find((r) => r.label === 'Over 30 days')
+  if (stale?.n) takeaways.push(`${stale.n} held quote${stale.n === 1 ? ' has' : 's have'} not moved in 30+ days. Close them or re-quote.`)
+  const ag = (m.party ?? []).find((r) => r.label === 'Agent'), cu = (m.party ?? []).find((r) => r.label === 'Customer')
+  if (ag && cu && ag.n >= 3 && cu.n >= 3) {
+    const a = winRate(ag), c = winRate(cu)
+    if (a != null && c != null && Math.abs(a - c) >= 10) takeaways.push(`Agents win ${a}% vs customers ${c}%.`)
+  }
+  const ct = m.direction.find((r) => r.label === 'Cross trade')
+  if (ct?.n) takeaways.push(`${ct.n} cross trade quote${ct.n === 1 ? '' : 's'} (${pct(ct.n, t.quotes)}% of the mix).`)
   const decided = t.won + t.lost
   if (decided) takeaways.push(`Win rate ${t.win_rate ?? 0}% on ${decided} decided quotes.`)
   else if (t.quotes) takeaways.push('No quotes decided yet in this period. Win rate will show once customers answer.')

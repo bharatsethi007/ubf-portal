@@ -43,6 +43,7 @@ export function downloadLeaderboardCsv(lb: Leaderboard, periodLabel: string, mod
     const sections: [string, { label: string; n: number; won?: number; lost?: number }[]][] = [
       ['STATUS', lb.mix.status], ['MODE', lb.mix.mode], ['DIRECTION', lb.mix.direction],
       ['DESTINATION COUNTRY', lb.mix.destination.map((r) => ({ ...r, label: countryName(r.label) }))],
+      ['CUSTOMER VS AGENT', lb.mix.party ?? []], ['HELD BY AGE', lb.mix.held_age ?? []],
       ['LOST REASONS', lb.mix.lost_reason], ['SOURCE', lb.mix.source],
     ];
     for (const [title, rows] of sections) {

@@ -67,6 +67,10 @@ export type MixRow = { label: string; n: number; won?: number; lost?: number }
 export type LbMix = {
   status: MixRow[]; mode: MixRow[]; direction: MixRow[]; source: MixRow[]
   destination: MixRow[]; lane: MixRow[]; lost_reason: MixRow[]
+  /** Customer vs Agent. */
+  party?: MixRow[]
+  /** Held quotes by time since last change. */
+  held_age?: MixRow[]
 }
 
 export type Leaderboard = {

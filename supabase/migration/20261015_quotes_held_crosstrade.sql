@@ -45,3 +45,30 @@ begin
   end if;
 end
 $mig$;
+
+-- Part 2 (applied 15 Oct): insights mix gains 'party' (Customer / Agent with won/lost)
+-- and 'held_age' (held quotes in the period by days since last change).
+do $mig2$
+declare d text; n text;
+begin
+  d := pg_get_functiondef('public.quotes_leaderboard(text,text)'::regprocedure);
+  if position('''party''' in d) > 0 then return; end if;
+  n := replace(d, $a$           x.lost_reason,$a$,
+    $b$           x.lost_reason,
+           (x.agent_id is not null or nullif(trim(x.agent_name), '') is not null) as is_agent,$b$);
+  n := replace(n, $a$      'lost_reason', coalesce($a$,
+    $b$      'party', coalesce((select jsonb_agg(jsonb_build_object('label', l, 'n', n, 'won', w, 'lost', lo) order by n desc) from (
+          select case when is_agent then 'Agent' else 'Customer' end l, count(*) n,
+            count(*) filter (where status in ('won','crosswin')) w, count(*) filter (where status = 'lost') lo
+          from q group by 1) t), '[]'::jsonb),
+      'held_age', coalesce((select jsonb_agg(jsonb_build_object('label', l, 'n', n) order by o) from (
+          select case when updated_at > now() - interval '7 days' then 'Under 7 days'
+                      when updated_at > now() - interval '30 days' then '7 to 30 days' else 'Over 30 days' end l,
+                 min(case when updated_at > now() - interval '7 days' then 1
+                          when updated_at > now() - interval '30 days' then 2 else 3 end) o, count(*) n
+          from q where status = 'held' group by 1) t), '[]'::jsonb),
+      'lost_reason', coalesce($b$);
+  if n = d or position('''party''' in n) = 0 then raise exception 'quotes_leaderboard: insights anchors not found'; end if;
+  execute n;
+end
+$mig2$;
