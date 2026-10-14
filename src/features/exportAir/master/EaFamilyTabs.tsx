@@ -18,11 +18,11 @@ export default function EaFamilyTabs({ master, subs, active, onPick, onAdd }: Pr
       <button type="button" role="tab" aria-selected={active === master.id} onClick={() => onPick(master.id)} className={`${base} ${active === master.id ? on : off}`}>
         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#0A2472] text-white"><Layers size={13} /></span>
         <span className="flex min-w-0 flex-col leading-tight">
-          <span className="flex items-center gap-1.5 text-[12.5px] font-semibold">Master <span className="bk-mono text-[11.5px] font-medium text-[#0A2472]">{master.booking_ref}</span></span>
+          <span className="flex items-center gap-1.5 text-[12.5px] font-semibold">Main <span className="bk-mono text-[11.5px] font-medium text-[#0A2472]">{master.booking_ref}</span></span>
           <span className="bk-mono text-[10.5px] text-[#6B7280]">{subs.length} HAWB{subs.length === 1 ? '' : 's'} · {fmtNum(t.pcs)} pcs · {fmtNum(t.kg)} kg</span>
         </span>
         {masterGaps.length || open
-          ? <Bang title={[...masterGaps.map((g) => `Master: ${g} missing`), open ? `${open} sub-HAWB${open > 1 ? 's' : ''} incomplete` : ''].filter(Boolean).join('\n')} />
+          ? <Bang title={[...masterGaps.map((g) => `Main: ${g} missing`), open ? `${open} sub-HAWB${open > 1 ? 's' : ''} incomplete` : ''].filter(Boolean).join('\n')} />
           : <CheckCircle2 size={14} className="shrink-0 text-[#17B26A]" aria-label="Complete" />}
       </button>
 

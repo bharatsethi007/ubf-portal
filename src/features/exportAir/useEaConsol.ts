@@ -22,7 +22,7 @@ export function useEaConsol(id: string | undefined) {
       supabase.from('v_ea_bookings').select('*').is('consol_id', null)
         .eq('destination', con.destination).gte('stage', 0).order('stage', { ascending: false }),
     ])
-    // A buyers consol is one house: the master, carrying its subs' totals. Subs are listed under it, not as houses.
+    // A buyers consol is one house: the main HAWB, carrying its subs' totals. Subs are listed under it, not as houses.
     const all = (h.data ?? []) as EaRow[]
     const subs = new Map<string, EaRow[]>()
     for (const r of all) if (r.master_booking_id) subs.set(r.master_booking_id, [...(subs.get(r.master_booking_id) ?? []), r])

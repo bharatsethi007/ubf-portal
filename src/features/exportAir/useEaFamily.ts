@@ -3,7 +3,7 @@ import { supabase } from '@/supabase'
 import type { EaRow } from './eaTypes'
 import type { DocRow, ThreadRow, TmsJob } from './useEaBooking'
 
-/** The buyers consolidation a HAWB belongs to: its master and all sub-HAWBs. null family = ordinary HAWB. */
+/** The buyers consolidation a HAWB belongs to: its main HAWB and all sub-HAWBs. null family = ordinary HAWB. */
 export function useEaFamily(bookingId: string) {
   const [masterId, setMasterId] = useState<string | null | undefined>(undefined)
   const [master, setMaster] = useState<EaRow | null>(null)
@@ -32,7 +32,7 @@ export type SubExtras = {
   tms: Map<string, TmsJob>
 }
 
-/** Emails, documents and TMS jobs of every sub-HAWB, labelled with the supplier, for the master's rails. */
+/** Emails, documents and TMS jobs of every sub-HAWB, labelled with the supplier, for the main HAWB's rails. */
 export function useEaSubExtras(subs: EaRow[]) {
   const [x, setX] = useState<SubExtras>({ threads: [], docs: [], tms: new Map() })
   const key = subs.map((s) => s.id).join(',')

@@ -38,7 +38,7 @@ function Step({ m, current, onAction }: { m: EaMilestone; current: boolean; onAc
 
 type Props = {
   b: EaDetail; tms: TmsJob | null; best: AirConsol | undefined; onAction: (a: EaAction) => void; onChanged: () => void
-  /** Master HAWB: rolled-up track and plan from its sub-HAWBs. */
+  /** Main HAWB: rolled-up track and plan from its sub-HAWBs. */
   milestones?: EaMilestone[]; plan?: EaPlan
 }
 

@@ -1,6 +1,6 @@
 import { useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
-import { ExternalLink, Pencil, X } from 'lucide-react'
+import { ArrowLeft, ExternalLink, Pencil, X } from 'lucide-react'
 import { toast } from 'sonner'
 import '@/features/bookingsWorkspace/bookingsTheme.css'
 import { cargoOf, fmtNum, STAGE_LABELS } from './eaTypes'
@@ -27,6 +27,7 @@ import EaMasterDocs from './master/EaMasterDocs'
 import type { FamilyCtl } from './master/EaHawbShell'
 import { firstMissing, masterAsHouse, masterMilestones, masterPlan, masterTotals, subPlan } from './eaMaster'
 import { useEaSubExtras } from './useEaFamily'
+import { AirlineMark, Route } from './eaVisual'
 
 type Props = { bookingId: string; embedded?: boolean; onClose?: () => void; onChanged?: () => void; family?: FamilyCtl; tabs?: ReactNode }
 
@@ -93,12 +94,19 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged,
 
   return (
     <div className="bk-root mx-auto w-full max-w-[1440px] bg-white text-[12.5px] text-[#14161A]" style={doc != null ? { paddingRight: 'min(780px, 48vw)' } : undefined}>
-      {embedded ? null : (
-        <div className="text-[12px] text-[#6B7280]">
-          <Link to="/bookings/export-air" className="text-[#6B7280] hover:underline">Export air</Link>
-          <span className="mx-1">/</span><span className="bk-mono text-[#14161A]">{b.booking_ref}</span>
-        </div>
-      )}
+      <nav aria-label="Back" className="mb-2 flex items-center gap-2 text-[12px] text-[#6B7280]">
+        <button type="button" onClick={() => {
+          if (embedded) return onClose?.()
+          const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0
+          if (idx > 0) navigate(-1); else navigate('/bookings/export-air')
+        }} className="inline-flex h-[26px] w-auto items-center gap-1.5 rounded-md border border-[#E3E6EB] bg-white px-2 text-[12px] font-medium text-[#14161A] hover:bg-[#F6F7F9]">
+          <ArrowLeft size={13} /> Back
+        </button>
+        <Link to="/bookings/export-air" onClick={embedded ? onClose : undefined} className="text-[#6B7280] hover:underline">Export air</Link>
+        {b.consol_id && b.consol_flight ? (<><span>/</span><Link to={`/bookings/export-air/consol/${b.consol_id}`} onClick={embedded ? onClose : undefined} className="bk-mono text-[#6B7280] hover:underline">{b.consol_flight}</Link></>) : null}
+        {family?.master && family.master.id !== b.id ? (<><span>/</span><button type="button" onClick={() => family.setActive(family.master!.id)} className="bk-mono w-auto border-0 bg-transparent p-0 text-[12px] text-[#6B7280] hover:underline">{family.master.booking_ref}</button></>) : null}
+        <span>/</span><span className="bk-mono text-[#14161A]">{b.booking_ref}</span>
+      </nav>
 
       {tabs}
 
@@ -107,10 +115,10 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged,
           <div className="flex flex-wrap items-center gap-2.5">
             <h1 className="bk-mono m-0 text-[19px] font-medium tracking-[-0.02em]">{b.booking_ref}</h1>
             <Tag tone={tone}>{STAGE_LABELS[b.stage]}</Tag>
-            <Tag>AKL → {(b.destination || 'NAN').toUpperCase()}</Tag>
+            <Tag><Route dest={b.destination} /></Tag>
             {b.is_dg ? <Tag tone="red">DG</Tag> : null}
-            {asMaster ? <Tag tone="navy">Master HAWB · {subs.length} supplier{subs.length === 1 ? '' : 's'}</Tag> : inFamily ? <Tag tone="amber">Sub-HAWB of {family!.master!.booking_ref}</Tag> : null}
-            {b.consol_flight ? <Tag tone="navy">{b.consol_flight}</Tag> : null}
+            {asMaster ? <Tag tone="navy">Main HAWB · {subs.length} supplier{subs.length === 1 ? '' : 's'}</Tag> : inFamily ? <Tag tone="amber">Sub-HAWB of {family!.master!.booking_ref}</Tag> : null}
+            {b.consol_flight ? <Tag tone="navy"><span className="inline-flex items-center gap-1"><AirlineMark flight={b.consol_flight} size={12} />{b.consol_flight}</span></Tag> : null}
           </div>
           <div className="text-[12.5px] text-[#5B616E]">
             {asMaster ? (b.shipper_name ?? 'Various Shippers') : b.shipper_code_name ?? b.shipper_name ?? 'Shipper?'} → <span className="font-medium text-[#14161A]">{b.consignee_code_name ?? b.consignee_name ?? 'Consignee?'}</span>
@@ -139,7 +147,7 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged,
       {inFamily && !asMaster ? (
         <p className="m-0 mt-2 rounded-lg bg-[#F5F7FC] px-3 py-2 text-[12px] text-[#475467]">
           Supplier tab of <button type="button" onClick={() => family!.setActive(family!.master!.id)} className="bk-mono w-auto border-0 bg-transparent p-0 text-[12px] font-medium text-[#0A2472] hover:underline">{family!.master!.booking_ref}</button>.
-          Buyer, bill-to and flight follow the master. TradeWindow codes are only needed on the master; here you handle pickup, check-in, SLI and documents.
+          Buyer, bill-to and flight follow the main HAWB. TradeWindow codes are only needed on the main HAWB; here you handle pickup, check-in, SLI and documents.
         </p>
       ) : null}
 

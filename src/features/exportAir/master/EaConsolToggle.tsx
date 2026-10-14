@@ -35,7 +35,7 @@ export default function EaConsolToggle({ mode, masterRef, disabled, onMake, onAd
           {mode === 'none' ? (
             <div className="p-2">
               <div className="mb-1 font-semibold text-[#14161A]">Make this a buyers consolidation?</div>
-              <p className="m-0 mb-3 text-[12px] leading-snug text-[#5B616E]">A master HAWB is created for this buyer with this HAWB as the first supplier tab. Add more suppliers after. Only the master goes to TradeWindow.</p>
+              <p className="m-0 mb-3 text-[12px] leading-snug text-[#5B616E]">A main HAWB is created for this buyer with this HAWB as the first supplier tab. Add more suppliers after. Only the main HAWB goes to TradeWindow.</p>
               <div className="flex justify-end gap-2">
                 <button type="button" onClick={() => setOpen(false)} className="inline-flex h-[28px] w-auto items-center rounded-[7px] border border-[#E3E6EB] bg-white px-2.5 text-[12px]">Cancel</button>
                 <button type="button" onClick={() => { setOpen(false); onMake() }} className="inline-flex h-[28px] w-auto items-center gap-1 rounded-[7px] border border-[#0A2472] bg-[#0A2472] px-2.5 text-[12px] font-medium text-white"><Layers size={12} /> Consolidate</button>
@@ -46,7 +46,7 @@ export default function EaConsolToggle({ mode, masterRef, disabled, onMake, onAd
               <button type="button" role="menuitem" className={item} onClick={() => { setOpen(false); onAdd() }}><Plus size={14} className="text-[#0A2472]" /> Add HAWB<span className="ml-auto text-[11px] text-[#98A2B3]">existing or manual</span></button>
               {mode === 'sub' ? (
                 <>
-                  <button type="button" role="menuitem" className={item} onClick={() => { setOpen(false); onOpenMaster() }}><Layers size={14} className="text-[#5B616E]" /> Open master {masterRef}</button>
+                  <button type="button" role="menuitem" className={item} onClick={() => { setOpen(false); onOpenMaster() }}><Layers size={14} className="text-[#5B616E]" /> Open main {masterRef}</button>
                   <button type="button" role="menuitem" className={item} onClick={() => { setOpen(false); onRemove() }}><Unlink size={14} className="text-[#B54708]" /> Take out of consolidation</button>
                 </>
               ) : (

@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { cargoOf, fmtNum, type AirConsol, type EaRow } from './eaTypes'
 import { eaHref, Tag } from './eaUi'
 import { NextIcon } from './EaBoardRow'
+import { DestFlag } from './eaVisual'
 import { statusFor } from './eaRowStatus'
 import { masterTotals } from './eaMaster'
 import type { EaGroup } from './eaGroups'
@@ -84,7 +85,7 @@ export default function EaUnallocPanel({ lanes, consols, subsOf, open, onToggle,
                 <button type="button" onClick={() => onToggleLane(l.key)} aria-expanded={isOpen}
                   className="inline-flex w-auto items-center gap-1 border-0 bg-transparent p-0 text-[11.5px] font-semibold text-[#14161A]">
                   <ChevronRight size={12} className="text-[#98A2B3] transition-transform" style={{ transform: isOpen ? 'rotate(90deg)' : undefined }} />
-                  {unset ? 'No destination' : `AKL → ${l.dest}`}
+                  {unset ? 'No destination' : <span className="inline-flex items-center gap-1">AKL → <DestFlag iata={l.dest} size={11} /> {l.dest}</span>}
                   <span className="bk-mono font-normal text-[#98A2B3]">{l.rows.length}</span>
                 </button>
                 {!unset ? (

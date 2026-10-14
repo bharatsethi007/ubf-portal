@@ -1,9 +1,10 @@
 import { useState, type ReactNode } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { Link, useNavigate, useParams } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 import '@/features/bookingsWorkspace/bookingsTheme.css'
-import { Pencil } from 'lucide-react'
+import { ArrowLeft, Pencil } from 'lucide-react'
+import { AirlineMark, Route } from './eaVisual'
 import { awbOk, cargoOf, fmtAwb, fmtNum, type EaRow } from './eaTypes'
 import { btn, btnPrimary, Card, eaHref, lbl, Tag } from './eaUi'
 import { StatusCell } from './EaBoardRow'
@@ -18,6 +19,7 @@ import EaHawbDrawer from './EaHawbDrawer'
 /** Consol planner: header, allocated houses, same-lane candidates, close + export to TradeWindow. */
 export default function EaConsolPage() {
   const { consolId } = useParams()
+  const navigate = useNavigate()
   const { consol: c, houses, subsOf, candidates, error, reload } = useEaConsol(consolId)
   const [editing, setEditing] = useState(false)
   const [hawb, setHawb] = useState<string | null>(null)
@@ -33,17 +35,20 @@ export default function EaConsolPage() {
   }
   return (
     <div className="bk-root mx-auto w-full max-w-[1440px] bg-white text-[12.5px] text-[#14161A]">
-      <div className="text-[12px] text-[#6B7280]">
+      <nav aria-label="Back" className="mb-2 flex items-center gap-2 text-[12px] text-[#6B7280]">
+        <button type="button" onClick={() => { const idx = (window.history.state as { idx?: number } | null)?.idx ?? 0; if (idx > 0) navigate(-1); else navigate('/bookings/export-air') }}
+          className="inline-flex h-[26px] w-auto items-center gap-1.5 rounded-md border border-[#E3E6EB] bg-white px-2 text-[12px] font-medium text-[#14161A] hover:bg-[#F6F7F9]"><ArrowLeft size={13} /> Back</button>
         <Link to="/bookings/export-air" className="text-[#6B7280] hover:underline">Export air</Link>
-        <span className="mx-1">/</span>Consol <span className="bk-mono text-[#14161A]">{c.flight_no}</span>
-      </div>
+        <span>/</span><span>Consol <span className="bk-mono text-[#14161A]">{c.flight_no}</span></span>
+      </nav>
 
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2.5">
+            <AirlineMark flight={c.flight_no} name={c.airline} size={22} />
             <h1 className="bk-mono m-0 text-[19px] font-medium">{c.flight_no}</h1>
             <Tag tone={locked ? 'green' : c.status === 'planned' ? 'grey' : 'navy'}>{c.status}</Tag>
-            <Tag>{c.origin} → {c.destination}</Tag>
+            <Tag><Route dest={c.destination} via={c.transit_port} /></Tag>
           </div>
           <div className="text-[12.5px] text-[#5B616E]">
             {format(parseISO(c.flight_date), 'EEEE d MMM')}{c.cutoff_at ? ` · cutoff ${format(parseISO(c.cutoff_at), 'EEE d MMM HH:mm')}` : ''} · consignee UBNAN

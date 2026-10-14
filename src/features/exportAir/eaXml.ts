@@ -14,7 +14,7 @@ const tag = (k: string, v: unknown, pad = '    ') => `${pad}<${k}>${esc(v)}</${k
 const iso = (d: string | null | undefined) => (d ? `${d.slice(0, 10)}T00:00:00Z` : '')
 const num = (n: number | null | undefined, dp = 0) => (n == null ? '' : String(Number(Number(n).toFixed(dp))))
 
-/** sub is set when the problem sits on a sub-HAWB of a buyers consol (ref is then the master). */
+/** sub is set when the problem sits on a sub-HAWB of a buyers consol (ref is then the main HAWB). */
 export type XmlIssue = { ref: string; problem: string; sub?: { ref: string; supplier: string } }
 
 /** Everything TW needs per house. Empty list = safe to export. */

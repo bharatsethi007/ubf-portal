@@ -49,7 +49,7 @@ export default function EaHawbShell({ bookingId, embedded, onClose, onChanged }:
     dissolve: () => run(async () => {
       const m = fam.master
       if (!m) return
-      if (!window.confirm(`Dissolve ${m.booking_ref}? The ${fam.subs.length} sub-HAWBs become normal HAWBs again and the master is archived.`)) return
+      if (!window.confirm(`Dissolve ${m.booking_ref}? The ${fam.subs.length} sub-HAWBs become normal HAWBs again and the main HAWB is archived.`)) return
       const next = fam.subs[0]?.id
       await dissolve(m.id)
       await changed()

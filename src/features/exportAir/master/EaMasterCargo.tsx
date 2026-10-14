@@ -49,7 +49,7 @@ export default function EaMasterCargo({ b, subs, onTab }: Props) {
           </tbody>
           <tfoot>
             <tr className="bg-[#FAFBFC]">
-              <td className="px-3 py-2.5 font-semibold" colSpan={2}>Master total · {subs.length} supplier{subs.length === 1 ? '' : 's'}</td>
+              <td className="px-3 py-2.5 font-semibold" colSpan={2}>Main total · {subs.length} supplier{subs.length === 1 ? '' : 's'}</td>
               <td className="bk-mono px-3 py-2.5 text-right font-semibold">{fmtNum(t.pcs)}</td>
               <td className="bk-mono px-3 py-2.5 text-right font-semibold">{fmtNum(t.kg, 1)}</td>
               <td className="bk-mono px-3 py-2.5 text-right font-semibold">{fmtNum(t.cbm, 3)}</td>
@@ -61,7 +61,7 @@ export default function EaMasterCargo({ b, subs, onTab }: Props) {
       </div>
       <div className="flex flex-col gap-1 border-t border-[#F1F2F5] px-4 py-3">
         <span className="text-[10.5px] uppercase tracking-[.04em] text-[#6B7280]">Goods description (TradeWindow)</span>
-        <span className="text-[12.5px] text-[#14161A]">{goods || <span className="text-[#B54708]">Missing. Add goods on each sub-HAWB or edit the master.</span>}</span>
+        <span className="text-[12.5px] text-[#14161A]">{goods || <span className="text-[#B54708]">Missing. Add goods on each sub-HAWB or edit the main HAWB.</span>}</span>
       </div>
     </Card>
   )

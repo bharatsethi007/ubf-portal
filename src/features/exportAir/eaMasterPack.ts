@@ -54,7 +54,7 @@ export async function buildMasterPack(masterRef: string, subs: EaRow[], tmsBySub
   let y = 790
   const text = (s: string, x: number, size = 9, f = font, color = rgb(0.08, 0.09, 0.1)) => index.drawText(ascii(s), { x, y, size, font: f, color })
   text('UB Freight  ·  Pickup & check-in pack', 40, 9, font, GREY); y -= 22
-  text(`Master HAWB ${masterRef}`, 40, 18, bold, NAVY); y -= 18
+  text(`Main HAWB ${masterRef}`, 40, 18, bold, NAVY); y -= 18
   text(`${subs.length} supplier${subs.length === 1 ? '' : 's'}  ·  printed ${new Date().toLocaleString('en-NZ', { dateStyle: 'medium', timeStyle: 'short' })}`, 40, 9, font, GREY); y -= 30
   const cols = [40, 210, 300, 370, 440]
   ;['Supplier', 'HAWB', 'TMS job', 'Pcs · Kg', 'Included (page)'].forEach((h, i) => index.drawText(h.toUpperCase(), { x: cols[i], y, size: 7, font: bold, color: GREY }))

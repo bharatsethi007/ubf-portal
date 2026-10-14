@@ -48,12 +48,24 @@ export function StageBar({ stage }: { stage: number }) {
   )
 }
 
+// Pastel backgrounds with a deep ink of the same hue, so initials stay readable.
+const AVATAR_TONES: [string, string][] = [
+  ['#DCE7FF', '#1E3A8A'], ['#D9F2E6', '#065F46'], ['#FDE2E4', '#9F1239'], ['#FCEBCB', '#92400E'],
+  ['#E9DFFC', '#5B21B6'], ['#D5F0F5', '#155E75'], ['#FBE0F0', '#9D174D'], ['#E4EDCF', '#3F6212'],
+]
+export function avatarTone(seed: string) {
+  let h = 0
+  for (const ch of seed) h = (h * 31 + ch.charCodeAt(0)) >>> 0
+  return AVATAR_TONES[h % AVATAR_TONES.length]
+}
+
 export function Avatar({ initials, title }: { initials: string | null; title?: string | null }) {
+  const [bg, fg] = avatarTone(title || initials || '')
   return (
     <span
       title={title ?? 'Unassigned'}
       className="grid h-[22px] w-[22px] shrink-0 place-items-center rounded-full text-[9.5px] font-semibold"
-      style={initials ? { background: '#EEF1F7', color: '#0A2472' } : { border: '1px dashed #D0D5DD', color: '#98A2B3' }}
+      style={initials ? { background: bg, color: fg, boxShadow: `inset 0 0 0 1px ${fg}22` } : { border: '1px dashed #D0D5DD', color: '#98A2B3' }}
     >
       {initials ?? '?'}
     </span>

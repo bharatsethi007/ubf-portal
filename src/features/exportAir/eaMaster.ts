@@ -1,5 +1,5 @@
-// Buyers consolidation: a master HAWB (shipper "Various Shippers") over sub-HAWBs from different suppliers.
-// Subs keep their own pickup, check-in, SLI, docs and emails. Only the master goes to TradeWindow.
+// Buyers consolidation: a main HAWB (shipper "Various Shippers") over sub-HAWBs from different suppliers.
+// Subs keep their own pickup, check-in, SLI, docs and emails. Only the main HAWB goes to TradeWindow.
 import { supabase } from '@/supabase'
 import { cargoOf, type EaRow } from './eaTypes'
 import type { EaDetail } from './useEaBooking'
@@ -9,7 +9,7 @@ import type { TmsJob } from './useEaBooking'
 export const isMaster = (r: { is_consolidation: boolean | null }) => !!r.is_consolidation
 export const supplierOf = (r: EaRow) => r.shipper_code_name ?? r.shipper_name ?? 'Supplier?'
 
-/** What a sub-HAWB still needs before the master can be exported. Empty = complete. */
+/** What a sub-HAWB still needs before the main HAWB can be exported. Empty = complete. */
 export function subIssues(r: EaRow): string[] {
   const b = r as unknown as EaDetail
   const f = eaFacts(b, null)
@@ -34,7 +34,7 @@ export function masterTotals(subs: EaRow[]) {
   return { pcs, kg: Math.round(kg * 10) / 10, cbm: Math.round(cbm * 1000) / 1000, chg: Math.ceil(chg) }
 }
 
-/** The master as a single TW house: totals and goods taken from the subs. */
+/** The main HAWB as a single TW house: totals and goods taken from the subs. */
 export function masterAsHouse<T extends EaRow>(m: T, subs: EaRow[]): T {
   const t = masterTotals(subs)
   const goods = (m as unknown as { goods_description?: string | null }).goods_description
@@ -68,27 +68,27 @@ export function masterMilestones(m: EaDetail, subs: EaRow[]): EaMilestone[] {
 
 /** One next step for the whole consolidation. */
 export function masterPlan(m: EaDetail, subs: EaRow[]): EaPlan {
-  // The master's own SQL urgency is about its (empty) cargo; the subs decide how urgent this is.
+  // The main HAWB's own SQL urgency is about its (empty) cargo; the subs decide how urgent this is.
   const tone: EaPlan['tone'] = subs.some((s) => s.urgency === 'overdue') ? 'red' : subs.some((s) => s.urgency === 'today') ? 'amber' : 'blue'
-  if (!subs.length) return { title: 'Add sub-HAWBs', why: 'This master has no suppliers yet. Add HAWBs from the consol or enter one.', tone: 'amber', primary: { label: 'Add HAWB', action: 'add_sub' }, secondary: null }
-  if (!m.consignee_account_id || !m.bill_to_account_id) return { title: 'Match TradeWindow accounts', why: 'The master needs consignee and bill-to codes for the consol XML.', tone, primary: { label: 'Match accounts', action: 'match' }, secondary: null }
+  if (!subs.length) return { title: 'Add sub-HAWBs', why: 'This main HAWB has no suppliers yet. Add HAWBs from the consol or enter one.', tone: 'amber', primary: { label: 'Add HAWB', action: 'add_sub' }, secondary: null }
+  if (!m.consignee_account_id || !m.bill_to_account_id) return { title: 'Match TradeWindow accounts', why: 'The main HAWB needs consignee and bill-to codes for the consol XML.', tone, primary: { label: 'Match accounts', action: 'match' }, secondary: null }
   const open = subs.map((s) => ({ s, issues: subIssues(s) })).filter((x) => x.issues.length)
   if (open.length) {
     const low = (t: string) => (/^[A-Z][a-z]/.test(t) ? t[0].toLowerCase() + t.slice(1) : t)
     const lead = open.slice(0, 2).map((x) => `${supplierOf(x.s)}: ${low(x.issues[0])}`).join(' · ')
     return { title: `${open.length} of ${subs.length} sub-HAWBs need attention`, why: `${lead}${open.length > 2 ? ` · +${open.length - 2} more` : ''}`, tone, primary: { label: `Open ${open[0].s.booking_ref}`, action: 'tab_first' }, secondary: { label: 'Add HAWB', action: 'add_sub' } }
   }
-  if (!m.consol_id) return { title: 'Allocate to consol', why: 'All suppliers are in. Put the master on a flight.', tone, primary: { label: 'Allocate', action: 'allocate' }, secondary: null }
+  if (!m.consol_id) return { title: 'Allocate to consol', why: 'All suppliers are in. Put the main HAWB on a flight.', tone, primary: { label: 'Allocate', action: 'allocate' }, secondary: null }
   if (m.consol_status === 'exported' || m.consol_status === 'departed') return { title: 'In TradeWindow', why: 'Consol exported. Changes now happen in TradeWindow.', tone: 'green', primary: { label: 'Open consol', action: 'open_consol' }, secondary: null }
   return { title: `All ${subs.length} suppliers in`, why: 'Ready for consol close. Goes to TradeWindow as one house.', tone: 'green', primary: { label: 'Open consol', action: 'open_consol' }, secondary: null }
 }
 
-/** Plan for a sub-HAWB: TW codes and the consol belong to the master, so those steps are skipped. */
+/** Plan for a sub-HAWB: TW codes and the consol belong to the main HAWB, so those steps are skipped. */
 export function subPlan(b: EaDetail, tms: TmsJob | null, master: EaRow): EaPlan {
   const filled = { ...b, shipper_account_id: b.shipper_account_id ?? 'SUB', consignee_account_id: b.consignee_account_id ?? 'SUB', bill_to_account_id: b.bill_to_account_id ?? 'SUB', consol_id: b.consol_id ?? master.consol_id ?? 'SUB', consol_flight: b.consol_flight ?? master.consol_flight }
   const p = eaPlan(filled, tms, undefined)
   if (p.primary?.action === 'open_consol' || p.primary?.action === 'allocate' || !p.primary)
-    return { title: 'Supplier complete', why: `Checked in and SLI signed. Goes to TradeWindow inside ${master.booking_ref}.`, tone: 'green', primary: { label: `Open master ${master.booking_ref}`, action: 'tab_master' }, secondary: null }
+    return { title: 'Supplier complete', why: `Checked in and SLI signed. Goes to TradeWindow inside ${master.booking_ref}.`, tone: 'green', primary: { label: `Open main ${master.booking_ref}`, action: 'tab_master' }, secondary: null }
   return p
 }
 
@@ -114,11 +114,11 @@ export const unconsolidate = (child: string) => rpc<void>('ea_unconsolidate', { 
 export const dissolve = (master: string) => rpc<void>('ea_dissolve', { p_master: master })
 
 export type ManualSub = {
-  shipper_name: string; shipper_address: string; shipper_city: string; shipper_contact: string; shipper_phone: string; shipper_email: string
+  shipper_account_id: string; shipper_name: string; shipper_address: string; shipper_city: string; shipper_contact: string; shipper_phone: string; shipper_email: string
   pieces: string; weight_kg: string; volume_m3: string; goods_description: string; cargo_ready_date: string; collection_mode: 'pickup' | 'dropoff'
 }
 
-/** Sub-HAWB typed in by staff: supplier and cargo here, buyer and flight copied from the master. */
+/** Sub-HAWB typed in by staff: supplier and cargo here, buyer and flight copied from the main HAWB. */
 export async function addManualSub(m: EaDetail, f: ManualSub) {
   const n = (v: string) => (v.trim() ? Number(v) : null)
   const t = (v: string) => v.trim() || null
@@ -128,7 +128,7 @@ export async function addManualSub(m: EaDetail, f: ManualSub) {
     incoterm: m.incoterm, master_booking_id: m.id, consol_id: m.consol_id,
     consignee_account_id: m.consignee_account_id, consignee_name: m.consignee_name, consignee_address: m.consignee_address,
     consignee_city: m.consignee_city, bill_to_account_id: m.bill_to_account_id,
-    shipper_name: t(f.shipper_name), shipper_address: t(f.shipper_address), shipper_city: t(f.shipper_city),
+    shipper_account_id: t(f.shipper_account_id), shipper_name: t(f.shipper_name), shipper_address: t(f.shipper_address), shipper_city: t(f.shipper_city),
     shipper_contact: t(f.shipper_contact), shipper_phone: t(f.shipper_phone), shipper_email: t(f.shipper_email),
     pieces: n(f.pieces), weight_kg: n(f.weight_kg), gross_weight_kg: n(f.weight_kg), volume_m3: n(f.volume_m3), cbm: n(f.volume_m3),
     goods_description: t(f.goods_description), cargo_ready_date: f.cargo_ready_date || null,

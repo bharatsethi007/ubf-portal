@@ -1,5 +1,5 @@
 import type { DragEvent, ReactNode } from 'react'
-import { CornerDownRight, GripVertical } from 'lucide-react'
+import { ChevronRight, CornerDownRight, GripVertical } from 'lucide-react'
 import { Link } from 'react-router-dom'
 import { format, parseISO } from 'date-fns'
 import '@/features/bookingsWorkspace/bookingsTheme.css'
@@ -76,12 +76,14 @@ export function NextIcon({ s, r, onOpen, noDue }: { s: RowStatus; r: EaRow; onOp
 
 type Props = {
   row: EaRow; consols: AirConsol[]; selected: boolean; onToggle: () => void; onOpen?: (id: string) => void
-  /** Sub-HAWBs when this row is a buyers-consol master; nested = drawn as a sub line under its master. */
+  /** Sub-HAWBs when this row is a buyers-consol master; nested = drawn as a sub line under its main HAWB. */
   subs?: EaRow[]; nested?: boolean
+  /** Main HAWB rows: show or hide the sub-HAWB lines underneath. */
+  subsOpen?: boolean; onToggleSubs?: () => void
   drag?: { onStart: (e: DragEvent) => void; onEnd: () => void; dragging: boolean; locked: boolean }
 }
 
-export default function EaBoardRow({ row: r, consols, selected, onToggle, onOpen, drag, subs, nested }: Props) {
+export default function EaBoardRow({ row: r, consols, selected, onToggle, onOpen, drag, subs, nested, subsOpen, onToggleSubs }: Props) {
   const master = !!r.is_consolidation
   const c = master ? masterTotals(subs ?? []) : cargoOf(r)
   const s = master ? masterRowStatus(r, subs ?? []) : nested ? subRowStatus(r) : rowStatus(r, consols)
@@ -122,9 +124,17 @@ export default function EaBoardRow({ row: r, consols, selected, onToggle, onOpen
           className="m-0 h-3.5 w-3.5 cursor-pointer accent-[#0A2472]" />
       </Cell>
       <Cell className="flex-col !items-start justify-center gap-0.5">
-        <Link to={eaHref(r.id)} onClick={(e) => { if (!onOpen || e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); onOpen(r.id) }}
-          className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</Link>
-        <span className="w-full truncate text-[11px] text-[#6B7280]">{srcText}</span>
+        <span className="flex items-center gap-1">
+          {master && onToggleSubs ? (
+            <button type="button" onClick={onToggleSubs} aria-expanded={subsOpen} title={subsOpen ? 'Hide sub-HAWBs' : 'Show sub-HAWBs'}
+              className="-ml-1 inline-flex h-5 w-5 items-center justify-center rounded border-0 bg-transparent p-0 text-[#7A8394] hover:bg-[#EEF1F6] hover:text-[#14161A]">
+              <ChevronRight size={13} className="transition-transform" style={{ transform: subsOpen ? 'rotate(90deg)' : undefined }} />
+            </button>
+          ) : null}
+          <Link to={eaHref(r.id)} onClick={(e) => { if (!onOpen || e.metaKey || e.ctrlKey || e.shiftKey) return; e.preventDefault(); onOpen(r.id) }}
+            className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</Link>
+        </span>
+        <span className="w-full truncate text-[11px] text-[#6B7280]">{master ? `Main · ${subs?.length ?? 0} sub${subs?.length === 1 ? "" : "s"}` : srcText}</span>
       </Cell>
       <Cell className="flex-col !items-start justify-center gap-0.5">
         <div className="flex w-full min-w-0 items-center gap-1.5">
@@ -133,7 +143,7 @@ export default function EaBoardRow({ row: r, consols, selected, onToggle, onOpen
             ? <span className="bk-mono text-[10.5px] text-[#6B7280]">{r.consignee_account_id}</span>
             : <Tag tone="amber">No code</Tag>}
           {r.is_dg ? <Tag tone="red">DG</Tag> : null}
-          {master ? <Tag tone="navy">Buyers consol · {subs?.length ?? 0}</Tag> : null}
+          {master ? <Tag tone="navy">Buyers consol</Tag> : null}
           {r.bill_to_account_id && r.bill_to_account_id !== 'UBNAN' ? <Tag>Bills {r.bill_to_account_id}</Tag> : null}
         </div>
         <span className="w-full truncate text-[11.5px] text-[#5B616E]">from {shipper}{dest ? ` · ${dest}` : ''}</span>

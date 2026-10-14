@@ -49,7 +49,7 @@ export const ACTION_ICON: Partial<Record<EaAction, LucideIcon>> = {
 }
 export const DoneIcon = CircleCheck
 
-/** Master HAWB on the board: track and status rolled up from its sub-HAWBs. */
+/** Main HAWB on the board: track and status rolled up from its sub-HAWBs. */
 export function masterRowStatus(m: EaRow, subs: EaRow[]): RowStatus {
   const b = m as unknown as EaDetail
   const ms = masterMilestones(b, subs)
@@ -67,7 +67,7 @@ export function masterRowStatus(m: EaRow, subs: EaRow[]): RowStatus {
 export const statusFor = (r: EaRow, consols: AirConsol[], subsOf: Map<string, EaRow[]>) =>
   r.is_consolidation ? masterRowStatus(r, subsOf.get(r.id) ?? []) : rowStatus(r, consols)
 
-/** Sub-HAWB of a buyers consol: TW codes and allocation belong to the master, so only supplier-side work counts. */
+/** Sub-HAWB of a buyers consol: TW codes and allocation belong to the main HAWB, so only supplier-side work counts. */
 export function subRowStatus(r: EaRow): RowStatus {
   const b = r as unknown as EaDetail
   const issues = subIssues(r)

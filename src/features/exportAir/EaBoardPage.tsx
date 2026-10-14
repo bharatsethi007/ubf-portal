@@ -28,6 +28,7 @@ export default function EaBoardPage() {
   const [stars, toggleStar] = useStaffIdSet('ea.consol.stars')
   const [collapsed, toggleCollapsed] = useStaffIdSet('ea.board.collapsed')
   const [panelPref, togglePanel] = useStaffIdSet('ea.board.panel')
+  const [subsHidden, toggleSubs] = useStaffIdSet('ea.board.subs.hidden')
   const [view, setView] = useState<EaView>('open')
   const [q, setQ] = useState('')
   const [sel, setSel] = useState<Set<string>>(new Set())
@@ -81,15 +82,15 @@ export default function EaBoardPage() {
   const ids = [...sel]
   const toggle = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
 
-  /** Tick HAWBs (optionally one master) and group them under a master. Opens the master. */
+  /** Tick HAWBs (optionally one main HAWB) and group them under a master. Opens the main HAWB. */
   async function consolidateSel() {
     const picked = top.filter((r) => sel.has(r.id))
     const masters = picked.filter((r) => r.is_consolidation)
-    if (masters.length > 1) return toast.error('Pick one master at most. Its HAWBs stay, the others join it.')
+    if (masters.length > 1) return toast.error('Pick one main HAWB at most. Its HAWBs stay, the others join it.')
     const children = picked.filter((r) => !r.is_consolidation).map((r) => r.id)
     try {
       const mid = await consolidate(children, masters[0]?.id ?? null)
-      toast.success(masters[0] ? `${children.length} added to ${masters[0].booking_ref}` : `${children.length} HAWBs consolidated under a new master`)
+      toast.success(masters[0] ? `${children.length} added to ${masters[0].booking_ref}` : `${children.length} HAWBs consolidated under a new main HAWB`)
       setSel(new Set()); await reload(); setHawb(mid)
     } catch (e) { toast.error((e as Error).message) }
   }
@@ -102,8 +103,7 @@ export default function EaBoardPage() {
     <div className="flex flex-col bg-white text-[12.5px] text-[#14161A]">
       <div className="mb-1.5 flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="m-0 text-[18px] font-semibold tracking-[-0.015em]">Export air bookings</h1>
-          <p className="m-0 mt-1 text-[12px] text-[#5B616E]">
+          <p className="m-0 text-[12.5px] text-[#5B616E]">
             {open.length} open · <span className="font-medium text-[#14161A]">{today} need action today</span>
             {late ? <> · <span className="font-medium text-[#B42318]">{late} overdue</span></> : null}
             {nextCut ? <> · Next cutoff <span className="bk-mono text-[#14161A]">{nextCut.flight_no}</span> {format(parseISO(nextCut.cutoff_at!), 'EEE d MMM HH:mm')}</> : null}
@@ -143,7 +143,7 @@ export default function EaBoardPage() {
             <option value="-" className="text-black">Unallocate</option>
           </select>
           <button type="button" disabled={sel.size < 2} onClick={() => void consolidateSel()}
-            title={sel.size < 2 ? 'Tick two or more HAWBs going to the same buyer' : 'Group these HAWBs under one master HAWB'}
+            title={sel.size < 2 ? 'Tick two or more HAWBs going to the same buyer' : 'Group these HAWBs under one main HAWB'}
             className="inline-flex h-[26px] w-auto items-center gap-1.5 rounded-md border-0 bg-white/15 px-2.5 text-[12px] font-medium text-white hover:bg-white/25 disabled:opacity-50">
             <Layers size={13} /> Consolidate
           </button>
@@ -178,8 +178,9 @@ export default function EaBoardPage() {
                   {isOpen ? g.rows.map((r) => (
                     <div key={r.id}>
                       <EaBoardRow row={r} consols={consols} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} onOpen={setHawb} subs={subsOf.get(r.id)}
+                        subsOpen={!subsHidden.has(r.id) || !!needle} onToggleSubs={() => toggleSubs(r.id)}
                         drag={{ onStart: dnd.start(r), onEnd: dnd.end, dragging: dnd.dragIds.includes(r.id), locked: r.consol_status === 'exported' || r.consol_status === 'departed' }} />
-                      {r.is_consolidation ? (subsOf.get(r.id) ?? []).map((sub) => (
+                      {r.is_consolidation && (!subsHidden.has(r.id) || !!needle) ? (subsOf.get(r.id) ?? []).map((sub) => (
                         <EaBoardRow key={sub.id} row={sub} consols={consols} selected={false} onToggle={() => undefined} onOpen={setHawb} nested />
                       )) : null}
                     </div>

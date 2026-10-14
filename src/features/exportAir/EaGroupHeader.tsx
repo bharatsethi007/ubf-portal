@@ -4,9 +4,10 @@ import { Check, ChevronRight, Pencil, Plus, Star } from 'lucide-react'
 import { differenceInMinutes, format, parseISO } from 'date-fns'
 import { awbOk, fmtAwb, fmtNum, type AirConsol } from './eaTypes'
 import { Avatar, Tag } from './eaUi'
+import { AirlineMark, Route } from './eaVisual'
 import type { StaffOption } from '@/hooks/useStaffList'
 
-const iconBtn = 'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[#98A2B3] hover:bg-[#F2F4F7] hover:text-[#14161A]'
+const iconBtn = 'inline-flex h-6 w-6 shrink-0 items-center justify-center rounded-md border-0 bg-transparent p-0 text-[#7A8394] hover:bg-white/70 hover:text-[#14161A]'
 
 function Chevron({ open, onClick, label }: { open: boolean; onClick: () => void; label: string }) {
   return (
@@ -42,7 +43,7 @@ export function OwnerPicker({ ownerId, staff, onChange, disabled }: { ownerId: s
     <div ref={box} className="relative">
       <button type="button" disabled={disabled} onClick={() => setOpen((o) => !o)} aria-haspopup="listbox" aria-expanded={open}
         title={me ? `Handled by ${me.name}` : 'Assign consol owner'}
-        className="inline-flex w-auto items-center gap-1.5 rounded-md border-0 bg-transparent px-1 py-0.5 text-[11.5px] text-[#5B616E] hover:bg-[#F2F4F7] disabled:opacity-60">
+        className="inline-flex w-auto items-center gap-1.5 rounded-md border-0 bg-transparent px-1 py-0.5 text-[11.5px] font-medium text-[#344054] hover:bg-white/70 disabled:opacity-60">
         <Avatar initials={me ? initialsOf(me.name) : null} title={me?.name} />
         <span className="max-w-[90px] truncate">{me ? me.name.split(' ')[0] : 'Assign'}</span>
       </button>
@@ -52,7 +53,7 @@ export function OwnerPicker({ ownerId, staff, onChange, disabled }: { ownerId: s
             <li key={x.user_id || 'none'} role="option" aria-selected={(ownerId ?? '') === x.user_id}
               onClick={() => { setOpen(false); onChange(x.user_id || null) }}
               className="flex cursor-pointer items-center gap-2 rounded-md px-2 py-1.5 text-[12px] hover:bg-[#F3F5FB]">
-              <Avatar initials={x.user_id ? initialsOf(x.name) : null} />
+              <Avatar initials={x.user_id ? initialsOf(x.name) : null} title={x.user_id ? x.name : null} />
               <span className="flex-1 truncate">{x.name}</span>
               {(ownerId ?? '') === x.user_id ? <Check size={13} className="text-[#0A2472]" /> : null}
             </li>
@@ -80,21 +81,24 @@ export function ConsolGroupHeader({ c, open, starred, shown, onToggle, onStar, o
   const cut = cutoffText(c.cutoff_at)
   const exported = c.status === 'exported'
   return (
-    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-t border-[#EEF0F3] bg-[#FAFBFC] px-2 py-2">
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 border-b border-[#DCE2EC] bg-[#E9EDF4] px-2 py-2">
       <Chevron open={open} onClick={onToggle} label={c.flight_no} />
       <button type="button" aria-pressed={starred} aria-label={starred ? 'Unstar consol' : 'Star consol'} title={starred ? 'Unstar' : 'Star to keep on top'} onClick={onStar} className={iconBtn}>
         <Star size={14} fill={starred ? '#F79009' : 'none'} color={starred ? '#F79009' : 'currentColor'} />
       </button>
-      <Link to={`/bookings/export-air/consol/${c.id}`} className="bk-mono text-[12.5px] font-semibold text-[#0A2472] hover:underline">{c.flight_no}</Link>
-      <span className="text-[12px] text-[#14161A]">{format(parseISO(c.flight_date), 'EEE d MMM')}</span>
-      <span className="text-[11.5px] text-[#6B7280]">AKL → {c.destination}{c.transit_port ? ` via ${c.transit_port}` : ''}</span>
+      <span className="flex items-center gap-1.5">
+        <span className="grid h-[22px] w-[22px] place-items-center rounded-md bg-white shadow-[0_0_0_1px_#DCE2EC]"><AirlineMark flight={c.flight_no} name={c.airline} size={16} /></span>
+        <Link to={`/bookings/export-air/consol/${c.id}`} className="bk-mono text-[12.5px] font-semibold text-[#0A2472] hover:underline">{c.flight_no}</Link>
+      </span>
+      <span className="text-[12px] font-medium text-[#14161A]">{format(parseISO(c.flight_date), 'EEE d MMM')}</span>
+      <Route dest={c.destination} via={c.transit_port} className="text-[11.5px] text-[#475467]" />
       {cut ? <span className="text-[11.5px]" style={{ color: cut.tone }}>{cut.text}</span> : null}
       {c.mawb
         ? <span className="bk-mono text-[11.5px]" style={{ color: awbOk(c.mawb) ? '#14161A' : '#B54708' }} title={awbOk(c.mawb) ? 'MAWB' : 'MAWB check digit looks wrong'}>{fmtAwb(c.mawb)}</span>
         : <Tag tone="amber">No MAWB</Tag>}
       <Tag tone={exported ? 'green' : c.status === 'confirmed' ? 'navy' : 'grey'}>{exported ? 'Exported' : c.status === 'confirmed' ? 'Confirmed' : 'Planned'}</Tag>
       <span className="ml-auto flex items-center gap-3">
-        <span className="bk-mono text-[11.5px] text-[#5B616E]">
+        <span className="bk-mono text-[11.5px] text-[#475467]">
           {c.houses} {c.houses === 1 ? 'house' : 'houses'} · {fmtNum(c.pieces)} pcs · {fmtNum(c.kg)} kg · <b className="font-medium text-[#14161A]">{fmtNum(c.chg_kg)}</b> chg
           {shown !== c.houses ? <span className="text-[#98A2B3]"> · {shown} in view</span> : null}
         </span>
