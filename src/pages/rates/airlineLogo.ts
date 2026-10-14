@@ -1,6 +1,6 @@
 // Airline logo resolution.
-// Primary: IATA-keyed CDN (covers any carrier, no per-airline bundling).
-// Fallback: bundled /airline-logos/{ICAO}.png for the core Pacific carriers (offline-safe).
+// Primary: bundled /airline-logos/{ICAO}.png for the core Pacific carriers (offline-safe).
+// Fallback: IATA-keyed CDNs with no watermark (airhex free tier stamps a red line, so not used).
 const IATA_TO_ICAO: Record<string, string> = {
   FJ: 'FJI', NZ: 'ANZ', QF: 'QFA', VA: 'VOZ', SB: 'ACI',
   ON: 'RON', SQ: 'SIA', CX: 'CPA', EK: 'UAE', QR: 'QTR',
@@ -25,11 +25,12 @@ function resolveAirlineIcao(code?: string | null, name?: string | null): string 
 // Ordered list of URLs to try. AirlineLogo advances on each onError.
 export function airlineLogoSources(code?: string | null, name?: string | null): string[] {
   const out: string[] = []
-  const iata = (code ?? '').trim().toUpperCase()
-  if (/^[A-Z0-9]{2}$/.test(iata)) {
-    out.push(`https://content.airhex.com/content/logos/airlines_${iata}_50_50_s.png`)
-  }
   const icao = resolveAirlineIcao(code, name)
   if (icao) out.push(`/airline-logos/${icao}.png`)
+  const iata = (code ?? '').trim().toUpperCase()
+  if (/^[A-Z0-9]{2}$/.test(iata)) {
+    out.push(`https://pics.avs.io/64/64/${iata}.png`)
+    out.push(`https://images.kiwi.com/airlines/64/${iata}.png`)
+  }
   return out
 }
