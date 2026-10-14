@@ -1,9 +1,9 @@
 import type { Leaderboard, MixRow } from './leaderboardApi'
+import { chartColorFor } from '../quoteTones'
 
 // Validated categorical order (dataviz reference palette, light). Fixed order, never cycled.
 export const SERIES = ['#2a78d6', '#eb6834', '#1baf7a', '#eda100', '#e87ba4', '#008300', '#4a3aa7']
 export const OTHER = '#a3a39e'
-const STATUS: Record<string, string> = { Open: '#2a78d6', Won: '#047857', 'Cross win': '#4a3aa7', Lost: '#b91c1c' }
 const MAX_SLICES = 5
 
 export type Slice = { label: string; n: number; pct: number; color: string; won?: number; lost?: number }
@@ -42,9 +42,9 @@ export function buildInsights(lb: Leaderboard): { charts: InsightChart[]; lanes:
   if (!m) return { charts: [], lanes: [], takeaways: [] }
   const t = lb.totals
 
-  const status = toSlices(m.status, (l) => STATUS[l] ?? OTHER)
-  const mode = toSlices(m.mode)
-  const dir = toSlices(m.direction.map((r) => ({ ...r, label: r.label === 'Unknown' ? 'Not set' : r.label })))
+  const status = toSlices(m.status, (l) => chartColorFor(l) ?? OTHER)
+  const mode = toSlices(m.mode, (l) => chartColorFor(l) ?? OTHER)
+  const dir = toSlices(m.direction.map((r) => ({ ...r, label: r.label === 'Unknown' ? 'Not set' : r.label })), (l) => chartColorFor(l) ?? OTHER)
   const staff = toSlices(lb.staff.map((s) => ({ label: s.name, n: s.quotes, won: s.won, lost: s.lost })))
   const dest = toSlices(m.destination.map((r) => ({ ...r, label: countryName(r.label) })))
   const lost = toSlices(m.lost_reason)
@@ -52,10 +52,10 @@ export function buildInsights(lb: Leaderboard): { charts: InsightChart[]; lanes:
   const lead = (x: { slices: Slice[] }) => x.slices[0]
   const charts: InsightChart[] = [
     { key: 'status', title: 'Pipeline status', total: status.total, slices: status.slices, empty: 'No quotes',
-      headline: `${t.open} open, ${t.won} won, ${t.lost} lost` },
+      headline: `${t.open} open, ${t.held ?? 0} held, ${t.won} won, ${t.lost} lost` },
     { key: 'mode', title: 'Quotes by mode', total: mode.total, slices: mode.slices, empty: 'No quotes',
       headline: lead(mode) ? `${lead(mode).label} leads at ${lead(mode).pct}% of quotes` : '' },
-    { key: 'direction', title: 'Import vs export', total: dir.total, slices: dir.slices, empty: 'No quotes',
+    { key: 'direction', title: 'Import, export, cross trade', total: dir.total, slices: dir.slices, empty: 'No quotes',
       headline: lead(dir) ? `${lead(dir).label} is ${lead(dir).pct}% of the mix` : '' },
     { key: 'staff', title: 'Workload by sales support', total: staff.total, slices: staff.slices, empty: 'No quotes',
       headline: lead(staff) ? `${lead(staff).label} handles ${lead(staff).pct}%` : '' },
@@ -73,6 +73,7 @@ export function buildInsights(lb: Leaderboard): { charts: InsightChart[]; lanes:
   // Plain-English findings a manager would act on.
   const takeaways: string[] = []
   if (t.quotes) takeaways.push(`${t.quotes} quotes for ${t.customers} customers. ${t.open} still open (${pct(t.open, t.quotes)}%).`)
+  if (t.held) takeaways.push(`${t.held} quote${t.held === 1 ? '' : 's'} on hold. Follow up before they go cold.`)
   const decided = t.won + t.lost
   if (decided) takeaways.push(`Win rate ${t.win_rate ?? 0}% on ${decided} decided quotes.`)
   else if (t.quotes) takeaways.push('No quotes decided yet in this period. Win rate will show once customers answer.')
@@ -87,7 +88,7 @@ export function buildInsights(lb: Leaderboard): { charts: InsightChart[]; lanes:
   if (lead(dest)) takeaways.push(`${lead(dest).label} is the busiest destination with ${lead(dest).n} quotes.`)
   if (lead(lost) && lost.total >= 3) takeaways.push(`${lead(lost).pct}% of losses are "${lead(lost).label}".`)
   const unset = m.direction.find((r) => r.label === 'Unknown')
-  if (unset && unset.n >= 3) takeaways.push(`${unset.n} quotes have no import/export set.`)
+  if (unset && unset.n >= 3) takeaways.push(`${unset.n} quotes have no direction set.`)
   return { charts, lanes, takeaways }
 }
 

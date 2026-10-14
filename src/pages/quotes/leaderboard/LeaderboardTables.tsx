@@ -1,5 +1,8 @@
+import { STATUS_TONE } from '../quoteTones'
 import type { LbAgent, LbCustomer, LbStaff } from './leaderboardApi'
 import { fmtDay, fmtHrs, fmtPct } from './leaderboardFormat'
+
+const HELD = STATUS_TONE.held.fg
 
 const MEDAL = ['#C9A227', '#9AA4B2', '#B87333']
 
@@ -67,6 +70,7 @@ export function StaffTable({ rows }: { rows: LbStaff[] }) {
           <th className={`${th} text-right`}>/ Day</th>
           <th className={`${th} text-right`}>/ Week</th>
           <th className={`${th} text-right`}>/ Month</th>
+          <th className={`${th} text-right`}>Held</th>
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
           <th className={th}>Win rate</th>
@@ -85,6 +89,7 @@ export function StaffTable({ rows }: { rows: LbStaff[] }) {
             <td className={num}>{r.per_day}</td>
             <td className={num}>{r.per_week}</td>
             <td className={num}>{r.per_month}</td>
+            <td className={num} style={{ color: HELD }}>{r.held ?? 0}</td>
             <td className={num} style={{ color: '#047857' }}>{r.won}</td>
             <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
             <td className={td}><WinBar v={r.win_rate} /></td>
@@ -108,6 +113,7 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
           <th className={th}>Customer</th>
           <th className={th}>Quotes</th>
           <th className={`${th} text-right`}>Open</th>
+          <th className={`${th} text-right`}>Held</th>
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
           <th className={th}>Win rate</th>
@@ -122,6 +128,7 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
             <td className={`${td} max-w-[260px] truncate text-slate-900`} title={r.name}>{r.name}</td>
             <td className={td}><QuotesBar v={r.quotes} max={max} /></td>
             <td className={num}>{r.open}</td>
+            <td className={num} style={{ color: HELD }}>{r.held ?? 0}</td>
             <td className={num} style={{ color: '#047857' }}>{r.won}</td>
             <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
             <td className={td}><WinBar v={r.win_rate} /></td>
@@ -147,6 +154,7 @@ export function AgentTable({ rows }: { rows: LbAgent[] | undefined }) {
           <th className={th}>Country</th>
           <th className={th}>Quotes</th>
           <th className={`${th} text-right`}>Open</th>
+          <th className={`${th} text-right`}>Held</th>
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
           <th className={th}>Win rate</th>
@@ -163,6 +171,7 @@ export function AgentTable({ rows }: { rows: LbAgent[] | undefined }) {
             <td className={`${td} text-slate-600`}>{r.country ?? '–'}</td>
             <td className={td}><QuotesBar v={r.quotes} max={max} /></td>
             <td className={num}>{r.open}</td>
+            <td className={num} style={{ color: HELD }}>{r.held ?? 0}</td>
             <td className={num} style={{ color: '#047857' }}>{r.won}</td>
             <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
             <td className={td}><WinBar v={r.win_rate} /></td>

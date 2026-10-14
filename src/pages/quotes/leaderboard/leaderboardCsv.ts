@@ -17,31 +17,31 @@ export function downloadLeaderboardCsv(lb: Leaderboard, periodLabel: string, mod
   out.push(row(['UBF Quotes Leaderboard', periodLabel, modeText, `Since ${fmtDay(lb.since)}`]))
   out.push('')
   out.push(row(['TEAM']))
-  out.push(row(['Rank', 'Staff', 'Quotes', 'Per day', 'Per week', 'Per month', 'Open', 'Won', 'Lost', 'Win rate %', 'Median hrs to quote', 'Median hrs email to quote', 'Email-matched quotes']))
+  out.push(row(['Rank', 'Staff', 'Quotes', 'Per day', 'Per week', 'Per month', 'Open', 'Held', 'Won', 'Lost', 'Win rate %', 'Median hrs to quote', 'Median hrs email to quote', 'Email-matched quotes']))
   lb.staff.forEach((s, i) => out.push(row([
-    i + 1, s.name, s.quotes, s.per_day, s.per_week, s.per_month, s.open, s.won, s.lost,
+    i + 1, s.name, s.quotes, s.per_day, s.per_week, s.per_month, s.open, s.held ?? 0, s.won, s.lost,
     s.win_rate ?? '', s.avg_hrs_to_quote ?? '', s.avg_hrs_email_to_quote ?? '', s.email_matched,
   ])))
   out.push('')
   out.push(row(['CUSTOMERS']))
-  out.push(row(['Rank', 'Customer', 'Account', 'Quotes', 'Open', 'Won', 'Lost', 'Win rate %', 'Median hrs to quote', 'Last quote']))
+  out.push(row(['Rank', 'Customer', 'Account', 'Quotes', 'Open', 'Held', 'Won', 'Lost', 'Win rate %', 'Median hrs to quote', 'Last quote']))
   lb.customers.forEach((c, i) => out.push(row([
-    i + 1, c.name, c.account_id ?? '', c.quotes, c.open, c.won, c.lost,
+    i + 1, c.name, c.account_id ?? '', c.quotes, c.open, c.held ?? 0, c.won, c.lost,
     c.win_rate ?? '', c.avg_hrs_to_quote ?? '', fmtDay(c.last_quote),
   ])))
 
   if (lb.agents) {
     out.push('', row(['AGENTS']))
-    out.push(row(['Rank', 'Agent', 'Country', 'Quotes', 'Open', 'Won', 'Lost', 'Win rate %', 'Top lane', 'Median hrs to quote', 'Last quote']))
+    out.push(row(['Rank', 'Agent', 'Country', 'Quotes', 'Open', 'Held', 'Won', 'Lost', 'Win rate %', 'Top lane', 'Median hrs to quote', 'Last quote']))
     lb.agents.forEach((a, i) => out.push(row([
-      i + 1, a.name, a.country ?? '', a.quotes, a.open, a.won, a.lost,
+      i + 1, a.name, a.country ?? '', a.quotes, a.open, a.held ?? 0, a.won, a.lost,
       a.win_rate ?? '', a.top_lane ?? '', a.avg_hrs_to_quote ?? '', fmtDay(a.last_quote),
     ])))
   }
 
   if (lb.mix) {
     const sections: [string, { label: string; n: number; won?: number; lost?: number }[]][] = [
-      ['STATUS', lb.mix.status], ['MODE', lb.mix.mode], ['IMPORT / EXPORT', lb.mix.direction],
+      ['STATUS', lb.mix.status], ['MODE', lb.mix.mode], ['DIRECTION', lb.mix.direction],
       ['DESTINATION COUNTRY', lb.mix.destination.map((r) => ({ ...r, label: countryName(r.label) }))],
       ['LOST REASONS', lb.mix.lost_reason], ['SOURCE', lb.mix.source],
     ];

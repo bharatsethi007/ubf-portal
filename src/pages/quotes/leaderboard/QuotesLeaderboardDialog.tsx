@@ -55,6 +55,7 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
   const t = lb?.totals
   const kpis = [
     { l: 'Quotes', v: t ? String(t.quotes) : '–' },
+    { l: 'Held', v: t ? String(t.held ?? 0) : '–', c: '#B54708' },
     { l: 'Won', v: t ? String(t.won) : '–', c: '#047857' },
     { l: 'Lost', v: t ? String(t.lost) : '–', c: '#B91C1C' },
     { l: 'Win rate', v: fmtPct(t?.win_rate) },
@@ -97,7 +98,7 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 px-5 pt-4 sm:grid-cols-4 lg:grid-cols-7">
+        <div className="grid grid-cols-2 gap-2 px-5 pt-4 sm:grid-cols-4 lg:grid-cols-8">
           {kpis.map((k) => (
             <div key={k.l} className="rounded-lg border border-slate-200 px-3 py-2">
               <div className="text-lg leading-6" style={{ color: k.c ?? '#0A2472' }}>{loading && !lb ? '–' : k.v}</div>

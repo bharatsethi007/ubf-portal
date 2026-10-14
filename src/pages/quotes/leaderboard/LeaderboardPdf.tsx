@@ -4,7 +4,7 @@ import { fmtDay, fmtHrs, fmtPct } from './leaderboardFormat'
 import LeaderboardPdfInsights from './LeaderboardPdfInsights'
 
 const NAVY = '#002753', ORANGE = '#F99D29', INK = '#111111', MUTE = '#6b7280', LINE = '#e2e6ea', SOFT = '#f4f6f8'
-const GREEN = '#047857', RED = '#B91C1C', MEDAL = ['#C9A227', '#9AA4B2', '#B87333']
+const GREEN = '#047857', RED = '#B91C1C', AMBER = '#B54708', MEDAL = ['#C9A227', '#9AA4B2', '#B87333']
 const CUST_MAX = 25
 
 const s = StyleSheet.create({
@@ -68,14 +68,14 @@ function winColor(v: number | null) {
 }
 
 const STAFF_COLS: Col[] = [
-  { label: '#', w: 26 }, { label: 'SALES SUPPORT', w: 140 }, { label: 'QUOTES', w: 110 },
+  { label: '#', w: 26 }, { label: 'SALES SUPPORT', w: 120 }, { label: 'QUOTES', w: 110 },
   { label: '/ DAY', w: 42, right: true }, { label: '/ WEEK', w: 46, right: true }, { label: '/ MONTH', w: 50, right: true },
-  { label: 'WON', w: 38, right: true }, { label: 'LOST', w: 38, right: true }, { label: 'WIN RATE', w: 100 },
+  { label: 'HELD', w: 38, right: true }, { label: 'WON', w: 38, right: true }, { label: 'LOST', w: 38, right: true }, { label: 'WIN RATE', w: 100 },
   { label: 'TIME TO QUOTE', w: 70, right: true }, { label: 'EMAIL TO QUOTE', w: 70, right: true },
 ]
 const CUST_COLS: Col[] = [
-  { label: '#', w: 26 }, { label: 'CUSTOMER', w: 230 }, { label: 'QUOTES', w: 110 },
-  { label: 'OPEN', w: 40, right: true }, { label: 'WON', w: 40, right: true }, { label: 'LOST', w: 40, right: true },
+  { label: '#', w: 26 }, { label: 'CUSTOMER', w: 190 }, { label: 'QUOTES', w: 110 },
+  { label: 'OPEN', w: 40, right: true }, { label: 'HELD', w: 40, right: true }, { label: 'WON', w: 40, right: true }, { label: 'LOST', w: 40, right: true },
   { label: 'WIN RATE', w: 100 }, { label: 'TIME TO QUOTE', w: 70, right: true }, { label: 'LAST QUOTE', w: 74, right: true },
 ]
 
@@ -88,6 +88,7 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
   const cMax = Math.max(1, ...cust.map((r) => r.quotes))
   const kpis = [
     { v: String(t.quotes), l: 'Quotes' },
+    { v: String(t.held ?? 0), l: 'Held' },
     { v: String(t.won), l: 'Won' },
     { v: String(t.lost), l: 'Lost' },
     { v: fmtPct(t.win_rate), l: 'Win rate' },
@@ -123,11 +124,12 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
         {lb.staff.map((x, i) => (
           <View key={x.user_id ?? x.name} style={s.tr} wrap={false}>
             <View style={{ width: 26, paddingHorizontal: 4 }}><Rank i={i} /></View>
-            <Text style={r(140)}>{x.name}</Text>
+            <Text style={r(120)}>{x.name}</Text>
             <Bar v={x.quotes} max={sMax} color={NAVY} label={String(x.quotes)} w={110} />
             <Text style={r(42, true)}>{x.per_day}</Text>
             <Text style={r(46, true)}>{x.per_week}</Text>
             <Text style={r(50, true)}>{x.per_month}</Text>
+            <Text style={[...r(38, true), { color: AMBER }]}>{x.held ?? 0}</Text>
             <Text style={[...r(38, true), { color: GREEN }]}>{x.won}</Text>
             <Text style={[...r(38, true), { color: RED }]}>{x.lost}</Text>
             <Bar v={Number(x.win_rate ?? 0)} max={100} color={winColor(x.win_rate)} label={fmtPct(x.win_rate)} w={100} />
@@ -153,9 +155,10 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
         {cust.map((x, i) => (
           <View key={`${x.account_id ?? ''}-${x.name}`} style={s.tr} wrap={false}>
             <View style={{ width: 26, paddingHorizontal: 4 }}><Rank i={i} /></View>
-            <Text style={r(230)}>{x.name}</Text>
+            <Text style={r(190)}>{x.name}</Text>
             <Bar v={x.quotes} max={cMax} color={NAVY} label={String(x.quotes)} w={110} />
             <Text style={r(40, true)}>{x.open}</Text>
+            <Text style={[...r(40, true), { color: AMBER }]}>{x.held ?? 0}</Text>
             <Text style={[...r(40, true), { color: GREEN }]}>{x.won}</Text>
             <Text style={[...r(40, true), { color: RED }]}>{x.lost}</Text>
             <Bar v={Number(x.win_rate ?? 0)} max={100} color={winColor(x.win_rate)} label={fmtPct(x.win_rate)} w={100} />

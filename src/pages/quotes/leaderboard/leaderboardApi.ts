@@ -7,6 +7,8 @@ export type LbStaff = {
   name: string
   quotes: number
   open: number
+  /** Paused by the customer. Not in win rate. */
+  held?: number
   won: number
   lost: number
   win_rate: number | null
@@ -23,6 +25,8 @@ export type LbCustomer = {
   name: string
   quotes: number
   open: number
+  /** Paused by the customer. Not in win rate. */
+  held?: number
   won: number
   lost: number
   win_rate: number | null
@@ -33,6 +37,8 @@ export type LbCustomer = {
 export type LbTotals = {
   quotes: number
   open: number
+  /** Paused by the customer. Not in win rate. */
+  held?: number
   won: number
   lost: number
   win_rate: number | null
@@ -47,6 +53,8 @@ export type LbAgent = {
   country: string | null
   quotes: number
   open: number
+  /** Paused by the customer. Not in win rate. */
+  held?: number
   won: number
   lost: number
   win_rate: number | null

@@ -1,628 +1,106 @@
-import { Suspense, lazy, useCallback, useEffect, useMemo, useState } from 'react'
+import { Suspense, lazy, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { ArrowLeft, FileText, Trophy, Pencil, Plus, X, ArrowRight, Check, Send } from 'lucide-react'
-import { toast } from 'sonner'
-import { supabase } from '../../supabase'
-import IncotermSelect from '../../components/bookings/IncotermSelect'
-import type { CustomerPickerValue } from '../../components/bookings/CustomerPicker'
-import CustomerSelect from '../../components/Customers/CustomerSelect'
-import SeaPortSelect from '../../components/bookings/SeaPortSelect'
-import IataPortSelect from '../../components/bookings/IataPortSelect'
-import QuoteLaneMap from './QuoteLaneMap'
-import QuoteCargoLines from './QuoteCargoLines'
-import QuoteCargoEntry, { type CargoEntryMode } from './QuoteCargoEntry'
+import '@/features/bookingsWorkspace/bookingsTheme.css'
 import { useStaffList } from '../../hooks/useStaffList'
 import { useCustomerQuoteStats } from '../../hooks/useCustomerQuoteStats'
-import { useDebouncedAutosave } from '../../hooks/useDebouncedAutosave'
-import { fetchQuote, updateQuote, setQuoteStatus, type QuoteRecord } from './quotesApi'
-import {
-  fetchQuoteContainers, replaceQuoteContainers, emptyContainerGroup,
-  type QuoteContainerDraft, type ContainerSize, type ContainerType,
-} from './quoteContainersApi'
-import {
-  fetchQuoteCargo, saveQuoteCargo, newQuoteCargoLine, computeCargoLine, type QuoteCargoLine,
-} from './quoteCargoApi'
-import { quoteStatusPill } from './quotesTableColumns'
-import { DG_CLASS_OPTIONS } from './quoteDgClasses'
+import { updateQuote } from './quotesApi'
 import QuoteResponsesPanel from './QuoteResponsesPanel'
 import FreightIntelligence from './FreightIntelligence'
-import { serviceTypeForIncoterm } from '../rates/incotermLegs'
-import PartyPicker from './PartyPicker'
-import QuoteContactSelect from './QuoteContactSelect'
-import ExternalNotesField from './ExternalNotesField'
 import QuotePreviewBubble from './QuotePreviewBubble'
 import QuoteMailBubble from './QuoteMailBubble'
-import CopyQuoteButton from './CopyQuoteButton'
-import QuoteBookingAction from '../../features/quoteBooking/QuoteBookingAction'
-import QuoteAddressField from './QuoteAddressField'
-
-const QuoteEmailDialog = lazy(() => import('./email/QuoteEmailDialog'))
 import LostReasonModal from './LostReasonModal'
-import type { LostInfo } from './quoteLostReasons'
+import { useQuoteDetail } from './detail/useQuoteDetail'
+import QuoteHeader, { type QuoteOutcome } from './detail/QuoteHeader'
+import QuoteRouteCard from './detail/QuoteRouteCard'
+import QuoteLoadsCard from './detail/QuoteLoadsCard'
+import QuoteDetailsCard from './detail/QuoteDetailsCard'
+import QuoteNotesCard from './detail/QuoteNotesCard'
 import './quoteDetailPage.css'
 
-const SIZES: { value: ContainerSize; label: string }[] = [
-  { value: '20', label: '20ft' }, { value: '20HC', label: '20ft HC' },
-  { value: '40', label: '40ft' }, { value: '40HC', label: '40ft HC' },
-]
-const TYPES: { value: ContainerType; label: string }[] = [
-  { value: 'standard', label: 'Standard (dry)' }, { value: 'reefer', label: 'Reefer' },
-  { value: 'opentop', label: 'Open top' }, { value: 'flatrack', label: 'Flat rack' },
-  { value: 'isotank', label: 'ISO tank' }, { value: 'openside', label: 'Open side' },
-]
-const CURRENCIES = ['NZD', 'USD', 'AUD', 'EUR', 'GBP', 'CNY', 'FJD', 'SGD']
+const QuoteEmailDialog = lazy(() => import('./email/QuoteEmailDialog'))
 
-function quoteIsAir(type: string | null, mode: string | null): boolean {
-  return (type ?? '').toUpperCase() === 'AIR' || /air/i.test(mode ?? '')
-}
-function quoteIsLcl(type: string | null): boolean {
-  return (type ?? '').toUpperCase() === 'LCL'
+const SERVICE_SHORT: Record<string, string> = {
+  'Door to Door': 'Door to door', 'Port to Port': 'Port to port', 'Door to Port': 'Door to port', 'Port to Door': 'Port to door',
 }
 
-type Fields = {
-  movement_type: string | null
-  shipping_line: string | null
-  service_type: string | null
-  incoterms: string | null
-  customer_po: string | null
-  shipper: string | null
-  consignee: string | null
-  shipper_address: string | null
-  consignee_address: string | null
-  sales_executive_id: string | null
-  pricing_executive_id: string | null
-  internal_notes: string | null
-  external_notes: string | null
-}
-type Cargo = {
-  cargo_value: number | null
-  cargo_value_currency: string | null
-  need_insurance: boolean
-  need_refrigeration: boolean
-  reefer_temp_c: number | null
-  is_hazardous: boolean
-  dg_un_number: string | null
-  dg_class: string | null
-  stackable: boolean
-}
-
-function pickFields(q: QuoteRecord): Fields {
-  return {
-    movement_type: q.movement_type, incoterms: q.incoterms, customer_po: q.customer_po,
-    shipping_line: q.shipping_line, service_type: q.service_type,
-    shipper: q.shipper, consignee: q.consignee,
-    shipper_address: q.shipper_address, consignee_address: q.consignee_address,
-    sales_executive_id: q.sales_executive_id, pricing_executive_id: q.pricing_executive_id,
-    internal_notes: q.internal_notes, external_notes: q.external_notes,
-  }
-}
-function pickCargo(q: QuoteRecord): Cargo {
-  return {
-    cargo_value: q.cargo_value, cargo_value_currency: q.cargo_value_currency ?? 'NZD',
-    need_insurance: q.need_insurance, need_refrigeration: q.need_refrigeration,
-    reefer_temp_c: q.reefer_temp_c, is_hazardous: q.is_hazardous,
-    dg_un_number: q.dg_un_number, dg_class: q.dg_class,
-    stackable: q.stackable === 'true',
-  }
-}
-
-async function fetchCustomerPick(accountId: string): Promise<CustomerPickerValue | null> {
-  const { data } = await supabase
-    .from('customers')
-    .select('account_id,name,address1,address2,address3,city,state,postcode,country')
-    .eq('account_id', accountId)
-    .maybeSingle()
-  if (!data) return null
-  const o = data as Record<string, string | null>
-  const v = (k: string) => o[k] ?? undefined
-  return { account_id: String(o.account_id), name: String(o.name ?? ''), address1: v('address1'), address2: v('address2'),
-    address3: v('address3'), city: v('city'), state: v('state'), postcode: v('postcode'), country: v('country') }
-}
-
+/** Quote record. Export Air skin: white canvas, cards, segmented controls, autosave. */
 export default function QuoteDetailPage() {
   const { id } = useParams()
   const { staff } = useStaffList()
-
-  const [quote, setQuote] = useState<QuoteRecord | null>(null)
-  const [status, setStatus] = useState<string>('open')
-  const [fields, setFields] = useState<Fields | null>(null)
-  const [initial, setInitial] = useState<Fields | null>(null)
-  const [cargo, setCargo] = useState<Cargo | null>(null)
-  const [initialCargo, setInitialCargo] = useState<Cargo | null>(null)
-  const [groups, setGroups] = useState<QuoteContainerDraft[]>([])
-  const [initialGroups, setInitialGroups] = useState<QuoteContainerDraft[]>([])
-  const [cargoLines, setCargoLines] = useState<QuoteCargoLine[]>([])
-  const [initialCargoLines, setInitialCargoLines] = useState<QuoteCargoLine[]>([])
-  const [cargoMode, setCargoMode] = useState<CargoEntryMode>('individual')
-  const [initialCargoMode, setInitialCargoMode] = useState<CargoEntryMode>('individual')
-  const [loading, setLoading] = useState(true)
-  const [statusBusy, setStatusBusy] = useState(false)
+  const d = useQuoteDetail(id)
+  const { stats } = useCustomerQuoteStats(d.quote?.customer_account_id)
   const [lostOpen, setLostOpen] = useState(false)
   const [emailOpen, setEmailOpen] = useState(false)
-  const [customerPick, setCustomerPick] = useState<CustomerPickerValue | null>(null)
-  const [editingPorts, setEditingPorts] = useState(false)
-
-  const { stats } = useCustomerQuoteStats(quote?.customer_account_id)
-
-  const load = useCallback(async () => {
-    if (!id) return
-    setLoading(true)
-    try {
-      const [q, cons] = await Promise.all([fetchQuote(id), fetchQuoteContainers(id)])
-      if (!q) { setQuote(null); return }
-      const g = cons.map((c) => ({
-        ord: c.ord, container_size: c.container_size, container_type: c.container_type,
-        qty: c.qty, weight_per_container_mt: c.weight_per_container_mt, commodity: c.commodity,
-      }))
-      let cl: QuoteCargoLine[] = []
-      if (quoteIsLcl(q.shipment_type) || quoteIsAir(q.shipment_type, q.shipment_mode)) {
-        const fetched = await fetchQuoteCargo(id)
-        cl = fetched.length ? fetched : [newQuoteCargoLine(0)]
-      }
-      const f = pickFields(q)
-      // Addresses are never auto-filled. The customer is offered in the "From CF" picker instead.
-      setCustomerPick(q.customer_account_id ? await fetchCustomerPick(q.customer_account_id) : null)
-      const mode: CargoEntryMode = q.cargo_entry_mode === 'total' ? 'total' : 'individual'
-      setQuote(q); setStatus(q.status)
-      setFields(f); setInitial(f)
-      setCargo(pickCargo(q)); setInitialCargo(pickCargo(q))
-      setGroups(g); setInitialGroups(g)
-      setCargoLines(cl); setInitialCargoLines(cl)
-      setCargoMode(mode); setInitialCargoMode(mode)
-    } catch {
-      toast.error('Failed to load quote'); setQuote(null)
-    } finally {
-      setLoading(false)
-    }
-  }, [id])
-
-  useEffect(() => { load() }, [load])
-
-  const isAir = quoteIsAir(quote?.shipment_type ?? null, quote?.shipment_mode ?? null)
-  const isLcl = quoteIsLcl(quote?.shipment_type ?? null)
-  const usesCargoLines = isLcl || isAir
   const [respKey, setRespKey] = useState(0)
-  const cargoSize = useMemo(() => {
-    if (usesCargoLines) {
-      let w = 0, v = 0
-      for (const l of cargoLines) { const c = computeCargoLine(l, isAir ? 'air' : 'sea'); w += c.grossTotal; v += c.totalCbm }
-      return { w: w || null, v: v || null }
-    }
-    const w = groups.reduce((s, g) => s + (g.qty || 0) * (g.weight_per_container_mt || 0) * 1000, 0)
-    return { w: w || null, v: null }
-  }, [usesCargoLines, cargoLines, groups, isAir])
 
-  const dirty = useMemo(
-    () => Boolean(fields && initial && JSON.stringify(fields) !== JSON.stringify(initial)),
-    [fields, initial])
-  const cargoDirty = useMemo(
-    () => Boolean(cargo && initialCargo && JSON.stringify(cargo) !== JSON.stringify(initialCargo)),
-    [cargo, initialCargo])
-  const groupsDirty = useMemo(
-    () => JSON.stringify(groups) !== JSON.stringify(initialGroups),
-    [groups, initialGroups])
-  const cargoLinesDirty = useMemo(
-    () => JSON.stringify(cargoLines) !== JSON.stringify(initialCargoLines),
-    [cargoLines, initialCargoLines])
-
-  // Loads (the top grid) covers either container groups (FCL) or cargo lines +
-  // entry mode (LCL/Air) — treat them as one saveable unit.
-  const loadsDirty = usesCargoLines
-    ? (cargoLinesDirty || cargoMode !== initialCargoMode)
-    : groupsDirty
-
-  function patch(p: Partial<Fields>) { setFields((f) => (f ? { ...f, ...p } : f)) }
-  function patchCargo(p: Partial<Cargo>) { setCargo((c) => (c ? { ...c, ...p } : c)) }
-
-  function onMovementChange(v: string) {
-    setFields((f) => {
-      if (!f) return f
-      const next: Fields = { ...f, movement_type: v || null }
-      const cust = quote?.customer_name ?? null
-      if (v === 'export' && !f.shipper && cust) next.shipper = cust
-      if (v === 'import' && !f.consignee && cust) next.consignee = cust
-      return next
-    })
-  }
-
-  async function onCustomerChange(v: CustomerPickerValue | null) {
-    if (!v || !id) return
-    try {
-      const p = { customer_account_id: v.account_id, customer_name: v.name, contact_name: null, contact_email: null, contact_phone: null }
-      await updateQuote(id, p)
-      setQuote((q) => (q ? { ...q, ...p } : q))
-      setCustomerPick(await fetchCustomerPick(v.account_id))
-      toast.success('Customer updated')
-    } catch { toast.error('Failed to update customer') }
-  }
-
-  async function savePort(which: 'from' | 'to', code: string) {
-    if (!id) return
-    const p = which === 'from' ? { from_port_code: code || null } : { to_port_code: code || null }
-    try {
-      await updateQuote(id, p)
-      setQuote((q) => (q ? { ...q, ...p } : q))
-    } catch { toast.error('Failed to update port') }
-  }
-
-  function patchGroup(idx: number, p: Partial<QuoteContainerDraft>) {
-    setGroups((gs) => gs.map((g, i) => (i === idx ? { ...g, ...p } : g)))
-  }
-  function addGroup() { setGroups((gs) => [...gs, emptyContainerGroup(gs.length)]) }
-  function removeGroup(idx: number) { setGroups((gs) => gs.filter((_, i) => i !== idx)) }
-
-  function addCargoLine() { setCargoLines((ls) => [...ls, newQuoteCargoLine(ls.length)]) }
-
-  // --- Silent autosave persisters (each snapshots its own initial on success) ---
-  async function saveFields() {
-    if (!id || !fields) return
-    await updateQuote(id, fields)
-    setInitial(fields)
-  }
-  async function saveCargoValue() {
-    if (!id || !cargo) return
-    await updateQuote(id, { ...cargo, stackable: cargo.stackable ? 'true' : 'false' })
-    setInitialCargo(cargo)
-  }
-  async function saveLoads() {
-    if (!id) return
-    if (usesCargoLines) {
-      await saveQuoteCargo(id, cargoLines, isAir ? 'air' : 'sea')
-      await updateQuote(id, { cargo_entry_mode: cargoMode })
-      setInitialCargoLines(cargoLines); setInitialCargoMode(cargoMode)
-    } else {
-      await replaceQuoteContainers(id, groups); setInitialGroups(groups)
-    }
-  }
-
-  const saveState = useDebouncedAutosave([
-    { key: 'fields', dirty: !loading && dirty, signature: JSON.stringify(fields), save: saveFields },
-    { key: 'cargo', dirty: !loading && cargoDirty, signature: JSON.stringify(cargo), save: saveCargoValue },
-    {
-      key: 'loads',
-      dirty: !loading && loadsDirty,
-      signature: JSON.stringify(usesCargoLines ? { cargoLines, cargoMode } : { groups }),
-      save: saveLoads,
-    },
-  ])
-
-  const anyDirty = dirty || cargoDirty || loadsDirty
-  const saveLabel = saveState === 'error'
-    ? 'Save failed — edit to retry'
-    : (saveState === 'saving' || anyDirty) ? 'Saving…' : 'All changes saved'
-  const saveLabelColor = saveState === 'error' ? '#dc2626' : '#64748b'
-
-  async function mark(next: string, lost?: LostInfo) {
-    if (!id) return
-    if (next === 'lost' && !lost) { setLostOpen(true); return }
-    setStatusBusy(true)
-    try {
-      await setQuoteStatus(id, next, lost); setStatus(next); setLostOpen(false)
-      toast.success(`Marked ${next === 'crosswin' ? 'cross win' : next}`)
-    } catch (e) { toast.error(e instanceof Error ? e.message : 'Failed to update status') }
-    finally { setStatusBusy(false) }
-  }
-
-  if (loading) return <div className="nqd-page"><p className="muted">Loading…</p></div>
+  if (d.loading) return <div className="bk-root p-6 text-[#6B7280]">Loading…</div>
+  const { quote, fields, cargo } = d
   if (!quote || !fields || !cargo) {
     return (
-      <div className="nqd-page">
-        <div className="nqd-band nqd-band--pad">
-          <p>Quote not found.</p>
-          <Link to="/quotes" className="nqd-back">Back to quotes</Link>
-        </div>
+      <div className="bk-root p-6">
+        <p className="m-0 text-[13px]">Quote not found.</p>
+        <Link to="/quotes" className="text-[12px] text-[#0A2472] hover:underline">Back to quotes</Link>
       </div>
     )
   }
 
-  const modeLabel = isAir ? 'Air' : isLcl ? 'LCL' : 'FCL'
-  const laneMode: 'fcl' | 'lcl' | 'air' = isAir ? 'air' : isLcl ? 'lcl' : 'fcl'
+  const summary = [
+    fields.movement_type === 'import' ? 'Import' : fields.movement_type === 'export' ? 'Export' : fields.movement_type === 'crosstrade' ? 'Cross trade' : null,
+    fields.incoterms,
+    fields.service_type ? SERVICE_SHORT[fields.service_type] ?? fields.service_type : null,
+  ].filter(Boolean).join(' · ') || null
+
+  async function mark(next: QuoteOutcome) {
+    if (next === 'lost') { setLostOpen(true); return }
+    await d.mark(next)
+  }
 
   return (
-    <div className="nqd-page">
-      <div className="nqd-band nqd-band--pad">
-        <Link to="/quotes" className="nqd-back"><ArrowLeft size={14} /> Quotes</Link>
-        <div className="nqd-head">
-          <div className="nqd-head__left">
-            <CustomerSelect
-              nameClassName="nqd-name"
-              value={quote.customer_account_id ? {
-                account_id: quote.customer_account_id,
-                name: quote.customer_name ?? '',
-                source: quote.customer_account_id.startsWith('P-') ? 'portal' : undefined,
-              } : null}
-              onChange={(c) => void onCustomerChange(c)}
-            />
-            <QuoteContactSelect
-              quoteId={quote.id}
-              accountId={quote.customer_account_id}
-              value={{ contact_name: quote.contact_name ?? null, contact_email: quote.contact_email ?? null, contact_phone: quote.contact_phone ?? null }}
-              onSaved={(v) => setQuote((q) => (q ? { ...q, ...v } : q))}
-            />
-            {quoteStatusPill(status)}
-            <span className="nqd-sep" />
-            <span className="nqd-statpill nqd-statpill--m"><FileText size={13} /> {stats.thisMonth} this month</span>
-            <span className="nqd-statpill nqd-statpill--w"><Trophy size={13} /> {stats.converted} won</span>
-            <span className="nqd-qno">{quote.quote_no ?? '—'}</span>
-            <CopyQuoteButton quoteId={quote.id} quoteNo={quote.quote_no} />
-          </div>
-          <div className="nqd-actions">
-            <span style={{ fontSize: 12, alignSelf: 'center', marginRight: 8, color: saveLabelColor, whiteSpace: 'nowrap' }}>{saveLabel}</span>
-            <button className="nqd-btn" title="Email quote" aria-label="Email quote" onClick={() => setEmailOpen(true)}
-              style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', padding: '0 10px' }}><Send size={15} /></button>
-            <QuoteBookingAction
-              quoteId={quote.id}
-              quoteNo={quote.quote_no}
-              status={status}
-              bookingId={(quote as QuoteRecord & { booking_id?: string | null }).booking_id}
-              shipmentMode={quote.shipment_mode}
-              movementType={fields.movement_type}
-            />
-            <button className="nqd-btn nqd-btn--won" disabled={statusBusy} onClick={() => mark('won')}>Mark won</button>
-            <button className="nqd-btn nqd-btn--lost" disabled={statusBusy} onClick={() => mark('lost')}>Mark lost</button>
-            <button className="nqd-btn nqd-btn--cross" disabled={statusBusy} onClick={() => mark('crosswin')}>Mark cross win</button>
-          </div>
-        </div>
-      </div>
+    <div className="bk-root mx-auto w-full max-w-[1440px] bg-white text-[12.5px] text-[#14161A]">
+      <QuoteHeader quote={quote} status={d.status} movementType={fields.movement_type} stats={stats}
+        saveState={d.saveState} pending={d.pending} statusBusy={d.statusBusy}
+        onCustomer={(v) => void d.changeCustomer(v)} onContactSaved={d.patchQuote}
+        onEmail={() => setEmailOpen(true)} onMark={(s) => void mark(s)} />
 
-      <div className="nqd-band nqd-band--pad">
-        <div className="nqd-section-head">
-          <div className="nqd-fclhead">
-            <span className="nqd-fclpill">{modeLabel}</span>
-            {editingPorts ? (
-              <div className="nqd-portedit">
-                {isAir ? (
-                  <>
-                    <IataPortSelect value={quote.from_port_code ?? ''} onChange={(v) => savePort('from', v)} />
-                    <ArrowRight size={16} color="#94a3b8" />
-                    <IataPortSelect value={quote.to_port_code ?? ''} onChange={(v) => savePort('to', v)} />
-                  </>
-                ) : (
-                  <>
-                    <SeaPortSelect value={quote.from_port_code ?? ''} onChange={(v) => savePort('from', v)} placeholder="From port" />
-                    <ArrowRight size={16} color="#94a3b8" />
-                    <SeaPortSelect value={quote.to_port_code ?? ''} onChange={(v) => savePort('to', v)} placeholder="To port" />
-                  </>
-                )}
-                <button className="nqd-editicon" onClick={() => setEditingPorts(false)} aria-label="Done"><Check size={16} /></button>
-              </div>
-            ) : (
-              <>
-                <QuoteLaneMap fromCode={quote.from_port_code} toCode={quote.to_port_code} mode={laneMode} />
-                <button className="nqd-editicon" onClick={() => setEditingPorts(true)} aria-label="Change ports"><Pencil size={13} /></button>
-              </>
-            )}
-          </div>
-        </div>
+      <QuoteRouteCard quote={quote} mode={d.mode} pending={d.pending} lines={d.cargoLines} summary={summary}
+        onSavePort={(w, c) => void d.savePort(w, c)} onChanged={d.reload} />
+      <QuoteLoadsCard mode={d.mode} groups={d.groups} onPatch={d.containers.patch} onAdd={d.containers.add} onRemove={d.containers.remove}
+        entryMode={d.cargoMode} onEntryMode={d.setCargoMode} lines={d.cargoLines} onLines={d.setCargoLines} onAddLine={d.addCargoLine} />
+      <QuoteDetailsCard fields={fields} isAir={d.isAir} staff={staff} customerPick={d.customerPick}
+        patch={d.patch} cargo={cargo} patchCargo={d.patchCargo} onDirection={d.setDirection} />
 
-        {usesCargoLines ? (
-          <QuoteCargoEntry mode={isAir ? 'air' : 'sea'} entryMode={cargoMode} onEntryModeChange={setCargoMode} lines={cargoLines} onChange={setCargoLines} onAddLine={addCargoLine} />
-        ) : (
-          <>
-            {groups.length === 0 && <p className="nqd-empty">No containers yet.</p>}
-            {groups.map((g, i) => (
-              <div className="nqd-cg" key={i}>
-                <div className="nqd-cg__head">
-                  <span className="nqd-cg__title">Group {i + 1}</span>
-                  <button className="nqd-cg__rm" onClick={() => removeGroup(i)} aria-label="Remove group"><X size={15} /></button>
-                </div>
-                <div className="nqd-cg__grid">
-                  <div className="nqd-field">
-                    <span className="nqd-field__label">Size</span>
-                    <select className="nqd-input" value={g.container_size} onChange={(e) => patchGroup(i, { container_size: e.target.value as ContainerSize })}>
-                      {SIZES.map((s) => <option key={s.value} value={s.value}>{s.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="nqd-field">
-                    <span className="nqd-field__label">Type</span>
-                    <select className="nqd-input" value={g.container_type} onChange={(e) => patchGroup(i, { container_type: e.target.value as ContainerType })}>
-                      {TYPES.map((t) => <option key={t.value} value={t.value}>{t.label}</option>)}
-                    </select>
-                  </div>
-                  <div className="nqd-field">
-                    <span className="nqd-field__label">Qty</span>
-                    <input className="nqd-input" type="number" min={1} value={g.qty} onChange={(e) => patchGroup(i, { qty: Math.max(1, Number(e.target.value) || 1) })} />
-                  </div>
-                  <div className="nqd-field">
-                    <span className="nqd-field__label">Weight / ctr (MT)</span>
-                    <input className="nqd-input" type="number" value={g.weight_per_container_mt ?? ''} onChange={(e) => patchGroup(i, { weight_per_container_mt: e.target.value === '' ? null : Number(e.target.value) })} />
-                  </div>
-                  <div className="nqd-field">
-                    <span className="nqd-field__label">Commodity</span>
-                    <input className="nqd-input" type="text" placeholder="General" value={g.commodity ?? ''} onChange={(e) => patchGroup(i, { commodity: e.target.value || null })} />
-                  </div>
-                </div>
-              </div>
-            ))}
-            <button className="nqd-addgrp" onClick={addGroup}><Plus size={15} /> Add another group</button>
-          </>
-        )}
-      </div>
-
-      <div className="nqd-band nqd-band--pad">
-        <div className="nqd-section-head">
-          <span className="nqd-section-title">Details</span>
-        </div>
-        <div className="nqd-grid">
-          <div className="nqd-field">
-            <span className="nqd-field__label">Shipment type</span>
-            <select className="nqd-input" value={fields.movement_type ?? ''} onChange={(e) => onMovementChange(e.target.value)}>
-              <option value="">—</option><option value="import">Import</option><option value="export">Export</option>
-            </select>
-          </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Incoterms</span>
-            <IncotermSelect value={fields.incoterms ?? ''} onChange={(v) => patch({ incoterms: v || null, service_type: serviceTypeForIncoterm(v) ?? fields.service_type })} airOnly={isAir} />
-          </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Movement type</span>
-            <select className="nqd-input" value={fields.service_type ?? ''} onChange={(e) => patch({ service_type: e.target.value || null })}>
-              <option value="">—</option>
-              <option value="Door to Door">Door to Door</option>
-              <option value="Port to Port">Port to Port</option>
-              <option value="Door to Port">Door to Port</option>
-              <option value="Port to Door">Port to Door</option>
-            </select>
-          </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Customer ref #</span>
-            <input className="nqd-input" value={fields.customer_po ?? ''} onChange={(e) => patch({ customer_po: e.target.value || null })} />
-          </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Sales executive</span>
-            <select className="nqd-input" value={fields.sales_executive_id ?? ''} onChange={(e) => patch({ sales_executive_id: e.target.value || null })}>
-              <option value="">—</option>{staff.map((s) => <option key={s.user_id} value={s.user_id}>{s.name}</option>)}
-            </select>
-          </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Pricing executive</span>
-            <select className="nqd-input" value={fields.pricing_executive_id ?? ''} onChange={(e) => patch({ pricing_executive_id: e.target.value || null })}>
-              <option value="">—</option>{staff.map((s) => <option key={s.user_id} value={s.user_id}>{s.name}</option>)}
-            </select>
-          </div>
-        </div>
-
-        <div className="nqd-parties">
-          <div className="nqd-field">
-            <span className="nqd-field__label">Shipper {fields.movement_type === 'export' && <span className="nqd-field__hint">· defaults to customer</span>}</span>
-            <PartyPicker
-              kind="shipper"
-              name={fields.shipper ?? ''}
-              address={fields.shipper_address ?? ''}
-              onNameChange={(v) => patch({ shipper: v || null })}
-              onPick={(v) => patch({ shipper: v.name || null, shipper_address: v.address || null })}
-            />
-          </div>
-          <div className="nqd-field">
-            <span className="nqd-field__label">Consignee {fields.movement_type === 'import' && <span className="nqd-field__hint">· defaults to customer</span>}</span>
-            <PartyPicker
-              kind="consignee"
-              name={fields.consignee ?? ''}
-              address={fields.consignee_address ?? ''}
-              onNameChange={(v) => patch({ consignee: v || null })}
-              onPick={(v) => patch({ consignee: v.name || null, consignee_address: v.address || null })}
-            />
-          </div>
-          <QuoteAddressField label="Shipper address" value={fields.shipper_address ?? ''} partyName={fields.shipper}
-            customer={customerPick} onChange={(v) => patch({ shipper_address: v || null })} />
-          <QuoteAddressField label="Consignee address" value={fields.consignee_address ?? ''} partyName={fields.consignee}
-            customer={customerPick} onChange={(v) => patch({ consignee_address: v || null })} />
-        </div>
-      </div>
-
-      <div className="nqd-band nqd-band--pad">
-        <div className="nqd-section-head">
-          <span className="nqd-section-title">Cargo</span>
-        </div>
-        <div className="nqd-cargo">
-          <div className="nqd-cargo__value">
-            <div className="nqd-field">
-              <span className="nqd-field__label">Currency</span>
-              <select className="nqd-input" value={cargo.cargo_value_currency ?? 'NZD'} onChange={(e) => patchCargo({ cargo_value_currency: e.target.value })}>
-                {CURRENCIES.map((c) => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div className="nqd-field">
-              <span className="nqd-field__label">Value</span>
-              <input className="nqd-input" type="number" value={cargo.cargo_value ?? ''} onChange={(e) => patchCargo({ cargo_value: e.target.value === '' ? null : Number(e.target.value) })} />
-            </div>
-          </div>
-
-          <div className="nqd-cargo__flags">
-            <label className="nqd-check">
-              <input type="checkbox" checked={cargo.need_insurance} onChange={(e) => patchCargo({ need_insurance: e.target.checked })} /> Insurance
-            </label>
-
-            <label className="nqd-check">
-              <input type="checkbox" checked={cargo.need_refrigeration} onChange={(e) => patchCargo({ need_refrigeration: e.target.checked, reefer_temp_c: e.target.checked ? cargo.reefer_temp_c : null })} /> Reefer
-            </label>
-            {cargo.need_refrigeration && (
-              <div className="nqd-field nqd-cond">
-                <span className="nqd-field__label">Temperature (°C)</span>
-                <input className="nqd-input" type="number" value={cargo.reefer_temp_c ?? ''} onChange={(e) => patchCargo({ reefer_temp_c: e.target.value === '' ? null : Number(e.target.value) })} />
-              </div>
-            )}
-
-            <label className="nqd-check">
-              <input type="checkbox" checked={cargo.is_hazardous} onChange={(e) => patchCargo({ is_hazardous: e.target.checked, dg_un_number: e.target.checked ? cargo.dg_un_number : null, dg_class: e.target.checked ? cargo.dg_class : null })} /> Dangerous goods
-            </label>
-            {cargo.is_hazardous && (
-              <div className="nqd-cond nqd-cond--dg">
-                <div className="nqd-field">
-                  <span className="nqd-field__label">UN number</span>
-                  <input className="nqd-input" placeholder="e.g. UN1263" value={cargo.dg_un_number ?? ''} onChange={(e) => patchCargo({ dg_un_number: e.target.value || null })} />
-                </div>
-                <div className="nqd-field">
-                  <span className="nqd-field__label">Class</span>
-                  <select className="nqd-input" value={cargo.dg_class ?? ''} onChange={(e) => patchCargo({ dg_class: e.target.value || null })}>
-                    <option value="">—</option>
-                    {DG_CLASS_OPTIONS.map((o) => <option key={o.value} value={o.value}>{o.label}</option>)}
-                  </select>
-                </div>
-              </div>
-            )}
-
-            <label className="nqd-check">
-              <input type="checkbox" checked={cargo.stackable} onChange={(e) => patchCargo({ stackable: e.target.checked })} /> Stackable
-            </label>
-          </div>
-        </div>
-      </div>
-
-      <div className="nqd-band">
+      <section className="min-w-0 overflow-hidden rounded-[10px] border border-[#EEF0F3] bg-white">
         <QuoteResponsesPanel key={respKey} quoteId={quote.id} />
-        {quote.from_port_code && quote.to_port_code && (
-          <FreightIntelligence
-            from={quote.from_port_code}
-            to={quote.to_port_code}
-            mode={isAir ? 'air' : 'sea'}
-            direction={fields.movement_type ?? null}
-            incoterm={fields.incoterms ?? null}
-            loadType={isAir ? null : isLcl ? 'LCL' : 'FCL'}
-            quoteId={quote.id}
-            customerId={quote.customer_account_id ?? null}
-            customerName={quote.customer_name ?? null}
-            weightKg={cargoSize.w}
-            volumeM3={cargoSize.v}
-            containers={isAir || isLcl ? [] : groups.map((g) => ({ size: g.container_size.startsWith('40') ? '40' as const : '20' as const, qty: g.qty || 0, kgPer: (g.weight_per_container_mt || 0) * 1000 }))}
-            onLinesChanged={() => setRespKey((k) => k + 1)}
-            onAddNote={(line) => {
-              const existing = fields.external_notes ?? ''
-              const next = existing ? `${line}\n${existing}` : line
-              patch({ external_notes: next })
-              void updateQuote(quote.id, { external_notes: next })
-            }}
-          />
-        )}
-      </div>
+      </section>
 
-      <div className="nqd-band nqd-band--pad">
-        <div className="nqd-section-head">
-          <span className="nqd-section-title">Notes</span>
-        </div>
-        <div className="nqd-notes">
-          <div className="nqd-field">
-            <span className="nqd-field__label">Internal notes (not shown on quote)</span>
-            <textarea
-              className="nqd-input nqd-textarea nqd-textarea--scroll"
-              value={fields.internal_notes ?? ''}
-              onChange={(e) => patch({ internal_notes: e.target.value || null })}
-            />
-          </div>
-          <ExternalNotesField
-            value={fields.external_notes ?? ''}
-            onChange={(v) => patch({ external_notes: v || null })}
-          />
-        </div>
-      </div>
+      {quote.from_port_code && quote.to_port_code ? (
+        <FreightIntelligence
+          from={quote.from_port_code} to={quote.to_port_code} mode={d.isAir ? 'air' : 'sea'}
+          direction={fields.movement_type ?? null} incoterm={fields.incoterms ?? null}
+          loadType={d.isAir ? null : d.mode === 'LCL' ? 'LCL' : 'FCL'}
+          quoteId={quote.id} customerId={quote.customer_account_id ?? null} customerName={quote.customer_name ?? null}
+          weightKg={d.cargoSize.w} volumeM3={d.cargoSize.v}
+          containers={d.mode !== 'FCL' ? [] : d.groups.map((g) => ({ size: g.container_size.startsWith('40') ? '40' as const : '20' as const, qty: g.qty || 0, kgPer: (g.weight_per_container_mt || 0) * 1000 }))}
+          onLinesChanged={() => setRespKey((k) => k + 1)}
+          onAddNote={(line) => {
+            const existing = fields.external_notes ?? ''
+            const next = existing ? `${line}\n${existing}` : line
+            d.patch({ external_notes: next })
+            void updateQuote(quote.id, { external_notes: next })
+          }}
+        />
+      ) : null}
+
+      <QuoteNotesCard internal={fields.internal_notes} external={fields.external_notes}
+        onInternal={(v) => d.patch({ internal_notes: v })} onExternal={(v) => d.patch({ external_notes: v })} />
+
       <QuotePreviewBubble quoteId={quote.id} quoteNo={quote.quote_no} />
       <QuoteMailBubble quoteId={quote.id} quoteNo={quote.quote_no} />
-      {emailOpen && (
-        <Suspense fallback={null}>
-          <QuoteEmailDialog quoteId={quote.id} onClose={() => setEmailOpen(false)} />
-        </Suspense>
-      )}
-      <LostReasonModal open={lostOpen} busy={statusBusy} onClose={() => setLostOpen(false)} onConfirm={(info) => void mark('lost', info)} />
+      {emailOpen ? (
+        <Suspense fallback={null}><QuoteEmailDialog quoteId={quote.id} onClose={() => setEmailOpen(false)} /></Suspense>
+      ) : null}
+      <LostReasonModal open={lostOpen} busy={d.statusBusy} onClose={() => setLostOpen(false)}
+        onConfirm={(info) => void d.mark('lost', info).then((ok) => ok && setLostOpen(false))} />
     </div>
   )
 }

@@ -199,7 +199,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
   return (
     <>
       <div className="quotes-tabs" role="tablist" aria-label="Quote status">
-        {STATUS_TABS.map(({ key, label, Icon }) => (
+        {STATUS_TABS.map(({ key, label, Icon, color }) => (
           <button
             key={key}
             type="button"
@@ -208,7 +208,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
             className={`quotes-tabs__btn${statusTab === key ? ' quotes-tabs__btn--on' : ''}`}
             onClick={() => setStatusTab(key)}
           >
-            <Icon size={14} strokeWidth={2} />
+            <Icon size={14} strokeWidth={2} style={color ? { color } : undefined} />
             {label}
           </button>
         ))}

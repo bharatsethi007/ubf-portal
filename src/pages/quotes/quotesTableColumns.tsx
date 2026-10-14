@@ -2,9 +2,10 @@ import type { ColumnDef } from '@tanstack/react-table'
 import CopyQuoteButton from './CopyQuoteButton'
 import { QuoteNoCell } from './quoteUnsent'
 import { AUTO_EXPIRED } from './quoteLostReasons'
+import { MODE_TONE, dirTone, pillStyle, statusTone, STATUS_TONE } from './quoteTones'
 import {
-  Files, FolderOpen, Trophy, XCircle, Repeat2,
-  Plane, Boxes, Container, Ship, Mail, Globe, PenLine, ArrowDownToLine, ArrowUpFromLine, type LucideIcon,
+  Files, FolderOpen, PauseCircle, Trophy, XCircle, Repeat2,
+  Plane, Boxes, Container, Ship, Mail, Globe, PenLine, ArrowDownToLine, ArrowLeftRight, ArrowUpFromLine, type LucideIcon,
 } from 'lucide-react'
 
 export type QuoteRow = {
@@ -29,17 +30,19 @@ export type QuoteRow = {
   ai_gaps?: string[] | null
 }
 
-export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon }[] = [
+export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon; color?: string }[] = [
   { key: 'all', label: 'All Quotes', Icon: Files },
-  { key: 'open', label: 'Open', Icon: FolderOpen },
-  { key: 'won', label: 'Won', Icon: Trophy },
-  { key: 'lost', label: 'Lost', Icon: XCircle },
-  { key: 'crosswin', label: 'Cross win', Icon: Repeat2 },
+  { key: 'open', label: 'Open', Icon: FolderOpen, color: STATUS_TONE.open.fg },
+  { key: 'held', label: 'Held', Icon: PauseCircle, color: STATUS_TONE.held.fg },
+  { key: 'won', label: 'Won', Icon: Trophy, color: STATUS_TONE.won.fg },
+  { key: 'lost', label: 'Lost', Icon: XCircle, color: STATUS_TONE.lost.fg },
+  { key: 'crosswin', label: 'Cross win', Icon: Repeat2, color: STATUS_TONE.crosswin.fg },
 ]
 
 // Selectable target statuses for the bulk change-status modal.
 export const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: 'open', label: 'Open' },
+  { value: 'held', label: 'Held' },
   { value: 'won', label: 'Won' },
   { value: 'lost', label: 'Lost' },
   { value: 'crosswin', label: 'Cross win' },
@@ -75,9 +78,8 @@ function fmtCreated(iso: string): string {
 }
 
 export function quoteStatusPill(status: string) {
-  const key = status.toLowerCase()
-  const label = key === 'crosswin' ? 'Cross win' : status.charAt(0).toUpperCase() + status.slice(1)
-  return <span className={`quote-pill quote-pill--${key}`}>{label}</span>
+  const t = statusTone(status)
+  return <span style={{ ...pillStyle(t), borderRadius: 4, padding: '2px 7px' }}>{t.label}</span>
 }
 
 function modeInfo(mode: string | null, type: string | null): { label: string; Icon: LucideIcon } {
@@ -108,12 +110,13 @@ export function quoteSourceCell(source: string | null) {
   )
 }
 
+const DIR_ICON: Record<string, LucideIcon> = { import: ArrowDownToLine, export: ArrowUpFromLine, crosstrade: ArrowLeftRight }
+
 export function quoteTypeCell(movement: string | null) {
-  const m = (movement ?? '').toLowerCase()
-  const base = { display: 'inline-flex', alignItems: 'center', gap: 5, borderRadius: 999, padding: '2px 9px', fontSize: 11, fontWeight: 500, lineHeight: 1.4 } as const
-  if (m === 'import') return <span style={{ ...base, background: '#ECFDFF', color: '#0E7090' }}><ArrowDownToLine size={12} strokeWidth={2} /> Import</span>
-  if (m === 'export') return <span style={{ ...base, background: '#FFF6ED', color: '#C4620E' }}><ArrowUpFromLine size={12} strokeWidth={2} /> Export</span>
-  return <>—</>
+  const t = dirTone(movement)
+  if (!t) return <>—</>
+  const Icon = DIR_ICON[(movement ?? '').toLowerCase()]
+  return <span style={pillStyle(t)}><Icon size={12} strokeWidth={2} /> {t.label}</span>
 }
 
 export function quotesTableColumns(
@@ -145,11 +148,10 @@ export function quotesTableColumns(
       header: 'Mode',
       cell: ({ row }) => {
         const { label, Icon } = modeInfo(row.original.shipment_mode, row.original.shipment_type)
-        return (
-          <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}>
-            <Icon size={14} /> {label}
-          </span>
-        )
+        const t = MODE_TONE[label]
+        return t
+          ? <span style={pillStyle(t)}><Icon size={12} strokeWidth={2} /> {label}</span>
+          : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><Icon size={14} /> {label}</span>
       },
     },
     {
