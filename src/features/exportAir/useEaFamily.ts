@@ -35,6 +35,7 @@ export type SubExtras = {
 /** Emails, documents and TMS jobs of every sub-HAWB, labelled with the supplier, for the main HAWB's rails. */
 export function useEaSubExtras(subs: EaRow[]) {
   const [x, setX] = useState<SubExtras>({ threads: [], docs: [], tms: new Map() })
+  const [tick, setTick] = useState(0)
   const key = subs.map((s) => s.id).join(',')
 
   useEffect(() => {
@@ -58,7 +59,7 @@ export function useEaSubExtras(subs: EaRow[]) {
       setX({ threads, docs, tms })
     })
     return () => { live = false }
-  }, [key]) // eslint-disable-line react-hooks/exhaustive-deps
+  }, [key, tick]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  return x
+  return { ...x, reload: () => setTick((n) => n + 1) }
 }

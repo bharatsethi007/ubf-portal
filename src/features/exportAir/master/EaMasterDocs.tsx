@@ -4,26 +4,57 @@ import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 import LabelsModal from '@/features/tms/LabelsModal'
 import ConsignmentNoteModal from '@/features/tms/ConsignmentNoteModal'
+import { supabase } from '@/supabase'
 import { Card } from '../eaUi'
+import { patchBooking } from '../useEaBooking'
 import { supplierOf } from '../eaMaster'
 import { buildMasterPack, type PackPart } from '../eaMasterPack'
 import { viewCheckinSheet } from '../progress/checkinSheet'
 import type { EaRow } from '../eaTypes'
 import type { TmsJob } from '../useEaBooking'
 
-type Props = { masterRef: string; subs: EaRow[]; tms: Map<string, TmsJob>; onTab: (id: string) => void }
+type Props = { masterRef: string; subs: EaRow[]; tms: Map<string, TmsJob>; onTab: (id: string) => void; onBooked: () => void }
 
 const KEY = 'ea.masterdocs.view'
 const pill = 'inline-flex h-[24px] w-auto items-center gap-1 rounded-full border border-[#E3E6EB] bg-white px-2 text-[11px] font-medium text-[#14161A] hover:border-[#0A2472] hover:text-[#0A2472] disabled:cursor-not-allowed disabled:opacity-40 disabled:hover:border-[#E3E6EB] disabled:hover:text-[#14161A]'
 const when = (iso: string | null | undefined) => (iso ? format(parseISO(iso), 'EEE d MMM HH:mm') : null)
 
 /** Every supplier's TMS job, labels, consignment note and check-in sheet. Compact chips or a full list; one-click pack PDF. */
-export default function EaMasterDocs({ masterRef, subs, tms, onTab }: Props) {
+export default function EaMasterDocs({ masterRef, subs, tms, onTab, onBooked }: Props) {
   const [view, setView] = useState<'compact' | 'list'>(() => { try { return (localStorage.getItem(KEY) as 'list') || 'compact' } catch { return 'compact' } })
   const [labels, setLabels] = useState<string | null>(null)
   const [note, setNote] = useState<string | null>(null)
   const [parts, setParts] = useState<PackPart[]>(['labels', 'note', 'checkin'])
   const [busy, setBusy] = useState(false)
+  const [booking, setBooking] = useState<Set<string>>(new Set())
+  const checkedIn = (s: EaRow) => !!tms.get(s.id)?.wms_checkin_at || s.act_pcs != null
+  const canBook = (s: EaRow) => !tms.has(s.id) && !checkedIn(s)
+  const toBook = subs.filter((s) => canBook(s) && s.collection_mode !== 'dropoff')
+
+  /** TMS pickup job from the sub's supplier address and dims. A drop-off sub switches to pickup first. */
+  async function book(list: EaRow[]) {
+    const ok: string[] = []
+    setBooking(new Set(list.map((s) => s.id)))
+    for (const s of list) {
+      const x = s as unknown as { pickup_address?: string | null; shipper_address?: string | null }
+      if (!x.pickup_address?.trim() && !x.shipper_address?.trim()) { toast.error(`${supplierOf(s)}: add a pickup address first`); onTab(s.id); continue }
+      try {
+        if (s.collection_mode === 'dropoff') await patchBooking(s.id, { collection_mode: 'pickup' })
+        const ready = s.cargo_ready_date && s.cargo_ready_date >= new Date().toISOString().slice(0, 10) ? new Date(`${s.cargo_ready_date}T10:00:00`).toISOString() : new Date().toISOString()
+        const { data, error } = await supabase.rpc('booking_create_pickup', { p_booking: s.id, p_ready: ready })
+        if (error) throw new Error(error.message)
+        ok.push((data as { consignment_no?: string } | null)?.consignment_no ?? s.booking_ref)
+      } catch (e) { toast.error(`${supplierOf(s)}: ${(e as Error).message}`) }
+    }
+    setBooking(new Set())
+    if (ok.length) { toast.success(ok.length === 1 ? `Pickup ${ok[0]} created in TMS` : `${ok.length} pickups created in TMS`); onBooked() }
+  }
+  const bookBtn = (s: EaRow) => (
+    <button type="button" className={`${pill} !border-[#C9D4EA] !text-[#0A2472]`} disabled={booking.has(s.id)} onClick={(e) => { e.stopPropagation(); void book([s]) }}
+      title={s.collection_mode === 'dropoff' ? 'Supplier was dropping off. Book a UBF pickup instead' : 'Create a TMS pickup job'}>
+      {booking.has(s.id) ? <Loader2 size={11} className="animate-spin" /> : <Truck size={11} />} Book pickup
+    </button>
+  )
   const pick = (v: 'compact' | 'list') => { setView(v); try { localStorage.setItem(KEY, v) } catch { /* ignore */ } }
 
   const jobs = subs.filter((s) => tms.has(s.id)).length
@@ -74,6 +105,12 @@ export default function EaMasterDocs({ masterRef, subs, tms, onTab }: Props) {
       <div className="flex flex-wrap items-center gap-x-4 gap-y-1 border-b border-[#F1F2F5] px-4 py-2 text-[12px] text-[#5B616E]">
         <span><Truck size={12} className="mr-1 inline" />{jobs} of {subs.length} TMS jobs</span>
         <span><Warehouse size={12} className="mr-1 inline" />{ins} of {subs.length} checked in</span>
+        {toBook.length > 1 ? (
+          <button type="button" onClick={() => void book(toBook)} disabled={booking.size > 0}
+            className="inline-flex h-[24px] w-auto items-center gap-1 rounded-full border border-[#C9D4EA] bg-white px-2 text-[11px] font-medium text-[#0A2472] hover:bg-[#F3F6FD] disabled:opacity-50">
+            {booking.size ? <Loader2 size={11} className="animate-spin" /> : <Truck size={11} />} Book {toBook.length} pickups
+          </button>
+        ) : null}
         <span className="ml-auto flex items-center gap-3">
           {chip('labels', 'Labels')}{chip('note', 'Notes')}{chip('checkin', 'Check-ins')}
           <button type="button" onClick={() => void downloadAll()} disabled={busy || !jobs}
@@ -91,6 +128,7 @@ export default function EaMasterDocs({ masterRef, subs, tms, onTab }: Props) {
               <div key={s.id} className="flex items-center gap-1.5 rounded-lg border border-[#EEF0F3] bg-[#FCFCFD] py-1 pl-2.5 pr-1.5">
                 <button type="button" onClick={() => onTab(s.id)} className="max-w-[160px] truncate border-0 bg-transparent p-0 text-[12px] font-medium text-[#14161A] hover:underline" title={`${supplierOf(s)} · ${s.booking_ref}`}>{supplierOf(s)}</button>
                 <span className={`h-1.5 w-1.5 rounded-full ${t?.wms_checkin_at || s.act_pcs != null ? 'bg-[#17B26A]' : t ? 'bg-[#F79009]' : 'bg-[#D0D5DD]'}`} title={t?.wms_checkin_at ? 'Checked in' : t ? 'Pickup booked' : 'No TMS job'} />
+                {canBook(s) && s.collection_mode !== 'dropoff' ? bookBtn(s) : null}
                 {docButtons(s)}
               </div>
             )
@@ -108,7 +146,9 @@ export default function EaMasterDocs({ masterRef, subs, tms, onTab }: Props) {
               return (
                 <tr key={s.id} className="border-b border-[#F6F7F9] last:border-0">
                   <td className="px-4 py-2"><button type="button" onClick={() => onTab(s.id)} className="border-0 bg-transparent p-0 text-left font-medium text-[#14161A] hover:underline">{supplierOf(s)}</button><div className="bk-mono text-[11px] text-[#6B7280]">{s.booking_ref}</div></td>
-                  <td className="bk-mono px-3 py-2 text-[12px]">{t?.consignment_no ?? <span className="text-[#98A2B3]">{s.collection_mode === 'dropoff' ? 'Drop-off' : 'Not booked'}</span>}</td>
+                  <td className="bk-mono px-3 py-2 text-[12px]">{t?.consignment_no ?? (checkedIn(s) ? <span className="text-[#98A2B3]">—</span> : (
+                    <span className="flex items-center gap-2">{s.collection_mode === 'dropoff' ? <span className="font-sans text-[#98A2B3]">Drop-off</span> : null}{bookBtn(s)}</span>
+                  ))}</td>
                   <td className="px-3 py-2 text-[12px]">{when(t?.picked_up_at) ?? <span className="text-[#98A2B3]">—</span>}</td>
                   <td className="px-3 py-2 text-[12px]">{when(t?.wms_checkin_at) ?? (s.act_pcs != null ? 'Yes' : <span className="text-[#98A2B3]">Waiting</span>)}</td>
                   <td className="px-3 py-2"><span className="flex flex-wrap gap-1">{docButtons(s)}</span></td>

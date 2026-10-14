@@ -164,7 +164,7 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged,
           {asMaster ? (
             <>
               <EaMasterCargo b={b} subs={subs} onTab={(id) => family?.setActive(id)} />
-              <div id="ea-move"><EaMasterDocs masterRef={b.booking_ref} subs={subs} tms={extras.tms} onTab={(id) => family?.setActive(id)} /></div>
+              <div id="ea-move"><EaMasterDocs masterRef={b.booking_ref} subs={subs} tms={extras.tms} onTab={(id) => family?.setActive(id)} onBooked={() => { extras.reload(); void changed() }} /></div>
             </>
           ) : (
             <>
