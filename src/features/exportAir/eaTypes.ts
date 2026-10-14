@@ -26,6 +26,7 @@ export type EaRow = {
   cargo_ready_date: string | null
   is_dg: boolean | null
   is_consolidation: boolean | null
+  master_booking_id: string | null
   collection_mode: 'pickup' | 'dropoff' | null
   consol_id: string | null
   consol_flight: string | null

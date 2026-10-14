@@ -5,7 +5,9 @@ import { toast } from 'sonner'
 import '@/features/bookingsWorkspace/bookingsTheme.css'
 import { Pencil } from 'lucide-react'
 import { awbOk, cargoOf, fmtAwb, fmtNum, type EaRow } from './eaTypes'
-import { btn, btnPrimary, Card, eaHref, lbl, StageBar, Tag } from './eaUi'
+import { btn, btnPrimary, Card, eaHref, lbl, Tag } from './eaUi'
+import { StatusCell } from './EaBoardRow'
+import { statusFor } from './eaRowStatus'
 import { allocateBookings } from './useEaBoard'
 import { useEaConsol } from './useEaConsol'
 import EaConsolDialog from './EaConsolDialog'
@@ -16,7 +18,7 @@ import EaHawbDrawer from './EaHawbDrawer'
 /** Consol planner: header, allocated houses, same-lane candidates, close + export to TradeWindow. */
 export default function EaConsolPage() {
   const { consolId } = useParams()
-  const { consol: c, houses, candidates, error, reload } = useEaConsol(consolId)
+  const { consol: c, houses, subsOf, candidates, error, reload } = useEaConsol(consolId)
   const [editing, setEditing] = useState(false)
   const [hawb, setHawb] = useState<string | null>(null)
 
@@ -67,12 +69,12 @@ export default function EaConsolPage() {
         <Fact k="Notes" v={c.notes || '—'} />
       </dl>
 
-      <EaConsolExport consol={c} houses={houses} onDone={() => void reload()} />
+      <EaConsolExport consol={c} houses={houses} subsOf={subsOf} onDone={() => void reload()} />
 
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-[999_1_620px]">
           <Card title={`On this consol · ${houses.length}`}>
-            <HouseList rows={houses} onOpen={setHawb} empty="Nothing allocated yet. Add from the right."
+            <HouseList rows={houses} subsOf={subsOf} onOpen={setHawb} empty="Nothing allocated yet. Add from the right."
               action={locked ? undefined : { label: 'Remove', run: (id) => void move([id], null) }} />
           </Card>
         </div>
@@ -102,22 +104,24 @@ function Fact({ k, v }: { k: string; v: ReactNode }) {
   )
 }
 
-function HouseList({ rows, empty, action, onOpen }: { rows: EaRow[]; empty: string; onOpen?: (id: string) => void; action?: { label: string; run: (id: string) => void; primary?: boolean } }) {
+function HouseList({ rows, empty, action, onOpen, subsOf }: { rows: EaRow[]; empty: string; subsOf?: Map<string, EaRow[]>; onOpen?: (id: string) => void; action?: { label: string; run: (id: string) => void; primary?: boolean } }) {
   if (!rows.length) return <p className="m-0 px-4 py-4 text-[12px] text-[#6B7280]">{empty}</p>
   return (
     <ul className="m-0 list-none py-1">
       {rows.map((r) => {
         const x = cargoOf(r)
         return (
-          <li key={r.id} className="grid grid-cols-[112px_minmax(0,1fr)_120px_100px_auto] items-center gap-3 border-t border-[#F6F7F9] px-4 py-2 first:border-t-0 hover:bg-[#F8F9FB]">
+          <li key={r.id} className="grid grid-cols-[112px_minmax(0,1fr)_120px_190px_auto] items-center gap-3 border-t border-[#F6F7F9] px-4 py-2 first:border-t-0 hover:bg-[#F8F9FB]">
             <a href={eaHref(r.id)} onClick={(e) => { if (e.metaKey || e.ctrlKey || e.shiftKey || !onOpen) return; e.preventDefault(); onOpen(r.id) }}
               className="bk-mono text-[12px] font-medium text-[#0A2472] hover:underline">{r.booking_ref}</a>
             <div className="flex min-w-0 flex-col">
               <span className="truncate font-medium">{r.consignee_code_name ?? r.consignee_name ?? '—'}</span>
-              <span className="truncate text-[11px] text-[#6B7280]">from {r.shipper_code_name ?? r.shipper_name ?? '—'}</span>
+              <span className="truncate text-[11px] text-[#6B7280]">
+                {r.is_consolidation ? `Buyers consol · ${(subsOf?.get(r.id) ?? []).map((x) => x.shipper_code_name ?? x.shipper_name ?? x.booking_ref).join(', ') || 'no suppliers'}` : `from ${r.shipper_code_name ?? r.shipper_name ?? '—'}`}
+              </span>
             </div>
             <span className="bk-mono text-right text-[11.5px]">{fmtNum(x.pcs)} · {fmtNum(x.kg)} · <b className="font-medium">{fmtNum(x.chg)}</b></span>
-            <span className="flex flex-col gap-1"><StageBar stage={r.stage} /><span className="text-[10.5px] text-[#6B7280]">{r.stage >= 2 ? 'Checked in' : 'Not in yet'}</span></span>
+            <StatusCell s={statusFor(r, [], subsOf ?? new Map())} />
             {action ? (
               <button type="button" className={action.primary ? btnPrimary : btn} onClick={() => action.run(r.id)}>{action.label}</button>
             ) : <span />}

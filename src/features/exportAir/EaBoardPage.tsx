@@ -1,60 +1,77 @@
 import { useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { Plus, Search } from 'lucide-react'
+import { Layers, Plus, Search } from 'lucide-react'
 import { toast } from 'sonner'
 import { format, parseISO } from 'date-fns'
 import { useStaffList } from '@/hooks/useStaffList'
 import { useStaffIdSet } from '@/hooks/useStaffIdSet'
 import { EA_VIEWS, viewOf, type AirConsol, type EaView } from './eaTypes'
-import EaBoardRow, { Cell, EA_COLS } from './EaBoardRow'
-import { ConsolGroupHeader, LaneGroupHeader } from './EaGroupHeader'
+import EaBoardRow, { EaColHeads } from './EaBoardRow'
+import { ConsolGroupHeader } from './EaGroupHeader'
+import EaUnallocPanel from './EaUnallocPanel'
 import EaConsolDialog from './EaConsolDialog'
-import { buildGroups } from './eaGroups'
+import { buildGroups, type EaGroup } from './eaGroups'
 import { btn, btnPrimary } from './eaUi'
-import { allocateBookings, assignOwner, useEaBoard } from './useEaBoard'
+import { allocateBookings, setConsolOwner, useEaBoard } from './useEaBoard'
+import { consolidate } from './eaMaster'
 import { useEaDrag } from './useEaDrag'
 import EaMailBubble from './mail/EaMailBubble'
 import EaHawbDrawer from './EaHawbDrawer'
 
 type Dialog = { consol: AirConsol | null; dest?: string } | null
 
-/** Export Air board: consol groups (starred first), then unallocated by lane. Collapsible, gridded, one next action per row. */
+/** Export Air board: consols on the left (starred first, own column heads), unallocated tray on the right. */
 export default function EaBoardPage() {
   const navigate = useNavigate()
   const { rows, consols, loading, error, reload } = useEaBoard()
   const { staff } = useStaffList()
   const [stars, toggleStar] = useStaffIdSet('ea.consol.stars')
   const [collapsed, toggleCollapsed] = useStaffIdSet('ea.board.collapsed')
+  const [panelPref, togglePanel] = useStaffIdSet('ea.board.panel')
   const [view, setView] = useState<EaView>('open')
   const [q, setQ] = useState('')
   const [sel, setSel] = useState<Set<string>>(new Set())
   const [dialog, setDialog] = useState<Dialog>(null)
   const [hawb, setHawb] = useState<string | null>(null)
 
+  // Sub-HAWBs live under their master; the board lists masters and ordinary HAWBs.
+  const subsOf = useMemo(() => {
+    const m = new Map<string, typeof rows>()
+    for (const r of rows) if (r.master_booking_id) m.set(r.master_booking_id, [...(m.get(r.master_booking_id) ?? []), r])
+    return m
+  }, [rows])
+  const top = useMemo(() => rows.filter((r) => !r.master_booking_id), [rows])
+
   const counts = useMemo(() => {
     const c: Record<EaView, number> = { open: 0, review: 0, pickup: 0, warehouse: 0, allocated: 0, departed: 0 }
-    for (const r of rows) {
+    for (const r of top) {
       const v = viewOf(r)
       c[v] += 1
       if (v !== 'departed') c.open += 1
     }
     return c
-  }, [rows])
+  }, [top])
 
   const needle = q.trim().toLowerCase()
-  const visible = useMemo(() => rows.filter((r) => {
+  const visible = useMemo(() => top.filter((r) => {
     const v = viewOf(r)
     if (view === 'open' ? v === 'departed' : v !== view) return false
     if (!needle) return true
-    return [r.booking_ref, r.shipper_name, r.shipper_code_name, r.consignee_name, r.consignee_code_name,
-      r.consignee_account_id, r.shipper_account_id, r.consol_flight, r.quote_no]
-      .some((s) => s?.toLowerCase().includes(needle))
-  }), [rows, view, needle])
+    const subs = subsOf.get(r.id) ?? []
+    return [r, ...subs].some((x) => [x.booking_ref, x.shipper_name, x.shipper_code_name, x.consignee_name, x.consignee_code_name,
+      x.consignee_account_id, x.shipper_account_id, x.consol_flight, x.quote_no].some((s) => s?.toLowerCase().includes(needle)))
+  }), [top, subsOf, view, needle])
 
   const groups = useMemo(() => buildGroups(visible, consols, stars, view, !!needle), [visible, consols, stars, view, needle])
+  const consolGroups = groups.filter((g): g is Extract<EaGroup, { kind: 'consol' }> => g.kind === 'consol')
+  const lanes = groups.filter((g): g is Extract<EaGroup, { kind: 'lane' }> => g.kind === 'lane')
+  // Tray opens itself when there is nothing on the left to look at.
+  const [autoClosed, setAutoClosed] = useState(false)
+  const panelOpen = panelPref.has('open') || (!autoClosed && consolGroups.length === 0 && lanes.length > 0)
+  const togglePanelOpen = () => { if (panelOpen && !panelPref.has('open')) setAutoClosed(true); else { setAutoClosed(false); togglePanel('open') } }
   const dnd = useEaDrag(visible, sel, async () => { setSel(new Set()); await reload() })
 
-  const open = rows.filter((r) => viewOf(r) !== 'departed')
+  const open = top.filter((r) => viewOf(r) !== 'departed')
   const today = open.filter((r) => r.urgency === 'today' || r.urgency === 'blocked').length
   const late = open.filter((r) => r.urgency === 'overdue').length
   const nextCut = consols.filter((c) => c.cutoff_at && Date.parse(c.cutoff_at) > Date.now() && c.status !== 'exported')
@@ -63,7 +80,19 @@ export default function EaBoardPage() {
 
   const ids = [...sel]
   const toggle = (id: string) => setSel((s) => { const n = new Set(s); if (n.has(id)) n.delete(id); else n.add(id); return n })
-  const allOn = visible.length > 0 && visible.every((r) => sel.has(r.id))
+
+  /** Tick HAWBs (optionally one master) and group them under a master. Opens the master. */
+  async function consolidateSel() {
+    const picked = top.filter((r) => sel.has(r.id))
+    const masters = picked.filter((r) => r.is_consolidation)
+    if (masters.length > 1) return toast.error('Pick one master at most. Its HAWBs stay, the others join it.')
+    const children = picked.filter((r) => !r.is_consolidation).map((r) => r.id)
+    try {
+      const mid = await consolidate(children, masters[0]?.id ?? null)
+      toast.success(masters[0] ? `${children.length} added to ${masters[0].booking_ref}` : `${children.length} HAWBs consolidated under a new master`)
+      setSel(new Set()); await reload(); setHawb(mid)
+    } catch (e) { toast.error((e as Error).message) }
+  }
 
   async function run(fn: () => Promise<void>, ok: string) {
     try { await fn(); toast.success(ok); setSel(new Set()); await reload() } catch (e) { toast.error((e as Error).message) }
@@ -113,64 +142,66 @@ export default function EaBoardPage() {
             {openConsols.map((c) => <option key={c.id} value={c.id} className="text-black">{c.flight_no} · {c.destination} · {format(parseISO(c.flight_date), 'EEE d')}</option>)}
             <option value="-" className="text-black">Unallocate</option>
           </select>
-          <select aria-label="Assign owner" defaultValue="" className="h-[26px] rounded-md border-0 bg-white/15 px-2 text-[12px] text-white"
-            onChange={(e) => { const v = e.target.value; if (v) void run(() => assignOwner(ids, v), 'Owner set'); e.target.value = '' }}>
-            <option value="" className="text-black">Assign owner…</option>
-            {staff.map((s) => <option key={s.user_id} value={s.user_id} className="text-black">{s.name}</option>)}
-          </select>
+          <button type="button" disabled={sel.size < 2} onClick={() => void consolidateSel()}
+            title={sel.size < 2 ? 'Tick two or more HAWBs going to the same buyer' : 'Group these HAWBs under one master HAWB'}
+            className="inline-flex h-[26px] w-auto items-center gap-1.5 rounded-md border-0 bg-white/15 px-2.5 text-[12px] font-medium text-white hover:bg-white/25 disabled:opacity-50">
+            <Layers size={13} /> Consolidate
+          </button>
           <button type="button" onClick={() => setSel(new Set())} className="ml-auto w-auto border-0 bg-transparent text-[12px] text-white/80 hover:text-white">Clear</button>
         </div>
       ) : null}
 
-      <div className="mt-2.5 overflow-x-auto rounded-[10px] border border-[#EEF0F3]">
-        <div className="min-w-[1120px]">
-          <div className={`${EA_COLS} bg-white text-[10.5px] uppercase tracking-[.04em] text-[#6B7280]`}>
-            <Cell className="justify-center !py-2">
-              <input type="checkbox" aria-label="Select all in view" checked={allOn} disabled={!visible.length}
-                onChange={() => setSel(allOn ? new Set() : new Set(visible.map((r) => r.id)))} className="m-0 h-3.5 w-3.5 cursor-pointer accent-[#0A2472]" />
-            </Cell>
-            <Cell className="!py-2">Booking</Cell><Cell className="!py-2">Consignee · shipper</Cell>
-            <Cell className="justify-end !py-2">Pcs · Kg · Chg</Cell><Cell className="!py-2">Ready</Cell>
-            <Cell className="!py-2">Stage</Cell><Cell className="!py-2">Next action</Cell><Cell className="!py-2" />
-          </div>
-          {loading ? <div className="border-t border-[#EEF0F3] px-3 py-14 text-center text-[#6B7280]">Loading…</div> : null}
-          {error ? <div className="border-t border-[#EEF0F3] px-3 py-4 text-[#B42318]">{error}</div> : null}
-          {groups.map((g) => {
-            const isOpen = !collapsed.has(g.key) || !!needle
-            const hot = dnd.over === g.key
-            const dropOk = dnd.dragIds.length > 0 && dnd.canDrop(g)
-            return (
-              <div key={g.key} {...dnd.target(g)}
-                className={`relative transition-[box-shadow,background-color] ${hot ? 'bg-[#F3F6FD] shadow-[inset_0_0_0_2px_#0A2472]' : dropOk ? 'shadow-[inset_0_0_0_1px_#C9D4EA]' : ''}`}>
-                {hot ? (
-                  <div className="pointer-events-none absolute right-3 top-2 z-10 rounded-md bg-[#0A2472] px-2 py-0.5 text-[11px] font-medium text-white shadow">
-                    {g.kind === 'consol' ? `Drop on ${g.consol.flight_no}` : 'Drop to unallocate'}
-                  </div>
-                ) : null}
-                {g.kind === 'consol' ? (
-                  <ConsolGroupHeader c={g.consol} open={isOpen} starred={g.starred} shown={g.rows.length}
-                    onToggle={() => toggleCollapsed(g.key)} onStar={() => toggleStar(g.consol.id)} onEdit={() => setDialog({ consol: g.consol })} />
-                ) : (
-                  <LaneGroupHeader dest={g.dest} count={g.rows.length} open={isOpen} onToggle={() => toggleCollapsed(g.key)}
-                    onPlan={g.dest === 'UNSET' ? undefined : () => setDialog({ consol: null, dest: g.dest })} />
-                )}
-                {isOpen ? g.rows.map((r) => (
-                  <EaBoardRow key={r.id} row={r} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} onOpen={setHawb}
-                    drag={{ onStart: dnd.start(r), onEnd: dnd.end, dragging: dnd.dragIds.includes(r.id), locked: r.consol_status === 'exported' || r.consol_status === 'departed' }} />
-                )) : null}
-                {isOpen && g.kind === 'consol' && g.rows.length === 0 ? (
-                  <div className="border-t border-[#F1F2F5] px-12 py-2.5 text-[12px] text-[#98A2B3]">No houses yet. Drag bookings here, or tick and allocate.</div>
-                ) : null}
+      <div className="mt-2.5 flex items-start gap-3">
+        <div className="min-w-0 flex-1 overflow-x-auto rounded-[10px] border border-[#EEF0F3]">
+          <div className="min-w-[980px]">
+            {loading ? <div className="px-3 py-14 text-center text-[#6B7280]">Loading…</div> : null}
+            {error ? <div className="px-3 py-4 text-[#B42318]">{error}</div> : null}
+            {consolGroups.map((g, gi) => {
+              const isOpen = !collapsed.has(g.key) || !!needle
+              const hot = dnd.over === g.key
+              const dropOk = dnd.dragIds.length > 0 && dnd.canDrop(g)
+              const allOn = g.rows.length > 0 && g.rows.every((r) => sel.has(r.id))
+              return (
+                <div key={g.key} {...dnd.target(g)}
+                  className={`relative transition-[box-shadow,background-color] ${gi ? 'border-t-[6px] border-[#F4F5F7]' : ''} ${hot ? 'bg-[#F3F6FD] shadow-[inset_0_0_0_2px_#0A2472]' : dropOk ? 'shadow-[inset_0_0_0_1px_#C9D4EA]' : ''}`}>
+                  {hot ? <div className="pointer-events-none absolute right-3 top-2 z-10 rounded-md bg-[#0A2472] px-2 py-0.5 text-[11px] font-medium text-white shadow">Drop on {g.consol.flight_no}</div> : null}
+                  <ConsolGroupHeader c={g.consol} open={isOpen} starred={g.starred} shown={g.rows.length} staff={staff}
+                    onToggle={() => toggleCollapsed(g.key)} onStar={() => toggleStar(g.consol.id)} onEdit={() => setDialog({ consol: g.consol })}
+                    onOwner={(id) => void run(() => setConsolOwner(g.consol.id, id), id ? 'Consol owner set' : 'Consol unassigned')} />
+                  {isOpen && g.rows.length ? (
+                    <EaColHeads checked={allOn} onToggleAll={() => setSel((s) => {
+                      const n = new Set(s)
+                      for (const r of g.rows) { if (allOn) n.delete(r.id); else n.add(r.id) }
+                      return n
+                    })} />
+                  ) : null}
+                  {isOpen ? g.rows.map((r) => (
+                    <div key={r.id}>
+                      <EaBoardRow row={r} consols={consols} selected={sel.has(r.id)} onToggle={() => toggle(r.id)} onOpen={setHawb} subs={subsOf.get(r.id)}
+                        drag={{ onStart: dnd.start(r), onEnd: dnd.end, dragging: dnd.dragIds.includes(r.id), locked: r.consol_status === 'exported' || r.consol_status === 'departed' }} />
+                      {r.is_consolidation ? (subsOf.get(r.id) ?? []).map((sub) => (
+                        <EaBoardRow key={sub.id} row={sub} consols={consols} selected={false} onToggle={() => undefined} onOpen={setHawb} nested />
+                      )) : null}
+                    </div>
+                  )) : null}
+                  {isOpen && g.rows.length === 0 ? (
+                    <div className="border-t border-[#F1F2F5] px-12 py-2.5 text-[12px] text-[#98A2B3]">No houses yet. Drag bookings here from Unallocated.</div>
+                  ) : null}
+                </div>
+              )
+            })}
+            {!loading && !error && consolGroups.length === 0 ? (
+              <div className="px-3 py-14 text-center text-[#6B7280]">
+                <div className="mb-1 font-medium text-[#14161A]">No consols in this view</div>
+                {view === 'departed' ? 'Bookings land here once TradeWindow sync confirms the flight left.'
+                  : lanes.length ? 'Bookings waiting for a consol are on the right.' : 'No bookings match this view.'}
               </div>
-            )
-          })}
-          {!loading && !error && groups.length === 0 ? (
-            <div className="border-t border-[#EEF0F3] px-3 py-14 text-center text-[#6B7280]">
-              <div className="mb-1 font-medium text-[#14161A]">Nothing here</div>
-              {view === 'departed' ? 'Bookings land here once TradeWindow sync confirms the flight left.' : 'No bookings match this view.'}
-            </div>
-          ) : null}
+            ) : null}
+          </div>
         </div>
+        <EaUnallocPanel lanes={lanes} consols={consols} subsOf={subsOf} open={panelOpen} onToggle={togglePanelOpen}
+          collapsed={collapsed} onToggleLane={toggleCollapsed} searching={!!needle} dnd={dnd} onOpen={setHawb}
+          onPlan={(dest) => setDialog({ consol: null, dest })} />
       </div>
 
       <EaMailBubble onChanged={() => void reload()} />

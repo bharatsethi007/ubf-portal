@@ -7,10 +7,17 @@ import { buildConsolXml, downloadText, xmlIssues } from './eaXml'
 import { patchConsol } from './useEaConsol'
 
 /** Close + export strip. Builds the Consolidation2 file staff import into the TW consol (Document tab > Import XML). */
-export default function EaConsolExport({ consol: c, houses, onDone }: { consol: AirConsol; houses: EaRow[]; onDone: () => void }) {
+export default function EaConsolExport({ consol: c, houses, subsOf, onDone }: { consol: AirConsol; houses: EaRow[]; subsOf: Map<string, EaRow[]>; onDone: () => void }) {
   const [busy, setBusy] = useState(false)
-  const issues = xmlIssues(c, houses)
-  const notIn = houses.filter((h) => h.stage < 2)
+  const issues = xmlIssues(c, houses, subsOf)
+  const notIn = houses.filter((h) => (h.is_consolidation ? (subsOf.get(h.id) ?? []).some((s) => s.stage < 2 && s.act_pcs == null) : h.stage < 2))
+  const plain = issues.filter((i) => !i.sub)
+  const bySub = new Map<string, { master: string; supplier: string; ref: string; problems: string[] }>()
+  for (const i of issues) if (i.sub) {
+    const k = i.sub.ref
+    const g = bySub.get(k) ?? { master: i.ref, supplier: i.sub.supplier, ref: i.sub.ref, problems: [] }
+    g.problems.push(i.problem); bySub.set(k, g)
+  }
   const locked = c.status === 'exported' || c.status === 'departed'
 
   async function exportXml(close: boolean) {
@@ -56,10 +63,24 @@ export default function EaConsolExport({ consol: c, houses, onDone }: { consol: 
           <button type="button" className={btnPrimary} disabled={busy || issues.length > 0} onClick={() => void exportXml(true)}>Close &amp; export</button>
         </div>
       </Strip>
-      {issues.length ? (
+      {plain.length ? (
         <ul className="m-0 flex list-none flex-wrap gap-x-5 gap-y-1 px-3.5 text-[12px] text-[#B54708]">
-          {issues.map((i, n) => <li key={n}><span className="bk-mono">{i.ref}</span> · {i.problem}</li>)}
+          {plain.map((i, n) => <li key={n}><span className="bk-mono">{i.ref}</span> · {i.problem}</li>)}
         </ul>
+      ) : null}
+      {bySub.size ? (
+        <div className="mx-3.5 overflow-hidden rounded-lg border border-[#FEDF89] text-[12px]">
+          <div className="bg-[#FFFAEB] px-3 py-1.5 font-medium text-[#93370D]">Buyers consol sub-HAWBs still missing items</div>
+          <ul className="m-0 list-none p-0">
+            {[...bySub.values()].map((g) => (
+              <li key={g.ref} className="grid grid-cols-[110px_120px_minmax(0,1fr)] gap-3 border-t border-[#FEF0C7] bg-white px-3 py-1.5">
+                <span className="bk-mono text-[#5B616E]">{g.master}</span>
+                <span className="truncate"><span className="bk-mono text-[#0A2472]">{g.ref}</span></span>
+                <span className="truncate text-[#14161A]"><b className="font-medium">{g.supplier}</b> · <span className="text-[#B54708]">{g.problems.join(' · ')}</span></span>
+              </li>
+            ))}
+          </ul>
+        </div>
       ) : null}
     </div>
   )

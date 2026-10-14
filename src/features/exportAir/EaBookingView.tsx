@@ -1,10 +1,10 @@
-import { useState } from 'react'
+import { useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { ExternalLink, Pencil, X } from 'lucide-react'
 import { toast } from 'sonner'
 import '@/features/bookingsWorkspace/bookingsTheme.css'
 import { cargoOf, fmtNum, STAGE_LABELS } from './eaTypes'
-import { Avatar, btn, eaHref, Tag } from './eaUi'
+import { btn, eaHref, Tag } from './eaUi'
 import { allocateBookings } from './useEaBoard'
 import { patchBooking, useEaBooking } from './useEaBooking'
 import EaProgressPanel from './progress/EaProgressPanel'
@@ -21,11 +21,17 @@ import EaQuoteAttach from './progress/EaQuoteAttach'
 import EaSliDialog from './progress/EaSliDialog'
 import EaBcDialog from './bc/EaBcDialog'
 import { viewCheckinSheet } from './progress/checkinSheet'
+import EaConsolToggle from './master/EaConsolToggle'
+import EaMasterCargo from './master/EaMasterCargo'
+import EaMasterDocs from './master/EaMasterDocs'
+import type { FamilyCtl } from './master/EaHawbShell'
+import { firstMissing, masterAsHouse, masterMilestones, masterPlan, masterTotals, subPlan } from './eaMaster'
+import { useEaSubExtras } from './useEaFamily'
 
-type Props = { bookingId: string; embedded?: boolean; onClose?: () => void; onChanged?: () => void }
+type Props = { bookingId: string; embedded?: boolean; onClose?: () => void; onChanged?: () => void; family?: FamilyCtl; tabs?: ReactNode }
 
 /** Export Air booking (HAWB) record. Full page or inside the consol popup. */
-export default function EaBookingView({ bookingId, embedded, onClose, onChanged }: Props) {
+export default function EaBookingView({ bookingId, embedded, onClose, onChanged, family, tabs }: Props) {
   const navigate = useNavigate()
   const { b, lines, threads, docs, hist, consols, tms, error, reload } = useEaBooking(bookingId)
   const [editing, setEditing] = useState(false)
@@ -34,11 +40,21 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
   const [quoteOpen, setQuoteOpen] = useState(false)
   const [sliOpen, setSliOpen] = useState(false)
   const [bcOpen, setBcOpen] = useState(false)
+  const asMaster = !!b?.is_consolidation && family?.master?.id === b?.id
+  const subs = asMaster ? family!.subs : []
+  const extras = useEaSubExtras(subs)
 
   if (error) return <div className="bk-root p-6 text-[#B42318]">{error}</div>
   if (!b) return <div className="bk-root p-6 text-[#6B7280]">Loading…</div>
 
-  const c = cargoOf(b)
+  const c = asMaster ? masterTotals(subs) : cargoOf(b)
+  const inFamily = !!family?.master
+  const allThreads = asMaster ? [...threads, ...extras.threads] : threads
+  const allDocs = asMaster ? [...docs, ...extras.docs] : docs
+  const jump = (what: 'pickup' | 'checkin' | 'sli' | 'any') => {
+    const s = firstMissing(subs, what) ?? firstMissing(subs, 'any')
+    if (s) family?.setActive(s.id); else toast.message('Nothing missing there')
+  }
   const open = consols.filter((x) => !['exported', 'departed', 'closed', 'cancelled'].includes(x.status))
   const best = open.find((x) => !x.cutoff_at || Date.parse(x.cutoff_at) > Date.now()) ?? open[0]
   const locked = b.consol_status === 'exported' || b.consol_status === 'departed'
@@ -59,6 +75,12 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
       else if (a === 'open_sli') return setSliOpen(true)
       else if (a === 'view_checkin') { if (tms) await viewCheckinSheet(tms.id); return }
       else if (a === 'send_bc') return setBcOpen(true)
+      else if (a === 'tab_pickup') return jump('pickup')
+      else if (a === 'tab_checkin') return jump('checkin')
+      else if (a === 'tab_sli') return jump('sli')
+      else if (a === 'tab_first') return jump('any')
+      else if (a === 'add_sub') return family?.openAdd()
+      else if (a === 'tab_master') return family?.master && family.setActive(family.master.id)
       else if (a === 'allocate' && best) { await allocateBookings([b!.id], best.id); toast.success(`Allocated to ${best.flight_no}`) }
       else if (a === 'open_consol') {
         const id = b!.consol_id ?? best?.id
@@ -78,6 +100,8 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
         </div>
       )}
 
+      {tabs}
+
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="flex flex-col gap-1.5">
           <div className="flex flex-wrap items-center gap-2.5">
@@ -85,16 +109,20 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
             <Tag tone={tone}>{STAGE_LABELS[b.stage]}</Tag>
             <Tag>AKL → {(b.destination || 'NAN').toUpperCase()}</Tag>
             {b.is_dg ? <Tag tone="red">DG</Tag> : null}
-            {b.is_consolidation ? <Tag tone="amber">Buyers consol</Tag> : null}
+            {asMaster ? <Tag tone="navy">Master HAWB · {subs.length} supplier{subs.length === 1 ? '' : 's'}</Tag> : inFamily ? <Tag tone="amber">Sub-HAWB of {family!.master!.booking_ref}</Tag> : null}
             {b.consol_flight ? <Tag tone="navy">{b.consol_flight}</Tag> : null}
           </div>
           <div className="text-[12.5px] text-[#5B616E]">
-            {b.shipper_code_name ?? b.shipper_name ?? 'Shipper?'} → <span className="font-medium text-[#14161A]">{b.consignee_code_name ?? b.consignee_name ?? 'Consignee?'}</span>
+            {asMaster ? (b.shipper_name ?? 'Various Shippers') : b.shipper_code_name ?? b.shipper_name ?? 'Shipper?'} → <span className="font-medium text-[#14161A]">{b.consignee_code_name ?? b.consignee_name ?? 'Consignee?'}</span>
             {b.consignee_city ? `, ${b.consignee_city}` : ''} · {fmtNum(c.pcs)} pcs · {fmtNum(c.kg)} kg
           </div>
         </div>
         <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1.5 flex items-center gap-1.5 text-[12px] text-[#5B616E]"><Avatar initials={b.owner_initials} title={b.owner_name} />{b.owner_name ?? 'Unassigned'}</span>
+          {family ? (
+            <EaConsolToggle mode={asMaster ? 'master' : inFamily ? 'sub' : 'none'} masterRef={family.master?.booking_ref} disabled={locked}
+              onMake={() => void family.make()} onAdd={family.openAdd} onRemove={() => void family.remove(b.id)}
+              onDissolve={() => void family.dissolve()} onOpenMaster={() => family.master && family.setActive(family.master.id)} />
+          ) : null}
           <button type="button" className={btn} title="Edit all fields" disabled={locked} onClick={() => setEditing(true)}><Pencil size={13} /> Edit</button>
           {embedded ? (
             <>
@@ -105,7 +133,15 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
         </div>
       </div>
 
-      <EaProgressPanel b={b} tms={tms} best={best} onAction={(a) => void act(a)} onChanged={() => void changed()} />
+      <EaProgressPanel b={b} tms={tms} best={best} onAction={(a) => void act(a)} onChanged={() => void changed()}
+        milestones={asMaster ? masterMilestones(b, subs) : undefined}
+        plan={asMaster ? masterPlan(b, subs) : inFamily ? subPlan(b, tms, family!.master!) : undefined} />
+      {inFamily && !asMaster ? (
+        <p className="m-0 mt-2 rounded-lg bg-[#F5F7FC] px-3 py-2 text-[12px] text-[#475467]">
+          Supplier tab of <button type="button" onClick={() => family!.setActive(family!.master!.id)} className="bk-mono w-auto border-0 bg-transparent p-0 text-[12px] font-medium text-[#0A2472] hover:underline">{family!.master!.booking_ref}</button>.
+          Buyer, bill-to and flight follow the master. TradeWindow codes are only needed on the master; here you handle pickup, check-in, SLI and documents.
+        </p>
+      ) : null}
 
       {b.stage < 0 ? (
         <div className="flex justify-end">
@@ -117,18 +153,27 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged 
       <div className="flex flex-wrap items-start gap-4">
         <div className="flex min-w-0 flex-[999_1_640px] flex-col gap-4">
           <div id="ea-parties"><EaPartiesCard b={b} onSaved={() => void changed()} /></div>
-          <EaCargoCard b={b} lines={lines} />
-          <div id="ea-move"><EaMoveCard b={b} tms={tms} onSaved={() => void changed()} openTmsSignal={tmsSignal} /></div>
-          <EaExportCard b={b} />
+          {asMaster ? (
+            <>
+              <EaMasterCargo b={b} subs={subs} onTab={(id) => family?.setActive(id)} />
+              <div id="ea-move"><EaMasterDocs masterRef={b.booking_ref} subs={subs} tms={extras.tms} onTab={(id) => family?.setActive(id)} /></div>
+            </>
+          ) : (
+            <>
+              <EaCargoCard b={b} lines={lines} />
+              <div id="ea-move"><EaMoveCard b={b} tms={tms} onSaved={() => void changed()} openTmsSignal={tmsSignal} /></div>
+            </>
+          )}
+          {inFamily && !asMaster ? null : <EaExportCard b={asMaster ? masterAsHouse(b, subs) : b} />}
         </div>
-        <EaSideRail b={b} threads={threads} docs={docs} hist={hist} onSaved={() => void changed()} onOpenDoc={setDoc} activeDoc={doc} />
+        <EaSideRail b={b} threads={allThreads} docs={allDocs} hist={hist} onSaved={() => void changed()} onOpenDoc={setDoc} activeDoc={doc} />
       </div>
       {embedded ? null : <EaMailBubble bookingId={b.id} bookingRef={b.booking_ref} onChanged={() => void changed()} />}
       {editing ? <EaEditPanel b={b} onClose={() => setEditing(false)} onSaved={() => void changed()} /> : null}
       {quoteOpen ? <EaQuoteAttach bookingId={b.id} hint={b.consignee_code_name ?? b.consignee_name ?? b.shipper_name ?? ''} onClose={() => setQuoteOpen(false)} onDone={() => { setQuoteOpen(false); void changed() }} /> : null}
-      {sliOpen ? <EaSliDialog bookingId={b.id} isConsolidation={!!b.is_consolidation} onClose={() => { setSliOpen(false); void changed() }} /> : null}
-      {bcOpen ? <EaBcDialog b={b} consol={consols.find((x) => x.id === b.consol_id)} onClose={() => setBcOpen(false)} onSent={() => void changed()} /> : null}
-      {doc != null ? <EaDocViewer docs={docs} index={doc} onIndex={setDoc} onClose={() => setDoc(null)} /> : null}
+      {sliOpen ? <EaSliDialog bookingId={b.id} isConsolidation={!!b.is_consolidation && !asMaster} onClose={() => { setSliOpen(false); void changed() }} /> : null}
+      {bcOpen ? <EaBcDialog b={asMaster ? masterAsHouse(b, subs) : b} consol={consols.find((x) => x.id === b.consol_id)} onClose={() => setBcOpen(false)} onSent={() => void changed()} /> : null}
+      {doc != null ? <EaDocViewer docs={allDocs} index={doc} onIndex={setDoc} onClose={() => setDoc(null)} /> : null}
     </div>
   )
 }

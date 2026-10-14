@@ -31,8 +31,8 @@ export type EaDetail = EaRow & {
 }
 
 export type CargoLine = { id: string; kind: 'booked' | 'actual'; pieces: number | null; weight: number | null; cbm: number | null }
-export type ThreadRow = { conversation_id: string; subject: string | null; last_preview: string | null; last_sender: string | null; last_message_at: string | null; email_mailbox: string | null }
-export type DocRow = { id: string; file_name: string; storage_path: string; created_at: string; uploaded_via: string | null }
+export type ThreadRow = { from?: string; conversation_id: string; subject: string | null; last_preview: string | null; last_sender: string | null; last_message_at: string | null; email_mailbox: string | null }
+export type DocRow = { from?: string; id: string; file_name: string; storage_path: string; created_at: string; uploaded_via: string | null }
 export type TmsJob = { id: string; consignment_no: string | null; status: string | null; order_type: string | null; wms_checkin_at: string | null; picked_up_at: string | null }
 export type HistRow = { id: number; field: string | null; action: string | null; new_value: string | null; actor_name: string | null; created_at: string }
 

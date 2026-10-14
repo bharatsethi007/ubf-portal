@@ -1,6 +1,7 @@
 import { supabase } from '@/supabase'
 import { cleanForTw } from './EaCargoCard'
 import { awbOk, cargoOf, type AirConsol, type EaRow } from './eaTypes'
+import { subIssues, supplierOf } from './eaMaster'
 
 /** TradeWindow Export Air consol import (Consolidation2). Matches the shape TW's own Extract XML produces. */
 
@@ -13,10 +14,11 @@ const tag = (k: string, v: unknown, pad = '    ') => `${pad}<${k}>${esc(v)}</${k
 const iso = (d: string | null | undefined) => (d ? `${d.slice(0, 10)}T00:00:00Z` : '')
 const num = (n: number | null | undefined, dp = 0) => (n == null ? '' : String(Number(Number(n).toFixed(dp))))
 
-export type XmlIssue = { ref: string; problem: string }
+/** sub is set when the problem sits on a sub-HAWB of a buyers consol (ref is then the master). */
+export type XmlIssue = { ref: string; problem: string; sub?: { ref: string; supplier: string } }
 
 /** Everything TW needs per house. Empty list = safe to export. */
-export function xmlIssues(consol: AirConsol, houses: House[]): XmlIssue[] {
+export function xmlIssues(consol: AirConsol, houses: House[], subsOf: Map<string, EaRow[]> = new Map()): XmlIssue[] {
   const out: XmlIssue[] = []
   if (!houses.length) out.push({ ref: consol.flight_no, problem: 'No houses allocated' })
   if (!consol.mawb) out.push({ ref: consol.flight_no, problem: 'MAWB missing' })
@@ -29,6 +31,11 @@ export function xmlIssues(consol: AirConsol, houses: House[]): XmlIssue[] {
     if (!c.pcs) out.push({ ref: h.booking_ref, problem: 'Pieces missing' })
     if (!c.kg) out.push({ ref: h.booking_ref, problem: 'Weight missing' })
     if (!cleanForTw(h.goods_description ?? h.commodity)) out.push({ ref: h.booking_ref, problem: 'Goods description missing' })
+    if (h.is_consolidation) {
+      const subs = subsOf.get(h.id) ?? []
+      if (!subs.length) out.push({ ref: h.booking_ref, problem: 'Buyers consol has no sub-HAWBs' })
+      for (const s of subs) for (const p of subIssues(s)) out.push({ ref: h.booking_ref, problem: p, sub: { ref: s.booking_ref, supplier: supplierOf(s) } })
+    }
   }
   return out
 }

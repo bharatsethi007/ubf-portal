@@ -5,6 +5,7 @@ import type { EaDetail, TmsJob } from '../useEaBooking'
 export type EaAction =
   | 'confirm' | 'match' | 'book_pickup' | 'open_tms' | 'mail_supplier' | 'allocate' | 'open_consol' | 'edit'
   | 'attach_quote' | 'get_quote' | 'view_quote' | 'send_bc' | 'open_sli' | 'view_checkin' | 'none'
+  | 'tab_pickup' | 'tab_checkin' | 'tab_sli' | 'tab_first' | 'add_sub' | 'tab_master'
 
 export type StepCta = { label: string; action: EaAction; disabled?: boolean; title?: string; tone?: 'primary' | 'quiet' }
 export type EaMilestone = Milestone & { ctas: StepCta[] }

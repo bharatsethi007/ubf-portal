@@ -5,7 +5,7 @@ import CustomerUpdateDialog, { type Channel } from '@/features/bookingRecord/pro
 import '@/features/bookingRecord/progress/progress.css'
 import type { EaDetail, TmsJob } from '../useEaBooking'
 import type { AirConsol } from '../eaTypes'
-import { eaMilestones, eaPlan, eaProgress, type EaAction, type EaMilestone } from './eaProgress'
+import { eaMilestones, eaPlan, eaProgress, type EaAction, type EaMilestone, type EaPlan } from './eaProgress'
 
 const OWNER_ICON = { ubf: Building2, customer: User, carrier: Plane, port: Truck } as const
 const OWNER_LABEL = { ubf: 'UBF', customer: 'Supplier', carrier: 'Airline', port: 'Port' } as const
@@ -36,13 +36,17 @@ function Step({ m, current, onAction }: { m: EaMilestone; current: boolean; onAc
   )
 }
 
-type Props = { b: EaDetail; tms: TmsJob | null; best: AirConsol | undefined; onAction: (a: EaAction) => void; onChanged: () => void }
+type Props = {
+  b: EaDetail; tms: TmsJob | null; best: AirConsol | undefined; onAction: (a: EaAction) => void; onChanged: () => void
+  /** Master HAWB: rolled-up track and plan from its sub-HAWBs. */
+  milestones?: EaMilestone[]; plan?: EaPlan
+}
 
 /** Import Sea style progress for export air: segmented bar, milestone track, one next step with its button. Collapsible. */
-export default function EaProgressPanel({ b, tms, best, onAction, onChanged }: Props) {
-  const ms = eaMilestones(b, tms)
+export default function EaProgressPanel({ b, tms, best, onAction, onChanged, milestones, plan: planIn }: Props) {
+  const ms = milestones ?? eaMilestones(b, tms)
   const p = eaProgress(b, ms)
-  const plan = eaPlan(b, tms, best)
+  const plan = planIn ?? eaPlan(b, tms, best)
   const [fill, setFill] = useState(0)
   const [dialog, setDialog] = useState<Channel | null>(null)
   const [collapsed, setCollapsed] = useState(() => { try { return localStorage.getItem(KEY) === '1' } catch { return false } })

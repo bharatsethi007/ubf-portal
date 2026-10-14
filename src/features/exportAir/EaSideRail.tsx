@@ -4,7 +4,7 @@ import { FileText } from 'lucide-react'
 import { format, parseISO } from 'date-fns'
 import { toast } from 'sonner'
 import { uploadBookingFile } from '@/components/bookings/bookingDocumentsApi'
-import { Card } from './eaUi'
+import { Card, Tag } from './eaUi'
 import type { DocRow, EaDetail, HistRow, ThreadRow } from './useEaBooking'
 
 const short = (iso: string | null) => (iso ? format(parseISO(iso), 'd MMM') : '')
@@ -24,7 +24,10 @@ export default function EaSideRail({ b, threads, docs, hist, onSaved, onOpenDoc,
                   <Link to={`/inbox?c=${t.conversation_id}`} className="truncate font-medium text-[#14161A] hover:underline">{t.subject || t.last_sender || 'Conversation'}</Link>
                   <span className="shrink-0 text-[11px] text-[#6B7280]">{short(t.last_message_at)}</span>
                 </div>
-                <span className="truncate text-[12px] text-[#5B616E]">{t.last_sender ? `${t.last_sender}: ` : ''}{t.last_preview}</span>
+                <span className="flex min-w-0 items-center gap-1.5">
+                  {t.from ? <Tag tone="navy">{t.from}</Tag> : null}
+                  <span className="truncate text-[12px] text-[#5B616E]">{t.last_sender ? `${t.last_sender}: ` : ''}{t.last_preview}</span>
+                </span>
               </li>
             ))}
           </ul>
@@ -89,6 +92,7 @@ function Docs({ b, docs, onSaved, onOpen, active }: { b: EaDetail; docs: DocRow[
               <button type="button" onClick={() => onOpen(i)} aria-current={active === i || undefined} className={`flex w-full items-center gap-2.5 border-0 px-4 py-2 text-left text-[12.5px] hover:bg-[#F8F9FB] ${active === i ? 'bg-[#EEF1F9]' : 'bg-transparent'}`}>
                 <FileText size={14} className="shrink-0 text-[#98A2B3]" />
                 <span className="min-w-0 flex-1 truncate text-[#14161A]">{d.file_name}</span>
+                {d.from ? <span className="max-w-[110px] shrink-0 truncate"><Tag tone="navy">{d.from}</Tag></span> : null}
                 <span className="shrink-0 text-[11px] text-[#6B7280]">{d.uploaded_via ?? 'staff'} · {short(d.created_at)}</span>
               </button>
             </li>

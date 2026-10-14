@@ -78,3 +78,9 @@ export async function saveConsol(id: string | null, c: ConsolInput) {
   if (error) throw new Error(error.message)
   return data.id as string
 }
+
+/** The consol owner; HAWBs no longer carry their own. */
+export async function setConsolOwner(consolId: string, userId: string | null) {
+  const { error } = await supabase.from('air_consols').update({ handled_by: userId }).eq('id', consolId)
+  if (error) throw new Error(error.message)
+}

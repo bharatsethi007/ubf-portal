@@ -1,8 +1,8 @@
 import { useParams } from 'react-router-dom'
-import EaBookingView from './EaBookingView'
+import EaHawbShell from './master/EaHawbShell'
 
 /** /bookings/export-air/:bookingId */
 export default function EaBookingPage() {
   const { bookingId } = useParams()
-  return bookingId ? <EaBookingView key={bookingId} bookingId={bookingId} /> : null
+  return bookingId ? <EaHawbShell key={bookingId} bookingId={bookingId} /> : null
 }

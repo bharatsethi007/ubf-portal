@@ -1,5 +1,5 @@
 import { useEffect } from 'react'
-import EaBookingView from './EaBookingView'
+import EaHawbShell from './master/EaHawbShell'
 
 type Props = { bookingId: string | null; onClose: () => void; onChanged?: () => void }
 
@@ -20,7 +20,7 @@ export default function EaHawbDrawer({ bookingId, onClose, onChanged }: Props) {
     <div className="fixed inset-0 z-[45] bg-[rgba(15,23,42,.22)]" onMouseDown={(e) => { if (e.target === e.currentTarget) onClose() }}>
       <div role="dialog" aria-label="House air waybill" aria-modal="true"
         className="absolute bottom-3 right-3 top-3 w-[min(1360px,calc(100vw-24px))] overflow-y-auto rounded-xl bg-white px-6 py-5 shadow-[0_24px_64px_rgba(15,23,42,.24)] duration-300 animate-in fade-in-0 slide-in-from-right-8 motion-reduce:animate-none">
-        <EaBookingView key={bookingId} bookingId={bookingId} embedded onClose={onClose} onChanged={onChanged} />
+        <EaHawbShell key={bookingId} bookingId={bookingId} embedded onClose={onClose} onChanged={onChanged} />
       </div>
     </div>
   )
