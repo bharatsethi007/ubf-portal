@@ -1,8 +1,8 @@
 -- 20261014f_ea_buyers_consol.sql
 -- Buyers consolidation for Export Air.
--- A master HAWB (bookings.is_consolidation = true, shipper "Various Shippers") groups sub-HAWBs
+-- A main HAWB (bookings.is_consolidation = true, shipper "Various Shippers") groups sub-HAWBs
 -- (bookings.master_booking_id = master.id). Each sub keeps its own pickup, check-in, SLI, docs and emails.
--- Only the master goes to TradeWindow as a house; its figures are the sum of its subs.
+-- Only the main HAWB goes to TradeWindow as a house; its figures are the sum of its subs.
 
 -- 1. Link
 alter table public.bookings
@@ -11,7 +11,7 @@ create index if not exists bookings_master_booking_idx on public.bookings (maste
 alter table public.bookings drop constraint if exists bookings_master_not_self;
 alter table public.bookings add constraint bookings_master_not_self check (master_booking_id is distinct from id);
 
--- 2. Subs ride on the master's consol (the export lock trigger still guards each row)
+-- 2. Subs ride on the main HAWB's consol (the export lock trigger still guards each row)
 create or replace function public.ea_master_follow()
 returns trigger language plpgsql as $$
 begin
@@ -25,7 +25,7 @@ drop trigger if exists trg_ea_master_follow on public.bookings;
 create trigger trg_ea_master_follow after update of consol_id on public.bookings
   for each row execute function public.ea_master_follow();
 
--- 3. Consolidate: new master (p_master null) or add to an existing one. Returns the master id.
+-- 3. Consolidate: new master (p_master null) or add to an existing one. Returns the main HAWB id.
 create or replace function public.ea_consolidate(p_children uuid[], p_master uuid default null)
 returns uuid language plpgsql security invoker as $$
 declare
@@ -38,7 +38,7 @@ begin
   end if;
 
   if exists (select 1 from public.bookings where id = any(p_children) and coalesce(is_consolidation, false)) then
-    raise exception 'A master HAWB cannot be a sub-HAWB';
+    raise exception 'A main HAWB cannot be a sub-HAWB';
   end if;
   if exists (select 1 from public.bookings where id = any(p_children) and master_booking_id is not null
              and master_booking_id is distinct from p_master) then
@@ -47,7 +47,7 @@ begin
 
   if p_master is not null then
     select * into m from public.bookings where id = p_master and coalesce(is_consolidation, false);
-    if not found then raise exception 'Master HAWB not found'; end if;
+    if not found then raise exception 'Main HAWB not found'; end if;
   end if;
 
   -- Same buyer: consignee code, or name when no code yet.
@@ -91,7 +91,7 @@ returns void language sql security invoker as $$
   update public.bookings set master_booking_id = null where id = p_child;
 $$;
 
--- 5. Dissolve: subs go back to normal HAWBs, the master is archived.
+-- 5. Dissolve: subs go back to normal HAWBs, the main HAWB is archived.
 create or replace function public.ea_dissolve(p_master uuid)
 returns void language plpgsql security invoker as $$
 begin
@@ -116,7 +116,7 @@ begin
   execute 'create or replace view public.v_ea_bookings as ' || d;
 end $$;
 
--- 7. Consol totals: a master and its subs count as one house; cargo comes from the subs, not the master.
+-- 7. Consol totals: a master and its subs count as one house; cargo comes from the subs, not the main HAWB.
 create or replace view public.v_air_consols as
 select c.id, c.origin, c.destination, c.airline, c.flight_no, c.flight_date, c.cutoff_at, c.mawb, c.status,
        c.handled_by, c.exported_at, c.erp_consol_key, c.notes, c.created_by, c.created_at, c.updated_at,

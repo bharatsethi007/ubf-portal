@@ -18,6 +18,16 @@ export default function MailBubble({ box, record, onChanged, bottom = 88, right 
   const [open, setOpen] = useState(false)
   const [n, setN] = useState<number | null>(null)
 
+  // Other parts of the screen can open the mailbox, e.g. a progress CTA ("Email supplier").
+  useEffect(() => {
+    const on = (e: Event) => {
+      const want = (e as CustomEvent<{ mailbox?: string }>).detail?.mailbox
+      if (!want || want === box.mailbox) setOpen(true)
+    }
+    window.addEventListener('mail:open', on)
+    return () => window.removeEventListener('mail:open', on)
+  }, [box.mailbox])
+
   useEffect(() => {
     let live = true
     const load = () => void fetchCounts().then((c) => { if (live) setN(c?.mailboxes?.[box.mailbox] ?? 0) }).catch(() => {})

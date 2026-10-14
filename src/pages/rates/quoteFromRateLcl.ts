@@ -1,4 +1,4 @@
-import { newQuoteResponseLine, saveQuoteResponseLines, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
+import { newQuoteResponseLine, saveQuoteResponseLines, stampProposal, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
 import { createQuote, emptyQuoteDraft } from '../quotes/quotesApi'
 import { serviceTypeForIncoterm } from './incotermLegs'
 import { createQuoteResponse, updateQuoteResponseHeader } from '../quotes/quoteResponsesApi'
@@ -27,7 +27,8 @@ export function buildLclBuyLinesFromOption(o: LclRateOption): QuoteResponseLine[
   if (o.minCharge > 0) f.min_buy = String(o.minCharge)
   const sellMin = o.sellMin > 0 ? o.sellMin : o.minCharge
   if (sellMin > 0) f.min_sell = String(sellMin)
-  lines.push(f)
+  f.charge_code = 'OCEANFRE'
+  lines.push(stampProposal(f, 'rate_card', o.cardId))
 
   // Lane charges (BAF/LSS/…) — freight-family, per W/M
   for (const c of o.laneCharges) {
@@ -41,7 +42,7 @@ export function buildLclBuyLinesFromOption(o: LclRateOption): QuoteResponseLine[
     l.buy_rate = String(c.perWm)
     l.sell_rate = String(c.sellPerWm > 0 ? c.sellPerWm : c.perWm)
     if (c.min != null) { l.min_buy = String(c.min); l.min_sell = String(c.min) }
-    lines.push(l)
+    lines.push(stampProposal(l, 'rate_card', o.cardId))
   }
 
   // rate_surcharges — per_bl / flat / per_cbm / per_wm, each in its own currency
@@ -60,7 +61,7 @@ export function buildLclBuyLinesFromOption(o: LclRateOption): QuoteResponseLine[
     else if (s.basis === 'per_wm') { l.unit = 'Per W/M'; l.qty = String(wm) }
     else { l.unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1' }
     if (s.minAmount != null) { l.min_buy = String(s.minAmount); l.min_sell = String(s.minAmount) }
-    lines.push(l)
+    lines.push(stampProposal(l, 'rate_card', o.cardId))
   }
 
   // UBF LCL local/port charges — already priced (qty × rate, min applied), pushed as flat lines
@@ -73,7 +74,7 @@ export function buildLclBuyLinesFromOption(o: LclRateOption): QuoteResponseLine[
     l.buy_currency = c.buyCurrency || cur; l.sell_currency = c.sellCurrency || c.buyCurrency || cur
     l.buy_rate = c.buyAmount === 0 && c.sellAmount > 0 ? '' : String(c.buyAmount)
     l.sell_rate = String(c.sellAmount)
-    lines.push(l)
+    lines.push(stampProposal(l, 'local_charges', o.cardId))
   }
   return lines
 }

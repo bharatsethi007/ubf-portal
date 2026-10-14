@@ -106,6 +106,12 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged,
         {b.consol_id && b.consol_flight ? (<><span>/</span><Link to={`/bookings/export-air/consol/${b.consol_id}`} onClick={embedded ? onClose : undefined} className="bk-mono text-[#6B7280] hover:underline">{b.consol_flight}</Link></>) : null}
         {family?.master && family.master.id !== b.id ? (<><span>/</span><button type="button" onClick={() => family.setActive(family.master!.id)} className="bk-mono w-auto border-0 bg-transparent p-0 text-[12px] text-[#6B7280] hover:underline">{family.master.booking_ref}</button></>) : null}
         <span>/</span><span className="bk-mono text-[#14161A]">{b.booking_ref}</span>
+        {embedded ? (
+          <span className="ml-auto flex items-center gap-1">
+            <Link to={eaHref(b.id)} onClick={onClose} title="Open full page" className="inline-flex h-[28px] w-auto items-center gap-1.5 rounded-[7px] px-2 text-[12px] font-medium text-[#5B616E] hover:bg-[#F2F4F7] hover:text-[#14161A]"><ExternalLink size={13} /> Full page</Link>
+            <button type="button" aria-label="Close" title="Close (Esc)" onClick={onClose} className="inline-flex h-[28px] w-[28px] items-center justify-center rounded-[7px] border-0 bg-transparent text-[#5B616E] hover:bg-[#F2F4F7] hover:text-[#14161A]"><X size={16} /></button>
+          </span>
+        ) : null}
       </nav>
 
       {tabs}
@@ -132,12 +138,6 @@ export default function EaBookingView({ bookingId, embedded, onClose, onChanged,
               onDissolve={() => void family.dissolve()} onOpenMaster={() => family.master && family.setActive(family.master.id)} />
           ) : null}
           <button type="button" className={btn} title="Edit all fields" disabled={locked} onClick={() => setEditing(true)}><Pencil size={13} /> Edit</button>
-          {embedded ? (
-            <>
-              <Link to={eaHref(b.id)} onClick={onClose} className={btn} title="Open full page"><ExternalLink size={13} /> Full page</Link>
-              <button type="button" aria-label="Close" title="Close" onClick={onClose} className="inline-flex h-[30px] w-[30px] items-center justify-center rounded-[7px] border-0 bg-transparent text-[#5B616E] hover:bg-[#F2F4F7]"><X size={16} /></button>
-            </>
-          ) : null}
         </div>
       </div>
 

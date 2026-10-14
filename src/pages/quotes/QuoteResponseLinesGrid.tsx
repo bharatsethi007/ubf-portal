@@ -12,7 +12,7 @@ import {
   type ChargeTemplate,
 } from '../setup/chargeTemplatesApi'
 import { fetchEffectiveRates } from '../setup/fxRatesApi'
-import { computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
+import { asManual, computeResponseLine, newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
 import QuoteResponseTemplateDialogs from './QuoteResponseTemplateDialogs'
 import CartageSearchDialog from './CartageSearchDialog'
 import ChargeCodeEditDialog, { type EditableCode } from './ChargeCodeEditDialog'
@@ -97,7 +97,12 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
   }
 
   function update(id: string, patch: Partial<QuoteResponseLine>) {
-    onChange(lines.map((l) => (l.id === id ? { ...l, ...patch } : l)))
+    // New wording = new charge; server re-resolves the code from the description.
+    onChange(lines.map((l) => {
+      if (l.id !== id) return l
+      const reCode = patch.description !== undefined && patch.description !== l.description
+      return { ...l, ...patch, ...(reCode ? { charge_code: '' } : {}) }
+    }))
   }
 
   // Auto FX, no button needed. Runs ONCE per line + currency pair, never while typing:
@@ -141,7 +146,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
   function copyLine(id: string) {
     const idx = lines.findIndex((l) => l.id === id)
     if (idx < 0) return
-    const dup = { ...lines[idx], id: crypto.randomUUID() }
+    const dup = { ...asManual(lines[idx]), id: crypto.randomUUID() }
     const next = [...lines]
     next.splice(idx + 1, 0, dup)
     onChange(next)

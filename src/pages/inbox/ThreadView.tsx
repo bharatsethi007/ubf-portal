@@ -44,6 +44,7 @@ export default function ThreadView({ detail, staff, me, onChanged, onPreview }: 
 
   useEffect(() => {
     const on = (e: Event) => {
+      if (document.body.dataset.eaIntake) return // the export air booking dialog shows files itself
       const d = (e as CustomEvent<{ items: EmailAttachment[]; index: number }>).detail
       if (onPreview) onPreview(d)
       else setPreview(d)

@@ -1,4 +1,4 @@
-import { newQuoteResponseLine, saveQuoteResponseLines, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
+import { newQuoteResponseLine, saveQuoteResponseLines, stampProposal, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
 import { createQuote, emptyQuoteDraft, updateQuote } from '../quotes/quotesApi'
 import { serviceTypeForIncoterm } from './incotermLegs'
 import { saveQuoteCargo, type QuoteCargoLine } from '../quotes/quoteCargoApi'
@@ -28,7 +28,8 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     l.buy_currency = cur; l.sell_currency = cur
     l.buy_rate = String(chip.base_rate)
     l.sell_rate = String(chip.sell_rate > 0 ? chip.sell_rate : chip.base_rate)
-    lines.push(l)
+    l.charge_code = 'OFR'
+    lines.push(stampProposal(l, 'rate_card', o.cardId))
   }
   for (const s of o.surcharges) {
     if (s.basis === 'per_cbm' || s.basis === 'percent') continue
@@ -45,7 +46,7 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     if (s.basis === 'per_container') { l.unit = 'Per container'; l.qty = String(ct ? scopedQty : ratedContainers) }
     else if (s.basis === 'per_teu') { l.unit = 'Per TEU'; l.qty = String(ct ? (ct.startsWith('40') ? 2 : 1) * (scopedQty ?? 0) : ratedTeu) }
     else { l.unit = s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1' }
-    lines.push(l)
+    lines.push(stampProposal(l, 'rate_card', o.cardId))
   }
   for (const lc of o.localCharges) {
     const l = newQuoteResponseLine(ord++, lc.buyCurrency || cur)
@@ -58,7 +59,7 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
     l.sell_currency = lc.sellCurrency || lc.buyCurrency || cur
     l.buy_rate = String(lc.buyAmount)
     l.sell_rate = String(lc.sellAmount)
-    lines.push(l)
+    lines.push(stampProposal(l, 'local_charges', o.cardId))
   }
   return lines
 }
@@ -131,7 +132,8 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
       const sellMin = o.appliedRatePerKg > 0 ? Math.round(o.minCharge * sr / o.appliedRatePerKg * 100) / 100 : o.minCharge
       f.min_sell = String(sellMin)
     }
-    lines.push(f)
+    f.charge_code = 'AFR'
+    lines.push(stampProposal(f, 'rate_card', o.cardId))
   }
 
   o.surcharges.forEach((s, i) => {
@@ -145,7 +147,7 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
     else if (s.basis === 'per_cbm') { const cbm = o.cbm > 0 ? o.cbm : 1; l.unit = 'Per CBM'; l.qty = String(cbm); l.buy_rate = String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
     else if (s.basis === 'percent') { l.unit = '% of freight'; l.qty = '1'; l.buy_rate = String(Math.round((s.amount / 100) * o.freightTotal * 100) / 100); l.sell_rate = String(Math.round((s.sellAmount / 100) * o.freightSellTotal * 100) / 100) }
     else { l.unit = s.basis === 'per_awb' ? 'Per AWB' : s.basis === 'per_bl' ? 'Per B/L' : 'Flat'; l.qty = '1'; l.buy_rate = o.buyUnknown ? '' : String(s.amount); l.sell_rate = String(s.sellAmount > 0 ? s.sellAmount : s.amount) }
-    lines.push(l)
+    lines.push(stampProposal(l, 'rate_card', o.cardId))
   })
 
   o.localCharges.forEach((lc, i) => {
@@ -161,7 +163,7 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
     // No buy on file (sell tariff lines) → blank, not 0, so margin isn't faked.
     l.buy_rate = lc.buyAmount === 0 && lc.sellAmount > 0 ? '' : String(lc.buyAmount)
     l.sell_rate = String(lc.sellAmount)
-    lines.push(l)
+    lines.push(stampProposal(l, 'local_charges', o.cardId))
   })
   return lines
 }

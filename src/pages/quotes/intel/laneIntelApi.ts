@@ -1,6 +1,6 @@
 import { supabase } from '../../../supabase'
 import {
-  computeResponseTotals, fetchQuoteResponseLines, newQuoteResponseLine, saveQuoteResponseLines,
+  computeResponseTotals, fetchQuoteResponseLines, newQuoteResponseLine, saveQuoteResponseLines, stampProposal,
   updateResponseTotals, type QuoteResponseLine,
 } from '../quoteResponseLinesApi'
 import { createQuoteResponse } from '../quoteResponsesApi'
@@ -111,7 +111,7 @@ export async function addChargesToQuote(
 ): Promise<string> {
   const responseId = option?.id ?? (await createQuoteResponse(quoteId)).id
   const existing = option ? await fetchQuoteResponseLines(responseId) : []
-  const added = charges.map((c, i) => ({
+  const added = charges.map((c, i) => stampProposal({
     ...newQuoteResponseLine(existing.length + i, 'NZD'),
     description: c.description,
     charge_group: groupFor(c, direction),
@@ -119,7 +119,7 @@ export async function addChargesToQuote(
     qty: '1',
     buy_rate: c.medCost > 0 ? String(Math.round(c.medCost * 100) / 100) : '',
     sell_rate: String(Math.round(c.medSell * 100) / 100),
-  }))
+  }, 'lane_history', c.code))
   const all = [...existing, ...added]
   await saveQuoteResponseLines(responseId, all)
   await updateResponseTotals(responseId, computeResponseTotals(all))

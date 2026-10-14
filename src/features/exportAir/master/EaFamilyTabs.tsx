@@ -10,11 +10,12 @@ export default function EaFamilyTabs({ master, subs, active, onPick, onAdd }: Pr
   const open = subs.filter((s) => subIssues(s).length).length
   const masterGaps = [!master.consignee_account_id && 'Consignee code', !master.bill_to_account_id && 'Bill-to code'].filter(Boolean) as string[]
   const base = 'relative flex h-[46px] min-w-0 shrink-0 items-center gap-2 rounded-t-[9px] border border-b-0 px-3 text-left transition-colors'
-  const on = 'z-[1] border-[#E3E6EB] bg-white text-[#14161A] after:absolute after:inset-x-0 after:-bottom-px after:h-px after:bg-white'
+  const on = 'z-[1] border-[#E3E6EB] bg-white text-[#14161A]'
   const off = 'border-transparent bg-transparent text-[#5B616E] hover:bg-[#F6F7F9] hover:text-[#14161A]'
 
   return (
-    <div role="tablist" aria-label="Buyers consolidation" className="mb-3 flex items-end gap-1 overflow-x-auto border-b border-[#E3E6EB] pt-0.5">
+    <div className="relative mb-3 before:absolute before:inset-x-0 before:bottom-0 before:h-px before:bg-[#E3E6EB]">
+    <div role="tablist" aria-label="Buyers consolidation" className="relative z-[1] flex items-end gap-1 overflow-x-auto overflow-y-hidden pt-0.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
       <button type="button" role="tab" aria-selected={active === master.id} onClick={() => onPick(master.id)} className={`${base} ${active === master.id ? on : off}`}>
         <span className="grid h-6 w-6 shrink-0 place-items-center rounded-md bg-[#0A2472] text-white"><Layers size={13} /></span>
         <span className="flex min-w-0 flex-col leading-tight">
@@ -47,6 +48,7 @@ export default function EaFamilyTabs({ master, subs, active, onPick, onAdd }: Pr
         className="mb-1.5 ml-1 inline-flex h-[30px] w-auto shrink-0 items-center gap-1 rounded-[7px] border border-dashed border-[#C9D0DB] bg-white px-2.5 text-[12px] font-medium text-[#0A2472] hover:border-[#0A2472] hover:bg-[#F3F5FB]">
         <Plus size={13} strokeWidth={2.4} /> Add HAWB
       </button>
+    </div>
     </div>
   )
 }

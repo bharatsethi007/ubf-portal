@@ -18,6 +18,30 @@ export type QuoteResponseLine = {
   tax: string
   ex_rate_buy: string
   ex_rate_sell: string
+  // Brainbox provenance: where the number came from + what the system first proposed.
+  charge_code: string
+  rate_source: RateSource
+  source_ref: string
+  suggested_buy: string
+  suggested_sell: string
+}
+
+export type RateSource =
+  | 'rate_card' | 'local_charges' | 'cartage' | 'template' | 'lane_history'
+  | 'margin_rule' | 'brainbox_rule' | 'manual'
+
+/** Marks a line as system-proposed and freezes the proposed buy/sell for later diffing. */
+export function stampProposal(l: QuoteResponseLine, source: RateSource, ref?: string | null): QuoteResponseLine {
+  l.rate_source = source
+  l.source_ref = ref ?? ''
+  l.suggested_buy = l.buy_rate
+  l.suggested_sell = l.sell_rate
+  return l
+}
+
+/** A copied or hand-typed line has no system provenance. */
+export function asManual(l: QuoteResponseLine): QuoteResponseLine {
+  return { ...l, rate_source: 'manual', source_ref: '', suggested_buy: '', suggested_sell: '' }
 }
 
 export function newQuoteResponseLine(ord = 0, currency = 'NZD'): QuoteResponseLine {
@@ -39,6 +63,11 @@ export function newQuoteResponseLine(ord = 0, currency = 'NZD'): QuoteResponseLi
     tax: 'no_tax',
     ex_rate_buy: '1',
     ex_rate_sell: '1',
+    charge_code: '',
+    rate_source: 'manual',
+    source_ref: '',
+    suggested_buy: '',
+    suggested_sell: '',
   }
 }
 
@@ -74,6 +103,11 @@ function mapRow(row: Record<string, unknown>): QuoteResponseLine {
     tax: (row.tax as string | null) ?? '',
     ex_rate_buy: numStr(row.ex_rate_buy) || '1',
     ex_rate_sell: numStr(row.ex_rate_sell) || '1',
+    charge_code: (row.charge_code as string | null) ?? '',
+    rate_source: ((row.rate_source as string | null) || 'manual') as RateSource,
+    source_ref: (row.source_ref as string | null) ?? '',
+    suggested_buy: numStr(row.suggested_buy),
+    suggested_sell: numStr(row.suggested_sell),
   }
 }
 
@@ -196,6 +230,11 @@ export async function saveQuoteResponseLines(
         ex_rate_sell: parseNumField(line.ex_rate_sell) ?? 1,
         total_buy: c.totalBuy,
         total_sell: c.totalSell,
+        charge_code: line.charge_code.trim() || null, // null = server resolves from description
+        rate_source: line.rate_source || 'manual',
+        source_ref: line.source_ref.trim() || null,
+        suggested_buy: parseNumField(line.suggested_buy),
+        suggested_sell: parseNumField(line.suggested_sell),
       }
     })
 

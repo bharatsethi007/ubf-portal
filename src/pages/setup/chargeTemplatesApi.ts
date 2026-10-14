@@ -1,5 +1,5 @@
 import { supabase } from '../../supabase'
-import type { QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
+import { newQuoteResponseLine, stampProposal, type QuoteResponseLine } from '../quotes/quoteResponseLinesApi'
 
 export type ChargeTemplate = { id: string; name: string; line_count?: number }
 
@@ -23,8 +23,8 @@ function isEmptyLine(line: QuoteResponseLine): boolean {
 }
 
 function mapTemplateLine(row: TemplateLineRow): QuoteResponseLine {
-  return {
-    id: crypto.randomUUID(),
+  return stampProposal({
+    ...newQuoteResponseLine(),
     ord: Number(row.ord) || 0,
     description: (row.description as string | null) ?? '',
     is_service_charge: Boolean(row.is_service_charge),
@@ -41,7 +41,7 @@ function mapTemplateLine(row: TemplateLineRow): QuoteResponseLine {
     tax: (row.tax as string | null) ?? '',
     ex_rate_buy: '1',
     ex_rate_sell: '1',
-  }
+  }, 'template', (row.template_id as string | null) ?? null)
 }
 
 function lineToInsertRow(templateId: string, line: QuoteResponseLine, index: number) {

@@ -1,4 +1,4 @@
-import { newQuoteResponseLine, type QuoteResponseLine } from './quoteResponseLinesApi'
+import { newQuoteResponseLine, stampProposal, type QuoteResponseLine } from './quoteResponseLinesApi'
 
 /** Cartage line shown on rate option cards (built in NewQuoteSearch, rendered in rate cards). */
 export type RateOptionCartage = {
@@ -29,7 +29,7 @@ export function cartageResponseLines(c: RateOptionCartage | null | undefined): Q
   l.buy_currency = 'NZD'; l.sell_currency = 'NZD'
   l.buy_rate = String(c.cost != null && c.cost > 0 ? c.cost : c.amount)
   l.sell_rate = String(c.amount)
-  return [l]
+  return [stampProposal(l, 'cartage', c.source ?? null)]
 }
 
 /** Append extra lines after the rate lines, keeping ord sequential. */
