@@ -14,6 +14,7 @@ const SERVICES = ['Door to Door', 'Port to Port', 'Door to Port', 'Port to Door'
 type Props = {
   fields: Fields
   isAir: boolean
+  isAgent?: boolean
   staff: { user_id: string; name: string }[]
   customerPick: CustomerPickerValue | null
   patch: (p: Partial<Fields>) => void
@@ -23,7 +24,7 @@ type Props = {
 }
 
 /** Direction (import / export / cross trade), terms, owners, parties, then cargo value and handling. */
-export default function QuoteDetailsCard({ fields: f, isAir, staff, customerPick, patch, cargo, patchCargo, onDirection }: Props) {
+export default function QuoteDetailsCard({ fields: f, isAir, isAgent = false, staff, customerPick, patch, cargo, patchCargo, onDirection }: Props) {
   const staffOpts = staff.map((s) => <option key={s.user_id} value={s.user_id}>{s.name}</option>)
   return (
     <Card
@@ -50,9 +51,14 @@ export default function QuoteDetailsCard({ fields: f, isAir, staff, customerPick
           <input className={`${inp} bk-mono`} value={f.customer_po ?? ''} onChange={(e) => patch({ customer_po: e.target.value || null })} />
         </Field>
         <Field label="Sales">
-          <select className={inp} value={f.sales_executive_id ?? ''} onChange={(e) => patch({ sales_executive_id: e.target.value || null })}>
-            <option value="">—</option>{staffOpts}
-          </select>
+          {isAgent ? (
+            <input className={`${inp} cursor-not-allowed bg-[#F6F7F9] text-[#6B7280]`} value="Agent quote" disabled
+              title="Agent quotes have no sales owner" />
+          ) : (
+            <select className={inp} value={f.sales_executive_id ?? ''} onChange={(e) => patch({ sales_executive_id: e.target.value || null })}>
+              <option value="">—</option>{staffOpts}
+            </select>
+          )}
         </Field>
         <Field label="Pricing">
           <select className={inp} value={f.pricing_executive_id ?? ''} onChange={(e) => patch({ pricing_executive_id: e.target.value || null })}>

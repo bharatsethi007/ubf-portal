@@ -66,7 +66,7 @@ export default function QuoteDetailPage() {
         onSavePort={(w, c) => void d.savePort(w, c)} onChanged={d.reload} />
       <QuoteLoadsCard mode={d.mode} groups={d.groups} onPatch={d.containers.patch} onAdd={d.containers.add} onRemove={d.containers.remove}
         entryMode={d.cargoMode} onEntryMode={d.setCargoMode} lines={d.cargoLines} onLines={d.setCargoLines} onAddLine={d.addCargoLine} />
-      <QuoteDetailsCard fields={fields} isAir={d.isAir} staff={staff} customerPick={d.customerPick}
+      <QuoteDetailsCard fields={fields} isAir={d.isAir} isAgent={!!(quote as { agent_id?: string | null }).agent_id} staff={staff} customerPick={d.customerPick}
         patch={d.patch} cargo={cargo} patchCargo={d.patchCargo} onDirection={d.setDirection} />
 
       <section className="min-w-0 overflow-hidden rounded-[10px] border border-[#EEF0F3] bg-white">

@@ -157,7 +157,12 @@ export function useQuoteDetail(id: string | undefined) {
   async function changeCustomer(v: CustomerPickerValue | null) {
     if (!v || !id) return
     try {
-      const p = { customer_account_id: v.account_id, customer_name: v.name, contact_name: null, contact_email: null, contact_phone: null }
+      // Account that is a registered agent makes this an agent quote (no sales owner).
+      const { data: ag } = await supabase.from('agents').select('id, name').eq('erp_account_code', v.account_id).maybeSingle()
+      const agentBits = ag
+        ? { agent_id: String(ag.id), agent_name: String(ag.name ?? v.name), sales_executive_id: null }
+        : { agent_id: null, agent_name: null }
+      const p = { customer_account_id: v.account_id, customer_name: v.name, contact_name: null, contact_email: null, contact_phone: null, ...agentBits } as Partial<QuoteRecord>
       await updateQuote(id, p); patchQuote(p)
       setCustomerPick(await fetchCustomerPick(v.account_id))
       toast.success('Customer updated')

@@ -113,7 +113,12 @@ export async function createQuote(draft: QuoteDraft): Promise<{ id: string; quot
 
   const { data, error } = await supabase
     .from('quotes')
-    .insert({ ...draft, created_by: auth.user.id })
+    .insert({
+      ...draft,
+      created_by: auth.user.id,
+      // Pricing owner defaults to whoever creates the quote.
+      pricing_executive_id: draft.pricing_executive_id ?? auth.user.id,
+    })
     .select('id, quote_no')
     .single()
 
