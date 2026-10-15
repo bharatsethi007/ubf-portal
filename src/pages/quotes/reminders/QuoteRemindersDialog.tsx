@@ -2,9 +2,10 @@ import { useCallback, useEffect, useMemo, useState, type CSSProperties } from 'r
 import { BellRing, X, Send, Check, AlertTriangle } from 'lucide-react'
 import { toast } from 'sonner'
 import {
-  fetchReminderCandidates, sendQuoteReminders, daysLeft, emailBlock, emailWarn,
-  type ReminderCandidate, type SendResult,
+  fetchReminderCandidates, sendQuoteReminders, daysLeft, emailBlock, emailWarn, isTestEmail, mailboxShort, NEW_EMAIL,
+  type ReminderCandidate, type SendResult, type SendAs,
 } from './quoteRemindersApi'
+import ThreadPicker from './ThreadPicker'
 
 type Props = { open: boolean; onClose: () => void; portName: (code: string | null) => string; onSent?: () => void }
 type Window = '7' | '14' | 'all'
@@ -22,6 +23,7 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
   const [win, setWin] = useState<Window>('14')
   const [rows, setRows] = useState<ReminderCandidate[]>([])
   const [emails, setEmails] = useState<Record<string, string>>({})
+  const [sendAs, setSendAs] = useState<Record<string, SendAs>>({})
   const [picked, setPicked] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
@@ -33,6 +35,10 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
       const data = await fetchReminderCandidates(mine)
       setRows(data)
       setEmails(Object.fromEntries(data.map((r) => [r.id, r.email ?? ''])))
+      // Default: continue the thread linked to the quote, else a new email.
+      setSendAs(Object.fromEntries(data.map((r) => [r.id, r.thread_id
+        ? { id: r.thread_id, label: r.thread_subject || '(no subject)', mailbox: r.thread_mailbox }
+        : NEW_EMAIL])))
       setResults({})
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Could not load quotes')
@@ -73,16 +79,25 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
 
   async function send() {
     if (!chosen.length) return
-    if (!window.confirm(`Email ${chosen.length} customer${chosen.length === 1 ? '' : 's'} now?`)) return
+    const tests = chosen.filter((r) => isTestEmail(emails[r.id])).length
+    const live = chosen.length - tests
+    const msg = [live ? `Email ${live} customer${live === 1 ? '' : 's'}` : '', tests ? `send ${tests} test${tests === 1 ? '' : 's'} to UBF` : '']
+      .filter(Boolean).join(' and ')
+    if (!window.confirm(`${msg.charAt(0).toUpperCase()}${msg.slice(1)} now?`)) return
     setSending(true)
     try {
-      const res = await sendQuoteReminders(chosen.map((r) => ({ quote_id: r.id, email: emails[r.id]?.trim() || null })))
+      const res = await sendQuoteReminders(chosen.map((r) => ({
+        quote_id: r.id, email: emails[r.id]?.trim() || null, conversation_id: sendAs[r.id]?.id ?? 'new',
+      })))
       setResults(Object.fromEntries(res.results.map((x) => [x.quote_id, x])))
       const failed = res.results.length - res.sent
-      if (res.sent) toast.success(`Sent ${res.sent} reminder${res.sent === 1 ? '' : 's'} from ${res.from}`)
-      if (failed) toast.error(`${failed} not sent. See rows.`)
+      if (res.sent) toast.success(`Sent ${res.sent} reminder${res.sent === 1 ? '' : 's'}`)
+      if (failed) {
+        const errs = res.results.filter((x) => !x.ok).slice(0, 3).map((x) => `${x.quote_no ?? ''}: ${x.error ?? 'failed'}`).join('\n')
+        toast.error(`${failed} not sent`, { description: errs })
+      }
       setPicked(new Set())
-      setRows((rs) => rs.map((r) => (res.results.find((x) => x.quote_id === r.id && x.ok)
+      setRows((rs) => rs.map((r) => (res.results.find((x) => x.quote_id === r.id && x.ok && !x.test)
         ? { ...r, last_reminded_at: new Date().toISOString(), reminders: r.reminders + 1 } : r)))
       onSent?.()
     } catch (e) {
@@ -105,7 +120,7 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
             </span>
             <div>
               <div className="text-base text-slate-900">Quote reminders</div>
-              <div className="text-xs text-slate-500">Customer gets Accept / Decline links. Sent from Sales Support, quote owner in CC.</div>
+              <div className="text-xs text-slate-500">Customer gets Accept / Decline links. Replies in the quote's email thread when there is one, else a new email from Sales Support. Use a UBF address to test.</div>
             </div>
           </div>
           <div className="flex items-center gap-2">
@@ -128,6 +143,7 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
                   <th className={th}>Lane</th>
                   {!mine && <th className={th}>Owner</th>}
                   <th className={th}>Send to</th>
+                  <th className={th}>Send as</th>
                   <th className={`${th} text-right`}>Expires</th>
                   <th className={`${th} text-right`}>Reminded</th>
                   <th className={th} />
@@ -143,18 +159,22 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
                     <tr key={r.id} className="border-b border-slate-100">
                       <td className={td}><input type="checkbox" disabled={!!block} checked={picked.has(r.id) && !block} onChange={() => toggle(r.id)} /></td>
                       <td className={`${td} text-slate-900`}>{r.quote_no}</td>
-                      <td className={`${td} max-w-[200px] truncate`} title={r.customer_name ?? ''}>{r.customer_name}</td>
+                      <td className={`${td} max-w-[190px] truncate`} title={r.customer_name ?? ''}>{r.customer_name}</td>
                       <td className={`${td} text-slate-600`}>{portName(r.from_port_code)} → {portName(r.to_port_code)}</td>
                       {!mine && <td className={`${td} text-slate-600`}>{r.owner_name ?? '—'}</td>}
                       <td className={td}>
                         <input
                           className="input input--sm"
-                          style={{ width: 230, borderColor: block && r.options ? '#FCA5A5' : warn ? '#FCD34D' : undefined }}
+                          style={{ width: 220, borderColor: block && r.options ? '#FCA5A5' : warn ? '#FCD34D' : undefined }}
                           value={emails[r.id] ?? ''}
-                          placeholder="customer@email.com"
+                          placeholder="customer@email.com or you@ubfreight.com"
                           onChange={(e) => setEmails((m) => ({ ...m, [r.id]: e.target.value }))}
                         />
                         {(block || warn) && <div className="mt-0.5 text-[11px]" style={{ color: block ? '#B91C1C' : '#B45309' }}>{block ?? warn}</div>}
+                      </td>
+                      <td className={td}>
+                        <ThreadPicker quoteId={r.id} email={emails[r.id] ?? ''} value={sendAs[r.id] ?? NEW_EMAIL}
+                          onChange={(v) => setSendAs((m) => ({ ...m, [r.id]: v }))} disabled={!!block} />
                       </td>
                       <td className={`${td} text-right tabular-nums`} style={{ color: left <= 3 ? '#B91C1C' : left <= 7 ? '#B45309' : '#475569' }}>
                         {left <= 0 ? 'Today' : `${left}d`}
@@ -162,7 +182,7 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
                       <td className={`${td} text-right text-slate-600`}>{fmt(r.last_reminded_at)}{r.reminders > 1 ? ` (${r.reminders})` : ''}</td>
                       <td className={td}>
                         {res && (res.ok
-                          ? <span title={`Sent to ${res.to}`} style={{ color: '#047857' }}><Check size={16} /></span>
+                          ? <span title={`${res.test ? 'Test sent' : 'Sent'} to ${res.to}${res.mode === 'thread' ? ` in thread (${mailboxShort(res.mailbox ?? null)})` : ' as new email'}`} style={{ color: '#047857' }}><Check size={16} /></span>
                           : <span title={res.error} style={{ color: '#B91C1C' }}><AlertTriangle size={16} /></span>)}
                       </td>
                     </tr>
@@ -209,6 +229,6 @@ const overlay: CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
 }
 const sheet: CSSProperties = {
-  background: '#fff', borderRadius: 12, width: 'min(1180px, calc(96vw / var(--mz, 1)))', maxHeight: 'calc(88vh / var(--mz, 1))',
+  background: '#fff', borderRadius: 12, width: 'min(1640px, calc(98vw / var(--mz, 1)))', maxHeight: 'calc(88vh / var(--mz, 1))',
   display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(15,23,42,0.25)', overflow: 'hidden',
 }

@@ -1,12 +1,14 @@
 // quote-email-send — STAFF. Emails a quote (PDF built in the browser) through Outlook (MS Graph).
 // New chain: sent as the sales support mailbox. Reply: reply-all in an inbox email thread, as that thread's mailbox.
+// Either way the sent mail is mirrored into the inbox and its thread linked to the quote (so reminders can continue it).
 // Optional Accept / Decline buttons (same token flow as reminders). verify_jwt=true.
 // Body: { quote_id, conversation_id?, to[], cc?[], subject?, text, pdf_base64?, pdf_name?, include_actions? }
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { decodeBase64 } from "jsr:@std/encoding@1/base64";
 import { cors, json, requireStaff } from "../booking-customer-notify/staffGate.ts";
 import { setApiFn } from "../_shared/apiFetch.ts";
-import { addr, graphToken } from "../email-inbox-sync/graph.ts";
+import { graphToken } from "../email-inbox-sync/graph.ts";
+import { logSent, threadTarget } from "../_shared/quoteThread.ts";
 import { sendAsMailbox, type OutAttachment } from "../booking-email-send/graphSend.ts";
 import { renderQuoteEmailBody } from "../_shared/quoteEmail.ts";
 import { replyAllHtml } from "./graphReply.ts";
@@ -51,17 +53,12 @@ Deno.serve(async (req) => {
     // Reply target: latest inbound email in the chosen thread.
     let mailbox = MAILBOX, graphId: string | null = null, threadId: string | null = null;
     if (b.conversation_id) {
-      const { data: conv } = await db.from("inbox_conversations").select("id, email_mailbox, email_thread_id").eq("id", b.conversation_id).maybeSingle();
-      if (!conv?.email_mailbox) return json({ error: "That thread is not an email conversation" }, 400);
-      const { data: metas } = await db.from("inbox_email_meta")
-        .select("graph_id, inbox_messages!inner(conversation_id, direction, created_at)")
-        .eq("inbox_messages.conversation_id", conv.id).not("graph_id", "is", null);
-      const rows = ((metas ?? []) as unknown as { graph_id: string; inbox_messages: { direction: string; created_at: string } }[])
-        .sort((x, y) => (x.inbox_messages.created_at < y.inbox_messages.created_at ? 1 : -1));
-      const target = rows.find((r) => r.inbox_messages.direction === "in") ?? rows[0];
-      if (!target) return json({ error: "No email to reply to in that thread" }, 400);
-      mailbox = conv.email_mailbox; graphId = target.graph_id; threadId = conv.email_thread_id ?? null;
+      const t = await threadTarget(db, b.conversation_id);
+      if (typeof t === "string") return json({ error: t }, 400);
+      mailbox = t.mailbox; graphId = t.graphId; threadId = t.threadId;
     }
+    // Test: every recipient is a UBF address. Links never change the quote, quote not marked sent.
+    const test = [...to, ...cc].every((e) => e.endsWith("@ubfreight.com"));
 
     let actions = null;
     if (b.include_actions !== false && ["open", "published", "sent"].includes(q.status)) {
@@ -69,7 +66,7 @@ Deno.serve(async (req) => {
         .eq("quote_id", q.id).gt("total_sell", 0).not("status", "in", "(rejected,withdrawn)").order("total_sell");
       if (opts?.length) {
         const { data: rm, error } = await db.from("quote_reminders")
-          .insert({ quote_id: q.id, sent_to: to[0], sent_by: gate.staffId, mailbox, kind: "quote" }).select("id, token").single();
+          .insert({ quote_id: q.id, sent_to: to[0], sent_by: gate.staffId, mailbox, kind: test ? "test" : "quote" }).select("id, token").single();
         if (error || !rm) throw new Error(error?.message ?? "Could not create link");
         const base = `${PORTAL}/q/${rm.token}`;
         actions = { acceptUrl: `${base}?a=accept&r=${opts[0].id}`, declineUrl: `${base}?a=decline`, viewUrl: base, multi: opts.length > 1 };
@@ -80,18 +77,12 @@ Deno.serve(async (req) => {
     const token = await graphToken();
     try {
       if (graphId) {
-        const draft = await replyAllHtml(token, mailbox, graphId, html, to, cc, attachments);
-        const { data: staffName } = await db.rpc("inbox_staff_name", { p_uid: gate.staffId });
-        if (draft.internetMessageId) {
-          await db.rpc("inbox_ingest_email", { p: {
-            mailbox, graph_id: draft.id, internet_message_id: draft.internetMessageId, thread_id: threadId ?? draft.conversationId ?? null,
-            subject: draft.subject ?? "", from: { name: (staffName as string | null) ?? null, address: mailbox },
-            to: to.map((a) => addr({ emailAddress: { address: a } })), cc: cc.map((a) => addr({ emailAddress: { address: a } })),
-            at: new Date().toISOString(), body: text, outbound: true, sender_user_id: gate.staffId,
-          } });
-        }
+        const sent = await replyAllHtml(token, mailbox, graphId, html, to, cc, attachments);
+        await logSent(db, { quoteId: q.id, mailbox, sent, threadId, subject: sent.subject ?? "", to, cc, body: text, staffId: gate.staffId, link: !test });
       } else {
-        await sendAsMailbox(token, mailbox, { subject: b.subject!.trim(), html, to, cc, attachments });
+        const subject = b.subject!.trim();
+        const sent = await sendAsMailbox(token, mailbox, { subject, html, to, cc, attachments });
+        if (!test) await logSent(db, { quoteId: q.id, mailbox, sent, threadId: null, subject, to, cc, body: text, staffId: gate.staffId });
       }
     } catch (e) {
       const msg = String(e);
@@ -99,9 +90,11 @@ Deno.serve(async (req) => {
       return json({ error: friendly }, 502);
     }
 
-    await db.from("quotes").update({ last_reminded_at: new Date().toISOString() }).eq("id", q.id);
-    await db.rpc("email_contacts_touch", { p_emails: [...to, ...cc], p_kind: "customer" }).then(() => null, () => null);
-    return json({ ok: true, from: mailbox, mode: graphId ? "reply" : "new", to, cc });
+    if (!test) {
+      await db.from("quotes").update({ last_reminded_at: new Date().toISOString() }).eq("id", q.id);
+      await db.rpc("email_contacts_touch", { p_emails: [...to, ...cc], p_kind: "customer" }).then(() => null, () => null);
+    }
+    return json({ ok: true, from: mailbox, mode: graphId ? "reply" : "new", to, cc, test });
   } catch (e) {
     return json({ error: String(e).slice(0, 300) }, 500);
   }

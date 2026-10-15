@@ -16,6 +16,7 @@ export type ReplyDraft = { id: string; internetMessageId?: string; conversationI
 
 export async function replyAllHtml(
   token: string, mailbox: string, msgId: string, html: string, to: string[], cc: string[], attachments: OutAttachment[],
+  opts: { onlyListed?: boolean } = {},
 ): Promise<ReplyDraft> {
   const base = `${GRAPH}/users/${encodeURIComponent(mailbox)}/messages`;
   const c = await must(await apiFetch(`${base}/${msgId}/createReplyAll`, { method: "POST", headers: H(token), body: "{}" }), "createReplyAll");
@@ -24,8 +25,9 @@ export async function replyAllHtml(
   // Reply-all keeps everyone already on the thread; staff can add more. Never send to our own mailbox.
   const own = mailbox.toLowerCase();
   const list = (r?: R[]) => (r ?? []).map((x) => (x.emailAddress?.address ?? "").toLowerCase()).filter(Boolean);
-  const allTo = [...new Set([...list(draft.toRecipients), ...to])].filter((e) => e !== own);
-  const allCc = [...new Set([...list(draft.ccRecipients), ...cc])].filter((e) => e !== own && !allTo.includes(e));
+  // onlyListed (test sends): nobody already on the thread gets it, only the addresses passed in.
+  const allTo = [...new Set([...(opts.onlyListed ? [] : list(draft.toRecipients)), ...to])].filter((e) => e !== own);
+  const allCc = [...new Set([...(opts.onlyListed ? [] : list(draft.ccRecipients)), ...cc])].filter((e) => e !== own && !allTo.includes(e));
   const url = `${base}/${draft.id}`;
   try {
     const quoted = draft.body?.content ?? "";

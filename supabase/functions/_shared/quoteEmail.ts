@@ -113,3 +113,23 @@ export function renderQuoteEmailBody(text: string, actions: QuoteActions | null)
 <p style="margin:0 0 12px;font-family:${FONT};font-size:12px;line-height:18px;color:${MUTED};">One click updates our system. You can also just reply to this email.</p>` : "";
   return `<div style="font-family:${FONT};">${paras}${btns}</div>`;
 }
+
+/** Reminder written as a reply inside an existing thread: plain Outlook look, options table, Accept / Decline. */
+export function renderReminderReply(r: CustomerReminder): string {
+  const f = (html: string, extra = "") => `<p style="margin:0 0 12px;font-family:${FONT};font-size:14px;line-height:21px;color:#111827;${extra}">${html}</p>`;
+  const hello = r.contactName?.trim() ? `Hi ${esc(r.contactName.trim().split(/\s+/)[0])},` : "Hi,";
+  const multi = r.options.length > 1;
+  const rows = r.options.map((o, i) => `<tr>${td(esc(o.carrier ?? (multi ? `Option ${i + 1}` : "Your rate")))}${td(esc(transitText(o.transit_days)))}${td(esc(money(o.total, o.currency)), true)}</tr>`).join("");
+  const table = r.options.length
+    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${LINE};margin:4px 0 14px;min-width:360px;"><tr>${th("Option")}${th("Transit")}${th("Total", true)}</tr>${rows}</table>`
+    : "";
+  const btns = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 12px;"><tr>
+<td style="padding:0 10px 0 0;">${button(multi ? "Choose and accept" : "Accept quote", multi ? r.viewUrl : r.acceptUrl, GREEN, 190)}</td>
+<td>${button("Decline", r.declineUrl, "#64748B", 120)}</td></tr></table>`;
+  return `<div style="font-family:${FONT};">${f(hello)}`
+    + f(`Just following up on quote <b>${esc(r.quoteNo)}</b> for ${esc(r.lane)}${r.expiresAt ? `. It is valid until <b>${esc(nzDate(r.expiresAt))}</b>` : ""}.`)
+    + table + f(multi ? "Pick an option to accept, or let us know if it is not going ahead." : "You can accept or decline below, or just reply here.")
+    + btns
+    + f(`Kind regards,<br>${esc(r.ownerName ?? "UB Freight Sales Support")}<br><span style="color:${MUTED};">UB Freight Ltd${r.ownerEmail ? ` &middot; ${esc(r.ownerEmail)}` : ""}</span>`)
+    + `</div>`;
+}
