@@ -1,11 +1,11 @@
 import { useEffect, useState } from 'react'
-import { FileText, FolderOpen, Hourglass, Trophy, XCircle, Percent, Medal, type LucideIcon } from 'lucide-react'
+import { FileText, FolderOpen, Hourglass, Trophy, XCircle, Percent, Medal, TrendingUp, ClipboardCheck, type LucideIcon } from 'lucide-react'
 import QuotesLeaderboardDialog from './leaderboard/QuotesLeaderboardDialog'
 import { fetchQuotesStats, type QuotesMode, type PortPair, type QuotesStats, type StatsPeriod } from './quotesStatsApi'
 
 type Props = { mode: QuotesMode; lane: PortPair; refreshKey?: number; title?: string }
 
-type Tile = { label: string; value: string; Icon: LucideIcon; tone?: string }
+type Tile = { label: string; value: string; Icon: LucideIcon; tone?: string; hint?: string }
 
 const PERIODS: { key: StatsPeriod; label: string; hint: string }[] = [
   { key: 'week', label: 'Week', hint: 'Since Monday' },
@@ -44,13 +44,16 @@ export default function QuotesStatsStrip({ mode, lane, refreshKey = 0, title }: 
 
   const word = period === 'week' ? 'this week' : period === 'month' ? 'this month' : period === 'quarter' ? 'this quarter' : 'this year'
   const n = (v: number | undefined) => (stats ? String(v ?? 0) : '–')
+  const pct = (v: number | null | undefined) => (v == null ? '–' : `${v}%`)
   const tiles: Tile[] = [
     { label: `Quotes ${word}`, value: n(stats?.period_count), Icon: FileText },
     { label: 'Open', value: n(stats?.open), Icon: FolderOpen },
     { label: 'Needs pricing', value: n(stats?.needs_pricing), Icon: Hourglass, tone: stats?.needs_pricing ? '#B45309' : undefined },
     { label: `Won ${word}`, value: n(stats?.won_period), Icon: Trophy, tone: '#047857' },
     { label: `Lost ${word}`, value: n(stats?.lost_period), Icon: XCircle, tone: '#B91C1C' },
-    { label: `Win rate ${word}`, value: stats?.win_rate == null ? '–' : `${stats.win_rate}%`, Icon: Percent },
+    { label: `Win rate ${word}`, value: pct(stats?.win_rate), Icon: Percent, hint: 'Won ÷ (won + lost), decided this period' },
+    { label: `Conversion ${word}`, value: pct(stats?.conversion_rate), Icon: TrendingUp, hint: 'Quotes created this period that are now won' },
+    { label: `Booked ${word}`, value: stats?.booked_rate == null ? '–' : `${stats.booked_rate}%`, Icon: ClipboardCheck, hint: 'Quotes created this period now linked to a booking' },
   ]
 
   return (
@@ -79,9 +82,9 @@ export default function QuotesStatsStrip({ mode, lane, refreshKey = 0, title }: 
         </div>
       </div>
       <QuotesLeaderboardDialog open={boardOpen} onClose={() => setBoardOpen(false)} mode={mode} initialPeriod={period} />
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6">
-        {tiles.map(({ label, value, Icon, tone }) => (
-          <div key={label} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-8">
+        {tiles.map(({ label, value, Icon, tone, hint }) => (
+          <div key={label} title={hint} className="flex items-center gap-3 rounded-lg border border-slate-200 bg-white px-4 py-3">
             <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md bg-slate-50 text-slate-500">
               <Icon size={16} strokeWidth={2} />
             </span>

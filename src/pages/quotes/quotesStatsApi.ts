@@ -12,6 +12,9 @@ export type QuotesStats = {
   won_period: number
   lost_period: number
   win_rate: number | null
+  conversion_rate: number | null
+  booked_period: number | null
+  booked_rate: number | null
 }
 
 // Period starts: week = Monday, all in NZ time (server side).
@@ -25,7 +28,14 @@ export async function fetchQuotesStats(mode: QuotesMode, lane: PortPair, period:
   if (error) throw error
   const row = (Array.isArray(data) ? data[0] : data) as QuotesStats | undefined
   if (!row) return null
-  return { ...row, win_rate: row.win_rate == null ? null : Number(row.win_rate) }
+  const pct = (v: unknown) => (v == null ? null : Number(v))
+  return {
+    ...row,
+    win_rate: pct(row.win_rate),
+    conversion_rate: pct(row.conversion_rate),
+    booked_period: row.booked_period ?? null,
+    booked_rate: pct(row.booked_rate),
+  }
 }
 
 export type PortCodeRow = { side: 'from' | 'to'; code: string; n: number }
