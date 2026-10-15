@@ -122,8 +122,8 @@ export default function IataPortSelect({ label, value, onChange, required }: Pro
                       <span className="iata-tile__option-iata mono">{port.iata}</span>
                     </span>
                     <span className="iata-tile__option-detail">
-                      <span className="iata-tile__option-name">{port.name}</span>
-                      <span className="iata-tile__option-meta muted">{port.city || '—'}</span>
+                      <span className="iata-tile__option-name">{port.city || port.name}</span>
+                      <span className="iata-tile__option-meta muted">{port.city ? port.name : '—'}</span>
                     </span>
                   </button>
                 </li>
