@@ -65,7 +65,7 @@ export function buildBuyLinesFromOption(o: RateOption, containers: { size: strin
 }
 
 export async function createQuoteWithBuyRates(args: {
-  customerAccountId: string
+  customerAccountId: string | null
   customerName: string
   fromPortCode: string
   toPortCode: string
@@ -169,7 +169,7 @@ export function buildAirBuyLinesFromOption(o: AirRateOption, selectedKeys?: stri
 }
 
 export async function createQuoteWithAirBuyRates(args: {
-  customerAccountId: string
+  customerAccountId: string | null
   customerName: string
   fromPortCode: string
   toPortCode: string

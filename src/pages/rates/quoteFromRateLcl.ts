@@ -80,7 +80,7 @@ export function buildLclBuyLinesFromOption(o: LclRateOption): QuoteResponseLine[
 }
 
 export async function createQuoteWithLclBuyRates(args: {
-  customerAccountId: string
+  customerAccountId: string | null
   customerName: string
   fromPortCode: string
   toPortCode: string

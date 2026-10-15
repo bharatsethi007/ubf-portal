@@ -119,6 +119,15 @@ export default function NewQuoteSearch() {
   const creating = busyId !== null
 
   function setFreightTerms(v: string | null) { freightTouched.current = true; setFreightTermsState(v) }
+  // Who the quote is for: the customer, or an agent-only party (no customer row, so no account FK).
+  function billTo(): { accountId: string | null; name: string } | null {
+    if (customer) return { accountId: customer.account_id, name: customer.name }
+    if (party && agentMode && agent) return { accountId: null, name: party.name }
+    return null
+  }
+  const agentPatch = () => (agentMode && agent
+    ? { agent_id: agent.agentId || null, agent_name: agent.name, freight_terms: freightTerms }
+    : {}) as Partial<QuoteDraft>
   function onToggleAgent(on: boolean) {
     setAgentMode(on)
     if (on) { freightTouched.current = false; setFreightTermsState(defaultFreightTerms(draft.movement_type)) }
@@ -355,16 +364,19 @@ export default function NewQuoteSearch() {
   }
 
   async function handleCreate(chosen?: RateOption, opts?: { cartage: boolean }) {
-    if (!customer) { toast.error('Enter a customer/agent first to create a quote'); return }
+    const bill = billTo()
+    if (!bill) { toast.error('Enter a customer/agent first to create a quote'); return }
     setBusyId(chosen?.cardId ?? '__plain__')
     try {
       const payload: QuoteDraft = {
         ...draft,
         service_type: draft.service_type ?? serviceTypeForIncoterm(draft.incoterms),
-        customer_account_id: customer.account_id,
-        customer_name: customer.name,
+        customer_account_id: bill.accountId,
+        customer_name: bill.name,
       }
       const { id } = await createQuote(payload)
+      const ap = agentPatch()
+      if (Object.keys(ap).length) await updateQuote(id, ap)
       if (draft.shipment_type === 'FCL') await replaceQuoteContainers(id, groups)
       if (isAir) { await updateQuote(id, { cargo_entry_mode: airMode }); await saveQuoteCargo(id, airLines, 'air') }
       if (isLcl) { await updateQuote(id, { cargo_entry_mode: lclMode }); await saveQuoteCargo(id, lclLines, 'sea') }
@@ -383,13 +395,14 @@ export default function NewQuoteSearch() {
 
 
   async function handleCreateLcl(o: LclRateOption) {
-    if (!customer) { toast.error('Enter a customer/agent first to create a quote'); return }
+    const bill = billTo()
+    if (!bill) { toast.error('Enter a customer/agent first to create a quote'); return }
     if (!draft.from_port_code || !draft.to_port_code) { toast.error('Origin and destination required'); return }
     setBusyId(o.cardId)
     try {
       const { quoteId } = await createQuoteWithLclBuyRates({
-        customerAccountId: customer.account_id,
-        customerName: customer.name,
+        customerAccountId: bill.accountId,
+        customerName: bill.name,
         fromPortCode: draft.from_port_code,
         toPortCode: draft.to_port_code,
         option: o,
@@ -397,7 +410,7 @@ export default function NewQuoteSearch() {
         incoterm: draft.incoterms ?? null,
         extraLines: cartageResponseLines(cardCartage),
       })
-      await updateQuote(quoteId, { cargo_entry_mode: lclMode, pickup_address: draft.pickup_address ?? null, drop_address: draft.drop_address ?? null })
+      await updateQuote(quoteId, { cargo_entry_mode: lclMode, pickup_address: draft.pickup_address ?? null, drop_address: draft.drop_address ?? null, ...agentPatch() })
       await saveQuoteCargo(quoteId, lclLines, 'sea')
       toast.success('Quote created with LCL buy rates')
       navigate(`/quotes/${quoteId}`)
@@ -408,13 +421,14 @@ export default function NewQuoteSearch() {
   }
 
   async function handleCreateAir(o: AirRateOption, selectedKeys?: string[]) {
-    if (!customer) { toast.error('Enter a customer/agent first to create a quote'); return }
+    const bill = billTo()
+    if (!bill) { toast.error('Enter a customer/agent first to create a quote'); return }
     if (!draft.from_port_code || !draft.to_port_code) { toast.error('Origin and destination required'); return }
     setBusyId(o.cardId)
     try {
       const { quoteId } = await createQuoteWithAirBuyRates({
-        customerAccountId: customer.account_id,
-        customerName: customer.name,
+        customerAccountId: bill.accountId,
+        customerName: bill.name,
         fromPortCode: draft.from_port_code,
         toPortCode: draft.to_port_code,
         incoterm: draft.incoterms ?? null,

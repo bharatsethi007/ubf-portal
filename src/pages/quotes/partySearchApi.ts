@@ -68,10 +68,19 @@ export async function searchParties(term: string, limit = 8): Promise<Party[]> {
     const agent = agentByCode.get(c.account_id)
     out.push({ ...c, isAgent: !!agent, isCustomer: true, agentId: agent ? agent.id : null })
   }
+  // Agents found by code/name whose ERP code is also an open customer: use the customer row.
+  const agentOnlyCodes = agentRows.map((a) => String(a.erp_account_code ?? '')).filter((c) => c && !seen.has(c))
+  const custByCode = new Map<string, CustomerPickerValue>()
+  if (agentOnlyCodes.length) {
+    const { data: extra } = await supabase.from('customers').select(CUSTOMER_SELECT).eq('closed', false).in('account_id', agentOnlyCodes)
+    for (const r of ((extra as Record<string, any>[]) ?? [])) { const c = mapCustomer(r); custByCode.set(c.account_id, c) }
+  }
   for (const a of agentRows) {
     const code = String(a.erp_account_code ?? '')
     if (!code || seen.has(code)) continue
     seen.add(code)
+    const asCustomer = custByCode.get(code)
+    if (asCustomer) { out.push({ ...asCustomer, isAgent: true, isCustomer: true, agentId: String(a.id) }); continue }
     out.push({
       account_id: code,
       name: String(a.name ?? code),
