@@ -2,6 +2,7 @@ import type { ColumnDef } from '@tanstack/react-table'
 import CopyQuoteButton from './CopyQuoteButton'
 import { QuoteNoCell } from './quoteUnsent'
 import { AUTO_EXPIRED } from './quoteLostReasons'
+import { loadColumns, type QuoteLoad } from './quoteLoadCells'
 import { MODE_TONE, dirTone, pillStyle, statusTone, STATUS_TONE } from './quoteTones'
 import {
   Files, FolderOpen, PauseCircle, Trophy, XCircle, Repeat2,
@@ -28,6 +29,7 @@ export type QuoteRow = {
   last_reminded_at?: string | null
   ai_priced_at?: string | null
   ai_gaps?: string[] | null
+  load?: QuoteLoad
 }
 
 export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon; color?: string }[] = [
@@ -123,6 +125,7 @@ export function quotesTableColumns(
   portMap: Map<string, string>,
   staffMap: Map<string, string>,
   statusTab = 'all',
+  mode: 'all' | 'air' | 'fcl' | 'lcl' = 'all',
 ): ColumnDef<QuoteRow>[] {
   const port = (code: string | null) => (code ? portMap.get(code) ?? code : '—')
   const extra: ColumnDef<QuoteRow>[] = []
@@ -174,6 +177,7 @@ export function quotesTableColumns(
       header: 'Destination',
       cell: ({ row }) => port(row.original.to_port_code),
     },
+    ...loadColumns(mode),
     {
       id: 'source',
       header: 'Source',

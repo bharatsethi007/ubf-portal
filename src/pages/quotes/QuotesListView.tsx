@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom'
 import QuoteRemindersDialog from './reminders/QuoteRemindersDialog'
 import { toast } from 'sonner'
 import Pagination from '../../components/Pagination'
+import { summarizeLoad } from './quoteLoadCells'
 import { buildQuotesQuery } from './quotesListQuery'
 import { exportQuotesCsv } from './quotesExport'
 import type { LostInfo } from './quoteLostReasons'
@@ -35,6 +36,8 @@ type QuoteDbRow = {
   last_reminded_at: string | null
   ai_priced_at: string | null
   ai_gaps: string[] | null
+  quote_cargo_lines?: { quantity: number | null; total_cbm: number | null; chargeable_wt: number | null }[] | null
+  quote_containers?: { container_size: string | null; container_type: string | null; qty: number | null }[] | null
 }
 
 type Props = {
@@ -67,7 +70,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
   }
   const reqId = useRef(0)
 
-  const columns = useMemo(() => quotesTableColumns(portMap, staffMap, statusTab), [portMap, staffMap, statusTab])
+  const columns = useMemo(() => quotesTableColumns(portMap, staffMap, statusTab, mode), [portMap, staffMap, statusTab, mode])
 
   useEffect(() => {
     setPage(1)
@@ -112,6 +115,7 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
           source: r.source,
           created_by: r.created_by,
           created_at: r.created_at,
+          load: summarizeLoad(r.quote_cargo_lines, r.quote_containers),
         })),
       )
       setTotal(count ?? 0)
