@@ -40,7 +40,7 @@ export async function fetchEmailFacts(quoteId: string, portName: (c: string | nu
 export function defaultMessage(f: QuoteEmailFacts, myName: string | null): string {
   const first = f.contactName?.trim().split(/\s+/)[0]
   const money = (n: number | null, c: string | null) => (n == null ? '' : `${c ?? 'NZD'} ${Number(n).toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`)
-  const lines = f.options.map((o, i) => `- ${o.carrier ?? (f.options.length > 1 ? `Option ${i + 1}` : 'Rate')}: ${money(o.total, o.currency)}${o.transit ? `, ${transitLabel(o.transit)} transit` : ''}`)
+  const lines = f.options.map((o, i) => `- ${o.carrier ?? (f.options.length > 1 ? `Option ${i + 1}` : 'Rate')}: ${money(o.total, o.currency)} excl. GST${o.transit ? `, ${transitLabel(o.transit)} transit` : ''}`)
   const valid = f.expiresAt ? `\n\nThis quote is valid until ${new Date(f.expiresAt).toLocaleDateString('en-NZ', { day: 'numeric', month: 'short', year: 'numeric' })}.` : ''
   return [
     `Hi ${first ?? 'there'},`,

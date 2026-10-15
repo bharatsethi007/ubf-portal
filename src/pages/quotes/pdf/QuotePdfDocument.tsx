@@ -45,7 +45,8 @@ const s = StyleSheet.create({
   totLine: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 2 },
   totK: { color: MUTE, fontSize: 8, fontWeight: 500 },
   totV: { color: BLACK, fontWeight: 500, fontSize: 8 },
-  grand: { borderTop: '1 solid ' + NAVY, marginTop: 3, paddingTop: 4 },
+  grand: { borderTop: '1 solid ' + NAVY, marginTop: 3, paddingTop: 4, paddingBottom: 3 },
+  taxNote: { color: MUTE, fontSize: 6.4, marginTop: 4, textAlign: 'right' },
   grandK: { color: NAVY, fontWeight: 700, fontSize: 9.5 },
   grandV: { color: NAVY, fontWeight: 700, fontSize: 10 },
   notesWrap: { marginTop: 6 },
@@ -68,7 +69,9 @@ const s = StyleSheet.create({
   optTotals: { marginTop: 4, alignSelf: 'flex-end', width: 200 },
   extNoteWrap: { marginTop: 12, paddingTop: 8, borderTop: '0.5px solid #d0d5dd' },
   extNoteLabel: { fontSize: 7, fontWeight: 600, color: BLACK, marginBottom: 3, letterSpacing: 0.3 },
-  extNoteBody: { fontSize: 7.2, color: BLACK, lineHeight: 1.4 },
+  extNoteBody: { fontSize: 7.2, color: BLACK, lineHeight: 1.4, flex: 1 },
+  extNoteRow: { flexDirection: 'row', marginBottom: 1.5 },
+  extNoteBullet: { fontSize: 7.2, color: MUTE, width: 8, lineHeight: 1.4 },
 })
 
 const CH: { k: 'desc' | 'qty' | 'unit' | 'min' | 'price' | 'ex' | 'tax' | 'frcr' | 'amt'; f: number; a: 'left' | 'right' }[] = [
@@ -158,8 +161,17 @@ function OptionBlock({ opt, showCarrier, mode }: { opt: PdfOption; showCarrier: 
         )
       )}
       <View style={s.optTotals}>
-        <View style={s.totLine}><Text style={s.totK}>SUB TOTAL</Text><Text style={s.totV}>{opt.subTotal}</Text></View>
-        <View style={[s.totLine, s.grand]}><Text style={s.grandK}>TOTAL</Text><Text style={s.grandV}>{opt.total}</Text></View>
+        {/* Pre-GST is the headline so it compares like for like with other quotes. */}
+        <View style={[s.totLine, s.grand]}><Text style={s.grandK}>TOTAL EXCL. GST</Text><Text style={s.grandV}>{opt.subTotal}</Text></View>
+        {opt.hasTax ? (
+          <>
+            <View style={s.totLine}><Text style={s.totK}>GST</Text><Text style={s.totV}>{opt.tax}</Text></View>
+            <View style={s.totLine}><Text style={s.totK}>TOTAL INCL. GST</Text><Text style={s.totV}>{opt.total}</Text></View>
+          </>
+        ) : (
+          <View style={s.totLine}><Text style={s.totK}>No GST applies</Text><Text style={s.totV}> </Text></View>
+        )}
+        {opt.mixedTax && <Text style={s.taxNote}>GST applies to NZ charges only. International freight is zero-rated.</Text>}
       </View>
       {opt.notes.length > 0 && (
         <View style={s.notesWrap}>
@@ -287,8 +299,14 @@ export default function QuotePdfDocument({ data }: { data: QuotePdfData }) {
 
         {data.externalNote ? (
           <View style={s.extNoteWrap} wrap>
-            <Text style={s.extNoteLabel}>NOTES</Text>
-            <Text style={s.extNoteBody}>{data.externalNote}</Text>
+            {/* Heading never sits alone at a page foot; each note line flows and breaks between lines. */}
+            <Text style={s.extNoteLabel} minPresenceAhead={40}>NOTES</Text>
+            {data.externalNote.split(/\r?\n/).map((raw) => raw.trim()).filter(Boolean).map((line, i) => (
+              <View key={i} style={s.extNoteRow} wrap={false}>
+                <Text style={s.extNoteBullet}>{'\u2022'}</Text>
+                <Text style={s.extNoteBody}>{line.replace(/^[-\u2022*]\s*/, '')}</Text>
+              </View>
+            ))}
           </View>
         ) : null}
       </Page>

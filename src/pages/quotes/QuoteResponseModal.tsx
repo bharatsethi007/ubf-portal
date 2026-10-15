@@ -240,9 +240,9 @@ export default function QuoteResponseModal({ quoteId, responseId, onClose, onSav
               <QuoteResponseLinesGrid lines={lines} currency={header.currency ?? 'NZD'} perKgQty={perKgQty} mode={quote ? (isAir ? 'air' : 'sea') : undefined} quoteId={quoteId} unitQty={unitQty} onChange={setLines} />
 
               <div className="qrm-totals">
-                <div className="qrm-totrow"><span>Sub Total</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.subTotal)}</span></div>
-                <div className="qrm-totrow"><span>Total Tax</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.totalTax)}</span></div>
-                <div className="qrm-totrow qrm-totrow--strong"><span>Total Sell Amount</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.totalSell)}</span></div>
+                <div className="qrm-totrow qrm-totrow--strong"><span>Total excl. GST</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.subTotal)}</span></div>
+                <div className="qrm-totrow"><span>GST</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.totalTax)}</span></div>
+                <div className="qrm-totrow"><span>Total incl. GST</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.subTotal + totals.totalTax)}</span></div>
                 <div className="qrm-totrow qrm-totrow--buy"><span>Total Buy Amount</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.totalBuy)}</span></div>
                 <div className="qrm-totrow qrm-totrow--profit"><span>Net Profit (Margin %)</span><span>{header.currency ?? 'NZD'} {fmtMoney(totals.netProfit)} ({totals.marginPct.toFixed(1)}%)</span></div>
               </div>

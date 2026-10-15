@@ -82,8 +82,13 @@ export default function QuoteOfferDetail({ o, open, onAnswered }: Props) {
             </section>
           ))}
           <div className="pv3-qtotal">
-            {!!o.total_tax && <div><span>Tax</span><span className="pv3-mono">{money(o.total_tax, cur)}</span></div>}
-            <div className="pv3-qtotal__grand"><span>Total</span><span className="pv3-mono">{money(o.total_sell, cur)}</span></div>
+            <div className="pv3-qtotal__grand"><span>Total excl. GST</span><span className="pv3-mono">{money(o.total_sell, cur)}</span></div>
+            {o.total_tax ? (
+              <>
+                <div><span>GST</span><span className="pv3-mono">{money(o.total_tax, cur)}</span></div>
+                <div><span>Total incl. GST</span><span className="pv3-mono">{money((Number(o.total_sell) || 0) + (Number(o.total_tax) || 0), cur)}</span></div>
+              </>
+            ) : <div><span>No GST applies</span><span /></div>}
           </div>
         </div>
       )}

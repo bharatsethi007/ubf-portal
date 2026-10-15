@@ -19,8 +19,11 @@ export type PdfOption = {
   transitTime: string
   freeDays: string
   charges: PdfCharge[]
-  subTotal: string
-  total: string
+  subTotal: string   // excl. GST, the headline number
+  tax: string
+  total: string      // incl. GST
+  hasTax: boolean
+  mixedTax: boolean  // some lines carry GST, some are zero-rated
   notes: string[]
 }
 
@@ -108,7 +111,10 @@ function buildOption(input: PdfResponseInput, index: number, refs: PdfRefs): Pdf
     freeDays: record.origin_free_time_days != null && String(record.origin_free_time_days) !== '' ? `${record.origin_free_time_days} days` : '',
     charges,
     subTotal: money(currency, totals.subTotal),
+    tax: money(currency, totals.totalTax),
     total: money(currency, totals.subTotal + totals.totalTax),
+    hasTax: totals.totalTax > 0,
+    mixedTax: totals.totalTax > 0 && lines.some((l) => !(refs.taxRateByCode[l.tax] > 0)),
     notes,
   }
 }
