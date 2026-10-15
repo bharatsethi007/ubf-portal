@@ -395,6 +395,7 @@ export default function QuoteResponseLinesGrid({ lines, currency, perKgQty, mode
         applyingTpl={applyingTpl}
         onApplyTemplate={(t) => void applyTemplate(t)}
         onSaveTemplate={() => void handleSaveTemplate()}
+        onTemplatesChanged={() => void loadTemplates()}
       />
 
       <ChargeCodeEditDialog code={editCode} groups={groupOptions} units={unitOptionsAll} onClose={() => setEditCode(null)} onSaved={(o, n) => void onCodeSaved(o, n)} />
