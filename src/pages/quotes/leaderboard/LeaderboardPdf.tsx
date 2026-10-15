@@ -68,15 +68,19 @@ function winColor(v: number | null) {
 }
 
 const STAFF_COLS: Col[] = [
-  { label: '#', w: 26 }, { label: 'SALES SUPPORT', w: 120 }, { label: 'QUOTES', w: 110 },
+  { label: '#', w: 26 }, { label: 'SALES SUPPORT', w: 110 }, { label: 'QUOTES', w: 90 },
   { label: '/ DAY', w: 42, right: true }, { label: '/ WEEK', w: 46, right: true }, { label: '/ MONTH', w: 50, right: true },
-  { label: 'HELD', w: 38, right: true }, { label: 'WON', w: 38, right: true }, { label: 'LOST', w: 38, right: true }, { label: 'WIN RATE', w: 100 },
-  { label: 'TIME TO QUOTE', w: 70, right: true }, { label: 'EMAIL TO QUOTE', w: 70, right: true },
+  { label: 'HELD', w: 38, right: true }, { label: 'WON', w: 38, right: true }, { label: 'LOST', w: 38, right: true }, { label: 'WIN RATE', w: 90 },
+  { label: 'TIME TO QUOTE', w: 70, right: true }, { label: 'EMAIL TO QUOTE', w: 70, right: true }, { label: 'TIME TO WIN', w: 64, right: true },
+]
+const SALES_COLS: Col[] = [
+  { label: '#', w: 26 }, { label: 'SALES', w: 160 }, { label: 'WON', w: 110 },
+  { label: 'TIME TO WIN', w: 70, right: true }, { label: 'LAST WIN', w: 74, right: true },
 ]
 const CUST_COLS: Col[] = [
-  { label: '#', w: 26 }, { label: 'CUSTOMER', w: 190 }, { label: 'QUOTES', w: 110 },
+  { label: '#', w: 26 }, { label: 'CUSTOMER', w: 170 }, { label: 'QUOTES', w: 110 },
   { label: 'OPEN', w: 40, right: true }, { label: 'HELD', w: 40, right: true }, { label: 'WON', w: 40, right: true }, { label: 'LOST', w: 40, right: true },
-  { label: 'WIN RATE', w: 100 }, { label: 'TIME TO QUOTE', w: 70, right: true }, { label: 'LAST QUOTE', w: 74, right: true },
+  { label: 'WIN RATE', w: 100 }, { label: 'TIME TO QUOTE', w: 70, right: true }, { label: 'TIME TO WIN', w: 64, right: true }, { label: 'LAST QUOTE', w: 74, right: true },
 ]
 
 type Props = { lb: Leaderboard; periodLabel: string; modeText: string; logoUrl: string; generatedBy?: string }
@@ -94,6 +98,7 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
     { v: fmtPct(t.win_rate), l: 'Win rate' },
     { v: fmtHrs(t.avg_hrs_to_quote), l: 'Median time to quote' },
     { v: fmtHrs(t.avg_hrs_email_to_quote), l: 'Median email to quote' },
+    { v: fmtHrs(t.hrs_to_win), l: 'Median time to win' },
     { v: String(t.customers), l: 'Customers quoted' },
   ]
   const r = (w: number, right?: boolean) => [s.td, { width: w, textAlign: right ? 'right' as const : 'left' as const }]
@@ -124,22 +129,39 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
         {lb.staff.map((x, i) => (
           <View key={x.user_id ?? x.name} style={s.tr} wrap={false}>
             <View style={{ width: 26, paddingHorizontal: 4 }}><Rank i={i} /></View>
-            <Text style={r(120)}>{x.name}</Text>
-            <Bar v={x.quotes} max={sMax} color={NAVY} label={String(x.quotes)} w={110} />
+            <Text style={r(110)}>{x.name}</Text>
+            <Bar v={x.quotes} max={sMax} color={NAVY} label={String(x.quotes)} w={90} />
             <Text style={r(42, true)}>{x.per_day}</Text>
             <Text style={r(46, true)}>{x.per_week}</Text>
             <Text style={r(50, true)}>{x.per_month}</Text>
             <Text style={[...r(38, true), { color: AMBER }]}>{x.held ?? 0}</Text>
             <Text style={[...r(38, true), { color: GREEN }]}>{x.won}</Text>
             <Text style={[...r(38, true), { color: RED }]}>{x.lost}</Text>
-            <Bar v={Number(x.win_rate ?? 0)} max={100} color={winColor(x.win_rate)} label={fmtPct(x.win_rate)} w={100} />
+            <Bar v={Number(x.win_rate ?? 0)} max={100} color={winColor(x.win_rate)} label={fmtPct(x.win_rate)} w={90} />
             <Text style={r(70, true)}>{fmtHrs(x.avg_hrs_to_quote)}</Text>
             <Text style={r(70, true)}>{fmtHrs(x.avg_hrs_email_to_quote)}</Text>
+            <Text style={r(64, true)}>{fmtHrs(x.hrs_to_win)}</Text>
           </View>
         ))}
 
+        {lb.sales && lb.sales.length > 0 && (
+          <>
+            <Text style={s.sec}>SALES (WON QUOTES)</Text>
+            <Head cols={SALES_COLS} />
+            {lb.sales.map((x, i) => (
+              <View key={x.user_id ?? x.name} style={s.tr} wrap={false}>
+                <View style={{ width: 26, paddingHorizontal: 4 }}><Rank i={i} /></View>
+                <Text style={r(160)}>{x.name}</Text>
+                <Bar v={x.won} max={Math.max(1, ...lb.sales!.map((y) => y.won))} color={GREEN} label={String(x.won)} w={110} />
+                <Text style={r(70, true)}>{fmtHrs(x.hrs_to_win)}</Text>
+                <Text style={r(74, true)}>{x.last_won ? fmtDay(x.last_won) : '–'}</Text>
+              </View>
+            ))}
+          </>
+        )}
+
         <Text style={s.note}>
-          Time to quote: median, quote created to last rate line added. Email to quote: median, customer email received to last rate line added
+          Time to win: median, quote created to marked won. Time to quote: median, quote created to last rate line added. Email to quote: median, customer email received to last rate line added
           (matched by account or contact email, within 3 days). Per day uses working days. Win rate = won / (won + lost).
         </Text>
         <View style={s.foot} fixed>
@@ -155,7 +177,7 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
         {cust.map((x, i) => (
           <View key={`${x.account_id ?? ''}-${x.name}`} style={s.tr} wrap={false}>
             <View style={{ width: 26, paddingHorizontal: 4 }}><Rank i={i} /></View>
-            <Text style={r(190)}>{x.name}</Text>
+            <Text style={r(170)}>{x.name}</Text>
             <Bar v={x.quotes} max={cMax} color={NAVY} label={String(x.quotes)} w={110} />
             <Text style={r(40, true)}>{x.open}</Text>
             <Text style={[...r(40, true), { color: AMBER }]}>{x.held ?? 0}</Text>
@@ -163,6 +185,7 @@ export default function LeaderboardPdf({ lb, periodLabel, modeText, logoUrl, gen
             <Text style={[...r(40, true), { color: RED }]}>{x.lost}</Text>
             <Bar v={Number(x.win_rate ?? 0)} max={100} color={winColor(x.win_rate)} label={fmtPct(x.win_rate)} w={100} />
             <Text style={r(70, true)}>{fmtHrs(x.avg_hrs_to_quote)}</Text>
+            <Text style={r(64, true)}>{fmtHrs(x.hrs_to_win)}</Text>
             <Text style={r(74, true)}>{fmtDay(x.last_quote)}</Text>
           </View>
         ))}

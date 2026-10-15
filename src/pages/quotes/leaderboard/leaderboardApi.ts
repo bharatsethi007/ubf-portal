@@ -18,6 +18,8 @@ export type LbStaff = {
   avg_hrs_to_quote: number | null
   avg_hrs_email_to_quote: number | null
   email_matched: number
+  /** Median hours, quote created to marked won. */
+  hrs_to_win?: number | null
 }
 
 export type LbCustomer = {
@@ -31,6 +33,7 @@ export type LbCustomer = {
   lost: number
   win_rate: number | null
   avg_hrs_to_quote: number | null
+  hrs_to_win?: number | null
   last_quote: string
 }
 
@@ -45,6 +48,7 @@ export type LbTotals = {
   avg_hrs_to_quote: number | null
   avg_hrs_email_to_quote: number | null
   customers: number
+  hrs_to_win?: number | null
 }
 
 export type LbAgent = {
@@ -60,8 +64,12 @@ export type LbAgent = {
   win_rate: number | null
   avg_hrs_to_quote: number | null
   top_lane: string | null
+  hrs_to_win?: number | null
   last_quote: string
 }
+
+/** Won quotes by sales owner. Agent quotes grouped as "Agent quote". */
+export type LbSales = { user_id: string | null; name: string; won: number; hrs_to_win: number | null; last_won: string | null }
 
 export type MixRow = { label: string; n: number; won?: number; lost?: number }
 export type LbMix = {
@@ -80,6 +88,8 @@ export type Leaderboard = {
   totals: LbTotals
   staff: LbStaff[]
   customers: LbCustomer[]
+  /** Won quotes by sales owner (needs won_at migration). */
+  sales?: LbSales[]
   /** Present once the insights migration is applied. */
   mix?: LbMix
   /** Quotes requested by overseas agents (quotes_leaderboard_agents). */

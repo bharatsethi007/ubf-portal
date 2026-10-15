@@ -1,5 +1,5 @@
 import { buildQuotesQuery, type QuoteListFilters } from './quotesListQuery'
-import type { QuoteRow } from './quotesTableColumns'
+import { timeToWin, type QuoteRow } from './quotesTableColumns'
 
 const BATCH = 1000
 
@@ -36,12 +36,15 @@ export async function exportQuotesCsv(
   }
 
   const port = (c: string | null) => (c ? portMap.get(c) ?? c : '')
-  const head = ['Quote #', 'Customer', 'Mode', 'Type', 'Status', 'Origin', 'Destination', 'Source', 'Created by', 'Created', 'Expires', 'Lost reason', 'Lost note']
+  const head = ['Quote #', 'Customer', 'Mode', 'Type', 'Status', 'Origin', 'Destination', 'Source', 'Created by', 'Created', 'Expires', 'Lost reason', 'Lost note', 'Sales', 'Won', 'Time to win', 'Hours to win']
   const lines = rows.map((r) => [
     r.quote_no, r.customer_name, modeLabel(r), r.movement_type, r.status,
     port(r.from_port_code), port(r.to_port_code), r.source ?? 'manual',
     r.created_by ? staffMap.get(r.created_by) ?? '' : '', fmtDate(r.created_at),
     r.expires_at ? fmtDate(r.expires_at) : '', r.lost_reason ?? '', r.lost_note ?? '',
+    r.agent_id ? 'Agent quote' : r.sales_executive_id ? staffMap.get(r.sales_executive_id) ?? '' : '',
+    r.won_at ? fmtDate(r.won_at) : '', r.won_at ? timeToWin(r) : '',
+    r.won_at ? String(Math.round((new Date(r.won_at).getTime() - new Date(r.created_at).getTime()) / 36000) / 100) : '',
   ].map(cell).join(','))
 
   const csv = '﻿' + [head.join(','), ...lines].join('\r\n')

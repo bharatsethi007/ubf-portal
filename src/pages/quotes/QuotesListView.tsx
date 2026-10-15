@@ -36,6 +36,9 @@ type QuoteDbRow = {
   last_reminded_at: string | null
   ai_priced_at: string | null
   ai_gaps: string[] | null
+  won_at: string | null
+  sales_executive_id: string | null
+  agent_id: string | null
   quote_cargo_lines?: { quantity: number | null; total_cbm: number | null; chargeable_wt: number | null }[] | null
   quote_containers?: { container_size: string | null; container_type: string | null; qty: number | null }[] | null
 }
@@ -95,27 +98,9 @@ export default function QuotesListView({ search, onOpen, portMap, staffMap, mode
     } else {
       setError('')
       setRows(
-        ((data as QuoteDbRow[]) ?? []).map((r) => ({
-          id: r.id,
-          quote_no: r.quote_no,
-          status: r.status,
-          customer_name: r.customer_name,
-          shipment_mode: r.shipment_mode,
-          shipment_type: r.shipment_type,
-          movement_type: r.movement_type,
-          lost_reason: r.lost_reason,
-          lost_note: r.lost_note,
-          expires_at: r.expires_at,
-          sent_for_approval_at: r.sent_for_approval_at,
-          last_reminded_at: r.last_reminded_at,
-          ai_priced_at: r.ai_priced_at,
-          ai_gaps: r.ai_gaps,
-          from_port_code: r.from_port_code,
-          to_port_code: r.to_port_code,
-          source: r.source,
-          created_by: r.created_by,
-          created_at: r.created_at,
-          load: summarizeLoad(r.quote_cargo_lines, r.quote_containers),
+        ((data as QuoteDbRow[]) ?? []).map(({ quote_cargo_lines, quote_containers, ...r }) => ({
+          ...r,
+          load: summarizeLoad(quote_cargo_lines, quote_containers),
         })),
       )
       setTotal(count ?? 0)

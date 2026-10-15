@@ -3,6 +3,7 @@ import CopyQuoteButton from './CopyQuoteButton'
 import { QuoteNoCell } from './quoteUnsent'
 import { AUTO_EXPIRED } from './quoteLostReasons'
 import { loadColumns, type QuoteLoad } from './quoteLoadCells'
+import { fmtHrs } from './leaderboard/leaderboardFormat'
 import { MODE_TONE, dirTone, pillStyle, statusTone, STATUS_TONE } from './quoteTones'
 import {
   Files, FolderOpen, PauseCircle, Trophy, XCircle, Repeat2,
@@ -30,6 +31,9 @@ export type QuoteRow = {
   ai_priced_at?: string | null
   ai_gaps?: string[] | null
   load?: QuoteLoad
+  won_at?: string | null
+  sales_executive_id?: string | null
+  agent_id?: string | null
 }
 
 export const STATUS_TABS: { key: string; label: string; Icon: LucideIcon; color?: string }[] = [
@@ -70,6 +74,12 @@ function lostReasonCell(reason: string | null | undefined, note: string | null |
       {reason}
     </span>
   )
+}
+
+export function timeToWin(r: Pick<QuoteRow, 'created_at' | 'won_at'>): string {
+  if (!r.won_at) return '–'
+  const h = (new Date(r.won_at).getTime() - new Date(r.created_at).getTime()) / 3600000
+  return isNaN(h) ? '–' : fmtHrs(Math.max(0, h))
 }
 
 function fmtCreated(iso: string): string {
@@ -129,6 +139,15 @@ export function quotesTableColumns(
 ): ColumnDef<QuoteRow>[] {
   const port = (code: string | null) => (code ? portMap.get(code) ?? code : '—')
   const extra: ColumnDef<QuoteRow>[] = []
+  if (statusTab === 'won') {
+    extra.push(
+      { id: 'sales', header: 'Sales', cell: ({ row }) => row.original.agent_id
+        ? <span style={{ color: '#94a3b8' }}>Agent quote</span>
+        : row.original.sales_executive_id ? staffMap.get(row.original.sales_executive_id) ?? '—' : <span style={{ color: '#94a3b8' }}>Unassigned</span> },
+      { id: 'won_at', header: 'Won', cell: ({ row }) => row.original.won_at ? fmtCreated(row.original.won_at) : '—' },
+      { id: 'time_to_win', header: 'Time to win', cell: ({ row }) => <span title="Quote created to marked won">{timeToWin(row.original)}</span> },
+    )
+  }
   if (statusTab === 'open' || statusTab === 'all') {
     extra.push({ id: 'expires', header: 'Expires', cell: ({ row }) => row.original.status === 'open' ? expiryCell(row.original.expires_at) : '—' })
   }

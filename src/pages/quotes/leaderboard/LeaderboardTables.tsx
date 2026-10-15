@@ -1,5 +1,5 @@
 import { STATUS_TONE } from '../quoteTones'
-import type { LbAgent, LbCustomer, LbExtra, LbStaff } from './leaderboardApi'
+import type { LbAgent, LbCustomer, LbExtra, LbSales, LbStaff } from './leaderboardApi'
 import { fmtDay, fmtHrs } from './leaderboardFormat'
 import { ConversionBar, DecidedRate, PricingBar, TrendSpark } from './LeaderboardExtras'
 
@@ -40,6 +40,7 @@ function QuotesBar({ v, max }: { v: number; max: number }) {
 }
 
 const TTQ = 'Median: quote created to last rate line added'
+const TTW = 'Median: quote created to marked won'
 const CONV = 'Won out of all quotes, open ones included'
 const DEC = 'Won out of quotes the customer decided on (won + lost)'
 const th = 'px-2 py-2 text-left text-[11px] font-normal uppercase tracking-wide text-slate-500 whitespace-nowrap'
@@ -68,6 +69,7 @@ export function StaffTable({ rows, extra }: { rows: LbStaff[]; extra?: LbExtra }
           {extra && <th className={th} title="Where quote line prices came from this period">Pricing</th>}
           <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
           <th className={`${th} text-right`} title="Median: customer email received to last rate line added">Email → quote</th>
+          <th className={`${th} text-right`} title={TTW}>Time to win</th>
         </tr>
       </thead>
       <tbody>
@@ -90,6 +92,7 @@ export function StaffTable({ rows, extra }: { rows: LbStaff[]; extra?: LbExtra }
             {extra && <td className={td}><PricingBar p={extra.staff[r.user_id ?? 'none']?.pricing} /></td>}
             <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
             <td className={num} title={`${r.email_matched} quote(s) matched to an email`}>{fmtHrs(r.avg_hrs_email_to_quote)}</td>
+            <td className={num}>{fmtHrs(r.hrs_to_win)}</td>
           </tr>
         ))}
       </tbody>
@@ -114,6 +117,7 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
           <th className={th} title={CONV}>Conversion</th>
           <th className={th} title={DEC}>Win rate</th>
           <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
+          <th className={`${th} text-right`} title={TTW}>Time to win</th>
           <th className={`${th} text-right`}>Last quote</th>
         </tr>
       </thead>
@@ -130,6 +134,7 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
             <td className={td}><ConversionBar won={r.won} quotes={r.quotes} /></td>
             <td className={td}><DecidedRate rate={r.win_rate} won={r.won} lost={r.lost} /></td>
             <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
+            <td className={num}>{fmtHrs(r.hrs_to_win)}</td>
             <td className={num}>{fmtDay(r.last_quote)}</td>
           </tr>
         ))}
@@ -158,6 +163,7 @@ export function AgentTable({ rows }: { rows: LbAgent[] | undefined }) {
           <th className={th} title={DEC}>Win rate</th>
           <th className={th} title="Most quoted origin to destination country">Top lane</th>
           <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
+          <th className={`${th} text-right`} title={TTW}>Time to win</th>
           <th className={`${th} text-right`}>Last quote</th>
         </tr>
       </thead>
@@ -176,7 +182,40 @@ export function AgentTable({ rows }: { rows: LbAgent[] | undefined }) {
             <td className={td}><DecidedRate rate={r.win_rate} won={r.won} lost={r.lost} /></td>
             <td className={`${td} tabular-nums text-slate-600`}>{r.top_lane ? r.top_lane.replace('>', ' > ') : '–'}</td>
             <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
+            <td className={num}>{fmtHrs(r.hrs_to_win)}</td>
             <td className={num}>{fmtDay(r.last_quote)}</td>
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  )
+}
+
+export function SalesTable({ rows }: { rows: LbSales[] | undefined }) {
+  if (!rows) return <p className="px-3 py-8 text-center text-sm text-slate-500">Sales report not available yet.</p>
+  if (!rows.length) return <p className="px-3 py-8 text-center text-sm text-slate-500">No won quotes in this period.</p>
+  const max = Math.max(...rows.map((r) => r.won))
+  return (
+    <table className="w-full text-sm">
+      <thead className="bg-slate-50">
+        <tr>
+          <th className={th}>#</th>
+          <th className={th}>Sales</th>
+          <th className={th}>Won</th>
+          <th className={`${th} text-right`} title={TTW}>Time to win</th>
+          <th className={`${th} text-right`}>Last win</th>
+        </tr>
+      </thead>
+      <tbody>
+        {rows.map((r, i) => (
+          <tr key={r.user_id ?? r.name} className="border-t border-slate-100">
+            <td className={td}><Rank i={i} /></td>
+            <td className={td}>
+              <span className={`inline-flex items-center gap-2 ${r.user_id ? 'text-slate-900' : 'text-slate-500'}`}><Initials name={r.name} />{r.name}</span>
+            </td>
+            <td className={td}><QuotesBar v={r.won} max={max} /></td>
+            <td className={num}>{fmtHrs(r.hrs_to_win)}</td>
+            <td className={num}>{r.last_won ? fmtDay(r.last_won) : '–'}</td>
           </tr>
         ))}
       </tbody>
