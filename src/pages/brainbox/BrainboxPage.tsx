@@ -5,9 +5,10 @@ import BrainboxKpis from './BrainboxKpis'
 import BrainboxLibrary from './BrainboxLibrary'
 import BrainboxRules from './BrainboxRules'
 import LaneEvidence from './LaneEvidence'
+import NeuralView from './NeuralView'
 import { fetchRules } from './brainboxApi'
 
-type Tab = 'evidence' | 'learned' | 'rules'
+type Tab = 'evidence' | 'neural' | 'learned' | 'rules'
 const MODES = [{ v: '', label: 'All modes' }, { v: 'air', label: 'Air' }, { v: 'sea', label: 'Sea' }]
 const DAYS = [30, 90, 180, 365]
 
@@ -48,6 +49,7 @@ export default function BrainboxPage() {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="quotes-tabs">
             {tabBtn('evidence', 'Lane evidence')}
+            {tabBtn('neural', 'Neural view')}
             {tabBtn('learned', 'Quote library')}
             {tabBtn('rules', suggested > 0 ? `Rules · ${suggested} to approve` : 'Rules')}
           </div>
@@ -65,6 +67,8 @@ export default function BrainboxPage() {
 
         {tab === 'evidence' ? (
           <LaneEvidence />
+        ) : tab === 'neural' ? (
+          <NeuralView />
         ) : tab === 'learned' ? (
           <>
             <BrainboxKpis days={days} mode={mode || null} />
