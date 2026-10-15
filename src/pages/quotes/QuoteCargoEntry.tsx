@@ -4,6 +4,8 @@ import {
   computeCargoLine, fetchCargoDescriptionSuggestions, newQuoteCargoLine, type QuoteCargoLine,
 } from './quoteCargoApi'
 import QuoteCargoLines from './QuoteCargoLines'
+import CargoModeSwitchDialog from './CargoModeSwitchDialog'
+import { cleanTotalLine, hasCargo, needsCleaning, sumLines, toIndividual, toTotal } from './cargoModeSwitch'
 import './quoteCargoEntry.css'
 
 export type CargoEntryMode = 'total' | 'individual'
@@ -28,28 +30,53 @@ export default function QuoteCargoEntry({
   const [descOpts, setDescOpts] = useState<string[]>([])
   useEffect(() => { fetchCargoDescriptionSuggestions().then(setDescOpts).catch(() => {}) }, [])
 
+  const [pending, setPending] = useState<CargoEntryMode | null>(null)
   const totalLine = lines[0] ?? newQuoteCargoLine(0)
+
+  // Old quotes can hold leftover dimensions under typed totals; totals win in Total mode.
+  useEffect(() => {
+    if (entryMode === 'total' && (needsCleaning(lines[0]) || lines.length > 1)) {
+      onChange(lines.length > 1 ? toTotal(lines, mode) : [cleanTotalLine(lines[0])])
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [entryMode])
+
   function setTotalField(patch: Partial<QuoteCargoLine>) {
-    onChange([{ ...totalLine, ...patch }])
+    onChange([cleanTotalLine({ ...totalLine, ...patch })])
   }
 
-  const c = computeCargoLine(totalLine, mode)
+  function requestMode(m: CargoEntryMode) {
+    if (m === entryMode) return
+    if (!hasCargo(lines, mode)) { onEntryModeChange(m); return }
+    setPending(m)
+  }
+  function confirmMode() {
+    if (!pending) return
+    onChange(pending === 'total' ? toTotal(lines, mode) : toIndividual(lines, mode))
+    onEntryModeChange(pending)
+    setPending(null)
+  }
+
+  const c = computeCargoLine(cleanTotalLine(totalLine), mode)
   const volumetric = c.totalCbm * 167
 
   return (
     <div className="qce">
+      <CargoModeSwitchDialog target={pending} mode={mode}
+        sums={pending === 'individual' ? sumLines([cleanTotalLine(totalLine)], mode) : sumLines(lines, mode)}
+        onCancel={() => setPending(null)} onConfirm={confirmMode} />
       <datalist id="cargo-desc-suggest">{descOpts.map((d) => <option key={d} value={d} />)}</datalist>
 
       <div className="qce__toggle" role="tablist" aria-label="Cargo entry mode">
         <button
           type="button" role="tab" aria-selected={entryMode === 'total'}
           className={`qce__toggle-btn${entryMode === 'total' ? ' qce__toggle-btn--on' : ''}`}
-          onClick={() => onEntryModeChange('total')}
+          onClick={() => requestMode('total')}
         >Total</button>
         <button
           type="button" role="tab" aria-selected={entryMode === 'individual'}
           className={`qce__toggle-btn${entryMode === 'individual' ? ' qce__toggle-btn--on' : ''}`}
-          onClick={() => onEntryModeChange('individual')}
+          onClick={() => requestMode('individual')}
         >Individual</button>
       </div>
 
