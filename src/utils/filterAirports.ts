@@ -1,4 +1,5 @@
 import airports from '../data/airports.json'
+import { countryName, norm, wordStart } from './placeSearch'
 
 export type Airport = {
   iata: string
@@ -25,20 +26,7 @@ export function findAirport(iata: string): Airport | undefined {
   return byIata.get(iata.toUpperCase())
 }
 
-/** Lowercase, no accents, no apostrophes or dots: "O'Hare" -> "ohare", "Nouméa" -> "noumea". */
-function norm(s: string): string {
-  return s.normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase().replace(/['’`.]/g, '').replace(/\s+/g, ' ').trim()
-}
-
 type Indexed = { a: Airport; code: string; city: string; alts: string[]; name: string; country: string; weight: number }
-
-let regionNames: Intl.DisplayNames | null = null
-function countryName(cc: string): string {
-  try {
-    regionNames ??= new Intl.DisplayNames(['en'], { type: 'region' })
-    return (cc && regionNames.of(cc.toUpperCase())) || ''
-  } catch { return '' }
-}
 
 let index: Indexed[] | null = null
 function getIndex(): Indexed[] {
@@ -56,8 +44,6 @@ function getIndex(): Indexed[] {
   }
   return index
 }
-
-const wordStart = (hay: string, q: string) => hay.startsWith(q) || hay.includes(` ${q}`) || hay.includes(`-${q}`) || hay.includes(`/${q}`)
 
 /**
  * Lower is better. Code and city come first: staff type ORD or Chicago, not O'Hare.

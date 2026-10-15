@@ -1,6 +1,7 @@
 import { Globe, Search, X } from 'lucide-react'
 import { useEffect, useMemo, useRef, useState, type MouseEvent } from 'react'
 import { useSeaPorts, filterSeaPorts, type SeaPort } from '../../hooks/useSeaPorts'
+import { countryName } from '../../utils/placeSearch'
 import './iataPortSelect.css'
 
 type Props = {
@@ -123,7 +124,7 @@ export default function SeaPortSelect({ label, value, onChange, required, placeh
                     </span>
                     <span className="iata-tile__option-detail">
                       <span className="iata-tile__option-name">{port.name}</span>
-                      <span className="iata-tile__option-meta muted">{port.country_code?.toUpperCase() ?? '—'}</span>
+                      <span className="iata-tile__option-meta muted">{countryName(port.country_code) || port.country_code?.toUpperCase() || '—'}</span>
                     </span>
                   </button>
                 </li>

@@ -1,13 +1,8 @@
 import { useEffect, useState } from 'react'
 import { fetchAllPorts } from './fetchAllPorts'
 
-export type SeaPort = {
-  code: string
-  name: string
-  country_code: string | null
-  lat: number | null
-  lng: number | null
-}
+export type { SeaPort } from '../utils/filterSeaPorts'
+import type { SeaPort } from '../utils/filterSeaPorts'
 
 let cache: SeaPort[] | null = null
 let pending: Promise<SeaPort[]> | null = null
@@ -20,6 +15,7 @@ async function loadSeaPorts(): Promise<SeaPort[]> {
     country_code: r.country_code ? String(r.country_code).toLowerCase() : null,
     lat: r.lat == null ? null : Number(r.lat),
     lng: r.lng == null ? null : Number(r.lng),
+    core: !!r.is_core,
   }))
 }
 
@@ -36,16 +32,4 @@ export function useSeaPorts() {
   return { ports, loading }
 }
 
-// Simple client-side search over code + name.
-export function filterSeaPorts(ports: SeaPort[], query: string, limit = 20): SeaPort[] {
-  const q = query.trim().toLowerCase()
-  if (!q) return ports.slice(0, limit)
-  const out: SeaPort[] = []
-  for (const p of ports) {
-    if (p.code.toLowerCase().includes(q) || p.name.toLowerCase().includes(q)) {
-      out.push(p)
-      if (out.length >= limit) break
-    }
-  }
-  return out
-}
+export { filterSeaPorts } from '../utils/filterSeaPorts'
