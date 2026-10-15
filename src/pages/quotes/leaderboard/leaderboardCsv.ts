@@ -1,4 +1,5 @@
-import type { Leaderboard } from './leaderboardApi'
+import { conversion, pricingSplit, type Leaderboard } from './leaderboardApi'
+import { settledRate } from './LeaderboardExtras'
 import { fmtDay } from './leaderboardFormat'
 import { countryName } from './insightsData'
 
@@ -17,11 +18,17 @@ export function downloadLeaderboardCsv(lb: Leaderboard, periodLabel: string, mod
   out.push(row(['UBF Quotes Leaderboard', periodLabel, modeText, `Since ${fmtDay(lb.since)}`]))
   out.push('')
   out.push(row(['TEAM']))
-  out.push(row(['Rank', 'Staff', 'Quotes', 'Per day', 'Per week', 'Per month', 'Open', 'Held', 'Won', 'Lost', 'Win rate %', 'Median hrs to quote', 'Median hrs email to quote', 'Email-matched quotes']))
-  lb.staff.forEach((s, i) => out.push(row([
-    i + 1, s.name, s.quotes, s.per_day, s.per_week, s.per_month, s.open, s.held ?? 0, s.won, s.lost,
-    s.win_rate ?? '', s.avg_hrs_to_quote ?? '', s.avg_hrs_email_to_quote ?? '', s.email_matched,
-  ])))
+  out.push(row(['Rank', 'Staff', 'Quotes', 'Per day', 'Per week', 'Per month', 'Open', 'Held', 'Won', 'Lost', 'Conversion %', 'Win rate % (won+lost)', 'Settled 8wk conversion %', 'Card lines %', 'Other lines %', 'Typed lines %', 'Card prices changed', 'Median hrs to quote', 'Median hrs email to quote', 'Email-matched quotes']))
+  lb.staff.forEach((s, i) => {
+    const x = lb.extra?.staff[s.user_id ?? 'none']
+    const p = pricingSplit(x?.pricing)
+    out.push(row([
+      i + 1, s.name, s.quotes, s.per_day, s.per_week, s.per_month, s.open, s.held ?? 0, s.won, s.lost,
+      conversion(s.won, s.quotes) ?? '', s.win_rate ?? '', settledRate(x?.trend).rate ?? '',
+      p?.card ?? '', p?.other ?? '', p?.manual ?? '', p ? `${p.cardEdited}/${p.cardLines}` : '',
+      s.avg_hrs_to_quote ?? '', s.avg_hrs_email_to_quote ?? '', s.email_matched,
+    ]))
+  })
   out.push('')
   out.push(row(['CUSTOMERS']))
   out.push(row(['Rank', 'Customer', 'Account', 'Quotes', 'Open', 'Held', 'Won', 'Lost', 'Win rate %', 'Median hrs to quote', 'Last quote']))

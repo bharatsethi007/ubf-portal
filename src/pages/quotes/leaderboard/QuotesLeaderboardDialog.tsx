@@ -2,7 +2,8 @@ import { useEffect, useState, type CSSProperties } from 'react'
 import { Trophy, X, FileSpreadsheet, FileDown, Users, Building2, PieChart, Handshake } from 'lucide-react'
 import { toast } from 'sonner'
 import type { QuotesMode, StatsPeriod } from '../quotesStatsApi'
-import { fetchLeaderboard, fmtDay, fmtHrs, fmtPct, modeLabel, PERIOD_LABEL, type Leaderboard } from './leaderboardApi'
+import { conversion, fetchLeaderboard, fmtDay, fmtHrs, fmtPct, modeLabel, PERIOD_LABEL, pricingSplit, type Leaderboard } from './leaderboardApi'
+import { PricingLegend, settledRate } from './LeaderboardExtras'
 import { StaffTable, CustomerTable, AgentTable } from './LeaderboardTables'
 import LeaderboardInsights from './LeaderboardInsights'
 import { downloadLeaderboardCsv } from './leaderboardCsv'
@@ -53,12 +54,19 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
   }
 
   const t = lb?.totals
-  const kpis = [
+  const settled = settledRate(lb?.extra?.totals.trend)
+  const mix = pricingSplit(lb?.extra?.totals.pricing)
+  const kpis: { l: string; v: string; c?: string; tip?: string }[] = [
     { l: 'Quotes', v: t ? String(t.quotes) : '–' },
     { l: 'Held', v: t ? String(t.held ?? 0) : '–', c: '#B54708' },
     { l: 'Won', v: t ? String(t.won) : '–', c: '#047857' },
     { l: 'Lost', v: t ? String(t.lost) : '–', c: '#B91C1C' },
-    { l: 'Win rate', v: fmtPct(t?.win_rate) },
+    { l: 'Conversion', v: fmtPct(t ? conversion(t.won, t.quotes) : null), tip: 'Won out of all quotes, open ones included' },
+    { l: `Win rate${t ? ` · of ${t.won + t.lost}` : ''}`, v: fmtPct(t?.win_rate), tip: 'Won out of quotes the customer decided on (won + lost)' },
+    ...(lb?.extra ? [
+      { l: 'Settled conversion', v: fmtPct(settled.rate), tip: `Last 8 weeks, only weeks 3+ weeks old: ${settled.won} won of ${settled.quotes}` },
+      { l: 'Priced from card', v: mix ? `${mix.card}%` : '–', tip: mix ? `Of tracked lines: ${mix.card}% rate card, ${mix.other}% cartage/template/history, ${mix.manual}% typed by hand. ${mix.cardEdited} of ${mix.cardLines} card prices changed.` : 'No tracked lines yet' },
+    ] : []),
     { l: 'Median time to quote', v: fmtHrs(t?.avg_hrs_to_quote) },
     { l: 'Median email to quote', v: fmtHrs(t?.avg_hrs_email_to_quote) },
     { l: 'Customers', v: t ? String(t.customers) : '–' },
@@ -98,9 +106,9 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
           </div>
         </div>
 
-        <div className="grid grid-cols-2 gap-2 px-5 pt-4 sm:grid-cols-4 lg:grid-cols-8">
+        <div className="grid grid-cols-2 gap-2 px-5 pt-4 sm:grid-cols-6 xl:grid-cols-11">
           {kpis.map((k) => (
-            <div key={k.l} className="rounded-lg border border-slate-200 px-3 py-2">
+            <div key={k.l} className="rounded-lg border border-slate-200 px-3 py-2" title={k.tip}>
               <div className="text-lg leading-6" style={{ color: k.c ?? '#0A2472' }}>{loading && !lb ? '–' : k.v}</div>
               <div className="truncate text-[11px] text-slate-500">{k.l}</div>
             </div>
@@ -126,14 +134,15 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
           </button>
         </div>
 
-        <div className="min-h-[200px] flex-1 overflow-auto px-5 pb-4" style={{ opacity: loading ? 0.55 : 1 }}>
+        <div className="min-h-[200px] flex-1 overflow-auto px-4 pb-4" style={{ opacity: loading ? 0.55 : 1 }}>
           {!lb ? (
             <p className="py-10 text-center text-sm text-slate-500">{loading ? 'Loading…' : 'No data.'}</p>
-          ) : tab === 'team' ? <StaffTable rows={lb.staff} /> : tab === 'customers' ? <CustomerTable rows={lb.customers} /> : tab === 'agents' ? <AgentTable rows={lb.agents} /> : <LeaderboardInsights lb={lb} />}
+          ) : tab === 'team' ? <StaffTable rows={lb.staff} extra={lb.extra} /> : tab === 'customers' ? <CustomerTable rows={lb.customers} /> : tab === 'agents' ? <AgentTable rows={lb.agents} /> : <LeaderboardInsights lb={lb} />}
         </div>
 
         <div className="border-t border-slate-100 px-5 py-2 text-[11px] text-slate-500">
-          Time to quote: median, quote created to last rate line added. Email to quote: median, customer email to last rate line added (matched by account or contact, within 3 days). Per day uses working days.
+          {tab === 'team' && lb?.extra && <div className="mb-1 flex flex-wrap items-center gap-x-4 gap-y-1"><span>Pricing:</span><PricingLegend /><span>Trend: faded weeks are under 3 weeks old, customers still deciding.</span></div>}
+          Conversion: won out of all quotes. Win rate: won out of won + lost. Time to quote: median, quote created to last rate line added. Email to quote: median, customer email to last rate line added (matched by account or contact, within 3 days). Per day uses working days.
         </div>
       </div>
     </div>
@@ -141,10 +150,10 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
 }
 
 const overlay: CSSProperties = {
-  position: 'fixed', inset: 0, background: 'rgba(15,23,42,0.45)',
+  position: 'fixed', inset: 0, background: 'rgba(10,17,40,0.25)', backdropFilter: 'blur(2px)',
   display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000,
 }
 const sheet: CSSProperties = {
-  background: '#fff', borderRadius: 12, width: 'min(1180px, calc(96vw / var(--mz, 1)))', maxHeight: 'calc(88vh / var(--mz, 1))',
+  background: '#fff', borderRadius: 12, width: 'min(1640px, calc(99vw / var(--mz, 1)))', maxHeight: 'calc(92vh / var(--mz, 1))',
   display: 'flex', flexDirection: 'column', boxShadow: '0 20px 50px rgba(15,23,42,0.25)', overflow: 'hidden',
 }

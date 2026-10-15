@@ -1,6 +1,7 @@
 import { STATUS_TONE } from '../quoteTones'
-import type { LbAgent, LbCustomer, LbStaff } from './leaderboardApi'
-import { fmtDay, fmtHrs, fmtPct } from './leaderboardFormat'
+import type { LbAgent, LbCustomer, LbExtra, LbStaff } from './leaderboardApi'
+import { fmtDay, fmtHrs } from './leaderboardFormat'
+import { ConversionBar, DecidedRate, PricingBar, TrendSpark } from './LeaderboardExtras'
 
 const HELD = STATUS_TONE.held.fg
 
@@ -27,20 +28,6 @@ function Initials({ name }: { name: string }) {
   )
 }
 
-function WinBar({ v }: { v: number | null }) {
-  if (v == null) return <span className="text-slate-400">–</span>
-  const n = Number(v)
-  const tone = n >= 50 ? '#047857' : n >= 25 ? '#B45309' : '#B91C1C'
-  return (
-    <span className="inline-flex items-center gap-2">
-      <span className="h-1.5 w-16 overflow-hidden rounded-full bg-slate-100">
-        <span className="block h-full rounded-full" style={{ width: `${Math.min(100, n)}%`, background: tone }} />
-      </span>
-      <span className="w-9 text-right tabular-nums">{fmtPct(n)}</span>
-    </span>
-  )
-}
-
 function QuotesBar({ v, max }: { v: number; max: number }) {
   return (
     <span className="inline-flex items-center gap-2">
@@ -53,11 +40,13 @@ function QuotesBar({ v, max }: { v: number; max: number }) {
 }
 
 const TTQ = 'Median: quote created to last rate line added'
-const th = 'px-3 py-2 text-left text-[11px] font-normal uppercase tracking-wide text-slate-500 whitespace-nowrap'
-const td = 'px-3 py-2 whitespace-nowrap'
+const CONV = 'Won out of all quotes, open ones included'
+const DEC = 'Won out of quotes the customer decided on (won + lost)'
+const th = 'px-2 py-2 text-left text-[11px] font-normal uppercase tracking-wide text-slate-500 whitespace-nowrap'
+const td = 'px-2 py-2 whitespace-nowrap'
 const num = `${td} text-right tabular-nums`
 
-export function StaffTable({ rows }: { rows: LbStaff[] }) {
+export function StaffTable({ rows, extra }: { rows: LbStaff[]; extra?: LbExtra }) {
   if (!rows.length) return <p className="px-3 py-8 text-center text-sm text-slate-500">No quotes in this period.</p>
   const max = Math.max(...rows.map((r) => r.quotes))
   return (
@@ -73,7 +62,10 @@ export function StaffTable({ rows }: { rows: LbStaff[] }) {
           <th className={`${th} text-right`}>Held</th>
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
-          <th className={th}>Win rate</th>
+          <th className={th} title={CONV}>Conversion</th>
+          <th className={th} title={DEC}>Win rate</th>
+          {extra && <th className={th} title="Conversion per week, last 8 weeks. Faded weeks are under 3 weeks old and still deciding. Number: settled weeks only.">Trend · 8 wk</th>}
+          {extra && <th className={th} title="Where quote line prices came from this period">Pricing</th>}
           <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
           <th className={`${th} text-right`} title="Median: customer email received to last rate line added">Email → quote</th>
         </tr>
@@ -92,7 +84,10 @@ export function StaffTable({ rows }: { rows: LbStaff[] }) {
             <td className={num} style={{ color: HELD }}>{r.held ?? 0}</td>
             <td className={num} style={{ color: '#047857' }}>{r.won}</td>
             <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
-            <td className={td}><WinBar v={r.win_rate} /></td>
+            <td className={td}><ConversionBar won={r.won} quotes={r.quotes} /></td>
+            <td className={td}><DecidedRate rate={r.win_rate} won={r.won} lost={r.lost} /></td>
+            {extra && <td className={td}><TrendSpark trend={extra.staff[r.user_id ?? 'none']?.trend} /></td>}
+            {extra && <td className={td}><PricingBar p={extra.staff[r.user_id ?? 'none']?.pricing} /></td>}
             <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
             <td className={num} title={`${r.email_matched} quote(s) matched to an email`}>{fmtHrs(r.avg_hrs_email_to_quote)}</td>
           </tr>
@@ -116,7 +111,8 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
           <th className={`${th} text-right`}>Held</th>
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
-          <th className={th}>Win rate</th>
+          <th className={th} title={CONV}>Conversion</th>
+          <th className={th} title={DEC}>Win rate</th>
           <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
           <th className={`${th} text-right`}>Last quote</th>
         </tr>
@@ -131,7 +127,8 @@ export function CustomerTable({ rows }: { rows: LbCustomer[] }) {
             <td className={num} style={{ color: HELD }}>{r.held ?? 0}</td>
             <td className={num} style={{ color: '#047857' }}>{r.won}</td>
             <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
-            <td className={td}><WinBar v={r.win_rate} /></td>
+            <td className={td}><ConversionBar won={r.won} quotes={r.quotes} /></td>
+            <td className={td}><DecidedRate rate={r.win_rate} won={r.won} lost={r.lost} /></td>
             <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
             <td className={num}>{fmtDay(r.last_quote)}</td>
           </tr>
@@ -157,7 +154,8 @@ export function AgentTable({ rows }: { rows: LbAgent[] | undefined }) {
           <th className={`${th} text-right`}>Held</th>
           <th className={`${th} text-right`}>Won</th>
           <th className={`${th} text-right`}>Lost</th>
-          <th className={th}>Win rate</th>
+          <th className={th} title={CONV}>Conversion</th>
+          <th className={th} title={DEC}>Win rate</th>
           <th className={th} title="Most quoted origin to destination country">Top lane</th>
           <th className={`${th} text-right`} title={TTQ}>Time to quote</th>
           <th className={`${th} text-right`}>Last quote</th>
@@ -174,7 +172,8 @@ export function AgentTable({ rows }: { rows: LbAgent[] | undefined }) {
             <td className={num} style={{ color: HELD }}>{r.held ?? 0}</td>
             <td className={num} style={{ color: '#047857' }}>{r.won}</td>
             <td className={num} style={{ color: '#B91C1C' }}>{r.lost}</td>
-            <td className={td}><WinBar v={r.win_rate} /></td>
+            <td className={td}><ConversionBar won={r.won} quotes={r.quotes} /></td>
+            <td className={td}><DecidedRate rate={r.win_rate} won={r.won} lost={r.lost} /></td>
             <td className={`${td} tabular-nums text-slate-600`}>{r.top_lane ? r.top_lane.replace('>', ' > ') : '–'}</td>
             <td className={num}>{fmtHrs(r.avg_hrs_to_quote)}</td>
             <td className={num}>{fmtDay(r.last_quote)}</td>
