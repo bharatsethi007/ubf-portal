@@ -6,13 +6,13 @@ import {
   type ReminderCandidate, type SendResult, type SendAs,
 } from './quoteRemindersApi'
 import ThreadPicker from './ThreadPicker'
+import { useReminderPdf } from './useReminderPdf'
 
 type Props = { open: boolean; onClose: () => void; portName: (code: string | null) => string; onSent?: () => void }
 type Window = '7' | '14' | 'all'
 const WINDOWS: { key: Window; label: string }[] = [
   { key: '7', label: '7 days' }, { key: '14', label: '14 days' }, { key: 'all', label: 'All open' },
 ]
-const RECENT_MS = 3 * 86400000
 
 function fmt(iso: string | null) {
   return iso ? new Date(iso).toLocaleDateString('en-NZ', { day: '2-digit', month: 'short' }) : 'Never'
@@ -28,6 +28,9 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
   const [loading, setLoading] = useState(false)
   const [sending, setSending] = useState(false)
   const [results, setResults] = useState<Record<string, SendResult>>({})
+  const [attach, setAttach] = useState(true)
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
+  const pdfs = useReminderPdf()
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -54,13 +57,8 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
     [rows, win],
   )
 
-  // Default pick: sendable, no warning, not reminded in the last 3 days.
-  useEffect(() => {
-    setPicked(new Set(visible.filter((r) =>
-      r.options > 0 && !emailBlock(emails[r.id]) && !emailWarn(emails[r.id])
-      && !(r.last_reminded_at && Date.now() - new Date(r.last_reminded_at).getTime() < RECENT_MS),
-    ).map((r) => r.id)))
-  }, [visible]) // eslint-disable-line react-hooks/exhaustive-deps
+  // Nothing is ticked by default. Staff pick each quote.
+  useEffect(() => { setPicked(new Set()) }, [rows])
 
   useEffect(() => {
     if (!open) return
@@ -85,25 +83,36 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
       .filter(Boolean).join(' and ')
     if (!window.confirm(`${msg.charAt(0).toUpperCase()}${msg.slice(1)} now?`)) return
     setSending(true)
+    const out: SendResult[] = []
     try {
-      const res = await sendQuoteReminders(chosen.map((r) => ({
-        quote_id: r.id, email: emails[r.id]?.trim() || null, conversation_id: sendAs[r.id]?.id ?? 'new',
-      })))
-      setResults(Object.fromEntries(res.results.map((x) => [x.quote_id, x])))
-      const failed = res.results.length - res.sent
-      if (res.sent) toast.success(`Sent ${res.sent} reminder${res.sent === 1 ? '' : 's'}`)
+      // One quote per call: each carries its own PDF, and a slow one never blocks the rest.
+      for (const [i, r] of chosen.entries()) {
+        setProgress({ done: i, total: chosen.length })
+        const pdf = attach ? await pdfs.build(r.id).catch(() => null) : null
+        try {
+          const res = await sendQuoteReminders([{
+            quote_id: r.id, email: emails[r.id]?.trim() || null, conversation_id: sendAs[r.id]?.id ?? 'new',
+            pdf_base64: pdf?.base64 ?? null, pdf_name: pdf?.name ?? null,
+          }])
+          out.push(...res.results)
+        } catch (e) {
+          out.push({ quote_id: r.id, quote_no: r.quote_no, ok: false, error: e instanceof Error ? e.message : 'Send failed' })
+        }
+        setResults(Object.fromEntries(out.map((x) => [x.quote_id, x])))
+      }
+      const sent = out.filter((x) => x.ok).length
+      const failed = out.length - sent
+      if (sent) toast.success(`Sent ${sent} reminder${sent === 1 ? '' : 's'}`)
       if (failed) {
-        const errs = res.results.filter((x) => !x.ok).slice(0, 3).map((x) => `${x.quote_no ?? ''}: ${x.error ?? 'failed'}`).join('\n')
+        const errs = out.filter((x) => !x.ok).slice(0, 3).map((x) => `${x.quote_no ?? ''}: ${x.error ?? 'failed'}`).join('\n')
         toast.error(`${failed} not sent`, { description: errs })
       }
-      setPicked(new Set())
-      setRows((rs) => rs.map((r) => (res.results.find((x) => x.quote_id === r.id && x.ok && !x.test)
+      setRows((rs) => rs.map((r) => (out.find((x) => x.quote_id === r.id && x.ok && !x.test)
         ? { ...r, last_reminded_at: new Date().toISOString(), reminders: r.reminders + 1 } : r)))
       onSent?.()
-    } catch (e) {
-      toast.error(e instanceof Error ? e.message : 'Send failed')
     } finally {
       setSending(false)
+      setProgress(null)
     }
   }
 
@@ -194,15 +203,20 @@ export default function QuoteRemindersDialog({ open, onClose, portName, onSent }
         </div>
 
         <div className="flex items-center justify-between gap-3 border-t border-slate-200 px-5 py-3">
-          <span className="text-xs text-slate-500">{chosen.length} of {visible.length} selected. Quotes auto-close as lost 30 days after pricing.</span>
+          <div className="flex items-center gap-4 text-xs text-slate-500">
+            <span>{chosen.length} of {visible.length} selected. Quotes auto-close as lost 30 days after pricing.</span>
+            <label className="inline-flex items-center gap-1.5 text-slate-700">
+              <input type="checkbox" checked={attach} onChange={(e) => setAttach(e.target.checked)} disabled={sending} /> Attach quote PDF
+            </label>
+          </div>
           <button
             type="button"
             className="btn btn--inline"
             style={{ display: 'inline-flex', alignItems: 'center', gap: 6, width: 'auto', opacity: chosen.length && !sending ? 1 : 0.5 }}
-            disabled={!chosen.length || sending}
+            disabled={!chosen.length || sending || (attach && !pdfs.ready)}
             onClick={send}
           >
-            <Send size={15} strokeWidth={2} /> {sending ? 'Sending…' : `Send reminders (${chosen.length})`}
+            <Send size={15} strokeWidth={2} /> {sending ? `Sending ${(progress?.done ?? 0) + 1} of ${progress?.total ?? chosen.length}…` : `Send reminders (${chosen.length})`}
           </button>
         </div>
       </div>

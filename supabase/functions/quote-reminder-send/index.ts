@@ -4,14 +4,15 @@
 //   new:    fresh branded email from the sales support mailbox, owner in CC
 // Test: any @ubfreight.com address. Goes to that address only (nobody on the thread), links never change the quote,
 // quote not marked reminded. verify_jwt=true.
-// Body: { items: [{ quote_id, email?, conversation_id? }] }
+// Body: { items: [{ quote_id, email?, conversation_id?, pdf_base64?, pdf_name? }] }  (PDF is built in the browser)
 //   email overrides the resolved contact. conversation_id: omitted = linked thread if any, "new" = new email, uuid = that thread.
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { cors, json, requireStaff } from "../booking-customer-notify/staffGate.ts";
 import { setApiFn } from "../_shared/apiFetch.ts";
 import { graphToken } from "../email-inbox-sync/graph.ts";
-import { sendAsMailbox } from "../booking-email-send/graphSend.ts";
-import { renderCustomerReminder, renderReminderReply } from "../_shared/quoteEmail.ts";
+import { sendAsMailbox, type OutAttachment } from "../booking-email-send/graphSend.ts";
+import { renderCustomerReminder, renderReminderReply } from "../_shared/quoteReminderEmail.ts";
+import { decodeBase64 } from "jsr:@std/encoding@1/base64";
 import { linkedThread, logSent, threadTarget } from "../_shared/quoteThread.ts";
 import { replyAllHtml } from "../quote-email-send/graphReply.ts";
 import { isServiceCaller } from "../_shared/serviceAuth.ts";
@@ -19,13 +20,15 @@ import { createClient, type SupabaseClient } from "jsr:@supabase/supabase-js@2";
 setApiFn("quote-reminder-send");
 
 const MAILBOX = Deno.env.get("QUOTE_REMINDER_MAILBOX") ?? "salessupport.nz@ubfreight.com";
-const PORTAL = (Deno.env.get("PORTAL_URL") ?? "https://portal.ubfreight.com").replace(/\/+$/, "");
+// Public Accept / Decline page. No login. tracking.ubfreight.com serves the public pages (/t, /q).
+const LINKS = (Deno.env.get("QUOTE_LINK_URL") ?? "https://tracking.ubfreight.com").replace(/\/+$/, "");
+const MAX_PDF = 6 * 1024 * 1024;
 const MAX = 50;
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const isTest = (s: string) => s.endsWith("@ubfreight.com");
 const LIVE = ["open", "published", "sent"];
 
-type Item = { quote_id?: string; email?: string | null; conversation_id?: string | null };
+type Item = { quote_id?: string; email?: string | null; conversation_id?: string | null; pdf_base64?: string | null; pdf_name?: string | null };
 type Result = {
   quote_id: string; quote_no?: string | null; ok: boolean; to?: string; error?: string;
   mode?: "thread" | "new"; mailbox?: string; test?: boolean;
@@ -108,11 +111,18 @@ async function sendOne(db: SupabaseClient, staffId: string, token: string, it: I
     contactName = c?.first_name ?? null;
   }
 
+  const attachments: OutAttachment[] = [];
+  if (it.pdf_base64) {
+    const bytes = decodeBase64(it.pdf_base64);
+    if (bytes.length > MAX_PDF) return fail("Quote PDF too large");
+    attachments.push({ name: (it.pdf_name || `${q.quote_no ?? "quotation"}.pdf`).replace(/[\\/:*?"<>|]/g, "-"), contentType: "application/pdf", bytes });
+  }
+
   const { data: rm, error: rmErr } = await db.from("quote_reminders")
     .insert({ quote_id: qid, sent_to: to, sent_by: staffId, mailbox, kind: test ? "test" : "reminder" }).select("id, token").single();
   if (rmErr || !rm) throw new Error(rmErr?.message ?? "Could not create link");
 
-  const base = `${PORTAL}/q/${rm.token}`;
+  const base = `${LINKS}/q/${rm.token}`;
   const reminder = {
     contactName, customerName: q.customer_name, quoteNo: q.quote_no ?? "", lane, expiresAt: q.expires_at,
     // LCL co-loaders are never shown to customers.
@@ -122,7 +132,7 @@ async function sendOne(db: SupabaseClient, staffId: string, token: string, it: I
       total: o.total_sell, currency: o.currency, valid_till: o.valid_till,
     })),
     acceptUrl: `${base}?a=accept&r=${opts[0].id}`, declineUrl: `${base}?a=decline`, viewUrl: base,
-    ownerName: owner?.full_name ?? null, ownerEmail: owner?.email ?? null,
+    ownerName: owner?.full_name ?? null, ownerEmail: owner?.email ?? null, pdfAttached: attachments.length > 0,
   };
   const ownerCc = owner?.email && owner.email.toLowerCase() !== to ? [owner.email.toLowerCase()] : [];
   const cc = test ? [] : ownerCc;
@@ -130,7 +140,7 @@ async function sendOne(db: SupabaseClient, staffId: string, token: string, it: I
 
   try {
     if (target) {
-      const sent = await replyAllHtml(token, target.mailbox, target.graphId, renderReminderReply(reminder), [to], cc, [], { onlyListed: test });
+      const sent = await replyAllHtml(token, target.mailbox, target.graphId, renderReminderReply(reminder), [to], cc, attachments, { onlyListed: test });
       if (!test) {
         await logSent(db, { quoteId: qid, mailbox: target.mailbox, sent, threadId: target.threadId, subject: sent.subject ?? "",
           to: [to], cc, body: `Reminder sent for quote ${q.quote_no} with Accept / Decline links.`, staffId });
@@ -138,7 +148,7 @@ async function sendOne(db: SupabaseClient, staffId: string, token: string, it: I
     } else {
       const mail = renderCustomerReminder(reminder);
       const subject = test ? `[TEST] ${mail.subject}` : mail.subject;
-      const sent = await sendAsMailbox(token, MAILBOX, { subject, html: mail.html, to: [to], cc, attachments: [] });
+      const sent = await sendAsMailbox(token, MAILBOX, { subject, html: mail.html, to: [to], cc, attachments });
       if (!test) {
         await logSent(db, { quoteId: qid, mailbox: MAILBOX, sent, threadId: null, subject,
           to: [to], cc, body: `Reminder sent for quote ${q.quote_no} with Accept / Decline links.`, staffId });

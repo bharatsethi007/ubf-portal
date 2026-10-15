@@ -53,34 +53,6 @@ const p = (html: string) => `<p style="margin:0 0 14px;font-family:${FONT};font-
 const th = (t: string, right = false) => `<td style="padding:8px 10px;background:#F8FAFC;border-bottom:1px solid ${LINE};font-family:${FONT};font-size:11px;letter-spacing:.4px;text-transform:uppercase;color:${MUTED};${right ? "text-align:right;" : ""}">${t}</td>`;
 const td = (t: string, right = false) => `<td style="padding:10px;border-bottom:1px solid ${LINE};font-family:${FONT};font-size:14px;color:${INK};${right ? "text-align:right;white-space:nowrap;" : ""}">${t}</td>`;
 
-export type ReminderOption = { carrier: string | null; transit_days: string | null; total: number | null; currency: string | null; valid_till: string | null };
-export type CustomerReminder = {
-  contactName: string | null; customerName: string | null; quoteNo: string; lane: string; expiresAt: string | null;
-  options: ReminderOption[]; acceptUrl: string; declineUrl: string; viewUrl: string; ownerName: string | null; ownerEmail: string | null;
-};
-
-export function renderCustomerReminder(r: CustomerReminder): { subject: string; html: string } {
-  const hello = r.contactName?.trim() ? `Hi ${esc(r.contactName.trim().split(/\s+/)[0])},` : "Hi,";
-  const rows = r.options.map((o, i) => `<tr>${td(esc(o.carrier ?? (r.options.length > 1 ? `Option ${i + 1}` : "Your rate")))}${td(esc(transitText(o.transit_days)))}${td(esc(money(o.total, o.currency)), true)}</tr>`).join("");
-  const table = r.options.length
-    ? `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${LINE};border-radius:8px;margin:4px 0 20px;"><tr>${th("Option")}${th("Transit")}${th("Total", true)}</tr>${rows}</table>`
-    : "";
-  const multi = r.options.length > 1;
-  const inner = p(hello)
-    + p(`Just a reminder that quote <b style="color:${INK};">${esc(r.quoteNo)}</b> for <b style="color:${INK};">${esc(r.lane)}</b> is waiting for your reply${r.expiresAt ? `. It is valid until <b style="color:${INK};">${esc(nzDate(r.expiresAt))}</b>` : ""}.`)
-    + table
-    + p(multi ? "Pick an option to accept, or let us know if it is not going ahead. One click updates our system." : "Accept or decline below. One click updates our system.");
-  const footer = `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-<td style="padding:0 10px 10px 0;">${button(multi ? "Choose and accept" : "Accept quote", multi ? r.viewUrl : r.acceptUrl, GREEN, 200)}</td>
-<td style="padding:0 0 10px 0;">${button("Decline", r.declineUrl, "#64748B", 130)}</td></tr></table>
-<p style="margin:14px 0 0;font-family:${FONT};font-size:13px;line-height:20px;color:${BODY};">Questions or need changes? Just reply to this email${r.ownerName ? ` and ${esc(r.ownerName)} will get back to you` : ""}.</p>
-<p style="margin:14px 0 0;font-family:${FONT};font-size:14px;line-height:21px;color:${INK};">Kind regards,<br>${esc(r.ownerName ?? "UB Freight Sales Support")}<br><span style="color:${MUTED};">UB Freight Ltd${r.ownerEmail ? ` &middot; ${esc(r.ownerEmail)}` : ""}</span></p>`;
-  return {
-    subject: `Reminder: quote ${r.quoteNo} for ${r.lane}${r.expiresAt ? ` (valid until ${nzDate(r.expiresAt)})` : ""}`,
-    html: shell(`Your quote ${r.quoteNo} is waiting for your reply`, "Quote reminder", `Your quote is waiting`, inner, footer),
-  };
-}
-
 export type DigestRow = { quoteNo: string; customer: string; lane: string; agedDays: number; expiresAt: string | null; lastReminded: string | null; url: string };
 
 export function renderStaffDigest(name: string | null, rows: DigestRow[], consoleUrl: string): { subject: string; html: string } {
@@ -114,22 +86,3 @@ export function renderQuoteEmailBody(text: string, actions: QuoteActions | null)
   return `<div style="font-family:${FONT};">${paras}${btns}</div>`;
 }
 
-/** Reminder written as a reply inside an existing thread: plain Outlook look, options table, Accept / Decline. */
-export function renderReminderReply(r: CustomerReminder): string {
-  const f = (html: string, extra = "") => `<p style="margin:0 0 12px;font-family:${FONT};font-size:14px;line-height:21px;color:#111827;${extra}">${html}</p>`;
-  const hello = r.contactName?.trim() ? `Hi ${esc(r.contactName.trim().split(/\s+/)[0])},` : "Hi,";
-  const multi = r.options.length > 1;
-  const rows = r.options.map((o, i) => `<tr>${td(esc(o.carrier ?? (multi ? `Option ${i + 1}` : "Your rate")))}${td(esc(transitText(o.transit_days)))}${td(esc(money(o.total, o.currency)), true)}</tr>`).join("");
-  const table = r.options.length
-    ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="border:1px solid ${LINE};margin:4px 0 14px;min-width:360px;"><tr>${th("Option")}${th("Transit")}${th("Total", true)}</tr>${rows}</table>`
-    : "";
-  const btns = `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:4px 0 12px;"><tr>
-<td style="padding:0 10px 0 0;">${button(multi ? "Choose and accept" : "Accept quote", multi ? r.viewUrl : r.acceptUrl, GREEN, 190)}</td>
-<td>${button("Decline", r.declineUrl, "#64748B", 120)}</td></tr></table>`;
-  return `<div style="font-family:${FONT};">${f(hello)}`
-    + f(`Just following up on quote <b>${esc(r.quoteNo)}</b> for ${esc(r.lane)}${r.expiresAt ? `. It is valid until <b>${esc(nzDate(r.expiresAt))}</b>` : ""}.`)
-    + table + f(multi ? "Pick an option to accept, or let us know if it is not going ahead." : "You can accept or decline below, or just reply here.")
-    + btns
-    + f(`Kind regards,<br>${esc(r.ownerName ?? "UB Freight Sales Support")}<br><span style="color:${MUTED};">UB Freight Ltd${r.ownerEmail ? ` &middot; ${esc(r.ownerEmail)}` : ""}</span>`)
-    + `</div>`;
-}

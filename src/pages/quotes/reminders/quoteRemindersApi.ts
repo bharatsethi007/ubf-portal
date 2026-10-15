@@ -50,7 +50,9 @@ export async function fetchQuoteThreads(quoteId: string, email: string | null): 
   return (data as QuoteThread[]) ?? []
 }
 
-export async function sendQuoteReminders(items: { quote_id: string; email: string | null; conversation_id: string }[]): Promise<{ sent: number; from: string; results: SendResult[] }> {
+export async function sendQuoteReminders(items: {
+  quote_id: string; email: string | null; conversation_id: string; pdf_base64?: string | null; pdf_name?: string | null
+}[]): Promise<{ sent: number; from: string; results: SendResult[] }> {
   const { data, error } = await supabase.functions.invoke('quote-reminder-send', { body: { items } })
   if (error) {
     const ctx = (error as { context?: Response }).context

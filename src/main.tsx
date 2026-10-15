@@ -7,8 +7,10 @@ import '@fontsource/ibm-plex-mono/500.css'
 import 'flag-icons/css/flag-icons.min.css'
 import './index.css'
 
-// Tracking domain only serves /t/<token>. Anything else goes to the main site.
-if (window.location.hostname.startsWith('tracking.') && !window.location.pathname.startsWith('/t/')) {
+// Tracking domain only serves public token pages: /t/<token> (tracking), /q/<token> (quote accept / decline).
+// Anything else goes to the main site.
+const PUBLIC_PATHS = ['/t/', '/q/']
+if (window.location.hostname.startsWith('tracking.') && !PUBLIC_PATHS.some((p) => window.location.pathname.startsWith(p))) {
   window.location.replace('https://ubfreight.com')
 }
 

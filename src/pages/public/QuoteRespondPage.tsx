@@ -21,6 +21,9 @@ export default function QuoteRespondPage() {
   const [busy, setBusy] = useState(false)
   const [outcome, setOutcome] = useState<'accepted' | 'declined' | null>(null)
 
+  // Public page: never show the internal app title to customers.
+  useEffect(() => { document.title = 'UB Freight | Your quotation' }, [])
+
   useEffect(() => {
     loadPublicQuote(token)
       .then((d) => {

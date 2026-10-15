@@ -15,7 +15,8 @@ import { replyAllHtml } from "./graphReply.ts";
 setApiFn("quote-email-send");
 
 const MAILBOX = Deno.env.get("QUOTE_REMINDER_MAILBOX") ?? "salessupport.nz@ubfreight.com";
-const PORTAL = (Deno.env.get("PORTAL_URL") ?? "https://portal.ubfreight.com").replace(/\/+$/, "");
+// Public Accept / Decline page (no login).
+const PORTAL = (Deno.env.get("QUOTE_LINK_URL") ?? "https://tracking.ubfreight.com").replace(/\/+$/, "");
 const isEmail = (s: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(s);
 const clean = (l?: string[]) => [...new Set((l ?? []).map((e) => e.trim().toLowerCase()).filter(isEmail))];
 const MAX_PDF = 8 * 1024 * 1024;
