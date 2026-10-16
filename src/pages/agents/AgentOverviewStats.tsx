@@ -1,4 +1,4 @@
-import { fmtHours, pct, type AgentStats } from './agentStatsApi'
+import { fmtHours, fmtMoney, pct, type AgentStats, type Bookings } from './agentStatsApi'
 
 const tile = 'flex min-w-0 flex-col gap-0.5 rounded-[10px] border border-[#E6E8EE] bg-white px-3.5 py-3'
 const lbl = 'text-[11.5px] text-[#5B6474]'
@@ -11,7 +11,7 @@ function fmtKg(kg: number | null | undefined): string {
 }
 
 /** Agent overview header: KPIs, quoted vs won trend, trade lanes from quotes and shipments. */
-export default function AgentOverviewStats({ stats: s, outstanding }: { stats: AgentStats | null; outstanding: Record<string, number> }) {
+export default function AgentOverviewStats({ stats: s, outstanding, bookings: b }: { stats: AgentStats | null; outstanding: Record<string, number>; bookings: Bookings | null }) {
   const conv = s ? pct(s.won, s.quotes) : null
   const owing = Object.entries(outstanding).filter(([, v]) => Math.abs(v) >= 0.01)
   const trend = s?.trend ?? []
@@ -20,12 +20,13 @@ export default function AgentOverviewStats({ stats: s, outstanding }: { stats: A
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-7">
         <div className={tile}><span className={lbl}>Quotes · 12 months</span><span className={val}>{s?.quotes ?? '–'}</span><span className={lbl}>{s ? `${s.open} open now` : ''}</span></div>
         <div className={tile}><span className={lbl}>Won</span><span className={val} style={{ color: '#067647' }}>{s?.won ?? '–'}</span><span className={lbl}>{s ? `${s.lost} lost · ${s.held} held` : ''}</span></div>
         <div className={tile} title="Won out of all quotes for this agent"><span className={lbl}>Conversion</span><span className={val}>{conv == null ? '–' : `${conv}%`}</span><span className={lbl}>{s?.team_conv != null ? `Team average ${s.team_conv}%` : ''}</span></div>
         <div className={tile} title="Median: quote created to marked won"><span className={lbl}>Median time to win</span><span className={val}>{fmtHours(s?.hrs_to_win)}</span><span className={lbl}>{s?.fastest_win != null ? `Fastest ${fmtHours(s.fastest_win)}` : ''}</span></div>
-        <div className={tile}><span className={lbl}>Shipments · 12 months</span><span className={val}>{s?.shipments ?? '–'}</span><span className={lbl}>{fmtKg(s?.shipment_kg)} gross</span></div>
+        <div className={tile} title="Import jobs this agent gave us, last 12 months"><span className={lbl}>Free hand from agent</span><span className={val}>{b?.freehand ?? '–'}</span><span className={lbl}>{b?.freehand ? `${fmtMoney(b.freehand_gp)} GP · ${fmtKg(b.freehand_kg)}` : 'No jobs received'}</span></div>
+        <div className={tile} title="Export jobs we booked with this agent, last 12 months"><span className={lbl}>Booked with agent</span><span className={val}>{b?.booked ?? '–'}</span><span className={lbl}>{b?.booked ? `${fmtMoney(b.booked_gp)} GP · ${fmtKg(b.booked_kg)}` : 'No jobs given'}</span></div>
         <div className={tile}><span className={lbl}>Outstanding</span>
           <span className={val}>{owing.length ? owing.map(([c, v]) => `${c} ${Math.round(v).toLocaleString('en-NZ')}`).join(' · ') : '–'}</span>
           <span className={lbl}>{owing.length ? 'Open invoices' : 'Nothing owing'}</span></div>

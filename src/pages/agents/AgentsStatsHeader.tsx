@@ -1,23 +1,20 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AgreementPill from './AgreementPill'
-import { fetchAgentsOverview, fmtHours, pct, type AgentsOverview } from './agentStatsApi'
+import { fetchAgentsOverview, fetchBookingsOverview, fmtHours, fmtMoney, pct, type AgentsOverview, type Bookings } from './agentStatsApi'
 
 const tile = 'flex min-w-0 flex-col gap-1 rounded-[10px] border border-[#E6E8EE] bg-white px-4 py-3'
 const lbl = 'text-[11.5px] text-[#5B6474]'
 const val = 'text-[22px] leading-7 tracking-[-0.01em] text-[#0F172A]'
 
-function fmtKg(kg: number | null | undefined): string {
-  if (!kg) return '0 kg'
-  return kg >= 1000 ? `${(kg / 1000).toLocaleString('en-NZ', { maximumFractionDigits: 1 })} t` : `${Math.round(kg)} kg`
-}
-
 /** Directory header: quote KPIs, agreement health, top lanes and agreements needing action. */
 export default function AgentsStatsHeader() {
   const [o, setO] = useState<AgentsOverview | null>(null)
+  const [b, setB] = useState<Bookings | null>(null)
 
   useEffect(() => {
     fetchAgentsOverview(12).then(setO).catch(() => setO(null))
+    fetchBookingsOverview().then(setB).catch(() => setB(null))
   }, [])
 
   const a = o?.agreements ?? { active: 0, expiring: 0, expired: 0, awaiting: 0, draft: 0 }
@@ -29,7 +26,7 @@ export default function AgentsStatsHeader() {
 
   return (
     <div className="flex flex-col gap-3">
-      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-5">
+      <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
         <div className={tile}>
           <span className={lbl}>Agent quotes · 12 months</span>
           <span className={val}>{o ? o.quotes : '–'}</span>
@@ -47,10 +44,15 @@ export default function AgentsStatsHeader() {
           <span className={val}>{fmtHours(o?.hrs_to_win)}</span>
           <span className={lbl}>Quote created to won</span>
         </div>
-        <div className={tile}>
-          <span className={lbl}>Agent shipments · 12 months</span>
-          <span className={val}>{o ? o.shipments.toLocaleString('en-NZ') : '–'}</span>
-          <span className={lbl}>{fmtKg(o?.shipment_kg)} gross</span>
+        <div className={tile} title="Import jobs where the agent is our overseas agent, last 12 months">
+          <span className={lbl}>Free hand from agents</span>
+          <span className={val}>{b ? b.freehand.toLocaleString('en-NZ') : '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>
+          <span className={lbl}>{b ? `${fmtMoney(b.freehand_gp)} GP · ${b.freehand_agents} agents` : ''}</span>
+        </div>
+        <div className={tile} title="Export jobs we booked with an agent, last 12 months">
+          <span className={lbl}>Booked with agents</span>
+          <span className={val}>{b ? b.booked.toLocaleString('en-NZ') : '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>
+          <span className={lbl}>{b ? `${fmtMoney(b.booked_gp)} GP · ${b.booked_agents} agents · ${b.two_way_agents} two-way` : ''}</span>
         </div>
         <div className={tile}>
           <span className={lbl}>Agreements</span>

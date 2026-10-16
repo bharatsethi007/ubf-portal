@@ -65,8 +65,13 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
           </span>
           <span className="customer-name-cell__code">
             {row.original.erp_account_code ? `#${row.original.erp_account_code}` : 'Portal-only'}
-            {row.original.network_codes.length > 0 && ` · ${row.original.network_codes.join(', ')}`}
           </span>
+          {row.original.network_codes.map((c) => (
+            <span key={c} title={`Network: ${c}`}
+              className="ml-1.5 inline-flex h-[18px] items-center rounded-full bg-[#EEF1F8] px-2 text-[10.5px] font-medium tracking-[0.02em] text-[#0A2472]">
+              {c}
+            </span>
+          ))}
         </div>
       ),
     },
@@ -142,21 +147,32 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
       cell: ({ getValue }) => fmt.date(getValue<string | null>()),
     },
     {
-      accessorKey: 'job_count',
+      accessorKey: 'freehand_12m',
       header: ({ column }) => (
-        <div style={{ textAlign: 'right' }}>
-          <SortableHeader
-            label="Shipments"
-            sorted={column.getIsSorted()}
-            onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')}
-            alignRight
-          />
+        <div style={{ textAlign: 'right' }} title="Import jobs the agent gave us, last 12 months">
+          <SortableHeader label="Free hand" sorted={column.getIsSorted()} alignRight
+            onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')} />
         </div>
       ),
       enableSorting: true,
-      cell: ({ getValue }) => (
-        <span className="agents-jobs-cell">{fmt.int(getValue<number>())}</span>
+      cell: ({ getValue }) => {
+        const v = getValue<number>()
+        return <span className="agents-jobs-cell" style={{ color: v ? '#0F172A' : '#94A3B8' }}>{v ? fmt.int(v) : '–'}</span>
+      },
+    },
+    {
+      accessorKey: 'booked_12m',
+      header: ({ column }) => (
+        <div style={{ textAlign: 'right' }} title="Export jobs we booked with the agent, last 12 months">
+          <SortableHeader label="Booked" sorted={column.getIsSorted()} alignRight
+            onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')} />
+        </div>
       ),
+      enableSorting: true,
+      cell: ({ getValue }) => {
+        const v = getValue<number>()
+        return <span className="agents-jobs-cell" style={{ color: v ? '#0F172A' : '#94A3B8' }}>{v ? fmt.int(v) : '–'}</span>
+      },
     },
     {
       accessorKey: 'status',

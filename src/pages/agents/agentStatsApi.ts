@@ -25,6 +25,33 @@ export type AgentStats = {
   lanes: { lane: string; q: number; w: number; s: number; kg: number }[]
 }
 
+export type Bookings = {
+  freehand: number; booked: number
+  freehand_kg?: number | null; booked_kg?: number | null
+  freehand_gp?: number | null; booked_gp?: number | null
+  freehand_agents?: number; booked_agents?: number; two_way_agents?: number
+}
+
+/** Free hand = import jobs the agent gives us. Booked = export jobs we give the agent. Last 12 months. */
+export async function fetchBookingsOverview(): Promise<Bookings | null> {
+  const { data, error } = await supabase.rpc('agents_bookings_overview')
+  if (error) return null
+  return data as Bookings
+}
+
+export async function fetchAgentBookings(agentId: string): Promise<Bookings | null> {
+  const { data, error } = await supabase.rpc('agent_bookings', { p_agent: agentId })
+  if (error) return null
+  return data as Bookings
+}
+
+export function fmtMoney(v: number | null | undefined): string {
+  const n = Number(v ?? 0)
+  if (Math.abs(n) >= 1e6) return `$${(n / 1e6).toFixed(2)}m`
+  if (Math.abs(n) >= 1e3) return `$${Math.round(n / 1e3)}k`
+  return `$${Math.round(n)}`
+}
+
 export async function fetchAgentsOverview(months = 12): Promise<AgentsOverview | null> {
   const { data, error } = await supabase.rpc('agents_overview', { p_months: months })
   if (error) throw error

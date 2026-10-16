@@ -25,12 +25,14 @@ function readStoredTab(): AgentsTab {
 function AgentsTabBar({
   active,
   onChange,
+  inline = false,
 }: {
   active: AgentsTab
   onChange: (tab: AgentsTab) => void
+  inline?: boolean
 }) {
   return (
-    <div className="agents-area__tabbar-wrap">
+    <div className={inline ? undefined : 'agents-area__tabbar-wrap'}>
       <div className="customers-segment" role="group" aria-label="Agents section">
         {TABS.map(({ key, label }) => (
           <button
@@ -61,8 +63,7 @@ export default function AgentsArea() {
   if (active === 'directory') {
     return (
       <>
-        <AgentsTabBar active={active} onChange={setActive} />
-        <AgentsPage />
+        <AgentsPage tabs={<AgentsTabBar active={active} onChange={setActive} inline />} />
       </>
     )
   }

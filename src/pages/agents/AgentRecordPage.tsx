@@ -20,11 +20,12 @@ import AgreementPill from './AgreementPill'
 import AgentOverviewStats from './AgentOverviewStats'
 import AgentQuotesTab from './AgentQuotesTab'
 import { TabBtn, TradeLanesTab } from './AgentTradeLanesTab'
-import { fetchAgentAgreementState, fetchAgentStats, type AgentAgreementSummary, type AgentStats } from './agentStatsApi'
+import AgreementTab from './agreement/AgreementTab'
+import { fetchAgentAgreementState, fetchAgentBookings, fetchAgentStats, type AgentAgreementSummary, type AgentStats, type Bookings } from './agentStatsApi'
 import './agents.css'
 
-type Tab = 'overview' | 'quotes' | 'shipments' | 'lanes' | 'invoices'
-const TABS: Tab[] = ['overview', 'quotes', 'shipments', 'lanes', 'invoices']
+type Tab = 'overview' | 'quotes' | 'shipments' | 'lanes' | 'invoices' | 'agreement'
+const TABS: Tab[] = ['overview', 'quotes', 'shipments', 'lanes', 'invoices', 'agreement']
 
 export default function AgentRecordPage() {
   const { id } = useParams()
@@ -39,6 +40,7 @@ export default function AgentRecordPage() {
   const setTab = (t: Tab) => setParams(t === 'overview' ? {} : { tab: t }, { replace: true })
   const [stats, setStats] = useState<AgentStats | null>(null)
   const [agreement, setAgreement] = useState<AgentAgreementSummary | null>(null)
+  const [bookings, setBookings] = useState<Bookings | null>(null)
 
   // editable local state
   const [name, setName] = useState('')
@@ -77,6 +79,7 @@ export default function AgentRecordPage() {
     if (!id) return
     fetchAgentStats(id).then(setStats).catch(() => setStats(null))
     fetchAgentAgreementState(id).then(setAgreement).catch(() => setAgreement(null))
+    fetchAgentBookings(id).then(setBookings).catch(() => setBookings(null))
   }, [id])
 
   async function save() {
@@ -196,13 +199,20 @@ export default function AgentRecordPage() {
           <TabBtn active={tab === 'invoices'} onClick={() => setTab('invoices')}>
             Invoices
           </TabBtn>
+          <TabBtn active={tab === 'agreement'} onClick={() => setTab('agreement')}>
+            Agency agreement
+          </TabBtn>
         </div>
       </header>
 
       <div className="cp-body">
-        {tab === 'overview' && <AgentOverviewStats stats={stats} outstanding={outstandingByCurrency} />}
+        {tab === 'overview' && <AgentOverviewStats stats={stats} outstanding={outstandingByCurrency} bookings={bookings} />}
 
         {tab === 'quotes' && id && <AgentQuotesTab agentId={id} stats={stats} />}
+
+        {tab === 'agreement' && (
+          <AgreementTab agent={agent} onChanged={() => id && fetchAgentAgreementState(id).then(setAgreement)} />
+        )}
 
         {tab === 'overview' && (
           <section className="cp-card">

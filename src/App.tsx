@@ -32,6 +32,7 @@ import BookingFormPage from './pages/bookings/BookingFormPage'
 import StaffRoute from './components/StaffRoute'
 import StaffMfaGate from './components/StaffMfaGate'
 import SliPage from './features/sli/SliPage'
+import SignAgreementPage from './features/agreementSign/SignAgreementPage'
 import PublicTrackPage from './features/publicTrack/PublicTrackPage'
 import QuoteRespondPage from './pages/public/QuoteRespondPage'
 import ModuleTextScale from './components/staff/ModuleTextScale'
@@ -158,6 +159,7 @@ export default function App() {
     <BrowserRouter>
       <Routes>
         <Route path="/sli/:token" element={<SliPage />} />
+        <Route path="/agreement/:token" element={<SignAgreementPage />} />
         <Route path="/t/:token" element={<PublicTrackPage />} />
         <Route path="/q/:token" element={<QuoteRespondPage />} />
         <Route path="/rate" element={<RatePage />} />

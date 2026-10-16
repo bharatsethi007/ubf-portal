@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { Search, Plus, ClipboardList } from 'lucide-react'
 import {
@@ -41,11 +41,11 @@ const TRUSTED_TABS = [
 function toListSort(sorting: SortingState): AgentListSort | undefined {
   const col = sorting[0]
   if (!col) return undefined
-  if (col.id !== 'last_activity' && col.id !== 'job_count' && col.id !== 'name' && col.id !== 'quotes_12m') return undefined
+  if (col.id !== 'last_activity' && col.id !== 'job_count' && col.id !== 'name' && col.id !== 'quotes_12m' && col.id !== 'freehand_12m' && col.id !== 'booked_12m') return undefined
   return { id: col.id, desc: col.desc }
 }
 
-export default function AgentsPage() {
+export default function AgentsPage({ tabs }: { tabs?: ReactNode }) {
   const navigate = useNavigate()
   const [search, setSearch] = useState('')
   const [status, setStatus] = useState('all')
@@ -122,8 +122,8 @@ export default function AgentsPage() {
 
   return (
     <div className="customers-page agents-page">
-      <header className="customers-page__head">
-        <h1>Agents</h1>
+      <header className="customers-page__head" style={{ alignItems: 'center' }}>
+        {tabs ?? <span />}
         <div className="customers-page__toolbar">
           <label className="customers-page__search">
             <Search size={16} strokeWidth={2} />

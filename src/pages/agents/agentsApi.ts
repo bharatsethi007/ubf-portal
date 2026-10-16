@@ -38,10 +38,12 @@ export type AgentDirectoryRow = AgentRow & {
   agreement_state: string
   agreement_expiry: string | null
   agreement_days_left: number | null
+  freehand_12m: number
+  booked_12m: number
 }
 
 export type AgentListSort = {
-  id: 'last_activity' | 'job_count' | 'name' | 'quotes_12m'
+  id: 'last_activity' | 'job_count' | 'name' | 'quotes_12m' | 'freehand_12m' | 'booked_12m'
   desc: boolean
 }
 
@@ -96,7 +98,7 @@ export async function listAgents(
   let query = supabase
     .from('v_agents_directory')
     .select(
-      'id, erp_account_code, name, country, source, status, trusted, approved_by, approved_at, notes, created_at, last_activity, job_count, quotes_12m, won_12m, lost_12m, hrs_to_win, top_lane, last_quote, agreement_state, agreement_expiry, agreement_days_left, agent_networks(freight_networks(code))',
+      'id, erp_account_code, name, country, source, status, trusted, approved_by, approved_at, notes, created_at, last_activity, job_count, quotes_12m, won_12m, lost_12m, hrs_to_win, top_lane, last_quote, agreement_state, agreement_expiry, agreement_days_left, freehand_12m, booked_12m, agent_networks(freight_networks(code))',
       { count: 'exact' },
     )
     .order(sortCol, { ascending: !sortDesc, nullsFirst: sortCol === 'job_count' })
@@ -126,6 +128,8 @@ export async function listAgents(
     won_12m: Number(r.won_12m ?? 0),
     lost_12m: Number(r.lost_12m ?? 0),
     agreement_state: r.agreement_state ?? 'none',
+    freehand_12m: Number(r.freehand_12m ?? 0),
+    booked_12m: Number(r.booked_12m ?? 0),
     network_codes: extractNetworkCodes(agent_networks),
   }))
 
