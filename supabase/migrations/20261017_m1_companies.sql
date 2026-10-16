@@ -10,6 +10,29 @@
 
 begin;
 
+-- 0. Remove earlier draft (m1_branches: branches = NZ/FJ/AU, offices, staff_branches).
+-- Runs only if that old shape exists. Nothing used it yet.
+do $$
+declare r record;
+begin
+  if exists (select 1 from information_schema.columns
+             where table_schema = 'public' and table_name = 'branches' and column_name = 'base_currency') then
+    for r in select c.conrelid::regclass as tbl, c.conname
+             from pg_constraint c
+             where c.contype = 'f' and c.confrelid = 'public.branches'::regclass
+               and c.conname like '%\_branch\_id\_fkey' escape '\' loop
+      execute format('alter table %s drop constraint %I', r.tbl, r.conname);
+      execute format('alter table %s drop column if exists branch_id', r.tbl);
+    end loop;
+    drop function if exists public.has_branch(text);
+    drop function if exists public.my_branches();
+    drop table if exists public.agent_branch_codes;
+    drop table if exists public.staff_branches;
+    drop table if exists public.offices;
+    drop table if exists public.branches;
+  end if;
+end $$;
+
 -- 1. companies --------------------------------------------------------------
 create table if not exists public.companies (
   code           text primary key check (code ~ '^[A-Z]{2}$'),
