@@ -21,6 +21,7 @@ import AgentOverviewStats from './AgentOverviewStats'
 import AgentQuotesTab from './AgentQuotesTab'
 import { TabBtn, TradeLanesTab } from './AgentTradeLanesTab'
 import AgreementTab from './agreement/AgreementTab'
+import AgentShipmentStats from './AgentShipmentStats'
 import { fetchAgentAgreementState, fetchAgentBookings, fetchAgentStats, type AgentAgreementSummary, type AgentStats, type Bookings } from './agentStatsApi'
 import './agents.css'
 
@@ -269,7 +270,7 @@ export default function AgentRecordPage() {
 
         {tab === 'shipments' &&
           (accountId ? (
-            <CustomerShipmentsTab accountId={accountId} scopeColumn="os_agent_code" showExport />
+            <CustomerShipmentsTab accountId={accountId} scopeColumn="os_agent_code" showExport header={<AgentShipmentStats code={accountId} />} />
           ) : (
             <NoErpNote what="shipments" />
           ))}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { useStaffList } from '../../hooks/useStaffList'
 import { quoteStatusPill } from '../quotes/quotesTableColumns'
+import QuotePeekDialog from './QuotePeekDialog'
 import { fmtHours, listAgentQuotes, modeOf, pct, type AgentQuoteRow, type AgentStats } from './agentStatsApi'
 
 const FILTERS = [
@@ -27,6 +28,7 @@ export default function AgentQuotesTab({ agentId, stats }: { agentId: string; st
   const [status, setStatus] = useState('all')
   const [rows, setRows] = useState<AgentQuoteRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [peek, setPeek] = useState<string | null>(null)
   const staffMap = useMemo(() => new Map(staff.map((s) => [s.user_id, s.name])), [staff])
 
   useEffect(() => {
@@ -92,7 +94,7 @@ export default function AgentQuotesTab({ agentId, stats }: { agentId: string; st
               ) : rows.length === 0 ? (
                 <tr><td colSpan={8} className="text-muted-foreground pad-inline">No quotes for this agent yet.</td></tr>
               ) : rows.map((q) => (
-                <tr key={q.id} className="row-clickable" onClick={() => navigate(`/quotes/${q.id}`)}>
+                <tr key={q.id} className="row-clickable" onClick={() => setPeek(q.id)} title="Open quote">
                   <td className="font-mono text-[12px]">{q.quote_no ?? '—'}</td>
                   <td>{modeOf(q.shipment_mode, q.shipment_type)}</td>
                   <td className="font-mono text-[12px]">{q.from_port_code ?? '?'} &gt; {q.to_port_code ?? '?'}</td>
@@ -107,6 +109,7 @@ export default function AgentQuotesTab({ agentId, stats }: { agentId: string; st
           </table>
         </div>
       </div>
+      <QuotePeekDialog quoteId={peek} onClose={() => setPeek(null)} />
       <p className="m-0 text-[11.5px] text-[#5B6474]">Agent quotes have no sales owner. Pricing shows who built the quote.</p>
     </div>
   )

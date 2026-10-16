@@ -1,5 +1,6 @@
 // CustomerShipmentsTab.tsx
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, type ReactNode } from 'react';
+import ShipmentPeekDialog from './ShipmentPeekDialog';
 import { fetchAllCustomerShipments, fetchCustomerShipments, type ShipmentFilters, type ShipmentRow, type ShipmentScopeColumn } from './customerProfileApi';
 import { toast } from 'sonner';
 import { StatusPill, ModeIcon, Lane, fmt } from './profileUi';
@@ -12,10 +13,13 @@ export function CustomerShipmentsTab({
   accountId,
   scopeColumn = 'customer_account_id',
   showExport = false,
+  header,
 }: {
   accountId: string
   scopeColumn?: ShipmentScopeColumn
   showExport?: boolean
+  /** Optional stats strip shown above the filters. */
+  header?: ReactNode
 }) {
   const [filters, setFilters] = useState<ShipmentFilters>({});
   const [search, setSearch] = useState('');
@@ -24,6 +28,7 @@ export function CustomerShipmentsTab({
   const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(true);
   const [exporting, setExporting] = useState(false);
+  const [peek, setPeek] = useState<ShipmentRow | null>(null);
 
   useEffect(() => {
     const t = setTimeout(() => {
@@ -68,6 +73,7 @@ export function CustomerShipmentsTab({
 
   return (
     <div>
+      {header}
       <div className="cp-toolbar">
         <input className="cp-input" value={search} onChange={(e) => setSearch(e.target.value)}
           placeholder="Search bill, port, vessel, goods…" />
@@ -106,7 +112,7 @@ export function CustomerShipmentsTab({
             ) : rows.length === 0 ? (
               <tr><td colSpan={colCount} className="cp-table-empty">No shipments match these filters.</td></tr>
             ) : rows.map((r) => (
-              <tr key={r.job_unique}>
+              <tr key={r.job_unique} onClick={() => setPeek(r)} style={{ cursor: 'pointer' }} className="hover:bg-[#F8FAFF]" title="Open shipment">
                 <td><StatusPill status={r.status} /></td>
                 <td className="cp-c"><ModeIcon mode={r.mode} /></td>
                 <td>{r.mode === 'air' ? 'Air' : r.load_type ?? '—'}</td>
@@ -134,6 +140,7 @@ export function CustomerShipmentsTab({
           <button className="cp-btn" disabled={page >= pages - 1} onClick={() => setPage((p) => p + 1)}>Next</button>
         </div>
       </div>
+      <ShipmentPeekDialog row={peek} onClose={() => setPeek(null)} />
     </div>
   );
 }
