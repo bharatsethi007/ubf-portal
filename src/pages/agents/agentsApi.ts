@@ -29,10 +29,19 @@ export type AgentRow = {
 export type AgentDirectoryRow = AgentRow & {
   last_activity: string | null
   job_count: number
+  quotes_12m: number
+  won_12m: number
+  lost_12m: number
+  hrs_to_win: number | null
+  top_lane: string | null
+  last_quote: string | null
+  agreement_state: string
+  agreement_expiry: string | null
+  agreement_days_left: number | null
 }
 
 export type AgentListSort = {
-  id: 'last_activity' | 'job_count' | 'name'
+  id: 'last_activity' | 'job_count' | 'name' | 'quotes_12m'
   desc: boolean
 }
 
@@ -43,6 +52,7 @@ export type AgentListArgs = {
   status: string // 'all' | AgentStatus
   network: string // 'all' | network code | 'none'
   trusted: string // 'all' | 'yes' | 'no'
+  agreement?: string // 'all' | agreement state
   sort?: AgentListSort
 }
 
@@ -77,7 +87,7 @@ export async function listFreightNetworks(): Promise<FreightNetwork[]> {
 export async function listAgents(
   args: AgentListArgs,
 ): Promise<{ rows: AgentDirectoryRow[]; total: number }> {
-  const { page, pageSize, search, status, network, trusted, sort } = args
+  const { page, pageSize, search, status, network, trusted, sort, agreement = 'all' } = args
   const from = (page - 1) * pageSize
   const to = from + pageSize - 1
   const sortCol = sort?.id ?? 'last_activity'
@@ -86,12 +96,13 @@ export async function listAgents(
   let query = supabase
     .from('v_agents_directory')
     .select(
-      'id, erp_account_code, name, country, source, status, trusted, approved_by, approved_at, notes, created_at, last_activity, job_count, agent_networks(freight_networks(code))',
+      'id, erp_account_code, name, country, source, status, trusted, approved_by, approved_at, notes, created_at, last_activity, job_count, quotes_12m, won_12m, lost_12m, hrs_to_win, top_lane, last_quote, agreement_state, agreement_expiry, agreement_days_left, agent_networks(freight_networks(code))',
       { count: 'exact' },
     )
     .order(sortCol, { ascending: !sortDesc, nullsFirst: sortCol === 'job_count' })
 
   if (status !== 'all') query = query.eq('status', status)
+  if (agreement !== 'all') query = query.eq('agreement_state', agreement)
   if (trusted === 'yes') query = query.eq('trusted', true)
   else if (trusted === 'no') query = query.eq('trusted', false)
 
@@ -107,21 +118,15 @@ export async function listAgents(
   const { data, error, count } = await query.range(from, to)
   if (error) throw error
 
-  let rows: AgentDirectoryRow[] = ((data as Record<string, unknown>[]) ?? []).map((r) => ({
-    id: r.id as string,
-    erp_account_code: r.erp_account_code as string | null,
-    name: r.name as string,
-    country: r.country as string | null,
-    source: r.source as AgentSource,
-    status: r.status as AgentStatus,
+  let rows: AgentDirectoryRow[] = ((data as Record<string, any>[]) ?? []).map(({ agent_networks, ...r }) => ({
+    ...(r as Omit<AgentDirectoryRow, 'network_codes'>),
     trusted: Boolean(r.trusted),
-    approved_by: r.approved_by as string | null,
-    approved_at: r.approved_at as string | null,
-    notes: r.notes as string | null,
-    created_at: r.created_at as string,
-    last_activity: (r.last_activity as string | null) ?? null,
     job_count: Number(r.job_count ?? 0),
-    network_codes: extractNetworkCodes(r.agent_networks),
+    quotes_12m: Number(r.quotes_12m ?? 0),
+    won_12m: Number(r.won_12m ?? 0),
+    lost_12m: Number(r.lost_12m ?? 0),
+    agreement_state: r.agreement_state ?? 'none',
+    network_codes: extractNetworkCodes(agent_networks),
   }))
 
   // Network filter is applied client-side against the embedded codes (PostgREST

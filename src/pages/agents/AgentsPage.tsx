@@ -18,6 +18,8 @@ import {
   type FreightNetwork,
 } from './agentsApi'
 import NewAgentModal from './NewAgentModal'
+import AgentsStatsHeader from './AgentsStatsHeader'
+import { AGREEMENT_FILTERS } from './AgreementPill'
 import { fetchReviewQueueCount } from './review/reviewApi'
 import './agents.css'
 
@@ -39,7 +41,7 @@ const TRUSTED_TABS = [
 function toListSort(sorting: SortingState): AgentListSort | undefined {
   const col = sorting[0]
   if (!col) return undefined
-  if (col.id !== 'last_activity' && col.id !== 'job_count' && col.id !== 'name') return undefined
+  if (col.id !== 'last_activity' && col.id !== 'job_count' && col.id !== 'name' && col.id !== 'quotes_12m') return undefined
   return { id: col.id, desc: col.desc }
 }
 
@@ -49,6 +51,7 @@ export default function AgentsPage() {
   const [status, setStatus] = useState('all')
   const [network, setNetwork] = useState('all')
   const [trusted, setTrusted] = useState('all')
+  const [agreement, setAgreement] = useState('all')
   const [page, setPage] = useState(1)
   const [rows, setRows] = useState<AgentDirectoryRow[]>([])
   const [total, setTotal] = useState(0)
@@ -72,7 +75,7 @@ export default function AgentsPage() {
 
   useEffect(() => {
     setPage(1)
-  }, [debouncedSearch, status, network, trusted, listSort])
+  }, [debouncedSearch, status, network, trusted, agreement, listSort])
 
   useEffect(() => {
     let cancelled = false
@@ -84,6 +87,7 @@ export default function AgentsPage() {
       status,
       network,
       trusted,
+      agreement,
       sort: listSort,
     })
       .then(({ rows: nextRows, total: nextTotal }) => {
@@ -104,7 +108,7 @@ export default function AgentsPage() {
     return () => {
       cancelled = true
     }
-  }, [page, debouncedSearch, status, network, trusted, listSort])
+  }, [page, debouncedSearch, status, network, trusted, agreement, listSort])
 
   const table = useReactTable({
     data: rows,
@@ -147,7 +151,21 @@ export default function AgentsPage() {
         </div>
       </header>
 
+      <AgentsStatsHeader />
+
       <div className="customers-page__filters">
+        <label className="customers-page__select-label">
+          Agreement
+          <select
+            className="input input--sm customers-page__select"
+            value={agreement}
+            onChange={(e) => setAgreement(e.target.value)}
+          >
+            {AGREEMENT_FILTERS.map((f) => (
+              <option key={f.key} value={f.key}>{f.label}</option>
+            ))}
+          </select>
+        </label>
         <div className="customers-segment" role="group" aria-label="Status filter">
           {STATUS_TABS.map(({ key, label }) => (
             <button

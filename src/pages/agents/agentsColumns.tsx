@@ -2,24 +2,13 @@ import type { ColumnDef } from '@tanstack/react-table'
 import { fmt } from '../../components/Customers/profileUi'
 import type { AgentDirectoryRow } from './agentsApi'
 import AgentTrustedTick from './AgentTrustedTick'
+import AgreementPill from './AgreementPill'
+import { fmtHours, pct } from './agentStatsApi'
 
 function StatusPill({ status }: { status: string }) {
   const cls =
     status === 'active' ? 'pill arrived' : status === 'inactive' ? 'pill booked' : 'pill scheduled'
   return <span className={cls}>{status[0].toUpperCase() + status.slice(1)}</span>
-}
-
-function NetworkChips({ codes }: { codes: string[] }) {
-  if (!codes.length) return <span className="pill agent-pill-unassigned">No network</span>
-  return (
-    <span className="agent-networks-cell">
-      {codes.map((c) => (
-        <span key={c} className="pill scheduled">
-          {c}
-        </span>
-      ))}
-    </span>
-  )
 }
 
 function SortableHeader({
@@ -76,6 +65,7 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
           </span>
           <span className="customer-name-cell__code">
             {row.original.erp_account_code ? `#${row.original.erp_account_code}` : 'Portal-only'}
+            {row.original.network_codes.length > 0 && ` · ${row.original.network_codes.join(', ')}`}
           </span>
         </div>
       ),
@@ -87,10 +77,57 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
       cell: ({ getValue }) => getValue<string | null>() ?? '—',
     },
     {
-      id: 'networks',
-      header: 'Networks',
+      id: 'agreement',
+      header: 'Agreement',
       enableSorting: false,
-      cell: ({ row }) => <NetworkChips codes={row.original.network_codes} />,
+      cell: ({ row }) => (
+        <AgreementPill state={row.original.agreement_state} expiry={row.original.agreement_expiry} daysLeft={row.original.agreement_days_left} />
+      ),
+    },
+    {
+      accessorKey: 'quotes_12m',
+      header: ({ column }) => (
+        <div style={{ textAlign: 'right' }}>
+          <SortableHeader label="Quotes" sorted={column.getIsSorted()} alignRight
+            onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')} />
+        </div>
+      ),
+      enableSorting: true,
+      cell: ({ row }) => <span className="agents-jobs-cell" title="Quotes in the last 12 months">{row.original.quotes_12m || '–'}</span>,
+    },
+    {
+      id: 'won',
+      header: () => <div style={{ textAlign: 'right' }}>Won</div>,
+      enableSorting: false,
+      cell: ({ row }) => <span className="agents-jobs-cell" style={{ color: '#067647' }}>{row.original.won_12m || '–'}</span>,
+    },
+    {
+      id: 'conversion',
+      header: 'Conversion',
+      enableSorting: false,
+      cell: ({ row }) => {
+        const c = pct(row.original.won_12m, row.original.quotes_12m)
+        if (c == null) return <span style={{ color: '#94A3B8' }}>–</span>
+        const color = c >= 35 ? '#067647' : c >= 20 ? '#0A2472' : '#DC6803'
+        return (
+          <span className="inline-flex items-center gap-2" title="Won out of quotes, last 12 months">
+            <span className="flex h-1.5 w-16 overflow-hidden rounded-full bg-[#F1F3F7]"><span style={{ width: `${c}%`, background: color }} /></span>
+            <span className="w-8 text-[12px] tabular-nums">{c}%</span>
+          </span>
+        )
+      },
+    },
+    {
+      id: 'hrs_to_win',
+      header: () => <div style={{ textAlign: 'right' }}>Time to win</div>,
+      enableSorting: false,
+      cell: ({ row }) => <span className="agents-jobs-cell">{fmtHours(row.original.hrs_to_win)}</span>,
+    },
+    {
+      id: 'top_lane',
+      header: 'Top lane',
+      enableSorting: false,
+      cell: ({ row }) => <span className="font-mono text-[12px] text-[#334155]">{row.original.top_lane ?? '–'}</span>,
     },
     {
       accessorKey: 'last_activity',
@@ -109,7 +146,7 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
       header: ({ column }) => (
         <div style={{ textAlign: 'right' }}>
           <SortableHeader
-            label="Jobs"
+            label="Shipments"
             sorted={column.getIsSorted()}
             onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')}
             alignRight

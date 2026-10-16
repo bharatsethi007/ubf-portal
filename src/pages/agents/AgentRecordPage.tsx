@@ -1,27 +1,30 @@
-import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useCallback, useEffect, useState } from 'react'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { toast } from 'sonner'
 import { supabase } from '../../supabase'
 import MultiChipSelect from '../../components/MultiChipSelect'
 import InvoicesTable from '../../components/InvoicesTable'
 import { useCustomerInvoices } from '../../hooks/useInvoices'
 import { CustomerShipmentsTab } from '../../components/Customers/CustomerShipmentsTab'
-import { fmt } from '../../components/Customers/profileUi'
 import AgentTrustedTick from './AgentTrustedTick'
 import {
   fetchAgent,
-  fetchAgentTradeLanes,
   listFreightNetworks,
   setAgentNetworks,
   updateAgent,
   type AgentRow,
   type AgentStatus,
-  type AgentTradeLane,
   type FreightNetwork,
 } from './agentsApi'
+import AgreementPill from './AgreementPill'
+import AgentOverviewStats from './AgentOverviewStats'
+import AgentQuotesTab from './AgentQuotesTab'
+import { TabBtn, TradeLanesTab } from './AgentTradeLanesTab'
+import { fetchAgentAgreementState, fetchAgentStats, type AgentAgreementSummary, type AgentStats } from './agentStatsApi'
 import './agents.css'
 
-type Tab = 'overview' | 'shipments' | 'lanes' | 'invoices'
+type Tab = 'overview' | 'quotes' | 'shipments' | 'lanes' | 'invoices'
+const TABS: Tab[] = ['overview', 'quotes', 'shipments', 'lanes', 'invoices']
 
 export default function AgentRecordPage() {
   const { id } = useParams()
@@ -30,7 +33,12 @@ export default function AgentRecordPage() {
   const [networks, setNetworks] = useState<FreightNetwork[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [tab, setTab] = useState<Tab>('overview')
+  const [params, setParams] = useSearchParams()
+  const tabParam = params.get('tab') as Tab | null
+  const tab: Tab = tabParam && TABS.includes(tabParam) ? tabParam : 'overview'
+  const setTab = (t: Tab) => setParams(t === 'overview' ? {} : { tab: t }, { replace: true })
+  const [stats, setStats] = useState<AgentStats | null>(null)
+  const [agreement, setAgreement] = useState<AgentAgreementSummary | null>(null)
 
   // editable local state
   const [name, setName] = useState('')
@@ -64,6 +72,12 @@ export default function AgentRecordPage() {
   useEffect(() => {
     load()
   }, [load])
+
+  useEffect(() => {
+    if (!id) return
+    fetchAgentStats(id).then(setStats).catch(() => setStats(null))
+    fetchAgentAgreementState(id).then(setAgreement).catch(() => setAgreement(null))
+  }, [id])
 
   async function save() {
     if (!id) return
@@ -137,6 +151,7 @@ export default function AgentRecordPage() {
             <div className="cp-title-wrap">
               <h1 className="cp-title">{agent.name}</h1>
               {agent.trusted && <AgentTrustedTick />}
+              <AgreementPill state={agreement?.state ?? 'none'} expiry={agreement?.expiry_date} daysLeft={agreement?.days_left} long />
             </div>
             <div className="cp-sub">
               {agent.erp_account_code && !agent.erp_account_code.startsWith('P-') ? (
@@ -169,6 +184,9 @@ export default function AgentRecordPage() {
           <TabBtn active={tab === 'overview'} onClick={() => setTab('overview')}>
             Overview
           </TabBtn>
+          <TabBtn active={tab === 'quotes'} onClick={() => setTab('quotes')}>
+            Quotes{stats ? ` (${stats.quotes})` : ''}
+          </TabBtn>
           <TabBtn active={tab === 'shipments'} onClick={() => setTab('shipments')}>
             Shipments
           </TabBtn>
@@ -182,6 +200,10 @@ export default function AgentRecordPage() {
       </header>
 
       <div className="cp-body">
+        {tab === 'overview' && <AgentOverviewStats stats={stats} outstanding={outstandingByCurrency} />}
+
+        {tab === 'quotes' && id && <AgentQuotesTab agentId={id} stats={stats} />}
+
         {tab === 'overview' && (
           <section className="cp-card">
             <div className="cp-card-head">
@@ -277,89 +299,5 @@ function NoErpNote({ what }: { what: string }) {
         account with a matching code syncs in, this will populate automatically.
       </p>
     </section>
-  )
-}
-
-function TradeLanesTab({ accountId }: { accountId: string }) {
-  const [lanes, setLanes] = useState<AgentTradeLane[]>([])
-  const [loading, setLoading] = useState(true)
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    fetchAgentTradeLanes(accountId)
-      .then((rows) => {
-        if (!cancelled) setLanes(rows)
-      })
-      .catch(() => {
-        if (!cancelled) setLanes([])
-      })
-      .finally(() => {
-        if (!cancelled) setLoading(false)
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [accountId])
-
-  return (
-    <section className="cp-card">
-      <div className="cp-card-head">
-        <h3 className="cp-card-title">Trade lanes</h3>
-        <span className="text-muted-foreground">Shipments billed to this agent's account</span>
-      </div>
-      <div className="table-wrap">
-        <table className="data-table">
-          <thead>
-            <tr>
-              <th>Lane</th>
-              <th>Mode</th>
-              <th>Direction</th>
-              <th style={{ textAlign: 'right' }}>Shipments</th>
-              <th>Last</th>
-            </tr>
-          </thead>
-          <tbody>
-            {loading ? (
-              <tr>
-                <td colSpan={5} className="text-muted-foreground pad-inline">
-                  Loading…
-                </td>
-              </tr>
-            ) : lanes.length === 0 ? (
-              <tr>
-                <td colSpan={5} className="text-muted-foreground pad-inline">
-                  No trade lanes yet.
-                </td>
-              </tr>
-            ) : (
-              lanes.map((l, i) => (
-                <tr key={i}>
-                  <td>
-                    <span className="cp-lane">
-                      <span>{l.origin ?? '—'}</span>
-                      <span className="cp-arrow"> → </span>
-                      <span>{l.destination ?? '—'}</span>
-                    </span>
-                  </td>
-                  <td>{l.mode ? l.mode[0].toUpperCase() + l.mode.slice(1) : '—'}</td>
-                  <td>{l.direction ? l.direction[0].toUpperCase() + l.direction.slice(1) : '—'}</td>
-                  <td style={{ textAlign: 'right' }}>{fmt.int(l.shipments)}</td>
-                  <td>{fmt.date(l.last_shipment)}</td>
-                </tr>
-              ))
-            )}
-          </tbody>
-        </table>
-      </div>
-    </section>
-  )
-}
-
-function TabBtn({ active, onClick, children }: { active: boolean; onClick: () => void; children: ReactNode }) {
-  return (
-    <button type="button" className={`cp-tab ${active ? 'cp-tab--active' : ''}`} onClick={onClick}>
-      {children}
-    </button>
   )
 }
