@@ -149,7 +149,7 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
     {
       accessorKey: 'freehand_12m',
       header: ({ column }) => (
-        <div style={{ textAlign: 'right' }} title="Import jobs the agent gave us, last 12 months">
+        <div style={{ textAlign: 'right' }} title="Free hand from this agent, last 12 months (from billing)">
           <SortableHeader label="Free hand" sorted={column.getIsSorted()} alignRight
             onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')} />
         </div>
@@ -163,7 +163,7 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
     {
       accessorKey: 'booked_12m',
       header: ({ column }) => (
-        <div style={{ textAlign: 'right' }} title="Export jobs we booked with the agent, last 12 months">
+        <div style={{ textAlign: 'right' }} title="Our nominations to this agent, last 12 months (from billing)">
           <SortableHeader label="Booked" sorted={column.getIsSorted()} alignRight
             onToggle={() => column.toggleSorting(column.getIsSorted() === 'asc')} />
         </div>

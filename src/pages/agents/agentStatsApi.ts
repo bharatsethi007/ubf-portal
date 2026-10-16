@@ -32,7 +32,7 @@ export type Bookings = {
   freehand_agents?: number; booked_agents?: number; two_way_agents?: number
 }
 
-/** Free hand = import jobs the agent gives us. Booked = export jobs we give the agent. Last 12 months. */
+/** Free hand and booked (nomination) from billing, see v_agent_jobs. Last 12 months. */
 export async function fetchBookingsOverview(): Promise<Bookings | null> {
   const { data, error } = await supabase.rpc('agents_bookings_overview')
   if (error) return null

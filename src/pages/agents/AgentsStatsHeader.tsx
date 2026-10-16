@@ -44,13 +44,13 @@ export default function AgentsStatsHeader() {
           <span className={val}>{fmtHours(o?.hrs_to_win)}</span>
           <span className={lbl}>Quote created to won</span>
         </div>
-        <div className={tile} title="Import jobs where the agent is our overseas agent, last 12 months">
+        <div className={tile} title="Free hand: import with no freight billed by us, or export with freight billed to the agent. Last 12 months">
           <span className={lbl}>Free hand from agents</span>
           <span className={val}>{b ? b.freehand.toLocaleString('en-NZ') : '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>
           <span className={lbl}>{b ? `${fmtMoney(b.freehand_gp)} GP · ${b.freehand_agents} agents` : ''}</span>
         </div>
-        <div className={tile} title="Export jobs we booked with an agent, last 12 months">
-          <span className={lbl}>Booked with agents</span>
+        <div className={tile} title="Nomination: freight billed to the customer, agent used. Last 12 months">
+          <span className={lbl}>Our nominations</span>
           <span className={val}>{b ? b.booked.toLocaleString('en-NZ') : '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>
           <span className={lbl}>{b ? `${fmtMoney(b.booked_gp)} GP · ${b.booked_agents} agents · ${b.two_way_agents} two-way` : ''}</span>
         </div>
