@@ -5,6 +5,7 @@
 // POST { op: "get", token }                                           public: agreement for the signing page, marks viewed
 // POST { op: "sign", token, fields, signature, consent }               public: agent confirms details and signs
 // POST { op: "file", token, pdf_base64 }                               public, once: stores signed PDF, emails both parties
+// POST { op: "create_link", id, expires_days }                      staff + agreements edit: signing link to share yourself, no email
 // POST { op: "link", id }                                             staff: short-lived download link for the signed PDF
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
@@ -27,6 +28,8 @@ const ANON = Deno.env.get("SUPABASE_ANON_KEY")!;
 const db = createClient(URL_, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
 const BASE = Deno.env.get("AGREEMENT_PUBLIC_BASE_URL") ?? "https://console.ubfreight.com";
 const DEFAULT_SENDER = "bharats@ubfreight.com";
+// All agreement email goes out from the sales support shared mailbox. Replies go to the staff member who sent it.
+const SENDER = (Deno.env.get("AGREEMENT_SENDER") ?? "salessupport.nz@ubfreight.com").toLowerCase();
 const GRAPH = "https://graph.microsoft.com/v1.0";
 const FONT = "'Segoe UI', -apple-system, BlinkMacSystemFont, Helvetica, Arial, sans-serif";
 
@@ -49,12 +52,13 @@ async function graphToken(): Promise<string> {
   return (await res.json()).access_token as string;
 }
 
-type Mail = { subject: string; html: string; to: string[]; cc?: string[]; attachment?: { name: string; base64: string } };
+type Mail = { subject: string; html: string; to: string[]; cc?: string[]; replyTo?: string[]; attachment?: { name: string; base64: string } };
 async function sendMail(mailbox: string, m: Mail) {
   const token = await graphToken();
   const rcpt = (l: string[]) => l.map((address) => ({ emailAddress: { address } }));
   const message: Record<string, unknown> = {
     subject: m.subject, body: { contentType: "HTML", content: m.html }, toRecipients: rcpt(m.to), ccRecipients: rcpt(m.cc ?? []),
+    replyTo: rcpt(m.replyTo ?? []),
   };
   if (m.attachment) message.attachments = [{ "@odata.type": "#microsoft.graph.fileAttachment", name: m.attachment.name, contentType: "application/pdf", contentBytes: m.attachment.base64 }];
   const res = await fetch(`${GRAPH}/users/${encodeURIComponent(mailbox)}/sendMail`, {
@@ -64,11 +68,34 @@ async function sendMail(mailbox: string, m: Mail) {
   if (!res.ok) throw new Error(`Graph sendMail ${res.status}: ${(await res.text()).slice(0, 300)}`);
 }
 
+const LOGO_URL = "https://console.ubfreight.com/email/ubf-logo.png";
+
+// Branded, table-based email. Bulletproof button (VML for Outlook desktop, styled link elsewhere).
 function emailHtml(paras: string[], button?: { label: string; url: string }): string {
-  const p = paras.map((t) => `<p style="margin:0 0 14px;font-family:${FONT};font-size:14px;line-height:22px;color:#1F2937;">${esc(t).replace(/\n/g, "<br>")}</p>`).join("");
-  const b = button ? `<p style="margin:6px 0 18px;"><a href="${esc(button.url)}" style="display:inline-block;background:#0A2472;color:#ffffff;font-family:${FONT};font-size:14px;font-weight:600;line-height:42px;padding:0 22px;border-radius:8px;text-decoration:none;">${esc(button.label)}</a></p>
-<p style="margin:0 0 14px;font-family:${FONT};font-size:12px;color:#64748B;">Or open: <a href="${esc(button.url)}" style="color:#0A2472;">${esc(button.url)}</a></p>` : "";
-  return `<div style="max-width:600px;">${p}${b}</div>`;
+  const para = (t: string) => `<p style="margin:0 0 16px;font-family:${FONT};font-size:15px;line-height:24px;color:#334155;">${esc(t).replace(/\n/g, "<br>")}</p>`;
+  // Button sits above the sign-off so it reads as the call to action.
+  const signOff = paras.length > 1 && /^(kind regards|regards|best|thanks|thank you|cheers|warm regards|sincerely)/i.test(paras[paras.length - 1]) ? paras[paras.length - 1] : null;
+  const body = (signOff ? paras.slice(0, -1) : paras).map(para).join("");
+  const u = button ? esc(button.url) : "", l = button ? esc(button.label) : "";
+  const btn = button ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:8px 0 20px;"><tr><td align="left">
+<!--[if mso]><v:roundrect xmlns:v="urn:schemas-microsoft-com:vml" xmlns:w="urn:schemas-microsoft-com:office:word" href="${u}" style="height:48px;v-text-anchor:middle;width:230px;" arcsize="17%" stroke="f" fillcolor="#0A2472"><w:anchorlock/><center style="color:#ffffff;font-family:Arial,sans-serif;font-size:15px;font-weight:bold;">${l}</center></v:roundrect><![endif]-->
+<!--[if !mso]><!--><a href="${u}" target="_blank" style="display:inline-block;background-color:#0A2472;color:#ffffff;font-family:${FONT};font-size:15px;font-weight:600;line-height:48px;height:48px;padding:0 34px;border-radius:8px;text-decoration:none;mso-hide:all;">${l}</a><!--<![endif]-->
+</td></tr></table>
+<p style="margin:0 0 6px;font-family:${FONT};font-size:12px;line-height:18px;color:#64748B;">Button not working? Copy this link into your browser:</p>
+<p style="margin:0 0 8px;font-family:${FONT};font-size:12px;line-height:18px;word-break:break-all;"><a href="${u}" style="color:#0A2472;">${u}</a></p>` : "";
+  return `<!doctype html><html xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#F1F4F9;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#F1F4F9;"><tr><td align="center" style="padding:32px 16px;">
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:100%;max-width:600px;">
+<tr><td style="background:#0A2472;height:4px;line-height:4px;font-size:0;border-radius:12px 12px 0 0;">&nbsp;</td></tr>
+<tr><td style="background:#ffffff;padding:28px 40px 20px;"><img src="${LOGO_URL}" width="104" height="51" alt="UB Freight" style="display:block;border:0;width:104px;height:51px;"></td></tr>
+<tr><td style="background:#ffffff;padding:0 40px;"><div style="border-top:1px solid #E2E8F0;height:1px;line-height:1px;font-size:0;">&nbsp;</div></td></tr>
+<tr><td style="background:#ffffff;padding:28px 40px 32px;border-radius:0 0 12px 12px;">
+<p style="margin:0 0 14px;font-family:${FONT};font-size:12px;font-weight:600;letter-spacing:1.2px;text-transform:uppercase;color:#E8742A;">Agency Co-operation Agreement</p>
+${body}${btn}${signOff ? `<div style="height:12px;line-height:12px;font-size:0;">&nbsp;</div>${para(signOff)}` : ""}
+</td></tr>
+<tr><td align="center" style="padding:20px 40px 0;"><p style="margin:0;font-family:${FONT};font-size:12px;line-height:18px;color:#94A3B8;">UB Freight Ltd &middot; 173 Montgomerie Road, Airport Oaks, Auckland &middot; New Zealand &middot; Fiji &middot; Australia</p></td></tr>
+</table></td></tr></table></body></html>`;
 }
 
 async function event(id: string, kind: string, actor: string, detail?: Record<string, unknown>) {
@@ -103,6 +130,15 @@ async function opSend(req: Request, b: Record<string, any>) {
   const days = Math.min(60, Math.max(3, Number(b.expires_days) || 14));
   const link = `${BASE}/agreement/${token}`;
   const now = new Date().toISOString();
+
+  const staffEmail = (me?.email ?? u.user.email ?? DEFAULT_SENDER).toLowerCase();
+  const paras = String(b.message ?? "").trim().split(/\n{2,}/).filter(Boolean);
+  try {
+    await sendMail(SENDER, { subject: String(b.subject ?? `UB Freight agency agreement ${a.ref}`), to, cc, replyTo: [staffEmail], html: emailHtml(paras, { label: "Review and sign", url: link }) });
+  } catch (e) {
+    const msg = String(e);
+    return json({ error: /403|ErrorAccessDenied|404/.test(msg) ? `Portal cannot send from ${SENDER}. Ask IT to grant the portal app Mail.Send on that mailbox.` : msg.slice(0, 300) }, 502);
+  }
   const { error: upErr } = await db.from("agency_agreements").update({
     status: "sent", sent_at: now, sign_token_hash: await sha256(token),
     sign_token_expires_at: new Date(Date.now() + days * 86400000).toISOString(),
@@ -112,17 +148,35 @@ async function opSend(req: Request, b: Record<string, any>) {
     ubf_signer_title: a.ubf_signer_title ?? me?.job_title ?? null,
   }).eq("id", a.id);
   if (upErr) return json({ error: upErr.message }, 500);
+  await event(a.id, "sent", staffEmail, { to, cc, expires_days: days, from: SENDER });
+  return json({ ok: true, link, from: SENDER });
+}
 
-  const sender = (me?.email ?? u.user.email ?? DEFAULT_SENDER).toLowerCase();
-  const paras = String(b.message ?? "").trim().split(/\n{2,}/).filter(Boolean);
-  try {
-    await sendMail(sender, { subject: String(b.subject ?? `UB Freight agency agreement ${a.ref}`), to, cc, html: emailHtml(paras, { label: "Review and sign", url: link }) });
-  } catch (e) {
-    const msg = String(e);
-    return json({ error: /403|ErrorAccessDenied|404/.test(msg) ? `Portal cannot send from ${sender}. Ask IT to grant Mail.Send on that mailbox.` : msg.slice(0, 300), link }, 502);
-  }
-  await event(a.id, "sent", sender, { to, cc, expires_days: days });
-  return json({ ok: true, link, from: sender });
+async function opCreateLink(req: Request, b: Record<string, any>) {
+  const auth = req.headers.get("Authorization") ?? "";
+  const user = createClient(URL_, ANON, { global: { headers: { Authorization: auth } } });
+  const { data: u } = await user.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
+  if (!u?.user) return json({ error: "Sign in required" }, 401);
+  const { data: ok } = await user.rpc("has_perm", { p_module: "agreements", p_op: "edit" });
+  if (ok !== true) return json({ error: "Only Admins and Pricing Leads can share agreements" }, 403);
+  const { data: a } = await db.from("agency_agreements").select("*").eq("id", b.id).maybeSingle();
+  if (!a) return json({ error: "Agreement not found" }, 404);
+  if (!["draft", "sent", "viewed"].includes(a.status)) return json({ error: `Cannot share a ${a.status} agreement` }, 400);
+  const { data: me } = await db.from("staff_users").select("full_name, job_title, email").eq("user_id", u.user.id).maybeSingle();
+  const token = [...crypto.getRandomValues(new Uint8Array(32))].map((x) => x.toString(16).padStart(2, "0")).join("");
+  const days = Math.min(60, Math.max(3, Number(b.expires_days) || 14));
+  const now = new Date().toISOString();
+  const { error } = await db.from("agency_agreements").update({
+    status: a.status === "draft" ? "sent" : a.status, sent_at: a.sent_at ?? now, sign_token_hash: await sha256(token),
+    sign_token_expires_at: new Date(Date.now() + days * 86400000).toISOString(),
+    ubf_signed_at: a.ubf_signed_at ?? now,
+    ubf_signer_id: a.ubf_signer_id ?? u.user.id,
+    ubf_signer_name: a.ubf_signer_name ?? me?.full_name ?? null,
+    ubf_signer_title: a.ubf_signer_title ?? me?.job_title ?? null,
+  }).eq("id", a.id);
+  if (error) return json({ error: error.message }, 500);
+  await event(a.id, "link_created", (me?.email ?? u.user.email ?? "").toLowerCase(), { expires_days: days });
+  return json({ ok: true, link: `${BASE}/agreement/${token}` });
 }
 
 async function opGet(b: Record<string, any>) {
@@ -203,9 +257,10 @@ async function opFile(b: Record<string, any>) {
   const agentTo = clean([a.signatory_email]);
   const name = `UBF Agency Agreement ${a.ref}.pdf`;
   try {
-    await sendMail(isEmail(notice) ? notice : DEFAULT_SENDER, {
+    await sendMail(SENDER, {
       subject: `Signed: UB Freight agency agreement ${a.ref} · ${a.agent_legal_name}`,
       to: agentTo.length ? agentTo : [DEFAULT_SENDER], cc: isEmail(notice) && !agentTo.includes(notice) ? [notice] : [],
+      replyTo: isEmail(notice) ? [notice] : [],
       html: emailHtml([
         `Thank you. The Agency Co-operation Agreement between UB Freight Ltd and ${a.agent_legal_name} is now signed by both parties.`,
         `It runs from ${nzDate(a.effective_date)} to ${nzDate(a.expiry_date)}. Your signed copy is attached.`,
@@ -240,6 +295,7 @@ Deno.serve(async (req) => {
     if (b.op === "sign") return await opSign(req, b);
     if (b.op === "file") return await opFile(b);
     if (b.op === "link") return await opLink(req, b);
+    if (b.op === "create_link") return await opCreateLink(req, b);
     return json({ error: "unknown op" }, 400);
   } catch (e) {
     return json({ error: String(e).slice(0, 300) }, 500);

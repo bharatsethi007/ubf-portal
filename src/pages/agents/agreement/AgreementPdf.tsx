@@ -1,4 +1,4 @@
-import { Document, Page, Text, View, pdf } from '@react-pdf/renderer'
+import { Document, Font, Page, Text, View, pdf } from '@react-pdf/renderer'
 import { registerQuoteFonts } from '../../quotes/pdf/quotePdfFonts'
 import { CLAUSES, PURPOSE, RECITALS } from './agreementClauses'
 import type { Agreement } from './agreementModel'
@@ -6,6 +6,7 @@ import { Cover, Execution, PageChrome, Schedule } from './AgreementPdfParts'
 import { s } from './agreementPdfStyles'
 
 registerQuoteFonts()
+Font.register({ family: 'Signature', src: '/fonts/pdf/GreatVibes-Regular.ttf' })
 
 /** The full agreement: cover, parties, recitals, clauses 1 to 19, Schedule 1, execution. */
 export function AgreementDocument({ a, sigImage }: { a: Agreement; sigImage?: string | null }) {

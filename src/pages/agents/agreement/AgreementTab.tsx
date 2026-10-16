@@ -20,7 +20,7 @@ const STEPS: { key: string; label: string }[] = [
 const ORDER: Record<string, number> = { draft: 0, sent: 1, viewed: 2, signed: 3 }
 const STATUS_LABEL: Record<string, string> = { draft: 'Draft', sent: 'Sent', viewed: 'Viewed', signed: 'Signed', void: 'Void' }
 const EVENT_LABEL: Record<string, string> = {
-  created: 'Draft created', updated: 'Draft updated', sent: 'Sent for signature', viewed: 'Opened by agent',
+  created: 'Draft created', updated: 'Draft updated', sent: 'Sent for signature', link_created: 'Signing link created', viewed: 'Opened by agent',
   details_confirmed: 'Agent confirmed details', signed: 'Signed by agent', filed: 'Signed PDF filed', voided: 'Voided', reminded: 'Reminder sent', emailed: 'Signed copy emailed to both parties', email_failed: 'Signed copy email failed',
 }
 
@@ -186,7 +186,7 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
               )}
               {canEdit && ['draft', 'sent', 'viewed'].includes(sel.status) && (
                 <button type="button" className="btn quotes-page__new-btn justify-center" disabled={busy} onClick={() => setSendOpen(true)}>
-                  <Send size={14} /> {sel.status === 'draft' ? 'Send for signature' : 'Resend link'}
+                  <Send size={14} /> {sel.status === 'draft' ? 'Send or share' : 'Resend or share link'}
                 </button>
               )}
               {sel.signed_pdf_key && (

@@ -1,6 +1,6 @@
 import { Image, Text, View } from '@react-pdf/renderer'
 import { OFFICES, type Agreement } from './agreementModel'
-import { s, NAVY } from './agreementPdfStyles'
+import { s } from './agreementPdfStyles'
 
 export const LOGO = '/ub-logo-pdf.png'
 
@@ -36,11 +36,11 @@ export function Cover({ a }: { a: Agreement }) {
   const offices = OFFICES.filter((o) => a.offices.includes(o.code))
   return (
     <>
+      <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 54, paddingTop: 34, paddingBottom: 26 }}>
+        <Image src={LOGO} style={s.logo} />
+        <Text style={s.ref}>{a.ref}{'\n'}{a.kind === 'exclusive' ? 'Exclusive' : 'Non-exclusive'} · reciprocal</Text>
+      </View>
       <View style={s.band}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-          <Image src={LOGO} style={s.logo} />
-          <Text style={s.ref}>{a.ref}{'\n'}{a.kind === 'exclusive' ? 'Exclusive' : 'Non-exclusive'} · reciprocal</Text>
-        </View>
         <View>
           <Text style={s.eyebrow}>AGENCY CO-OPERATION AGREEMENT</Text>
           <Text style={s.title}>A reciprocal{'\n'}partnership for{'\n'}Pacific freight.</Text>
@@ -96,8 +96,8 @@ export function Schedule({ a }: { a: Agreement }) {
   const validity = `${fmtLong(a.effective_date)} to ${fmtLong(a.expiry_date)}`
   return (
     <View break>
-      <Text style={{ fontSize: 8, letterSpacing: 1.6, color: '#E8742A' }}>SCHEDULE 1</Text>
-      <Text style={{ fontSize: 17, color: NAVY, marginTop: 2, marginBottom: 4 }}>Commercial and contact details</Text>
+      <Text style={s.secCap}>SCHEDULE 1</Text>
+      <Text style={s.secTitle}>Commercial and contact details</Text>
       <Text style={[s.p, { color: '#475467' }]}>Where a field is blank, the main body of the Agreement applies.</Text>
       <View style={{ borderWidth: 1, borderColor: '#E6E8EE', borderRadius: 4 }}>
         <View style={s.th}><Text style={{ width: 130, padding: 6 }}>ITEM</Text><Text style={{ flex: 1, padding: 6 }}>UB FREIGHT LTD</Text><Text style={{ flex: 1, padding: 6 }}>AGENT</Text></View>
@@ -126,7 +126,7 @@ export function Execution({ a, sigImage }: { a: Agreement; sigImage?: string | n
   const signed = a.status === 'signed'
   const block = (title: string, name: string | null, role: string | null, email: string | null, date: string | null, mark: boolean, img?: string | null) => (
     <View style={s.sigBox}>
-      <Text style={s.cap}>{title}</Text>
+      <View style={{ height: 22 }}><Text style={s.cap}>{title}</Text></View>
       <View style={s.sigLine}>{mark && img ? <Image src={img} style={{ height: 46, objectFit: 'contain', objectPosition: 'left' }} /> : <Text style={s.sigName}>{mark ? name ?? '' : ''}</Text>}</View>
       <View style={s.kv}><Text style={s.k}>Name</Text><Text>{name ?? ''}</Text></View>
       <View style={s.kv}><Text style={s.k}>Designation</Text><Text>{role ?? ''}</Text></View>
@@ -136,10 +136,10 @@ export function Execution({ a, sigImage }: { a: Agreement; sigImage?: string | n
   )
   return (
     <View break>
-      <Text style={{ fontSize: 8, letterSpacing: 1.6, color: '#E8742A' }}>EXECUTION</Text>
-      <Text style={{ fontSize: 17, color: NAVY, marginTop: 2, marginBottom: 4 }}>Signed by the Parties</Text>
+      <Text style={s.secCap}>EXECUTION</Text>
+      <Text style={s.secTitle}>Signed by the Parties</Text>
       <Text style={[s.p, { color: '#475467' }]}>The authorised representatives below agree to the terms of this Agency Co-operation Agreement, effective {fmtLong(a.effective_date)} and expiring {fmtLong(a.expiry_date)}.</Text>
-      <View style={{ flexDirection: 'row', gap: 14, marginTop: 8 }}>
+      <View style={{ flexDirection: 'row', gap: 14, marginTop: 10 }}>
         {block('FOR UB FREIGHT LTD', a.ubf_signer_name, a.ubf_signer_title, a.ubf_contacts?.notices ?? null, a.ubf_signed_at, !!a.ubf_signed_at)}
         {block(`FOR ${(a.agent_legal_name ?? 'THE AGENT').toUpperCase()}`, a.agent_signature?.name ?? a.signatory_name, a.agent_signature?.title ?? a.signatory_title, a.signatory_email, a.signed_at, signed, sigImage)}
       </View>

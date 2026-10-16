@@ -83,10 +83,11 @@ export default function SignAgreementPage() {
 
   return (
     <div className="min-h-screen bg-[#F4F5F8] text-[13px] text-[#0F172A]">
-      <header className="bg-[#0A2472] text-white">
-        <div className="mx-auto flex h-14 max-w-[1280px] items-center justify-between px-6">
-          <span className="flex items-center gap-3"><img src="/ub-logo-pdf.png" alt="UB Freight" className="h-8" /><span className="text-[13px] text-[#C7D0E6]">Agency agreement</span></span>
-          {a?.signatory_email && <span className="hidden text-[12px] text-[#C7D0E6] sm:block">Secure link for {a.signatory_email}</span>}
+      <style>{`@font-face{font-family:'UBF Signature';src:url('/fonts/pdf/GreatVibes-Regular.ttf') format('truetype');font-display:swap}`}</style>
+      <header className="border-b border-[#E6E8EE] bg-white">
+        <div className="mx-auto flex h-16 max-w-[1280px] items-center justify-between px-6">
+          <span className="flex items-center gap-4"><img src="/ub-freight-logo-ink.png" alt="UB Freight" className="h-9" /><span className="h-6 w-px bg-[#E6E8EE]" /><span className="text-[13px] text-[#5B6474]">Agency agreement</span></span>
+          {a?.signatory_email && <span className="hidden text-[12px] text-[#5B6474] sm:block">Secure link for {a.signatory_email}</span>}
         </div>
       </header>
 
@@ -154,7 +155,7 @@ export default function SignAgreementPage() {
                   </div>
                   {mode === 'typed' ? (
                     <div className="flex h-[120px] flex-col justify-end rounded-[10px] border border-dashed border-[#C7D0E6] bg-[#FAFBFD] px-4 pb-3">
-                      <span className="text-[30px] leading-[38px] text-[#0A2472]" style={{ fontFamily: "'Segoe Script', 'Brush Script MT', cursive" }}>{f.signatory_name || 'Your name'}</span>
+                      <span className="text-[40px] leading-[48px] text-[#0A2472]" style={{ fontFamily: "'UBF Signature', cursive" }}>{f.signatory_name || 'Your name'}</span>
                       <span className="border-t border-[#C7D0E6] pt-1 text-[11px] text-[#5B6474]">Typed signature</span>
                     </div>
                   ) : <SignaturePad onChange={setDrawn} />}
