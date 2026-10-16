@@ -63,3 +63,20 @@
 .pv3-rnote svg { flex: none; margin-top: 2px; color: #C24848; }
 .pv3-rnote { margin: 0; }
 .pv3-rate__price .pv3-rate__full { margin-top: 6px; }
+
+/* Your rates (customer rate cards) */
+.pv3-yr-head { display: flex; flex-wrap: wrap; align-items: center; gap: 14px 28px; padding: 16px 20px; }
+.pv3-yr-head > div { display: flex; flex-direction: column; gap: 2px; }
+.pv3-yr-head b { font-size: 14.5px; color: var(--ink); }
+.pv3-yr-bar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px; }
+.pv3-yr-search { height: 40px; width: 260px; max-width: 100%; border: 1px solid var(--line); border-radius: 10px; padding: 0 12px; font: inherit; font-size: 14px; background: #FFFFFF; }
+.pv3-yr-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+.pv3-yr-lane { display: flex; flex-direction: column; gap: 12px; padding: 16px 18px; }
+.pv3-yr-lane__top { display: flex; align-items: center; gap: 8px; }
+.pv3-yr-lane__top b { font-size: 15px; color: var(--ink); min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.pv3-yr-lane__top .pv3-muted { margin-left: auto; white-space: nowrap; font-size: 12px; }
+.pv3-yr-lane__price { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; }
+.pv3-yr-lane__bd { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; border-top: 1px solid var(--line-soft); padding-top: 10px; }
+.pv3-yr-lane__bd span { display: flex; flex-direction: column; font-size: 13px; font-variant-numeric: tabular-nums; color: var(--ink); }
+.pv3-yr-lane__bd i { font-style: normal; font-size: 11px; color: var(--muted); }
+.pv3-yr-lane__foot { display: flex; align-items: center; gap: 8px; }

@@ -21,6 +21,7 @@ import MyTasksPage from './features/tasks/MyTasksPage'
 import NewQuoteSearch from './pages/quotes/NewQuoteSearch'
 import QuoteDetailPage from './pages/quotes/QuoteDetailPage'
 import QuoteResponsePage from './pages/quotes/QuoteResponsePage'
+import RateCardPage from './pages/quotes/rateCards/RateCardPage'
 import CustomerProfile from './pages/CustomerProfile'
 import Shipments from './pages/Shipments'
 import TmsPage from './features/tms/TmsPage'
@@ -189,6 +190,7 @@ export default function App() {
             <Route path="/inbox" element={<StaffRoute><InboxPage /></StaffRoute>} />
             <Route path="/whatsapp" element={<Navigate to="/inbox?channel=whatsapp" replace />} />
             <Route path="/messages" element={<Navigate to="/inbox?channel=portal" replace />} />
+            <Route path="/quotes/rate-cards/:id" element={<StaffRoute><ModuleTextScale module="quotes"><RateCardPage /></ModuleTextScale></StaffRoute>} />
             <Route path="/quotes/new" element={<StaffRoute><ModuleTextScale module="quotes"><NewQuoteSearch /></ModuleTextScale></StaffRoute>} />
             <Route path="/quotes/:id/responses/:responseId" element={<StaffRoute><ModuleTextScale module="quotes"><QuoteResponsePage /></ModuleTextScale></StaffRoute>} />
             <Route path="/quotes/:id" element={<StaffRoute><ModuleTextScale module="quotes"><QuoteDetailPage /></ModuleTextScale></StaffRoute>} />

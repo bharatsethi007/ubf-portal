@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type ReactNode } from 'react'
-import { useNavigate, useParams } from 'react-router-dom'
+import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import '../components/Customers/customerProfile.css'
 import '../components/overdueBadge.css'
 import {
@@ -23,7 +23,9 @@ type Tab = 'overview' | 'shipments' | 'info' | 'invoices' | 'rates'
 export default function CustomerProfile() {
   const { accountId } = useParams()
   const navigate = useNavigate()
-  const [tab, setTab] = useState<Tab>('overview')
+  const [params] = useSearchParams()
+  const startTab = (['overview', 'shipments', 'info', 'invoices', 'rates'] as Tab[]).find((t) => t === params.get('tab')) ?? 'overview'
+  const [tab, setTab] = useState<Tab>(startTab)
   const [stats, setStats] = useState<CustomerStats | null>(null)
   const [insights, setInsights] = useState<Insights | null>(null)
   const [overdue, setOverdue] = useState<CustomerOverdue | null>(null)
@@ -43,7 +45,7 @@ export default function CustomerProfile() {
 
   useEffect(() => {
     if (!accountId) return
-    setTab('overview')
+    setTab(startTab)
     setStats(null)
     setInsights(null)
     setOverdue(null)

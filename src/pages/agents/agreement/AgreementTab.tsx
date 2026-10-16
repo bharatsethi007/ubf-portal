@@ -1,11 +1,13 @@
 import { useCallback, useEffect, useState } from 'react'
 import { toast } from 'sonner'
-import { FileDown, Eye, Plus, Send } from 'lucide-react'
+import { FileDown, Eye, Plus, Send, Upload } from 'lucide-react'
 import { usePerm } from '../../../access/PermissionsProvider'
 import type { AgentRow } from '../agentsApi'
 import { supabase } from '../../../supabase'
 import AgreementForm from './AgreementForm'
 import SendAgreementDialog from './SendAgreementDialog'
+import UploadAgreementDialog from './UploadAgreementDialog'
+import UploadedAgreementView, { isUploaded } from './UploadedAgreementView'
 import { downloadAgreementPdf, previewAgreementPdf } from './AgreementPdf'
 import { fmtLong } from './AgreementPdfParts'
 import {
@@ -22,6 +24,7 @@ const STATUS_LABEL: Record<string, string> = { draft: 'Draft', sent: 'Sent', vie
 const EVENT_LABEL: Record<string, string> = {
   created: 'Draft created', updated: 'Draft updated', sent: 'Sent for signature', link_created: 'Signing link created', viewed: 'Opened by agent',
   details_confirmed: 'Agent confirmed details', signed: 'Signed by agent', filed: 'Signed PDF filed', voided: 'Voided', reminded: 'Reminder sent', emailed: 'Signed copy emailed to both parties', email_failed: 'Signed copy email failed',
+  uploaded: 'Signed PDF uploaded', dates_changed: 'Dates changed',
 }
 
 function pickCurrent(list: Agreement[]): Agreement | null {
@@ -41,6 +44,7 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [sendOpen, setSendOpen] = useState(false)
+  const [uploadOpen, setUploadOpen] = useState(false)
 
   const load = useCallback(async (keepId?: string) => {
     setLoading(true)
@@ -128,10 +132,14 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
         <div className="flex flex-col items-center gap-3 px-6 py-12 text-center">
           <span className="text-[15px]">No agency agreement yet</span>
           <span className="max-w-[460px] text-[12.5px] text-[#5B6474]">Create a draft. It fills from this agent's ERP account and contacts, covers NZ, FJ and AU, and runs 3 years.</span>
-          {canEdit
-            ? <button type="button" className="btn quotes-page__new-btn" disabled={busy} onClick={create}><Plus size={15} /> Create agreement</button>
-            : <span className="text-[12px] text-[#5B6474]">Admins and Pricing Leads can create agreements.</span>}
+          {canEdit ? (
+            <div className="flex flex-wrap justify-center gap-2">
+              <button type="button" className="btn quotes-page__new-btn" disabled={busy} onClick={create}><Plus size={15} /> Create agreement</button>
+              <button type="button" className="btn btn--inline" disabled={busy} onClick={() => setUploadOpen(true)}><Upload size={14} /> Upload signed PDF</button>
+            </div>
+          ) : <span className="text-[12px] text-[#5B6474]">Admins and Pricing Leads can create agreements.</span>}
         </div>
+        <UploadAgreementDialog agent={agent} open={uploadOpen} onOpenChange={setUploadOpen} onDone={(id) => { void load(id); onChanged() }} />
       </section>
     )
   }
@@ -140,10 +148,11 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
   const missing = missingFields(sel)
   const editable = canEdit && sel.status === 'draft'
   const canRenew = canEdit && !list.some((a) => a.status === 'draft' || a.status === 'sent' || a.status === 'viewed')
+  const uploaded = isUploaded(sel)
 
   return (
     <div className="flex flex-col gap-4">
-      {sel.status !== 'void' && (
+      {sel.status !== 'void' && !uploaded && (
         <section className="cp-card px-5 py-4">
           <ol className="m-0 grid list-none grid-cols-5 p-0">
             {STEPS.map((st, i) => (
@@ -161,11 +170,13 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
 
       <div className="flex flex-wrap items-start gap-4">
         <div className="min-w-0 flex-[999_1_640px]">
-          <AgreementForm a={sel} editable={editable} saving={busy} onSave={(p) => void save(p)} />
+          {uploaded
+            ? <UploadedAgreementView a={sel} canEdit={canEdit} onOpenPdf={() => void openSigned()} onChanged={() => { void load(sel.id); onChanged() }} onVoid={() => void voidDraft()} />
+            : <AgreementForm a={sel} editable={editable} saving={busy} onSave={(p) => void save(p)} />}
         </div>
 
         <aside className="flex min-w-0 flex-[1_1_320px] flex-col gap-4">
-          <section className="cp-card">
+          {!uploaded && <section className="cp-card">
             <div className="cp-card-head"><h3 className="cp-card-title">Document</h3><span className="text-muted-foreground">9 to 11 pages</span></div>
             <div className="flex flex-col gap-2 px-4 pb-4">
               <span className="text-[12.5px] text-[#5B6474]">Cover, parties, clauses 1 to 19, Schedule 1 and execution, built from this record.</span>
@@ -174,9 +185,17 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
                 <button type="button" className="btn btn--inline flex-1" disabled={busy} onClick={() => void pdfAction('download')}><FileDown size={14} /> Download</button>
               </div>
             </div>
-          </section>
+          </section>}
 
-          <section className="cp-card">
+          {uploaded ? (canEdit && (
+            <section className="cp-card">
+              <div className="cp-card-head"><h3 className="cp-card-title">Actions</h3></div>
+              <div className="flex flex-col gap-2 px-4 pb-4">
+                {canRenew && <button type="button" className="btn quotes-page__new-btn justify-center" disabled={busy} onClick={() => void create()}><Plus size={14} /> New agreement in portal</button>}
+                <button type="button" className="btn btn--inline justify-center" disabled={busy} onClick={() => setUploadOpen(true)}><Upload size={14} /> Upload another signed PDF</button>
+              </div>
+            </section>
+          )) : <section className="cp-card">
             <div className="cp-card-head"><h3 className="cp-card-title">Signing</h3><span className="text-muted-foreground">{STATUS_LABEL[sel.status]}</span></div>
             <div className="flex flex-col gap-3 px-4 pb-4 text-[12.5px]">
               <div className="flex flex-col"><span>{sel.ubf_signer_name ?? 'UB Freight signer not set'}</span><span className="text-[11.5px] text-[#5B6474]">Signs for UB Freight · {sel.ubf_signed_at ? `signed ${fmtLong(sel.ubf_signed_at)}` : 'signs on send'}</span></div>
@@ -196,8 +215,9 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
                 {editable && <button type="button" className="btn btn--inline flex-1" disabled={busy} onClick={() => void voidDraft()}>Void draft</button>}
                 {canRenew && <button type="button" className="btn btn--inline flex-1" disabled={busy} onClick={() => void create()}><Plus size={14} /> {list.some((a) => a.status === 'signed') ? 'Renew' : 'New agreement'}</button>}
               </div>
+              {canEdit && <button type="button" className="btn btn--inline justify-center" disabled={busy} onClick={() => setUploadOpen(true)}><Upload size={14} /> Upload signed PDF</button>}
             </div>
-          </section>
+          </section>}
 
           <section className="cp-card">
             <div className="cp-card-head"><h3 className="cp-card-title">Activity</h3></div>
@@ -213,6 +233,7 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
         </aside>
       </div>
 
+      <UploadAgreementDialog agent={agent} open={uploadOpen} onOpenChange={setUploadOpen} onDone={(id) => { void load(id); onChanged() }} />
       <SendAgreementDialog a={sel} open={sendOpen} onOpenChange={setSendOpen} onSent={() => { void load(sel.id); onChanged() }} />
 
       <section className="cp-card">
@@ -226,7 +247,7 @@ export default function AgreementTab({ agent, onChanged }: { agent: AgentRow; on
                   <td className="font-mono text-[12px]">{a.ref}</td>
                   <td>{fmtLong(a.effective_date)} to {fmtLong(a.expiry_date)}</td>
                   <td>{a.offices.join(' · ')}</td>
-                  <td>{STATUS_LABEL[a.status]}</td>
+                  <td>{STATUS_LABEL[a.status]}{isUploaded(a) ? ' · uploaded' : ''}</td>
                   <td>{a.signed_at ? fmtLong(a.signed_at) : '—'}</td>
                 </tr>
               ))}

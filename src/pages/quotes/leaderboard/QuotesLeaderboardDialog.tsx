@@ -1,16 +1,17 @@
 import { useEffect, useState, type CSSProperties } from 'react'
-import { Trophy, X, FileSpreadsheet, FileDown, Users, Building2, PieChart, Handshake, BadgeDollarSign } from 'lucide-react'
+import { Trophy, X, FileSpreadsheet, FileDown, Users, Building2, PieChart, Handshake, BadgeDollarSign, Tags } from 'lucide-react'
 import { toast } from 'sonner'
 import type { QuotesMode, StatsPeriod } from '../quotesStatsApi'
 import { conversion, fetchLeaderboard, fmtDay, fmtHrs, fmtPct, modeLabel, PERIOD_LABEL, pricingSplit, type Leaderboard } from './leaderboardApi'
 import { PricingLegend, settledRate } from './LeaderboardExtras'
 import { StaffTable, CustomerTable, AgentTable, SalesTable } from './LeaderboardTables'
 import LeaderboardInsights from './LeaderboardInsights'
+import RateCardsLeaderboard from './RateCardsLeaderboard'
 import { downloadLeaderboardCsv } from './leaderboardCsv'
 import { downloadLeaderboardPdf } from './leaderboardPdfExport'
 
 type Props = { open: boolean; onClose: () => void; mode: QuotesMode; initialPeriod: StatsPeriod }
-type Tab = 'team' | 'sales' | 'customers' | 'agents' | 'insights'
+type Tab = 'team' | 'sales' | 'customers' | 'agents' | 'ratecards' | 'insights'
 
 const PERIODS: StatsPeriod[] = ['week', 'month', 'quarter', 'year']
 
@@ -133,6 +134,10 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
             className={`quotes-tabs__btn${tab === 'agents' ? ' quotes-tabs__btn--on' : ''}`}>
             <Handshake size={14} strokeWidth={2} /> Agents{lb?.agents ? ` (${lb.agents.length})` : ''}
           </button>
+          <button type="button" role="tab" aria-selected={tab === 'ratecards'} onClick={() => setTab('ratecards')}
+            className={`quotes-tabs__btn${tab === 'ratecards' ? ' quotes-tabs__btn--on' : ''}`}>
+            <Tags size={14} strokeWidth={2} /> Rate cards
+          </button>
           <button type="button" role="tab" aria-selected={tab === 'insights'} onClick={() => setTab('insights')}
             className={`quotes-tabs__btn${tab === 'insights' ? ' quotes-tabs__btn--on' : ''}`}>
             <PieChart size={14} strokeWidth={2} /> Insights
@@ -142,7 +147,7 @@ export default function QuotesLeaderboardDialog({ open, onClose, mode, initialPe
         <div className="min-h-[200px] flex-1 overflow-auto px-4 pb-4" style={{ opacity: loading ? 0.55 : 1 }}>
           {!lb ? (
             <p className="py-10 text-center text-sm text-slate-500">{loading ? 'Loading…' : 'No data.'}</p>
-          ) : tab === 'team' ? <StaffTable rows={lb.staff} extra={lb.extra} /> : tab === 'sales' ? <SalesTable rows={lb.sales} /> : tab === 'customers' ? <CustomerTable rows={lb.customers} /> : tab === 'agents' ? <AgentTable rows={lb.agents} /> : <LeaderboardInsights lb={lb} />}
+          ) : tab === 'team' ? <StaffTable rows={lb.staff} extra={lb.extra} /> : tab === 'sales' ? <SalesTable rows={lb.sales} /> : tab === 'customers' ? <CustomerTable rows={lb.customers} /> : tab === 'agents' ? <AgentTable rows={lb.agents} /> : tab === 'ratecards' ? <RateCardsLeaderboard period={period} /> : <LeaderboardInsights lb={lb} />}
         </div>
 
         <div className="border-t border-slate-100 px-5 py-2 text-[11px] text-slate-500">

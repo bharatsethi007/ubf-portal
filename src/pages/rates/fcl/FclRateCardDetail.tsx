@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import CarrierUsedBy from '../CarrierUsedBy'
 import { ArrowLeft } from 'lucide-react'
 import { toast } from 'sonner'
 import { useShippingLines, useCurrencies } from '../../../hooks/useQuoteRefData'
@@ -243,6 +244,8 @@ export default function FclRateCardDetail() {
           <h2 style={{ fontSize: 16, margin: '0 0 12px' }}>Import from Excel <span className="text-muted-foreground" style={{ fontSize: 12, fontWeight: 400 }}>(beta)</span></h2>
           <FclExcelImport cardId={id} defaultCurrency={card.currency_code ?? ''} onImported={reloadLines} />
         </section>
+
+        <CarrierUsedBy cardId={id} validTo={card.valid_to} />
 
         {err && <p style={{ color: '#B23B3B', fontSize: 13, marginTop: 10 }}>{err}</p>}
       </div>

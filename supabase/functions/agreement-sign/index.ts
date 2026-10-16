@@ -6,10 +6,12 @@
 // POST { op: "sign", token, fields, signature, consent }               public: agent confirms details and signs
 // POST { op: "file", token, pdf_base64 }                               public, once: stores signed PDF, emails both parties
 // POST { op: "create_link", id, expires_days }                      staff + agreements edit: signing link to share yourself, no email
+// POST { op: "import_url", agent_id }                                 staff + agreements edit: presigned PUT for an old signed PDF
+// POST { op: "import", agent_id, key, file_name, effective_date, expiry_date, ... }  records it as a signed agreement
 // POST { op: "link", id }                                             staff: short-lived download link for the signed PDF
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
-import { presign, putObject } from "../_shared/s3.ts";
+import { getObject, presign, putObject } from "../_shared/s3.ts";
 
 const cors = {
   "Access-Control-Allow-Origin": "*",
@@ -179,6 +181,65 @@ async function opCreateLink(req: Request, b: Record<string, any>) {
   return json({ ok: true, link: `${BASE}/agreement/${token}` });
 }
 
+// Admins and Pricing Leads only. Returns the user or an error response.
+async function editor(req: Request): Promise<{ id: string; email: string } | Response> {
+  const auth = req.headers.get("Authorization") ?? "";
+  const user = createClient(URL_, ANON, { global: { headers: { Authorization: auth } } });
+  const { data: u } = await user.auth.getUser(auth.replace(/^Bearer\s+/i, ""));
+  if (!u?.user) return json({ error: "Sign in required" }, 401);
+  const { data: ok } = await user.rpc("has_perm", { p_module: "agreements", p_op: "edit" });
+  if (ok !== true) return json({ error: "Only Admins and Pricing Leads can upload agreements" }, 403);
+  return { id: u.user.id, email: (u.user.email ?? "").toLowerCase() };
+}
+
+const ISO = /^\d{4}-\d{2}-\d{2}$/;
+
+async function opImportUrl(req: Request, b: Record<string, any>) {
+  const me = await editor(req);
+  if (me instanceof Response) return me;
+  const { data: ag } = await db.from("agents").select("id").eq("id", b.agent_id).maybeSingle();
+  if (!ag) return json({ error: "Agent not found" }, 404);
+  const key = `agreements/imports/${ag.id}/${crypto.randomUUID()}.pdf`;
+  return json({ key, url: await presign(key, "PUT", 900) });
+}
+
+async function opImport(req: Request, b: Record<string, any>) {
+  const me = await editor(req);
+  if (me instanceof Response) return me;
+  const key = String(b.key ?? "");
+  if (!key.startsWith(`agreements/imports/${b.agent_id}/`) || key.includes("..")) return json({ error: "Bad file key" }, 400);
+  const eff = String(b.effective_date ?? ""), exp = String(b.expiry_date ?? "");
+  if (!ISO.test(eff) || !ISO.test(exp)) return json({ error: "Pick start and expiry dates" }, 400);
+  if (exp <= eff) return json({ error: "Expiry must be after the start date" }, 400);
+  // File must be in S3 and be a PDF.
+  try {
+    const r = await getObject(key);
+    const rd = r.body!.getReader();
+    const { value } = await rd.read();
+    await rd.cancel();
+    if (new TextDecoder().decode((value ?? new Uint8Array()).slice(0, 5)) !== "%PDF-") return json({ error: "File is not a PDF" }, 400);
+  } catch {
+    return json({ error: "Upload did not finish. Try again." }, 400);
+  }
+  const { data: ag } = await db.from("agents").select("id, name, country").eq("id", b.agent_id).maybeSingle();
+  if (!ag) return json({ error: "Agent not found" }, 404);
+  const txt = (v: unknown, max = 200) => (typeof v === "string" && v.trim() ? v.trim().slice(0, max) : null);
+  const offices = (Array.isArray(b.offices) ? b.offices : []).filter((o: string) => ["NZ", "FJ", "AU"].includes(o));
+  const signedAt = `${txt(b.signed_date, 10) && ISO.test(String(b.signed_date)) ? b.signed_date : eff}T00:00:00Z`;
+  const { data: a, error } = await db.from("agency_agreements").insert({
+    agent_id: ag.id, status: "signed", effective_date: eff, expiry_date: exp,
+    offices: offices.length ? offices : ["NZ", "FJ", "AU"],
+    agent_legal_name: txt(b.agent_legal_name) ?? ag.name, agent_territory: ag.country ?? null,
+    signatory_name: txt(b.signatory_name, 120), ubf_signer_name: txt(b.ubf_signer_name, 120),
+    signed_at: signedAt, ubf_signed_at: signedAt, signed_pdf_key: key, created_by: me.id,
+    special_terms: txt(b.notes, 1000),
+    agent_signature: { method: "uploaded", file_name: txt(b.file_name, 200), uploaded_by: me.email, uploaded_at: new Date().toISOString() },
+  }).select("id, ref").single();
+  if (error) return json({ error: error.message }, 500);
+  await event(a.id, "uploaded", me.email, { file_name: txt(b.file_name, 200), effective_date: eff, expiry_date: exp });
+  return json({ ok: true, id: a.id, ref: a.ref });
+}
+
 async function opGet(b: Record<string, any>) {
   const r = await byToken(b.token);
   if ("error" in r) return json({ error: r.error }, r.error === "expired" ? 410 : 404);
@@ -296,6 +357,8 @@ Deno.serve(async (req) => {
     if (b.op === "file") return await opFile(b);
     if (b.op === "link") return await opLink(req, b);
     if (b.op === "create_link") return await opCreateLink(req, b);
+    if (b.op === "import_url") return await opImportUrl(req, b);
+    if (b.op === "import") return await opImport(req, b);
     return json({ error: "unknown op" }, 400);
   } catch (e) {
     return json({ error: String(e).slice(0, 300) }, 500);

@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 import { Plus, Search, List, LayoutGrid, CalendarDays, Plane, Container, Boxes } from 'lucide-react'
 import { useDebouncedValue } from '../../hooks/useDebouncedValue'
 import { useSeaPorts } from '../../hooks/useSeaPorts'
@@ -14,6 +14,7 @@ import QuotesStatsStrip from './QuotesStatsStrip'
 import QuotesPortFilter from './QuotesPortFilter'
 import QuoteMailBubble from './QuoteMailBubble'
 import type { PortPair } from './quotesStatsApi'
+import CustomerRatesTab from './rateCards/CustomerRatesTab'
 
 type View = 'list' | 'kanban' | 'calendar'
 
@@ -40,6 +41,9 @@ export default function QuotesPage() {
   const [lane, setLane] = useState<PortPair>({ from: null, to: null })
   const [statsKey, setStatsKey] = useState(0)
 
+  const [params, setParams] = useSearchParams()
+  const tab = params.get('tab') === 'rates' ? 'rates' : 'quotes'
+  const setTab = (t: 'quotes' | 'rates') => setParams(t === 'rates' ? { tab: 'rates' } : {}, { replace: true })
   const [view, setView] = useState<View>('list')
   const [mode, setMode] = useState<ModeFilter>('all')
   const [search, setSearch] = useState('')
@@ -63,6 +67,25 @@ export default function QuotesPage() {
 
   return (
     <div className="quotes-page">
+      <div className="mb-3 flex gap-6 border-b border-[#E6E8EE]" role="tablist" aria-label="Quotes area">
+        {(['quotes', 'rates'] as const).map((t) => (
+          <button key={t} type="button" role="tab" aria-selected={tab === t} onClick={() => setTab(t)}
+            className={`-mb-px h-10 border-b-2 px-0.5 text-[13.5px] ${tab === t ? 'border-[#0A2472] text-[#0A2472]' : 'border-transparent text-[#5B6474]'}`}>
+            {t === 'quotes' ? 'Quotes' : 'Customer rates'}
+          </button>
+        ))}
+      </div>
+      {tab === 'rates' ? (
+        <div className="card quotes-page__card">
+          <div className="quotes-page__toolbar">
+            <label className="quotes-page__search">
+              <Search size={16} strokeWidth={2} />
+              <input className="input input--sm" placeholder="Search customer, ref, title" value={search} onChange={(e) => setSearch(e.target.value)} />
+            </label>
+          </div>
+          <CustomerRatesTab search={debouncedSearch} />
+        </div>
+      ) : (
       <div className="card quotes-page__card">
         <QuotesStatsStrip title="Quotations" mode={view === 'list' ? mode : 'all'} lane={lane} refreshKey={statsKey} />
 
@@ -150,6 +173,7 @@ export default function QuotesPage() {
           <QuotesCalendar search={debouncedSearch} lane={lane} onOpen={openQuote} />
         )}
       </div>
+      )}
       <QuoteMailBubble onChanged={() => setStatsKey((k) => k + 1)} />
     </div>
   )

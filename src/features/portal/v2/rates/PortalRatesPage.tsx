@@ -6,6 +6,7 @@ import PortPicker from '../bookings/PortPicker'
 import { CONTAINER_TYPES } from '../bookings/bookingsApi'
 import { placeName } from '../homeModel'
 import PortalQuotesTab from './PortalQuotesTab'
+import PortalYourRates from './PortalYourRates'
 import QuoteRequestPanel from './QuoteRequestPanel'
 import { groupOffers, listOffers } from './quotesApi'
 import RateCard from './RateCard'
@@ -43,11 +44,11 @@ export default function PortalRatesPage() {
   const [quoteFor, setQuoteFor] = useState<RateOption | null>(null)
   const ask = (o: RateOption | null) => { setQuoteFor(o); setAsking(true); window.scrollTo({ top: 0, behavior: 'smooth' }) }
   const set = <K extends keyof RateQuery>(k: K, v: RateQuery[K]) => setQ((s) => ({ ...s, [k]: v }))
-  const tab = params.get('tab') === 'search' || params.has('from') || params.has('rate') ? 'search' : 'quotes'
+  const tab = params.get('tab') === 'search' || params.has('from') || params.has('rate') ? 'search' : params.get('tab') === 'yours' ? 'yours' : 'quotes'
   const [pending, setPending] = useState(0)
   const onCount = useCallback((n: number) => setPending(n), [])
   useEffect(() => { listOffers().then((r) => setPending(groupOffers(r).filter((g) => g.status === 'pending').length)).catch(() => {}) }, [])
-  const goTab = (t: 'search' | 'quotes') => setParams({ tab: t }, { replace: true })
+  const goTab = (t: 'search' | 'quotes' | 'yours') => setParams({ tab: t }, { replace: true })
 
   async function run() {
     if (!q.origin || !q.destination) { setErr('Pick where it ships from and to.'); return }
@@ -85,7 +86,7 @@ export default function PortalRatesPage() {
       <div className="pv3-head pv3-rise">
         <div>
           <h1>Rates</h1>
-          <p>{tab === 'quotes' ? 'Quotes our team priced for you. Approve to lock in the price.' : 'Live prices on our published lanes. Book at the price you see, or ask us for anything else.'}</p>
+          <p>{tab === 'yours' ? 'Your agreed prices on regular lanes. They apply automatically when you book.' : tab === 'quotes' ? 'Quotes our team priced for you. Approve to lock in the price.' : 'Live prices on our published lanes. Book at the price you see, or ask us for anything else.'}</p>
         </div>
       </div>
 
@@ -93,10 +94,11 @@ export default function PortalRatesPage() {
         <button type="button" role="tab" aria-selected={tab === 'quotes'} className={`pv3-tabs__btn${tab === 'quotes' ? ' pv3-tabs__btn--on' : ''}`} onClick={() => goTab('quotes')}>
           My quotes{pending > 0 && <span className="pv3-tabs__n">{pending}</span>}
         </button>
+        <button type="button" role="tab" aria-selected={tab === 'yours'} className={`pv3-tabs__btn${tab === 'yours' ? ' pv3-tabs__btn--on' : ''}`} onClick={() => goTab('yours')}>Your rates</button>
         <button type="button" role="tab" aria-selected={tab === 'search'} className={`pv3-tabs__btn${tab === 'search' ? ' pv3-tabs__btn--on' : ''}`} onClick={() => goTab('search')}>Search rates</button>
       </div>
 
-      {tab === 'quotes' ? <PortalQuotesTab focusId={params.get('q')} onCount={onCount} /> : <>
+      {tab === 'yours' ? <PortalYourRates /> : tab === 'quotes' ? <PortalQuotesTab focusId={params.get('q')} onCount={onCount} /> : <>
 
       <p className="pv3-rnote pv3-rise" role="note">
         <Info size={15} />
