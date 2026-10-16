@@ -5,7 +5,7 @@ import type { CardPatch } from './rateCardsApi'
 type Props = { card: RateCard; editable: boolean; staff: StaffOption[]; onChange: (p: CardPatch) => void }
 
 const lbl = 'text-[11.5px] text-[#5B6474]'
-const PRES: { key: RateCard['presentation']; label: string }[] = [{ key: 'all_in', label: 'All-in' }, { key: 'breakdown', label: 'Breakdown' }, { key: 'both', label: 'Both' }]
+const PRES: { key: RateCard['presentation']; label: string }[] = [{ key: 'freight', label: 'Freight only' }, { key: 'all_in', label: 'All-in' }, { key: 'breakdown', label: 'Breakdown' }, { key: 'both', label: 'Both' }]
 
 /** Card header fields: title, dates, owners, presentation, FX and terms. */
 export default function RateCardDetails({ card: c, editable, staff, onChange }: Props) {

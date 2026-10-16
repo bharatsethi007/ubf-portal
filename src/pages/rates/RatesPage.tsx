@@ -35,6 +35,7 @@ const GROUPS: ModuleGroup[] = [
       { label: 'Rules', to: '/setup/rates/rules' },
       { label: 'Ports & Groups', to: '/setup/rates/ports' },
       { label: 'Customer pricing and contract rates', to: '/setup/rates/margins' },
+      { label: 'Customer rate cards', to: '/quotes?tab=rates' },
     ],
   },
 ]

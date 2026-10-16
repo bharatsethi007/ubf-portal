@@ -112,3 +112,12 @@ export async function fxFor(base: string): Promise<Record<string, number>> {
   const { data } = await supabase.from('exchange_rates').select('quote_currency, rate').eq('base_currency', base)
   return Object.fromEntries(((data ?? []) as { quote_currency: string; rate: number }[]).map((r) => [r.quote_currency, Number(r.rate)]))
 }
+
+export const copyCard = (id: string, account: string, from: string, to: string, title: string) =>
+  rpc<string>('customer_rate_card_copy', { p_id: id, p_account: account, p_from: from, p_to: to, p_title: title })
+
+export type SharedCard = {
+  id: string; rate_type: 'fcl' | 'lcl' | 'air' | string; title: string | null; vendor: string | null; status: string
+  valid_from: string | null; valid_to: string | null; lanes: number; account_ids: string[]; customers: string[]
+}
+export const listSharedCards = () => rpc<SharedCard[]>('customer_rate_shared_cards').then((r) => r ?? [])

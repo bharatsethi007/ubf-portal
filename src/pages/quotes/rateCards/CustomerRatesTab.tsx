@@ -5,8 +5,10 @@ import { Plus } from 'lucide-react'
 import { useStaffList } from '../../../hooks/useStaffList'
 import { usePerm } from '../../../access/PermissionsProvider'
 import NewRateCardDialog from './NewRateCardDialog'
+import FromSetupDialog from './FromSetupDialog'
+import SetupCardPeek from './SetupCardPeek'
 import { RateCardPill } from './RateCardPill'
-import { fmtDate, listCards, viewStatus, type CardListRow } from './rateCardsApi'
+import { fmtDate, listCards, listSharedCards, todayIso, viewStatus, type CardListRow, type SharedCard } from './rateCardsApi'
 
 const FILTERS: { key: string; label: string; test: (s: string) => boolean }[] = [
   { key: 'all', label: 'All', test: () => true },
@@ -16,6 +18,14 @@ const FILTERS: { key: string; label: string; test: (s: string) => boolean }[] = 
   { key: 'expiring', label: 'Expiring', test: (s) => s === 'expiring' },
   { key: 'expired', label: 'Expired', test: (s) => s === 'expired' || s === 'superseded' },
 ]
+
+function sharedView(c: SharedCard): string {
+  const t = todayIso()
+  if (c.status === 'draft') return 'draft'
+  if (c.status === 'expired' || (c.valid_to && c.valid_to < t)) return 'expired'
+  if (c.valid_from && c.valid_from > t) return 'scheduled'
+  return 'live'
+}
 
 const tile = 'flex min-w-0 flex-col gap-0.5 border-r border-[#F0F1F4] px-4 py-3 last:border-r-0'
 const lbl = 'text-[11.5px] text-[#5B6474]'
@@ -30,17 +40,27 @@ export default function CustomerRatesTab({ search }: { search: string }) {
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('all')
   const [newOpen, setNewOpen] = useState(false)
+  const [shared, setShared] = useState<SharedCard[]>([])
+  const [source, setSource] = useState<'all' | 'rc' | 'setup'>('all')
+  const [peek, setPeek] = useState<(SharedCard & { view: string }) | null>(null)
+  const [picked, setPicked] = useState<Set<string>>(new Set())
+  const [convert, setConvert] = useState<SharedCard[] | null>(null)
 
   useEffect(() => {
     listCards().then(setRows).catch((e) => toast.error(e.message)).finally(() => setLoading(false))
+    listSharedCards().then(setShared).catch(() => setShared([]))
   }, [])
+  const sharedRows = useMemo(() => shared.map((c) => ({ ...c, view: sharedView(c) })), [shared])
+  const sharedShown = sharedRows.filter((c) => source !== 'rc' && FILTERS.find((f) => f.key === filter)!.test(c.view) &&
+    (!search.trim() || `${c.title} ${c.vendor} ${c.customers.join(' ')}`.toLowerCase().includes(search.trim().toLowerCase())))
 
   const withView = useMemo(() => rows.map((r) => ({ ...r, view: viewStatus(r) })), [rows])
   const q = search.trim().toLowerCase()
   const shown = withView.filter((r) =>
     FILTERS.find((f) => f.key === filter)!.test(r.view) &&
     (!q || `${r.ref} ${r.customer} ${r.title}`.toLowerCase().includes(q)))
-  const count = (k: string) => withView.filter((r) => FILTERS.find((f) => f.key === k)!.test(r.view)).length
+  const count = (k: string) => (source === 'setup' ? 0 : withView.filter((r) => FILTERS.find((f) => f.key === k)!.test(r.view)).length)
+    + (source === 'rc' ? 0 : sharedRows.filter((r) => FILTERS.find((f) => f.key === k)!.test(r.view)).length)
 
   const live = withView.filter((r) => ['live', 'expiring', 'scheduled'].includes(r.view))
   const pending = withView.filter((r) => r.view === 'pending')
@@ -67,8 +87,21 @@ export default function CustomerRatesTab({ search }: { search: string }) {
           ))}
         </div>
         <span className="flex-1" />
+        <select className="h-8 rounded-md border border-[#E6E8EE] bg-white px-2 text-[12.5px]" value={source} onChange={(e) => setSource(e.target.value as typeof source)} aria-label="Source">
+          <option value="all">Customer rate cards and shared Setup cards</option><option value="rc">Customer rate cards only</option><option value="setup">Shared Setup cards only ({shared.length})</option>
+        </select>
         {canAdd && <button type="button" className="btn quotes-page__new-btn" onClick={() => setNewOpen(true)}><Plus size={15} /> New rate card</button>}
       </div>
+
+      {picked.size > 0 && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-[#C7D0E6] bg-[#F5F8FF] px-3 py-2 text-[12.5px]">
+          <b className="font-medium">{picked.size} Setup card{picked.size > 1 ? 's' : ''} selected</b>
+          <span className="text-[#5B6474]">{sharedRows.filter((c) => picked.has(c.id)).map((c) => c.customers.join(', ')).filter((v, i, a) => a.indexOf(v) === i).join(' · ')}</span>
+          <span className="flex-1" />
+          {canAdd && <button type="button" className="btn quotes-page__new-btn" onClick={() => setConvert(sharedRows.filter((c) => picked.has(c.id)))}>Make one customer rate card</button>}
+          <button type="button" className="text-[12px] text-[#5B6474]" onClick={() => setPicked(new Set())}>Clear</button>
+        </div>
+      )}
 
       <div className="customers-table card">
         <div className="table-wrap">
@@ -79,8 +112,8 @@ export default function CustomerRatesTab({ search }: { search: string }) {
             </tr></thead>
             <tbody>
               {loading ? <tr><td colSpan={10} className="text-muted-foreground pad-inline">Loading…</td></tr>
-                : shown.length === 0 ? <tr><td colSpan={10} className="text-muted-foreground pad-inline">No rate cards yet.</td></tr>
-                : shown.map((r) => (
+                : shown.length + sharedShown.length === 0 ? <tr><td colSpan={10} className="text-muted-foreground pad-inline">No rate cards yet.</td></tr>
+                : (source === 'setup' ? [] : shown).map((r) => (
                   <tr key={r.id} className="row-clickable" onClick={() => navigate(`/quotes/rate-cards/${r.id}`)}>
                     <td><span className="font-mono text-[12px]">{r.ref}</span>{r.version > 1 && <span className="ml-1 text-[11px] text-[#5B6474]">v{r.version}</span>}</td>
                     <td><div>{r.customer}</div>{r.title && <div className="text-[11.5px] text-[#5B6474]">{r.title}</div>}</td>
@@ -94,11 +127,31 @@ export default function CustomerRatesTab({ search }: { search: string }) {
                     <td className="text-[12px]">{watchText(r)}</td>
                   </tr>
                 ))}
+              {!loading && sharedShown.map((c) => (
+                <tr key={c.id} className="row-clickable" onClick={() => setPeek(c)} title="Open card">
+                  <td onClick={(e) => e.stopPropagation()}>
+                    <label className="inline-flex cursor-pointer items-center gap-1.5">
+                      <input type="checkbox" aria-label="Select card" checked={picked.has(c.id)}
+                        onChange={() => setPicked((s) => { const x = new Set(s); if (x.has(c.id)) x.delete(c.id); else x.add(c.id); return x })} />
+                      <span className="inline-flex rounded bg-[#F1F3F7] px-1.5 text-[10.5px] text-[#475467]">Setup card</span>
+                    </label>
+                  </td>
+                  <td><div>{c.customers.slice(0, 2).join(', ')}{c.customers.length > 2 ? ` +${c.customers.length - 2}` : ''}</div><div className="text-[11.5px] text-[#5B6474]">{c.vendor ? `${c.vendor} · ` : ''}{c.title}</div></td>
+                  <td><span className="mr-1 inline-flex rounded bg-[#EEF1F8] px-1.5 text-[10.5px] text-[#0A2472]">{String(c.rate_type).toUpperCase()}</span></td>
+                  <td style={{ textAlign: 'right' }}>{c.lanes}</td>
+                  <td className="whitespace-nowrap">{fmtDate(c.valid_from)} to {fmtDate(c.valid_to)}</td>
+                  <td><RateCardPill status={c.view} /></td>
+                  <td>–</td><td>–</td><td style={{ textAlign: 'right' }}>–</td>
+                  <td className="text-[12px] text-[#5B6474]">Shared with {c.customers.length} customer{c.customers.length > 1 ? 's' : ''}</td>
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
       </div>
       <NewRateCardDialog open={newOpen} onOpenChange={setNewOpen} />
+      {peek && <SetupCardPeek card={peek} onClose={() => setPeek(null)} onConvert={(c) => { setPeek(null); setConvert([c]) }} />}
+      {convert && <FromSetupDialog cards={convert} open onOpenChange={(o) => { if (!o) setConvert(null) }} />}
     </div>
   )
 }

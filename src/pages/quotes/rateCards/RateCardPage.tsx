@@ -1,12 +1,13 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { toast } from 'sonner'
-import { Eye, FileDown, Plus, Save } from 'lucide-react'
+import { Copy, Eye, FileDown, Plus, Save } from 'lucide-react'
 import { supabase } from '../../../supabase'
 import { usePerm } from '../../../access/PermissionsProvider'
 import { useStaffList } from '../../../hooks/useStaffList'
 import { usePorts } from '../../../hooks/usePorts'
 import AddLanesDialog from './AddLanesDialog'
+import CopyRateCardDialog from './CopyRateCardDialog'
 import LocalChargesDialog from './LocalChargesDialog'
 import RateCardDetails from './RateCardDetails'
 import RateCardLanes from './RateCardLanes'
@@ -26,6 +27,8 @@ export default function RateCardPage() {
   const navigate = useNavigate()
   const canEdit = usePerm('customer_rates', 'edit')
   const canApprove = usePerm('customer_rates_approve', 'edit')
+  const canAdd = usePerm('customer_rates', 'add')
+  const [copyOpen, setCopyOpen] = useState(false)
   const { staff } = useStaffList()
   const { ports } = usePorts()
   const [card, setCard] = useState<RateCard | null>(null)
@@ -135,6 +138,7 @@ export default function RateCardPage() {
             <RateCardPill status={vs} />
             {card.version > 1 && <span className="text-[12px] text-[#5B6474]">v{card.version}</span>}
             <span className="flex-1" />
+            {canAdd && <button type="button" className="btn btn--inline" disabled={busy || dirty} title={dirty ? 'Save first' : 'Copy for this or another customer'} onClick={() => setCopyOpen(true)}><Copy size={14} /> Copy</button>}
             <button type="button" className="btn btn--inline" disabled={busy || !lines.length} onClick={() => void pdf('view')}><Eye size={14} /> Preview PDF</button>
             <button type="button" className="btn btn--inline" disabled={busy || !lines.length} onClick={() => void pdf('download')}><FileDown size={14} /> Download</button>
             {editable && <button type="button" className="btn quotes-page__new-btn" disabled={busy || !dirty} onClick={() => void save()}><Save size={14} /> {dirty ? 'Save draft' : 'Saved'}</button>}
@@ -175,6 +179,7 @@ export default function RateCardPage() {
       </div>
       <AddLanesDialog open={addOpen} onOpenChange={setAddOpen} rules={rules} existing={existing} nextSort={lines.length}
         onAdd={(ls) => { setLines((x) => [...x, ...ls]); setDirty(true) }} />
+      <CopyRateCardDialog card={card} lanes={lines.length} open={copyOpen} onOpenChange={setCopyOpen} />
       <LocalChargesDialog open={chargesOpen} onOpenChange={setChargesOpen} lines={lines} onApply={applyAll} />
     </div>
   )

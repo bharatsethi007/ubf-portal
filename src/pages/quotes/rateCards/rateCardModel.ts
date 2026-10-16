@@ -7,7 +7,7 @@ export type CardStatus = 'draft' | 'pending' | 'changes' | 'live' | 'superseded'
 export type RateCard = {
   id: string; ref: string; version: number; parent_id: string | null; account_id: string; customer: string
   title: string; status: CardStatus; valid_from: string; valid_to: string
-  presentation: 'all_in' | 'breakdown' | 'both'; fx: Record<string, number>
+  presentation: 'freight' | 'all_in' | 'breakdown' | 'both'; fx: Record<string, number>
   sales_id: string | null; pricing_id: string | null
   included: string | null; excluded: string | null; terms: string | null
   approver_note: string | null; submitted_at: string | null; approved_at: string | null; approved_by: string | null

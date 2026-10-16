@@ -11,7 +11,7 @@ type Props = {
 
 const EVENTS: Record<string, string> = {
   created: 'Draft created', saved: 'Draft saved', submitted: 'Sent for approval', changes_requested: 'Changes asked',
-  published: 'Approved and published', withdrawn: 'Withdrawn', revised_from: 'New version', renewed_from: 'Renewal', pdf: 'PDF downloaded',
+  published: 'Approved and published', withdrawn: 'Withdrawn', revised_from: 'New version', renewed_from: 'Renewal', copied_from: 'Copied from another rate card', from_setup: 'Made from Setup rate cards', pdf: 'PDF downloaded',
 }
 const kv = 'flex justify-between gap-3 border-t border-[#F0F1F4] py-[7px] text-[12.5px] first:border-t-0'
 const when = (iso: string) => new Date(iso).toLocaleString('en-NZ', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })

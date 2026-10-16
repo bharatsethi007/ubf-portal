@@ -31,7 +31,7 @@ function Chrome({ c }: { c: RateCard }) {
 function Cover({ c, shown, ctx }: { c: RateCard; shown: Line[]; ctx: Ctx }) {
   const counts = (['FCL', 'LCL', 'AIR'] as Product[]).map((p) => [p, shown.filter((l) => l.product === p).length] as const).filter(([, n]) => n)
   const curs = [...new Set(shown.map((l) => l.sell_currency))]
-  const toc = [c.presentation !== 'breakdown' && 'All-in rates by lane', c.presentation !== 'all_in' && 'Rate breakdown', 'Inclusions and terms'].filter(Boolean) as string[]
+  const toc = [c.presentation === 'freight' ? 'Freight rates by lane' : c.presentation !== 'breakdown' && 'All-in rates by lane', (c.presentation === 'breakdown' || c.presentation === 'both') && 'Rate breakdown', 'Inclusions and terms'].filter(Boolean) as string[]
   return (
     <Page size="A4" style={s.cover}>
       <View style={s.coverTop}>
@@ -71,11 +71,14 @@ function Head({ cols }: { cols: [string, number | string, boolean?][] }) {
 }
 
 function AllIn({ c, shown, ctx }: { c: RateCard; shown: Line[]; ctx: Ctx }) {
+  const fo = c.presentation === 'freight'
+  const price = (l: Line) => (fo ? l.freight_sell : allIn(l, c.fx ?? {}))
   const fx = c.fx ?? {}
   return (
     <View>
       <Text style={s.secCap}>SECTION 1</Text>
-      <Text style={s.secTitle}>All-in rates</Text>
+      <Text style={s.secTitle}>{fo ? 'Freight rates' : 'All-in rates'}</Text>
+      {fo && <Text style={s.secNote}>Freight only, port to port. Origin and destination charges are not included and are quoted per shipment.</Text>}
       {(['FCL', 'LCL', 'AIR'] as Product[]).map((p) => {
         const ls = shown.filter((l) => l.product === p)
         if (!ls.length) return null
@@ -85,12 +88,12 @@ function AllIn({ c, shown, ctx }: { c: RateCard; shown: Line[]; ctx: Ctx }) {
           const w = `${Math.floor(46 / ctrs.length)}%`
           return (
             <View key={p} wrap={false}>
-              <Text style={s.grp}>{MODE[p]}</Text><Text style={s.secNote}>{NOTE[p]}</Text>
+              <Text style={s.grp}>{MODE[p]}</Text>{!fo && <Text style={s.secNote}>{NOTE[p]}</Text>}
               <Head cols={[['From', '30%'], ['To', '14%'], ...ctrs.map((x) => [x, w, true] as [string, string, boolean]), ['Transit', '10%', true]]} />
               {lanes.map((l) => (
                 <View key={`${l.origin_code}${l.dest_code}`} style={s.tr}>
                   <Cell w="30%">{ctx.portName(l.origin_code)}</Cell><Cell w="14%">{ctx.portName(l.dest_code)}</Cell>
-                  {ctrs.map((x) => { const m = ls.find((y) => y.origin_code === l.origin_code && y.dest_code === l.dest_code && y.container_type === x); return <Cell key={x} w={w} right strong>{m ? money(allIn(m, fx), m.sell_currency, 0) : '–'}</Cell> })}
+                  {ctrs.map((x) => { const m = ls.find((y) => y.origin_code === l.origin_code && y.dest_code === l.dest_code && y.container_type === x); return <Cell key={x} w={w} right strong>{m ? money(price(m), m.sell_currency, 0) : '–'}</Cell> })}
                   <Cell w="10%" right>{l.transit_days ? `${l.transit_days} days` : '–'}</Cell>
                 </View>
               ))}
@@ -99,12 +102,12 @@ function AllIn({ c, shown, ctx }: { c: RateCard; shown: Line[]; ctx: Ctx }) {
         }
         return (
           <View key={p} wrap={false}>
-            <Text style={s.grp}>{MODE[p]}</Text><Text style={s.secNote}>{NOTE[p]}</Text>
+            <Text style={s.grp}>{MODE[p]}</Text>{!fo && <Text style={s.secNote}>{NOTE[p]}</Text>}
             <Head cols={[['From', '30%'], ['To', '20%'], [p === 'LCL' ? 'Per w/m' : 'Per kg', '16%', true], ['Minimum', '16%', true], ['Transit', '18%', true]]} />
             {ls.map((l, i) => (
               <View key={i} style={s.tr}>
                 <Cell w="30%">{ctx.portName(l.origin_code)}</Cell><Cell w="20%">{ctx.portName(l.dest_code)}</Cell>
-                <Cell w="16%" right strong>{money(allIn(l, fx), l.sell_currency, 2)}</Cell>
+                <Cell w="16%" right strong>{money(price(l), l.sell_currency, 2)}</Cell>
                 <Cell w="16%" right>{l.sell_min ? money(l.sell_min, l.sell_currency, 0) : '–'}</Cell>
                 <Cell w="18%" right>{l.transit_days ? `${l.transit_days} days` : '–'}{l.frequency ? ` · ${l.frequency}` : ''}</Cell>
               </View>
@@ -112,7 +115,7 @@ function AllIn({ c, shown, ctx }: { c: RateCard; shown: Line[]; ctx: Ctx }) {
           </View>
         )
       })}
-      {fxNote(shown, fx) && <Text style={[s.secNote, { marginTop: 10 }]}>{fxNote(shown, fx)}</Text>}
+      {!fo && fxNote(shown, fx) && <Text style={[s.secNote, { marginTop: 10 }]}>{fxNote(shown, fx)}</Text>}
     </View>
   )
 }
@@ -163,7 +166,7 @@ function Terms({ c, n }: { c: RateCard; n: number }) {
 export function RateCardDocument({ c, lines, ctx }: { c: RateCard; lines: Line[]; ctx: Ctx }) {
   const shown = lines.filter((l) => l.show && l.freight_sell != null)
   const showAll = c.presentation !== 'breakdown'
-  const showBd = c.presentation !== 'all_in'
+  const showBd = c.presentation === 'breakdown' || c.presentation === 'both'
   return (
     <Document title={`UB Freight Rate Card ${c.ref} ${c.customer}`} author="UB Freight Ltd">
       <Cover c={c} shown={shown} ctx={ctx} />

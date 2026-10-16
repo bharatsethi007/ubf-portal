@@ -94,6 +94,7 @@ export default function PortalYourRates() {
       <div className="pv3-yr-grid">
         {lanes.map((l, i) => {
           const ai = allIn(l, fx)
+          const fo = card.presentation === 'freight'
           const showBd = card.presentation === 'breakdown' || (card.presentation === 'both' && view === 'breakdown')
           const dp = l.product === 'FCL' ? 0 : 2
           return (
@@ -104,8 +105,8 @@ export default function PortalYourRates() {
                 <span className="pv3-muted">{l.product === 'FCL' ? l.container_type : UNIT[l.product]}</span>
               </div>
               <div className="pv3-yr-lane__price">
-                <span className="pv3-rate__amount">{money(showBd ? l.freight_sell : ai ?? l.freight_sell, l.sell_currency, dp)}</span>
-                <span className="pv3-muted">{showBd ? 'freight' : 'all-in'}{l.transit_days ? ` · ${l.transit_days} days transit` : ''}</span>
+                <span className="pv3-rate__amount">{money(showBd || fo ? l.freight_sell : ai ?? l.freight_sell, l.sell_currency, dp)}</span>
+                <span className="pv3-muted">{fo ? 'freight only' : showBd ? 'freight' : 'all-in'}{l.transit_days ? ` · ${l.transit_days} days transit` : ''}</span>
               </div>
               {(showBd || card.presentation === 'both') && (
                 <div className="pv3-yr-lane__bd">
