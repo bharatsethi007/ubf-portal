@@ -3,6 +3,7 @@ import { FileDown, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { C, Seg } from '../reportsUi'
 import { fetchSync } from './financeApi'
+import { workingCurrency } from '../../../features/company/companyApi'
 import { DATA_START, addMonths, fyEnd, fyLabel, fyOf, fyStart, lastClosedMonth, monthLabel, monthsBetween } from './financeUtil'
 import { useAsync, Toggle } from './finUi'
 import FinOverview from './FinOverview'
@@ -42,6 +43,7 @@ export default function FinanceTab({ initialView }: { initialView?: View }) {
   const [useAdj, setUseAdj] = useState(true)
   const fy = fyOf(toMonth)
   const sync = useAsync(fetchSync, [])
+  const ccy = useAsync(workingCurrency, [])
   const [packBusy, setPackBusy] = useState(false)
   async function boardPack() {
     setPackBusy(true)
@@ -91,7 +93,7 @@ export default function FinanceTab({ initialView }: { initialView?: View }) {
         </div>
       </div>
       <div style={{ fontSize: 11.5, color: C.mut }}>
-        {period.label}. Source: TradeWindow general ledger (company 01, NZD).
+        {period.label}. Source: TradeWindow general ledger (company 01{ccy.data ? `, ${ccy.data}` : ''}).
         {lastGl ? ` Ledger to ${lastGl}.` : ''}{lastSync ? ` Synced ${new Date(lastSync).toLocaleString('en-NZ')}.` : ''}
         {' '}Management accounts: no depreciation or income tax is posted in the ledger.
       </div>

@@ -2,6 +2,7 @@ import {
   fetchAging, fetchBalanceSheet, fetchCashflow, fetchClose, fetchCustomerProfit, fetchFlags, fetchForecast, fetchKpis, fetchLeaks, fetchPl,
   type AgingRow, type CloseList, type CustProfitRow, type FlagRow, type ForecastRow, type PlRow,
 } from '../financeApi'
+import { workingCurrency } from '../../../../features/company/companyApi'
 import { buildInsights, type Insight } from '../financeInsights'
 import {
   DATA_START, addMonths, fyOf, fyStart, monthEnd, monthsBetween, serviceLines, totals, unpostedCosts, type Totals,
@@ -17,7 +18,7 @@ export type Buckets = { current: number; d1_30: number; d31_60: number; d61_90: 
 export type SlRow = { line: string; revenue: number; gp: number; margin: number | null; lyGp: number | null }
 
 export type BoardPack = {
-  month: string; fy: number; hasLy: boolean; useAdj: boolean; generatedAt: Date
+  month: string; fy: number; hasLy: boolean; useAdj: boolean; generatedAt: Date; currency: string
   mT: Totals; mLy: Totals | null; yT: Totals; yLy: Totals | null; openAdj: number
   pl: PackRow[]; sl: SlRow[]; trend: Trend[]; insights: Insight[]
   bs: BsLine[]; bsOpenLabel: string; ca: number; cl: number; cash: number; equity: number
@@ -165,7 +166,7 @@ export async function buildBoardPack(month: string, useAdj: boolean): Promise<Bo
     kpis: kpis.filter((k) => k.month <= month), aging: arRows, forecast, flags })
 
   return {
-    month, fy, hasLy, useAdj, generatedAt: new Date(), mT, mLy, yT, yLy, openAdj: adj[month] ?? 0,
+    month, fy, hasLy, useAdj, generatedAt: new Date(), currency: await workingCurrency(), mT, mLy, yT, yLy, openAdj: adj[month] ?? 0,
     pl, sl, trend, insights,
     bs, bsOpenLabel: bsOpen, ca, cl, cash: sumBs(bsNow, (r) => r.bs_group === 'Cash & bank'), equity: sumBs(bsNow, (r) => r.side === 'Equity'),
     cf, cashOpenM, cashOpenY, cashClose, forecast,

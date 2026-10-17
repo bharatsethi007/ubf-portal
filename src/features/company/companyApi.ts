@@ -58,6 +58,13 @@ export async function workingCompany(): Promise<string> {
   return ctx.current ?? ctx.companies[0]?.code ?? 'NZ'
 }
 
+/** Base currency of the company being viewed. "All companies" falls back to the first one. */
+export async function workingCurrency(): Promise<string> {
+  const ctx = await companyContext()
+  const code = ctx.current ?? ctx.companies[0]?.code
+  return ctx.companies.find((c) => c.code === code)?.currency ?? 'NZD'
+}
+
 /** null = all branches of the current company */
 export async function setMyBranch(code: string | null): Promise<void> {
   const { error } = await supabase.rpc('set_my_branch', { p_branch: code })

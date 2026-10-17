@@ -51,7 +51,7 @@ export function Cover({ p }: { p: BoardPack }) {
         ))}
         <Text style={{ ...S.note, marginTop: 28 }}>
           Prepared {p.generatedAt.toLocaleDateString('en-NZ', { day: 'numeric', month: 'long', year: 'numeric' })} from the TradeWindow general ledger
-          (company 01, NZD). Unaudited management accounts: depreciation and income tax are not posted in the ledger.
+          (company 01, {p.currency}). Unaudited management accounts: depreciation and income tax are not posted in the ledger.
           {p.useAdj ? ' Supplier invoices received but not yet costed to jobs are added back as "Job costs not yet posted".' : ''}
         </Text>
       </View>
