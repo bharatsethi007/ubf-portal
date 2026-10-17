@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { LogOut, UserRound } from 'lucide-react'
+import { LogOut, UserCog, UserRound } from 'lucide-react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../supabase'
 import StaffAvatar from './StaffAvatar'
@@ -7,12 +7,19 @@ import MyProfileModal from './MyProfileModal'
 import TextSizeMenu from './TextSizeMenu'
 import { displayName } from '../../pages/users/staffProfileApi'
 import { useMyProfile } from './useMyProfile'
+import { companyContext } from '../../features/company/companyApi'
+import SignInAsModal from '../../features/impersonation/SignInAsModal'
+import { isImpersonatingLocally, returnToSelf } from '../../features/impersonation/impersonationApi'
 
 // Top-right user button: photo or initials only (name in the dropdown), dropdown with My profile and Sign out.
 export default function UserMenu({ session }: { session: Session }) {
   const profile = useMyProfile()
   const [open, setOpen] = useState(false)
   const [editing, setEditing] = useState(false)
+  const [signInAs, setSignInAs] = useState(false)
+  const [isSuper, setIsSuper] = useState(false)
+  const impersonating = isImpersonatingLocally()
+  useEffect(() => { companyContext().then((c) => setIsSuper(c.is_super_admin)).catch(() => setIsSuper(false)) }, [])
   const ref = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
@@ -44,13 +51,19 @@ export default function UserMenu({ session }: { session: Session }) {
             <UserRound size={15} /> My profile
           </button>
           <TextSizeMenu />
+          {isSuper && !impersonating && (
+            <button type="button" className="dropdown-item" style={item} onClick={() => { setOpen(false); setSignInAs(true) }}>
+              <UserCog size={15} /> Sign in as…
+            </button>
+          )}
           <div style={{ borderTop: '1px solid var(--line)', margin: '6px 0' }} />
-          <button type="button" className="dropdown-item" style={item} onClick={() => { setOpen(false); void supabase.auth.signOut({ scope: 'local' }) }}>
-            <LogOut size={15} /> Sign out
+          <button type="button" className="dropdown-item" style={item} onClick={() => { setOpen(false); void (impersonating ? returnToSelf() : supabase.auth.signOut({ scope: 'local' })) }}>
+            <LogOut size={15} /> {impersonating ? 'Return to my account' : 'Sign out'}
           </button>
         </div>
       )}
       {editing && profile && <MyProfileModal profile={profile} onClose={() => setEditing(false)} />}
+      {signInAs && <SignInAsModal onClose={() => setSignInAs(false)} />}
     </div>
   )
 }

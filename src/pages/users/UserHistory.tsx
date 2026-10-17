@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { format, formatDistanceToNow, isToday, isYesterday } from 'date-fns'
-import { KeyRound, LogIn, LogOut, Mail, ShieldCheck, ShieldOff, ShieldPlus, UserCheck, UserX, type LucideIcon } from 'lucide-react'
+import { KeyRound, LogIn, LogOut, Mail, ShieldCheck, ShieldOff, ShieldPlus, UserCheck, UserCog, UserX, type LucideIcon } from 'lucide-react'
 import { supabase } from '../../supabase'
 import { displayName, type StaffProfile } from './staffProfileApi'
 
@@ -17,6 +17,8 @@ const META: Record<string, { label: string; icon: LucideIcon; group: Filter; ton
   reset_link_sent: { label: 'Password reset link sent', icon: Mail, group: 'password' },
   account_disabled: { label: 'Account disabled', icon: UserX, group: 'account', tone: '#dc2626' },
   account_enabled: { label: 'Account re-enabled', icon: UserCheck, group: 'account' },
+  impersonate_start: { label: 'Super admin signed in as this user', icon: UserCog, group: 'signin', tone: '#b45309' },
+  impersonate_end: { label: 'Super admin returned to own account', icon: UserCog, group: 'signin' },
 }
 const FILTERS: { key: Filter; label: string }[] = [
   { key: 'all', label: 'All' }, { key: 'signin', label: 'Sign-ins' }, { key: 'password', label: 'Password' },

@@ -9,6 +9,7 @@ import { useEffect, useState } from 'react'
 import Logo from '../components/Logo'
 import SyncButton from '../components/SyncButton'
 import UserMenu from '../components/staff/UserMenu'
+import ImpersonationBanner from '../features/impersonation/ImpersonationBanner'
 import StaffNotificationBell from '../components/staff/notifications/StaffNotificationBell'
 import CompanySwitcher from '../features/company/CompanySwitcher'
 import { fetchCounts } from '../pages/inbox/inboxApi'
@@ -169,6 +170,7 @@ export default function AppShell({ session, search, onSearch }: Props) {
       </aside>
 
       <div className="shell-main">
+        <ImpersonationBanner />
         <header className="topbar">
           <button type="button" className="menu-toggle" aria-label="Open navigation" onClick={() => setNavOpen(true)}>
             <Menu size={22} />

@@ -179,6 +179,9 @@ verify_jwt = false
 [functions.reset-user-mfa]
 verify_jwt = true
 
+[functions.staff-impersonate]
+verify_jwt = true
+
 [functions.seavantage-refresh]
 verify_jwt = true
 

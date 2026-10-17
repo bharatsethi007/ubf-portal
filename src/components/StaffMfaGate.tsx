@@ -2,6 +2,7 @@ import { useCallback, useEffect, useState, type ReactNode } from 'react'
 import { supabase } from '../supabase'
 import Login from '../Login'
 import MfaDialog from './MfaDialog'
+import { currentImpersonation } from '../features/impersonation/impersonationApi'
 
 type Mode = 'checking' | 'enroll' | 'challenge' | 'ok'
 type Enrollment = { factorId: string; qr: string; secret: string }
@@ -46,6 +47,8 @@ export default function StaffMfaGate({ children }: { children: ReactNode }) {
     setError('')
     const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
     if (aal?.currentLevel === 'aal2') { resetEnrollment(); setMode('ok'); return }
+    // Super admin "Sign in as": server confirms this exact session was minted for help desk use.
+    if (await currentImpersonation()) { setMode('ok'); return }
     const { data: list } = await supabase.auth.mfa.listFactors()
     const verified = list?.totp ?? []
     if (verified.length > 0) { setFactorId(verified[0].id); setMode('challenge'); return }
