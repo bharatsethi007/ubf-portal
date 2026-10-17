@@ -1,15 +1,17 @@
 import { useEffect, useState } from 'react'
-import { Globe2, MapPin } from 'lucide-react'
+import { ChevronDown, Globe2, MapPin } from 'lucide-react'
 import { toast } from 'sonner'
 import { fetchCompanyContext, setMyBranch, setMyCompany, errText, type CompanyContext } from './companyApi'
 
 const ALL = '__all__'
 
+// Compact chip shows the code only; the invisible native select on top keeps full names in the list.
 const box: React.CSSProperties = {
-  display: 'inline-flex', alignItems: 'center', gap: 6, height: 32, padding: '0 8px',
-  border: '1px solid var(--border)', borderRadius: 8, background: '#fff', fontSize: 12,
+  position: 'relative', display: 'inline-flex', alignItems: 'center', gap: 5, height: 32, padding: '0 8px',
+  border: '1px solid var(--line, var(--border))', borderRadius: 8, background: 'var(--paper, #fff)',
+  fontSize: 13, fontWeight: 600, color: 'var(--ink-2)', cursor: 'pointer',
 }
-const sel: React.CSSProperties = { border: 'none', background: 'transparent', fontSize: 12, outline: 'none', cursor: 'pointer' }
+const sel: React.CSSProperties = { position: 'absolute', inset: 0, width: '100%', opacity: 0, cursor: 'pointer', fontSize: 13 }
 
 // Topbar company + branch pickers. Company shows with 2+ active companies; branch shows when the
 // picked company has 2+ active branches. Lists, reports and new records all follow the pick.
@@ -37,8 +39,10 @@ export default function CompanySwitcher() {
   return (
     <>
       {showCompany ? (
-        <label title="Company" style={box}>
+        <label title={`Company: ${companies.find((c) => c.code === ctx.current)?.name ?? 'All companies'}`} style={box}>
           <Globe2 size={14} strokeWidth={2} aria-hidden />
+          <span>{ctx.current ?? 'All'}</span>
+          <ChevronDown size={13} strokeWidth={2} aria-hidden />
           <select aria-label="Company" value={ctx.current ?? ALL} disabled={busy} style={sel}
             onChange={(e) => void run(() => setMyCompany(e.target.value === ALL ? null : e.target.value), 'Could not switch company')}>
             {companies.map((c) => <option key={c.code} value={c.code}>{c.code} · {c.name}</option>)}
@@ -47,8 +51,10 @@ export default function CompanySwitcher() {
         </label>
       ) : null}
       {showBranch ? (
-        <label title="Branch" style={box}>
+        <label title={`Branch: ${branches.find((b) => b.code === ctx.view_branch)?.name ?? 'All branches'}`} style={box}>
           <MapPin size={14} strokeWidth={2} aria-hidden />
+          <span>{ctx.view_branch ?? 'All'}</span>
+          <ChevronDown size={13} strokeWidth={2} aria-hidden />
           <select aria-label="Branch" value={ctx.view_branch ?? ALL} disabled={busy} style={sel}
             onChange={(e) => void run(() => setMyBranch(e.target.value === ALL ? null : e.target.value), 'Could not switch branch')}>
             <option value={ALL}>All branches</option>

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { Loader2, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { supabase } from '../supabase'
 
 // "Sync now" queues a request for the current company; sync_agent.py on the server picks it up.
@@ -123,21 +123,17 @@ export default function SyncButton({ userEmail }: Props) {
   }
 
   const spinning = submitting || v.spinning
+  const tip = rpcError ? `Sync unavailable: ${rpcError}` : [v.text, v.title].filter(Boolean).join('\n')
+  const dot = rpcError || v.warn ? '#d92d20' : spinning ? '#f79009' : status?.agent?.online ? '#12b76a' : null
   return (
-    <div className="sync-btn-wrap">
-      <button type="button" className="sync-btn" disabled={v.busy || submitting || !userEmail}
-        title={v.title} onClick={() => void handleSync()}>
-        {spinning ? <Loader2 size={15} className="sync-btn__spin" /> : <RefreshCw size={15} strokeWidth={2} />}
-        Sync now
-      </button>
-      {rpcError ? (
-        <span className="sync-btn__status" style={{ color: 'var(--danger, #b42318)' }} title={rpcError}>Sync unavailable</span>
-      ) : v.text ? (
-        <span className={v.warn ? 'sync-btn__status' : 'sync-btn__last muted'} title={v.title}
-          style={v.warn ? { color: 'var(--danger, #b42318)' } : undefined}>
-          {v.text}
-        </span>
+    <button type="button" className="sync-btn wa-topbar-btn" disabled={v.busy || submitting || !userEmail}
+      title={`Sync now\n${tip}`} aria-label={`Sync now. ${tip}`} onClick={() => void handleSync()}
+      style={v.busy ? { opacity: 1, cursor: 'progress' } : undefined}>
+      <RefreshCw size={16} strokeWidth={2} className={spinning ? 'sync-btn__spin' : undefined} />
+      {dot ? (
+        <span aria-hidden style={{ position: 'absolute', top: 3, right: 3, width: 8, height: 8, borderRadius: 999,
+          background: dot, border: '1.5px solid var(--paper)' }} />
       ) : null}
-    </div>
+    </button>
   )
 }
