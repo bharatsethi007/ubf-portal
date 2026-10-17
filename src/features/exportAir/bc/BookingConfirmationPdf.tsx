@@ -1,8 +1,10 @@
 import { Document, Image, Page, StyleSheet, Text, View, pdf } from '@react-pdf/renderer'
+import { addressLines, NZ_BRAND, type Brand } from '@/features/company/branding'
 import { registerConsignmentPdfFonts } from '@/features/tms/pdf/consignmentPdfShared'
 
 /** Everything printed on the export air booking confirmation. Built from the booking, its consol and the TW accounts. */
 export type BcData = {
+  brand?: Brand
   printedAt: string
   printedBy: string
   jobNo: string
@@ -62,17 +64,17 @@ const KV = ({ k, v }: { k: string; v: string }) => (
 )
 
 export function BookingConfirmationDoc({ d }: { d: BcData }) {
+  const b = d.brand ?? NZ_BRAND
   return (
-    <Document title={`Booking Confirmation ${d.jobNo}`} author="UB Freight Limited">
+    <Document title={`Booking Confirmation ${d.jobNo}`} author={d.brand?.legal_name ?? 'UB Freight Limited'}>
       <Page size="A4" style={s.page}>
         <View style={s.head}>
           <Image src="/ub-logo-pdf.png" style={s.logo} />
           <View style={s.ubf}>
-            <Text style={s.ubfName}>UB Freight Limited</Text>
-            <Text>173 Montgomerie Road</Text>
-            <Text>Airport Oaks, Auckland 2022, New Zealand</Text>
-            <Text>Ph: +64 9 966 3850 | Email: info@ubfreight.com</Text>
-            <Text>GST: 79-129-984</Text>
+            <Text style={s.ubfName}>{b.legal_name}</Text>
+            {addressLines(b).map((l) => <Text key={l}>{l}</Text>)}
+            <Text>Ph: {b.phone} | Email: {b.email}</Text>
+            {b.tax_number ? <Text>{b.tax_label}: {b.tax_number}</Text> : null}
           </View>
         </View>
 

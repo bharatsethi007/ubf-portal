@@ -16,6 +16,7 @@ const COLS: { key: keyof Branch; label: string; width: number }[] = [
   { key: 'address', label: 'Address', width: 220 },
   { key: 'phone', label: 'Phone', width: 120 },
   { key: 'email', label: 'Email', width: 170 },
+  { key: 'sales_email', label: 'Sales email', width: 170 },
 ]
 
 const iconBtn: React.CSSProperties = { display: 'inline-flex', alignItems: 'center', justifyContent: 'center', width: 32, height: 32, padding: 0 }
@@ -37,7 +38,7 @@ export default function BranchesSection({ rows, setRows, companies, canEdit, rel
     if (rows.some((r) => r.code === code)) { toast.error('Branch code already exists'); return }
     const b: Branch = {
       code, company_id: draft.company_id, name: draft.name.trim(), city: draft.name.trim(), unlocode: null,
-      erp_branch_code: null, ref_prefix: code, address: null, phone: null, email: null, is_active: false,
+      erp_branch_code: null, ref_prefix: code, address: null, phone: null, email: null, sales_email: null, is_active: false,
       sort_order: rows.filter((r) => r.company_id === draft.company_id).length + 1,
     }
     await save(b, 'Branch added')
@@ -89,7 +90,12 @@ export default function BranchesSection({ rows, setRows, companies, canEdit, rel
                 <td className="mono">{companyName(r.company_id)}</td>
                 {COLS.map((c) => (
                   <td key={c.key}>
-                    {canEdit ? (
+                    {canEdit && c.key === 'address' ? (
+                      <textarea className="input input--sm" rows={2} style={{ height: 'auto', resize: 'vertical' }}
+                        title="One line per printed line" value={r.address ?? ''}
+                        onChange={(e) => setRows((rs) => rs.map((x) => (x.code === r.code ? { ...x, address: e.target.value } : x)))}
+                        onBlur={(e) => void save({ ...r, address: e.target.value.trim() || null })} />
+                    ) : canEdit ? (
                       <input className="input input--sm" value={(r[c.key] as string | null) ?? ''}
                         onChange={(e) => setRows((rs) => rs.map((x) => (x.code === r.code ? { ...x, [c.key]: e.target.value } : x)))}
                         onBlur={(e) => {

@@ -3,6 +3,8 @@ import type { InvoiceLine } from '../billingApi'
 import type { InvoiceDoc } from './invoiceDocApi'
 import InvoicePdf from './InvoicePdf'
 import StatementPdf from './StatementPdf'
+import { invoiceCompanyFromBrand } from './invoicePdfConfig'
+import { getBranding } from '../../../../company/branding'
 import type { Statement } from './statementModel'
 
 let fonts = false
@@ -20,10 +22,13 @@ function registerFonts() {
 
 export async function renderInvoicePdf(doc: InvoiceDoc, lines: InvoiceLine[]): Promise<Blob> {
   registerFonts()
-  return pdf(<InvoicePdf doc={doc} lines={lines} logo="/ub-logo-pdf.png" />).toBlob()
+  // Portal user: their customer's company. Staff: the company they are working in.
+  const company = invoiceCompanyFromBrand(await getBranding())
+  return pdf(<InvoicePdf doc={doc} lines={lines} logo="/ub-logo-pdf.png" company={company} />).toBlob()
 }
 
 export async function renderStatementPdf(st: Statement, asOf: string): Promise<Blob> {
   registerFonts()
-  return pdf(<StatementPdf st={st} asOf={asOf} logo="/ub-logo-pdf.png" />).toBlob()
+  const company = invoiceCompanyFromBrand(await getBranding())
+  return pdf(<StatementPdf st={st} asOf={asOf} logo="/ub-logo-pdf.png" company={company} />).toBlob()
 }

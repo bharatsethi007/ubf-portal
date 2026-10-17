@@ -7,12 +7,15 @@ export type Company = {
   code: string; name: string; country_code: string; base_currency: string; timezone: string
   fy_start_month: number | null; erp_label: string | null; legal_name: string | null
   tax_label: string | null; tax_number: string | null; is_active: boolean; sort_order: number
+  trading_name: string | null; website: string | null; terms_url: string | null; customs_code: string | null
+  remit_to: string | null; bank_name: string | null; bank_swift: string | null
+  bank_accounts: string[]; payment_notes: string[]; invoice_queries: string | null; invoice_terms: string | null
 }
 
 export type Branch = {
   code: string; company_id: string; name: string; city: string | null; unlocode: string | null
   erp_branch_code: string | null; ref_prefix: string; address: string | null; phone: string | null
-  email: string | null; is_active: boolean; sort_order: number
+  email: string | null; sales_email: string | null; is_active: boolean; sort_order: number
 }
 
 export type StaffCompany = {
@@ -24,11 +27,14 @@ export type CompanyContext = {
   current: string | null
   is_admin: boolean
   is_super_admin: boolean
+  view_branch: string | null
   companies: { code: string; name: string; is_active: boolean; currency: string }[]
+  branches: { code: string; name: string; is_active: boolean }[]
 }
 
-const COMPANY_COLS = 'code,name,country_code,base_currency,timezone,fy_start_month,erp_label,legal_name,tax_label,tax_number,is_active,sort_order'
-const BRANCH_COLS = 'code,company_id,name,city,unlocode,erp_branch_code,ref_prefix,address,phone,email,is_active,sort_order'
+const COMPANY_COLS = 'code,name,country_code,base_currency,timezone,fy_start_month,erp_label,legal_name,tax_label,tax_number,is_active,sort_order,' +
+  'trading_name,website,terms_url,customs_code,remit_to,bank_name,bank_swift,bank_accounts,payment_notes,invoice_queries,invoice_terms'
+const BRANCH_COLS = 'code,company_id,name,city,unlocode,erp_branch_code,ref_prefix,address,phone,email,sales_email,is_active,sort_order'
 
 let ctxPromise: Promise<CompanyContext> | null = null
 
@@ -52,6 +58,12 @@ export async function workingCompany(): Promise<string> {
   return ctx.current ?? ctx.companies[0]?.code ?? 'NZ'
 }
 
+/** null = all branches of the current company */
+export async function setMyBranch(code: string | null): Promise<void> {
+  const { error } = await supabase.rpc('set_my_branch', { p_branch: code })
+  if (error) throw error
+}
+
 /** null = all my companies */
 export async function setMyCompany(code: string | null): Promise<void> {
   const { error } = await supabase.rpc('set_my_company', { p_company: code })
@@ -61,7 +73,7 @@ export async function setMyCompany(code: string | null): Promise<void> {
 export async function fetchCompanies(): Promise<Company[]> {
   const { data, error } = await supabase.from('companies').select(COMPANY_COLS).order('sort_order')
   if (error) throw error
-  return (data ?? []) as Company[]
+  return (data ?? []) as unknown as Company[]
 }
 
 export async function updateCompany(code: string, patch: Partial<Company>): Promise<void> {

@@ -3,12 +3,12 @@ import { supabase } from '@/supabase'
 import { cargoOf, fmtAwb, type AirConsol } from '../eaTypes'
 import type { EaDetail } from '../useEaBooking'
 import type { BcData } from './BookingConfirmationPdf'
+import { addressLines, getBranding } from '@/features/company/branding'
 
 const CITY: Record<string, string> = {
   AKL: 'Auckland', NAN: 'NADI', SUV: 'SUVA', APW: 'APIA', TBU: "NUKU'ALOFA", VLI: 'PORT VILA', HIR: 'HONIARA',
   RAR: 'RAROTONGA', POM: 'PORT MORESBY', NOU: 'NOUMEA', PPT: 'PAPEETE', TRW: 'TARAWA', FUN: 'FUNAFUTI',
 }
-const UBF_NZ = ['U.B. FREIGHT LIMITED', '173 MONTGOMERIE ROAD', 'AIRPORT OAKS', 'CCA 13592F', 'AUCKLAND 2022 NEW ZEALAND', 'PH: 09 966 3850']
 const d = (iso: string | null | undefined) => (iso ? format(parseISO(iso), 'dd-MMM-yy') : '')
 const up = (s: string | null | undefined) => (s ?? '').toUpperCase().trim()
 
@@ -30,6 +30,10 @@ export async function buildBcData(b: EaDetail, consol: AirConsol | undefined): P
     supabase.auth.getUser(),
   ])
   const byId = new Map(((accs ?? []) as Acc[]).map((a) => [a.account_id, a]))
+  const bk = b as unknown as { company_id?: string | null; branch_id?: string | null }
+  const brand = await getBranding(bk.company_id, bk.branch_id)
+  const agentLines = [brand.legal_name, ...addressLines(brand), brand.customs_code, brand.phone ? `PH: ${brand.phone}` : '']
+    .map(up).filter(Boolean)
   const { data: me } = auth.user ? await supabase.from('staff_users').select('full_name').eq('user_id', auth.user.id).maybeSingle() : { data: null }
   const c = cargoOf(b)
   const dest = up(b.destination || consol?.destination || '')
@@ -61,7 +65,8 @@ export async function buildBcData(b: EaDetail, consol: AirConsol | undefined): P
     reference: b.customer_ref ?? '',
     goods: up(b.goods_description ?? b.commodity ?? ''),
     notes: b.special_instructions ?? '',
-    agent: fiji ? ['UB FREIGHT (FIJI) PTE LIMITED'] : UBF_NZ,
+    agent: fiji ? ['UB FREIGHT (FIJI) PTE LIMITED'] : agentLines,
+    brand,
   }
 }
 

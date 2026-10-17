@@ -1,4 +1,5 @@
 import { Document, Image, Page, Text, View, pdf } from '@react-pdf/renderer'
+import { addressLines, getBranding, type Brand } from '../../../features/company/branding'
 import { registerQuoteFonts } from '../pdf/quotePdfFonts'
 import { allIn, fmtDate, money, toSell, type Line, type Product, type RateCard } from './rateCardModel'
 import { s } from './rateCardPdfStyles'
@@ -7,7 +8,7 @@ registerQuoteFonts()
 
 const LOGO = '/ub-logo-pdf.png'
 const BAND = '/pdf/rate-card-band.jpg'
-type Ctx = { portName: (code: string) => string; staffName: (id: string | null) => string; staffEmail?: string | null }
+type Ctx = { portName: (code: string) => string; staffName: (id: string | null) => string; staffEmail?: string | null; brand?: Brand }
 
 const MODE: Record<Product, string> = { FCL: 'Sea freight · FCL', LCL: 'Sea freight · LCL', AIR: 'Air freight' }
 const NOTE: Record<Product, string> = {
@@ -57,7 +58,7 @@ function Cover({ c, shown, ctx }: { c: RateCard; shown: Line[]; ctx: Ctx }) {
       </View>
       <View style={s.coverFoot}>
         <Text>Your contact{'\n'}<Text style={{ color: '#0F172A', fontSize: 10 }}>{ctx.staffName(c.sales_id)}</Text>{ctx.staffEmail ? `\n${ctx.staffEmail}` : ''}</Text>
-        <Text style={{ textAlign: 'right' }}>UB Freight Ltd{'\n'}173 Montgomerie Road, Airport Oaks, Auckland{'\n'}New Zealand · Fiji · Australia</Text>
+        <Text style={{ textAlign: 'right' }}>{ctx.brand ? `${ctx.brand.trading_name}\n${addressLines(ctx.brand).join(', ')}` : 'UB Freight Ltd\n173 Montgomerie Road, Airport Oaks, Auckland'}{'\n'}New Zealand · Fiji · Australia</Text>
       </View>
     </Page>
   )
@@ -183,7 +184,9 @@ export function RateCardDocument({ c, lines, ctx }: { c: RateCard; lines: Line[]
 export const rateCardFileName = (c: RateCard) => `UBF Rate Card ${c.ref} ${c.customer.replace(/[^\w\s-]/g, '').trim()}.pdf`
 
 export async function rateCardPdfBlob(c: RateCard, lines: Line[], ctx: Ctx): Promise<Blob> {
-  return pdf(<RateCardDocument c={c} lines={lines} ctx={ctx} />).toBlob()
+  const rc = c as unknown as { company_id?: string | null; branch_id?: string | null }
+  const brand = ctx.brand ?? await getBranding(rc.company_id, rc.branch_id)
+  return pdf(<RateCardDocument c={c} lines={lines} ctx={{ ...ctx, brand }} />).toBlob()
 }
 
 export async function downloadRateCardPdf(c: RateCard, lines: Line[], ctx: Ctx): Promise<void> {

@@ -9,6 +9,7 @@ import { useStaffList } from '../../../hooks/useStaffList'
 import CompaniesSection from './CompaniesSection'
 import BranchesSection from './BranchesSection'
 import StaffAccessSection from './StaffAccessSection'
+import CompanyDocsSection from './CompanyDocsSection'
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
@@ -47,6 +48,7 @@ export default function CompaniesPage() {
           <>
             <CompaniesSection rows={companies} setRows={setCompanies} canEdit={isSuper} reload={reload} />
             <BranchesSection rows={branches} setRows={setBranches} companies={companies} canEdit={isSuper} reload={reload} />
+            <CompanyDocsSection rows={companies} setRows={setCompanies} reload={reload} />
             <StaffAccessSection rows={access} staff={staff} companies={companies} branches={branches} canEdit={isSuper} reload={reload} />
           </>
         )}

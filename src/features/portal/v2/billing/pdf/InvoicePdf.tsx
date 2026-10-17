@@ -1,7 +1,7 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
 import type { InvoiceLine } from '../billingApi'
 import type { InvoiceDoc } from './invoiceDocApi'
-import { UBF_COMPANY as C } from './invoicePdfConfig'
+import { UBF_COMPANY, type InvoiceCompany } from './invoicePdfConfig'
 
 const NAVY = '#0A2472', INK = '#111827', MUTE = '#6B7280', LINE = '#D1D5DB', SOFT = '#F3F4F6', RED = '#B91C1C'
 
@@ -61,10 +61,11 @@ function F({ k, v }: { k: string; v: string | null | undefined }) {
   return <View style={s.row}><Text style={s.k}>{k}</Text><Text style={s.v}>{v}</Text></View>
 }
 
-type Props = { doc: InvoiceDoc; lines: InvoiceLine[]; logo: string }
+type Props = { doc: InvoiceDoc; lines: InvoiceLine[]; logo: string; company?: InvoiceCompany }
 
 /** Duplicate tax invoice, laid out like the CyberFreight print with cleaner type. */
-export default function InvoicePdf({ doc: d, lines, logo }: Props) {
+export default function InvoicePdf({ doc: d, lines, logo, company }: Props) {
+  const C = company ?? UBF_COMPANY
   const air = d.mode === 'air'
   const net = Math.round((d.total - d.gst) * 100) / 100
   const itemised = Math.abs(lines.reduce((n, l) => n + l.amount, 0) - net) < 0.5
@@ -82,7 +83,7 @@ export default function InvoicePdf({ doc: d, lines, logo }: Props) {
             <Text style={s.coName}>{C.name}</Text>
             {C.address.map((a) => <Text key={a} style={s.coLine}>{a}</Text>)}
             <Text style={s.coLine}>Ph: {C.phone}  |  Email: {C.email}</Text>
-            <Text style={s.coLine}>GST: {C.gst}</Text>
+            <Text style={s.coLine}>{C.taxLabel}: {C.gst}</Text>
           </View>
         </View>
 

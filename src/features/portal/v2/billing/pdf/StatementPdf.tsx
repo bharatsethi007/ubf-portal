@@ -1,5 +1,5 @@
 import { Document, Image, Page, StyleSheet, Text, View } from '@react-pdf/renderer'
-import { UBF_COMPANY as C } from './invoicePdfConfig'
+import { UBF_COMPANY, type InvoiceCompany } from './invoicePdfConfig'
 import { BUCKETS, ageStatement, type Statement } from './statementModel'
 
 const NAVY = '#0A2472', INK = '#111827', MUTE = '#6B7280', LINE = '#D1D5DB', SOFT = '#F3F4F6', RED = '#B91C1C'
@@ -48,10 +48,11 @@ const s = StyleSheet.create({
 const money = (n: number) => n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
 const day = (iso: string | null) => (iso ? new Date(`${iso.slice(0, 10)}T00:00:00`).toLocaleDateString('en-NZ', { day: '2-digit', month: '2-digit', year: '2-digit' }) : '')
 
-type Props = { st: Statement; asOf: string; logo: string }
+type Props = { st: Statement; asOf: string; logo: string; company?: InvoiceCompany }
 
 /** Duplicate statement of account, laid out like the CyberFreight print with cleaner type. Amounts in NZD. */
-export default function StatementPdf({ st, asOf, logo }: Props) {
+export default function StatementPdf({ st, asOf, logo, company }: Props) {
+  const C = company ?? UBF_COMPANY
   const age = ageStatement(st.items, asOf)
   let run = 0
   const rows = st.items.map((i) => { run += i.balance; return { ...i, run } })
@@ -67,7 +68,7 @@ export default function StatementPdf({ st, asOf, logo }: Props) {
             <Text style={s.coName}>{C.name}</Text>
             {C.address.map((a) => <Text key={a}>{a}</Text>)}
             <Text>Ph: {C.phone}  |  Email: {C.email}</Text>
-            <Text>GST: {C.gst}</Text>
+            <Text>{C.taxLabel}: {C.gst}</Text>
           </View>
         </View>
 

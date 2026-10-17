@@ -5,6 +5,7 @@ import { Document, Image, Page, StyleSheet, Text, View, pdf } from "@react-pdf/r
 import { registerConsignmentPdfFonts } from "@/features/tms/pdf/consignmentPdfShared";
 
 export type SliPdfData = {
+  footer?: string;
   ref: string; customerRef?: string | null; route: string; flight: string; cutoff: string; incoterm: string;
   shipper: string[]; consignee: string[];
   pieces: string; weight: string; cbm: string; chargeable: string; goods: string; special: string;
@@ -92,7 +93,7 @@ export function SliDoc({ d }: { d: SliPdfData }) {
         </View>
 
         <View style={s.foot} fixed>
-          <Text>UB Freight Limited · 173 Montgomerie Road, Airport Oaks, Auckland 2022 · +64 9 966 3850 · exportair.nz@ubfreight.com</Text>
+          <Text>{d.footer ?? 'UB Freight Limited · 173 Montgomerie Road, Airport Oaks, Auckland 2022 · +64 9 966 3850 · exportair.nz@ubfreight.com'}</Text>
           <Text>{d.ref}</Text>
         </View>
       </Page>

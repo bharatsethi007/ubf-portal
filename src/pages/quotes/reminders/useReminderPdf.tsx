@@ -29,7 +29,7 @@ export function useReminderPdf() {
     if (error || !rs?.length) return null
     const inp = await loadQuotePdfInputs(quoteId, rs as { id: string; response_no: string | null }[])
     if (!inp.quote || !inp.responseInputs.length) return null
-    const data = { ...buildQuotePdfData(inp.quote, inp.responseInputs, inp.cargo, inp.containers, inp.customer, refs), preparedBy: inp.preparedBy }
+    const data = { ...buildQuotePdfData(inp.quote, inp.responseInputs, inp.cargo, inp.containers, inp.customer, refs, inp.brand), preparedBy: inp.preparedBy }
     const blob = await pdf(<QuotePdfDocument data={data} />).toBlob()
     return { base64: await blobToBase64(blob), name: `${inp.quote.quote_no || 'quotation'}.pdf` }
   }, [refs])

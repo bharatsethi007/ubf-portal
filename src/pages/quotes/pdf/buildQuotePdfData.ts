@@ -61,6 +61,7 @@ export type PdfCustomer = { name: string; contact: string; phone: string; email:
 export type PdfResponseInput = { record: QuoteResponseRecord; lines: QuoteResponseLine[] }
 
 const COMPANY = { email: 'salessupport.nz@ubfreight.com', phone: '09 966 3850' }
+type BrandLite = { sales_email: string; phone: string }
 const money = (cur: string, n: number) => `${cur} ${n.toLocaleString('en-NZ', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 const upDate = (iso: string | null) => (iso ? new Date(iso).toLocaleDateString('en-NZ', { day: '2-digit', month: 'short', year: 'numeric' }).toUpperCase() : '\u2014')
 
@@ -138,6 +139,7 @@ export function buildQuotePdfData(
   containers: QuoteContainer[],
   customer: PdfCustomer,
   refs: PdfRefs,
+  brand?: BrandLite,
 ): QuotePdfData {
   const mode: 'air' | 'sea' = quote.shipment_mode === 'sea' ? 'sea' : 'air'
   const portLabel = mode === 'air' ? 'AIRPORT' : 'PORT'
@@ -199,7 +201,7 @@ export function buildQuotePdfData(
   return {
     quoteNo: quote.quote_no || '',
     mode,
-    company: COMPANY,
+    company: brand ? { email: brand.sales_email || COMPANY.email, phone: brand.phone || COMPANY.phone } : COMPANY,
     from: fromP ? { code: fromP.code, name: fromP.name, cc: fromP.cc } : { code: quote.from_port_code || '', name: '', cc: null },
     to: toP ? { code: toP.code, name: toP.name, cc: toP.cc } : { code: quote.to_port_code || '', name: '', cc: null },
     portLabel,
