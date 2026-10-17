@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import AgreementPill from './AgreementPill'
+import CompanySplit from '../../features/company/CompanySplit'
 import { fetchAgentsOverview, fetchBookingsOverview, fmtHours, fmtMoney, pct, type AgentsOverview, type Bookings } from './agentStatsApi'
 
 const tile = 'flex min-w-0 flex-col gap-1 rounded-[10px] border border-[#E6E8EE] bg-white px-4 py-3'
@@ -33,6 +34,7 @@ export default function AgentsStatsHeader() {
           <span className={lbl}>
             {growth == null ? `${o?.active_agents ?? 0} agents quoted` : <><span style={{ color: growth >= 0 ? '#067647' : '#B42318' }}>{growth >= 0 ? '+' : ''}{growth}%</span> vs prior 12 months</>}
           </span>
+          <CompanySplit data={o?.by_company?.map((c) => ({ company: c.company, value: c.quotes ?? 0 }))} label="quotes" />
         </div>
         <div className={tile} title="Won out of all agent quotes">
           <span className={lbl}>Conversion</span>
@@ -48,11 +50,13 @@ export default function AgentsStatsHeader() {
           <span className={lbl}>Free hand from agents</span>
           <span className={val}>{b ? b.freehand.toLocaleString('en-NZ') : '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>
           <span className={lbl}>{b ? `${fmtMoney(b.freehand_gp)} GP · ${b.freehand_agents} agents` : ''}</span>
+          <CompanySplit data={b?.by_company?.map((c) => ({ company: c.company, value: c.freehand ?? 0 }))} label="free hand jobs" />
         </div>
         <div className={tile} title="Nomination: freight billed to the customer, agent used. Last 12 months">
           <span className={lbl}>Our nominations</span>
           <span className={val}>{b ? b.booked.toLocaleString('en-NZ') : '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>
           <span className={lbl}>{b ? `${fmtMoney(b.booked_gp)} GP · ${b.booked_agents} agents · ${b.two_way_agents} two-way` : ''}</span>
+          <CompanySplit data={b?.by_company?.map((c) => ({ company: c.company, value: c.booked ?? 0 }))} label="nominations" />
         </div>
         <div className={tile}>
           <span className={lbl}>Agreements</span>

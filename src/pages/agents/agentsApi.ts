@@ -40,6 +40,8 @@ export type AgentDirectoryRow = AgentRow & {
   agreement_days_left: number | null
   freehand_12m: number
   booked_12m: number
+  jobs_by_company: Record<string, number> | null
+  codes: string[] | null
 }
 
 export type AgentListSort = {
@@ -98,7 +100,7 @@ export async function listAgents(
   let query = supabase
     .from('v_agents_directory')
     .select(
-      'id, erp_account_code, name, country, source, status, trusted, approved_by, approved_at, notes, created_at, last_activity, job_count, quotes_12m, won_12m, lost_12m, hrs_to_win, top_lane, last_quote, agreement_state, agreement_expiry, agreement_days_left, freehand_12m, booked_12m, agent_networks(freight_networks(code))',
+      'id, erp_account_code, name, country, source, status, trusted, approved_by, approved_at, notes, created_at, last_activity, job_count, quotes_12m, won_12m, lost_12m, hrs_to_win, top_lane, last_quote, agreement_state, agreement_expiry, agreement_days_left, freehand_12m, booked_12m, jobs_by_company, codes, agent_networks(freight_networks(code))',
       { count: 'exact' },
     )
     .order(sortCol, { ascending: !sortDesc, nullsFirst: sortCol === 'job_count' })

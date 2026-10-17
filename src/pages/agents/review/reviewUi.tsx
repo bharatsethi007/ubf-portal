@@ -5,13 +5,14 @@ const CLASS_BADGE: Record<string, string> = {
   agent: 'agent-review-class-badge--agent',
   customer: 'agent-review-class-badge--customer',
   carrier: 'agent-review-class-badge--carrier',
+  own_office: 'agent-review-class-badge--carrier',
   unknown: 'agent-review-class-badge--unknown',
 }
 
 export function SuggestedClassBadge({ value }: { value: string | null }) {
   const key = (value ?? 'unknown').toLowerCase()
   const cls = CLASS_BADGE[key] ?? CLASS_BADGE.unknown
-  const label = key === 'unknown' && !value ? 'Unknown' : key
+  const label = key === 'unknown' && !value ? 'Unknown' : key === 'own_office' ? 'own office' : key
   return (
     <span className={`agent-review-class-badge ${cls}`}>
       {label}

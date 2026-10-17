@@ -3,6 +3,8 @@ import { toast } from 'sonner'
 import { fmtMoney } from '../agentStatsApi'
 import { AgingTable, Balance, NetPills, ReciprocalTable } from './AgentsPerformanceTables'
 import AgentJobsDialog, { type JobsFilter } from './AgentJobsDialog'
+import CompanyPerfTable from './CompanyPerfTable'
+import CompanySplit from '../../../features/company/CompanySplit'
 import { change, fetchAgentsPerformance, pctOf, type AgentsPerformance as Perf } from './agentsPerformanceApi'
 
 const PERIODS = [1, 3, 6, 12]
@@ -36,6 +38,7 @@ export default function AgentsPerformance() {
   const k = d?.kpis
   const conv = k ? pctOf(k.won, k.quotes) : null
   const aging = d ? d.buckets.cooling + d.buckets.dormant + d.buckets.slipping : 0
+  const split = (key: 'fh' | 'nom' | 'quotes') => d?.by_company?.map((c) => ({ company: c.company, value: c[key] }))
 
   return (
     <div className="flex flex-col gap-4" style={{ opacity: loading && d ? 0.6 : 1 }}>
@@ -59,13 +62,15 @@ export default function AgentsPerformance() {
       )}
 
       <div className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
-        <div className={tile}><span className={lbl}>Agent quotes</span><span className={val}>{k?.quotes ?? '–'}</span>{k && <Delta now={k.quotes} prior={k.quotes_prior} months={months} />}</div>
+        <div className={tile}><span className={lbl}>Agent quotes</span><span className={val}>{k?.quotes ?? '–'}</span>{k && <Delta now={k.quotes} prior={k.quotes_prior} months={months} />}<CompanySplit data={split('quotes')} label="quotes" /></div>
         <div className={tile} title="Won out of all agent quotes"><span className={lbl}>Quote conversion</span><span className={val}>{conv == null ? '–' : `${conv}%`}</span><span className={lbl}>{k ? `${k.won} won · ${k.quoting_agents} agents quoting` : ''}</span></div>
-        <button type="button" onClick={() => setJobs({ months, cls: 'freehand' })} className={`${tile} text-left hover:border-[#C7D0E6]`}><span className={lbl}>Free hand from agents</span><span className={val}>{k?.freehand ?? '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>{k && <Delta now={k.freehand} prior={k.freehand_prior} months={months} />}<span className={lbl}>{k ? `${fmtMoney(k.freehand_gp)} GP · ${k.freehand_agents} agents` : ''}</span></button>
-        <button type="button" onClick={() => setJobs({ months, cls: 'nomination' })} className={`${tile} text-left hover:border-[#C7D0E6]`}><span className={lbl}>Our nominations</span><span className={val}>{k?.nominations ?? '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>{k && <Delta now={k.nominations} prior={k.nominations_prior} months={months} />}<span className={lbl}>{k ? `${fmtMoney(k.nominations_gp)} GP · ${k.nomination_agents} agents` : ''}</span></button>
+        <button type="button" onClick={() => setJobs({ months, cls: 'freehand' })} className={`${tile} text-left hover:border-[#C7D0E6]`}><span className={lbl}>Free hand from agents</span><span className={val}>{k?.freehand ?? '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>{k && <Delta now={k.freehand} prior={k.freehand_prior} months={months} />}<span className={lbl}>{k ? `${fmtMoney(k.freehand_gp)} GP · ${k.freehand_agents} agents` : ''}</span><CompanySplit data={split('fh')} label="free hand jobs" /></button>
+        <button type="button" onClick={() => setJobs({ months, cls: 'nomination' })} className={`${tile} text-left hover:border-[#C7D0E6]`}><span className={lbl}>Our nominations</span><span className={val}>{k?.nominations ?? '–'} <span className="text-[13px] text-[#5B6474]">jobs</span></span>{k && <Delta now={k.nominations} prior={k.nominations_prior} months={months} />}<span className={lbl}>{k ? `${fmtMoney(k.nominations_gp)} GP · ${k.nomination_agents} agents` : ''}</span><CompanySplit data={split('nom')} label="nominations" /></button>
         <div className={tile} title="Agents who gave us free hand and got nominations from us in the period"><span className={lbl}>Reciprocal agents</span><span className={val} style={{ color: '#067647' }}>{k?.reciprocal_agents ?? '–'}</span><span className={lbl}>{d ? `${d.one_way.freehand_only} give only · ${d.one_way.nomination_only} receive only` : ''}</span></div>
         <div className={tile} title="Slipping, cooling (90 to 180 days) and dormant (180 to 365 days)"><span className={lbl}>Aging agents</span><span className={val} style={{ color: aging ? '#C4320A' : undefined }}>{d ? aging : '–'}</span><span className={lbl}>{d ? `${d.buckets.slipping} slipping · ${d.buckets.dormant} dormant` : ''}</span></div>
       </div>
+
+      <CompanyPerfTable rows={d?.by_company} months={months} />
 
       <section className="cp-card">
         <div className="cp-card-head"><h3 className="cp-card-title">Network groups</h3><span className="text-muted-foreground">Last {months} month{months > 1 ? 's' : ''}. Agents in two networks count in both.</span></div>

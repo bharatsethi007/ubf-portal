@@ -1,12 +1,14 @@
 import { useEffect, useState } from 'react'
 import { supabase } from '../../supabase'
 import { fmtMoney } from './agentStatsApi'
+import CompanySplit from '../../features/company/CompanySplit'
 
 type Stats = {
   total: number; last_12m: number; in_transit: number; upcoming: number
   imports: number; exports: number; air: number; sea: number; fcl: number; lcl: number
   weight_kg: number | null; volume_m3: number | null; gp: number | null; revenue: number | null
   lanes: { lane: string; n: number }[]
+  by_company?: { company: string; total: number; last_12m: number }[]
 }
 
 const cell = 'flex min-w-0 flex-col gap-0.5 border-r border-[#F0F1F4] px-4 py-3 last:border-r-0'
@@ -32,7 +34,8 @@ export default function AgentShipmentStats({ code }: { code: string }) {
 
   return (
     <div className="mb-3.5 grid grid-cols-2 overflow-hidden rounded-[10px] border border-[#E6E8EE] bg-white md:grid-cols-3 xl:grid-cols-6">
-      <div className={cell}><span className={lbl}>Shipments · 12 months</span><span className="text-[20px]">{s ? s.last_12m.toLocaleString('en-NZ') : '–'}</span><span className={lbl}>{s ? `${s.total.toLocaleString('en-NZ')} all time` : ''}</span></div>
+      <div className={cell}><span className={lbl}>Shipments · 12 months</span><span className="text-[20px]">{s ? s.last_12m.toLocaleString('en-NZ') : '–'}</span><span className={lbl}>{s ? `${s.total.toLocaleString('en-NZ')} all time` : ''}</span>
+        <CompanySplit data={s?.by_company?.map((c) => ({ company: c.company, value: c.last_12m }))} label="shipments, 12 months" /></div>
       <div className={cell}><span className={lbl}>Live now</span><span className="text-[20px] text-[#1D4ED8]">{s?.in_transit ?? '–'}</span><span className={lbl}>{s ? `in transit · ${s.upcoming} booked` : ''}</span></div>
       <div className={cell} title="Import = free hand from agent. Export = booked with agent.">
         <span className={lbl}>Free hand · booked</span>

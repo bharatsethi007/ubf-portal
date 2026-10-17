@@ -11,9 +11,12 @@ import { ImpExpCell } from './reviewUi'
 import {
   acceptAgentReview,
   excludeAgentReview,
+  fetchAgentOptions,
   fetchReviewFlags,
   fetchReviewQueue,
+  linkAgentCode,
   SUGGESTED_CLASS_FILTERS,
+  type AgentOption,
   type ExcludeReason,
   type ReviewFlagRow,
   type ReviewQueueRow,
@@ -29,6 +32,7 @@ export default function ReviewQueuePage() {
   const [queue, setQueue] = useState<ReviewQueueRow[]>([])
   const [flags, setFlags] = useState<ReviewFlagRow[]>([])
   const [networks, setNetworks] = useState<FreightNetwork[]>([])
+  const [agents, setAgents] = useState<AgentOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState('')
   const [classFilter, setClassFilter] = useState<SuggestedClassFilter>('all')
@@ -39,11 +43,12 @@ export default function ReviewQueuePage() {
 
   const load = useCallback(() => {
     setLoading(true)
-    return Promise.all([fetchReviewQueue(), fetchReviewFlags(), listFreightNetworks()])
-      .then(([queueRows, flagRows, netRows]) => {
+    return Promise.all([fetchReviewQueue(), fetchReviewFlags(), listFreightNetworks(), fetchAgentOptions()])
+      .then(([queueRows, flagRows, netRows, agentRows]) => {
         setQueue(queueRows)
         setFlags(flagRows)
         setNetworks(netRows)
+        setAgents(agentRows)
         setError('')
       })
       .catch((e) => {
@@ -112,6 +117,19 @@ export default function ReviewQueuePage() {
       toast.success(`${row.code} excluded (${reason})`)
     } catch (e) {
       toast.error(e instanceof Error ? e.message : 'Failed to exclude code')
+    } finally {
+      setBusyCode(null)
+    }
+  }
+
+  const handleLink = async (row: ReviewQueueRow, agent: AgentOption) => {
+    setBusyCode(row.code)
+    try {
+      await linkAgentCode(row.code, agent.id)
+      removeFromQueue(row.code)
+      toast.success(`${row.raw_code ?? row.code} linked to ${agent.name}`)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Failed to link code')
     } finally {
       setBusyCode(null)
     }
@@ -240,6 +258,7 @@ export default function ReviewQueuePage() {
                 <ReviewQueueTable
                   rows={filteredQueue}
                   networks={networks}
+                  agents={agents}
                   nameDrafts={nameDrafts}
                   networkByCode={networkByCode}
                   busyCode={busyCode}
@@ -247,6 +266,7 @@ export default function ReviewQueuePage() {
                   onNetworkChange={(code, value) => setNetworkByCode((prev) => ({ ...prev, [code]: value }))}
                   onAccept={(row) => void handleAccept(row)}
                   onExclude={(row, reason) => void handleExclude(row, reason)}
+                  onLink={(row, agent) => void handleLink(row, agent)}
                 />
               )}
             </tbody>

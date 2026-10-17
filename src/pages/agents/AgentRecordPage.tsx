@@ -51,6 +51,13 @@ export default function AgentRecordPage() {
   const [notes, setNotes] = useState('')
 
   const accountId = agent?.erp_account_code ?? null
+  const [erpCodes, setErpCodes] = useState<string[]>([])   // all of this agent's accounts, any company
+  useEffect(() => {
+    if (!id) return
+    supabase.from('v_agent_codes').select('code').eq('agent_id', id)
+      .then(({ data }) => setErpCodes(((data ?? []) as { code: string }[]).map((r) => r.code)))
+  }, [id])
+  const shipmentScope = erpCodes.length > 1 ? erpCodes.join('|') : accountId
   const { invoices, outstandingByCurrency, loading: invoicesLoading } = useCustomerInvoices(accountId)
 
   const load = useCallback(() => {
@@ -270,7 +277,7 @@ export default function AgentRecordPage() {
 
         {tab === 'shipments' &&
           (accountId ? (
-            <CustomerShipmentsTab accountId={accountId} scopeColumn="os_agent_code" showExport header={<AgentShipmentStats code={accountId} />} />
+            <CustomerShipmentsTab accountId={shipmentScope ?? accountId} scopeColumn="os_agent_code" showExport header={<AgentShipmentStats code={accountId} />} />
           ) : (
             <NoErpNote what="shipments" />
           ))}

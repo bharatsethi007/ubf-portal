@@ -11,7 +11,8 @@ export type NetworkRow = {
   network: string; agents: number; active_agents: number; quotes: number; won: number; lost: number
   fh: number; fh_gp: number; nom: number; nom_gp: number; reciprocal: number; fh_prior: number; nom_prior: number
 }
-export type ReciprocalRow = { id: string; name: string; country: string | null; networks: string[]; fh: number; fh_gp: number; nom: number; nom_gp: number; quotes: number; won: number; last_any: string | null }
+export type CompanyPerf = { company: string; fh: number; nom: number; fh_gp: number; nom_gp: number; quotes: number; won: number; agents: number }
+export type ReciprocalRow = { id: string; name: string; country: string | null; networks: string[]; companies?: string[]; fh: number; fh_gp: number; nom: number; nom_gp: number; quotes: number; won: number; last_any: string | null }
 export type AgingBucket = 'slipping' | 'cooling' | 'dormant' | 'inactive' | 'never'
 export type AgingRow = {
   id: string; name: string; country: string | null; networks: string[]; last_fh: string | null; last_nom: string | null; last_quote: string | null
@@ -19,6 +20,7 @@ export type AgingRow = {
 }
 export type AgentsPerformance = {
   months: number; since: string; kpis: PerfKpis; networks: NetworkRow[]; reciprocal: ReciprocalRow[]
+  by_company?: CompanyPerf[]
   one_way: { freehand_only: number; nomination_only: number }
   aging: AgingRow[]
   buckets: Record<'active' | 'cooling' | 'dormant' | 'inactive' | 'never' | 'slipping', number>

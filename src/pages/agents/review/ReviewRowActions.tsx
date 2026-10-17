@@ -14,9 +14,11 @@ import {
 import type { FreightNetwork } from '../agentsApi'
 import {
   EXCLUDE_REASONS,
+  type AgentOption,
   type ExcludeReason,
   type ReviewQueueRow,
 } from './reviewApi'
+import LinkAgentPicker from './LinkAgentPicker'
 
 const EXCLUDE_LABELS: Record<ExcludeReason, string> = {
   self: 'Self',
@@ -29,6 +31,7 @@ const EXCLUDE_LABELS: Record<ExcludeReason, string> = {
 type Props = {
   row: ReviewQueueRow
   networks: FreightNetwork[]
+  agents: AgentOption[]
   networkCode: string
   nameOk: boolean
   busy: boolean
@@ -36,10 +39,12 @@ type Props = {
   onNetworkChange: (value: string) => void
   onAccept: () => void
   onExclude: (reason: ExcludeReason) => void
+  onLink: (agent: AgentOption) => void
 }
 
 export default function ReviewRowActions({
   networks,
+  agents,
   networkCode,
   nameOk,
   busy,
@@ -47,6 +52,7 @@ export default function ReviewRowActions({
   onNetworkChange,
   onAccept,
   onExclude,
+  onLink,
 }: Props) {
   return (
     <div className="agent-review-actions" onClick={(e) => e.stopPropagation()}>
@@ -82,6 +88,8 @@ export default function ReviewRowActions({
         </TooltipTrigger>
         <TooltipContent>Add as agent</TooltipContent>
       </Tooltip>
+
+      <LinkAgentPicker agents={agents} busy={busy} onPick={onLink} />
 
       <DropdownMenu>
         <DropdownMenuTrigger

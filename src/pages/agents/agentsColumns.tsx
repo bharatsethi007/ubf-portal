@@ -3,6 +3,7 @@ import { fmt } from '../../components/Customers/profileUi'
 import type { AgentDirectoryRow } from './agentsApi'
 import AgentTrustedTick from './AgentTrustedTick'
 import AgreementPill from './AgreementPill'
+import CompanySplit from '../../features/company/CompanySplit'
 import { fmtHours, pct } from './agentStatsApi'
 
 function StatusPill({ status }: { status: string }) {
@@ -63,9 +64,11 @@ export function agentsColumns(): ColumnDef<AgentDirectoryRow>[] {
               </span>
             )}
           </span>
-          <span className="customer-name-cell__code">
+          <span className="customer-name-cell__code" title={(row.original.codes ?? []).join(', ')}>
             {row.original.erp_account_code ? `#${row.original.erp_account_code}` : 'Portal-only'}
+            {(row.original.codes?.length ?? 0) > 1 ? ` +${(row.original.codes?.length ?? 1) - 1}` : ''}
           </span>
+          <CompanySplit data={row.original.jobs_by_company} label="jobs" />
           {row.original.network_codes.map((c) => (
             <span key={c} title={`Network: ${c}`}
               className="ml-1.5 inline-flex h-[18px] items-center rounded-full bg-[#EEF1F8] px-2 text-[10.5px] font-medium tracking-[0.02em] text-[#0A2472]">

@@ -2,6 +2,7 @@ import { supabase } from '../../supabase'
 import type { AgreementState } from './AgreementPill'
 
 export type LaneStat = { lane: string; n: number; w: number }
+export type CompanyShare = { company: string; shipments?: number; kg?: number | null; quotes?: number; won?: number; freehand?: number; booked?: number }
 export type AgreementAction = {
   agent_id: string; name: string; state: AgreementState
   expiry_date: string | null; days_left: number | null; ref: string | null
@@ -14,12 +15,14 @@ export type AgentsOverview = {
   agreements: Record<'active' | 'expiring' | 'expired' | 'awaiting' | 'draft', number>
   lanes: LaneStat[]
   actions: AgreementAction[]
+  by_company?: CompanyShare[]
 }
 
 export type AgentStats = {
   quotes: number; open: number; held: number; won: number; lost: number
   hrs_to_win: number | null; fastest_win: number | null; team_conv: number | null
   shipments: number; shipment_kg: number | null
+  by_company?: CompanyShare[]
   trend: { month: string; quotes: number; won: number }[]
   modes: { mode: string; n: number }[]
   lanes: { lane: string; q: number; w: number; s: number; kg: number }[]
@@ -30,6 +33,7 @@ export type Bookings = {
   freehand_kg?: number | null; booked_kg?: number | null
   freehand_gp?: number | null; booked_gp?: number | null
   freehand_agents?: number; booked_agents?: number; two_way_agents?: number
+  by_company?: CompanyShare[]
 }
 
 /** Free hand and booked (nomination) from billing, see v_agent_jobs. Last 12 months. */

@@ -106,11 +106,13 @@ export async function fetchCustomerShipments(
   withBillingParty = false,
 ): Promise<{ rows: ShipmentRow[]; total: number }> {
   if (!accountId.trim()) return { rows: [], total: 0 }
+  // 'A|FJ:B' = several accounts of one party (an agent's codes across companies)
+  const ids = accountId.split('|').map((s) => s.trim()).filter(Boolean)
 
   let q = supabase
     .from('shipments')
-    .select(SHIPMENT_COLS, { count: 'exact' })
-    .eq(scopeColumn, accountId);
+    .select(SHIPMENT_COLS, { count: 'exact' });
+  q = ids.length > 1 ? q.in(scopeColumn, ids) : q.eq(scopeColumn, accountId);
 
   if (filters.module) q = q.eq('module', filters.module);
   if (filters.mode) q = q.eq('mode', filters.mode);

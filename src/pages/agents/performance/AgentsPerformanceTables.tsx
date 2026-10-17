@@ -1,5 +1,6 @@
 import { useState } from 'react'
 import { fmtMoney } from '../agentStatsApi'
+import { CompanyFlag } from '../../../features/company/CompanySplit'
 import { fmtDay, type AgentsPerformance, type AgingBucket, type AgingRow, type ReciprocalRow } from './agentsPerformanceApi'
 
 export function NetPills({ codes }: { codes: string[] }) {
@@ -41,7 +42,8 @@ export function ReciprocalTable({ rows, months, onOpen }: { rows: ReciprocalRow[
               : rows.length === 0 ? <tr><td colSpan={8} className="text-muted-foreground pad-inline">No agent both gave and received jobs in the last {months} month{months > 1 ? 's' : ''}.</td></tr>
               : rows.map((r) => (
                 <tr key={r.id} className="row-clickable" onClick={() => onOpen(r.id, r.name)} title="Show jobs">
-                  <td><div>{r.name}</div><div className="mt-0.5"><NetPills codes={r.networks} />{r.country && <span className="text-[11px] text-[#5B6474]">{r.country}</span>}</div></td>
+                  <td><div>{r.name}</div><div className="mt-0.5"><NetPills codes={r.networks} />{r.country && <span className="text-[11px] text-[#5B6474]">{r.country}</span>}
+                    {(r.companies?.length ?? 0) > 1 && <span className="ml-2 inline-flex gap-1 align-middle" title={`Active in ${r.companies!.join(', ')}`}>{r.companies!.map((c) => <CompanyFlag key={c} code={c} size={10} />)}</span>}</div></td>
                   <td style={{ textAlign: 'right' }}>{r.fh}</td><td style={{ textAlign: 'right' }}>{fmtMoney(r.fh_gp)}</td>
                   <td style={{ textAlign: 'right' }}>{r.nom}</td><td style={{ textAlign: 'right' }}>{fmtMoney(r.nom_gp)}</td>
                   <td><Balance fh={r.fh} nom={r.nom} /></td>

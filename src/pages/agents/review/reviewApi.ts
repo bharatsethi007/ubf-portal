@@ -9,7 +9,14 @@ export type ReviewQueueRow = {
   exp: number
   last_activity: string | null
   suggested_class: string | null
+  company_id: string | null
+  raw_code: string | null
+  suggested_agent_id: string | null
+  suggested_agent_name: string | null
+  suggest_reason: string | null
 }
+
+export type AgentOption = { id: string; name: string; code: string | null; country: string | null }
 
 export type ReviewFlagRow = {
   code: string
@@ -35,6 +42,7 @@ export const SUGGESTED_CLASS_FILTERS = [
   { key: 'agent', label: 'Agent' },
   { key: 'customer', label: 'Customer' },
   { key: 'carrier', label: 'Carrier' },
+  { key: 'own_office', label: 'Own office' },
   { key: 'unknown', label: 'Unknown' },
 ] as const
 
@@ -44,6 +52,7 @@ export function suggestedToExcludeReason(suggested: string | null): ExcludeReaso
   const norm = suggested?.toLowerCase() ?? ''
   if (norm === 'customer') return 'customer'
   if (norm === 'carrier') return 'carrier'
+  if (norm === 'own_office') return 'own office'
   if (norm === 'unknown') return 'not agent'
   return null
 }
@@ -59,7 +68,7 @@ export async function fetchReviewQueueCount(): Promise<number> {
 export async function fetchReviewQueue(): Promise<ReviewQueueRow[]> {
   const { data, error } = await supabase
     .from('v_agent_review_queue')
-    .select('code, name, country, jobs, imp, exp, last_activity, suggested_class')
+    .select('code, name, country, jobs, imp, exp, last_activity, suggested_class, company_id, raw_code, suggested_agent_id, suggested_agent_name, suggest_reason')
     .order('jobs', { ascending: false })
   if (error) throw error
   return (data as ReviewQueueRow[]) ?? []
@@ -89,7 +98,21 @@ export async function acceptAgentReview(args: {
 export async function excludeAgentReview(code: string, reason: ExcludeReason): Promise<void> {
   const { error } = await supabase.rpc('agent_review_exclude', {
     p_code: code,
-    p_reason: reason,
+    p_reason: reason.replace(' ', '_'),   // database values are own_office / not_agent
   })
   if (error) throw error
+}
+
+/** Add this code to an existing agent (eg FJ:LLL -> Shenzhen Lucky). */
+export async function linkAgentCode(code: string, agentId: string): Promise<void> {
+  const { error } = await supabase.rpc('agent_review_link', { p_code: code, p_agent_id: agentId })
+  if (error) throw error
+}
+
+export async function fetchAgentOptions(): Promise<AgentOption[]> {
+  const { data, error } = await supabase.from('agents')
+    .select('id, name, erp_account_code, country').neq('status', 'inactive').order('name')
+  if (error) throw error
+  return ((data ?? []) as { id: string; name: string; erp_account_code: string | null; country: string | null }[])
+    .map((a) => ({ id: a.id, name: a.name, code: a.erp_account_code, country: a.country }))
 }
