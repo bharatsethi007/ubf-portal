@@ -19,7 +19,7 @@ export type UserOverride = { module_key: string } & OverrideCell
 
 export async function listModules(): Promise<AppModule[]> {
   const { data, error } = await supabase.from('app_modules')
-    .select('key,label,sort_order').eq('is_active', true).order('sort_order')
+    .select('key,label,sort_order').eq('is_active', true).eq('super_only', false).order('sort_order')
   if (error) throw error
   return data ?? []
 }

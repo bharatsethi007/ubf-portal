@@ -67,6 +67,9 @@ export function RequirePerm(
 // Longest-prefix path to module map. Unmapped paths are not guarded (allowed).
 const PATH_MODULE: Array<[string, string]> = [
   ['/setup/rates', 'rates'],
+  ['/setup/companies', 'companies'],
+  ['/setup/system-health', 'system_health'],
+  ['/setup/brainbox', 'brainbox'],
   ['/setup', 'setup'],
   ['/quotes', 'quotes'],
   ['/shipments', 'shipments'],

@@ -1,6 +1,5 @@
-import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
-import { companyContext } from '../../features/company/companyApi'
+import { usePermissions } from '../../access/PermissionsProvider'
 import { Activity, ArrowLeftRight, Brain, Building, Coins, Layers, ListOrdered, MapPin, Percent, Ruler, Scale, Ship, Smile, Table2, Truck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -127,12 +126,20 @@ function InertTile({ icon: Icon, title }: ComingSection) {
   )
 }
 
-const SUPER_ONLY = new Set(['/setup/companies'])
+// Cards gated by their own module (rollout status + role). Others follow the Setup module.
+const CARD_MODULE: Record<string, string> = {
+  '/setup/companies': 'companies',
+  '/setup/system-health': 'system_health',
+  '/setup/brainbox': 'brainbox',
+  '/setup/rates': 'rates',
+}
 
 export default function SetupPage() {
-  const [isSuper, setIsSuper] = useState(false)
-  useEffect(() => { companyContext().then((c) => setIsSuper(c.is_super_admin)).catch(() => setIsSuper(false)) }, [])
-  const sections = ACTIVE.filter((s) => isSuper || !SUPER_ONLY.has(s.to))
+  const { perms, loading } = usePermissions()
+  const sections = ACTIVE.filter((s) => {
+    const m = CARD_MODULE[s.to]
+    return !m || (!loading && (perms[m]?.read ?? false))
+  })
   return (
     <div className="quotes-page">
       <div className="card quotes-page__card">

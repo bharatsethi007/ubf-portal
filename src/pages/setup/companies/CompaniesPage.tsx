@@ -10,6 +10,7 @@ import CompaniesSection from './CompaniesSection'
 import BranchesSection from './BranchesSection'
 import StaffAccessSection from './StaffAccessSection'
 import CompanyDocsSection from './CompanyDocsSection'
+import ModulesSection from './ModulesSection'
 
 export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
@@ -50,6 +51,7 @@ export default function CompaniesPage() {
             <BranchesSection rows={branches} setRows={setBranches} companies={companies} canEdit={isSuper} reload={reload} />
             <CompanyDocsSection rows={companies} setRows={setCompanies} reload={reload} />
             <StaffAccessSection rows={access} staff={staff} companies={companies} branches={branches} canEdit={isSuper} reload={reload} />
+            <ModulesSection companies={companies} />
           </>
         )}
       </div>
