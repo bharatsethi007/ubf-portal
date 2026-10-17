@@ -14,14 +14,14 @@ export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([])
   const [branches, setBranches] = useState<Branch[]>([])
   const [access, setAccess] = useState<StaffCompany[]>([])
-  const [isAdmin, setIsAdmin] = useState(false)
+  const [isSuper, setIsSuper] = useState(false)
   const [loading, setLoading] = useState(true)
   const { staff } = useStaffList()
 
   const reload = useCallback(async () => {
     try {
       const [c, b, a, ctx] = await Promise.all([fetchCompanies(), fetchBranches(), fetchStaffCompanies(), fetchCompanyContext()])
-      setCompanies(c); setBranches(b); setAccess(a); setIsAdmin(ctx.is_admin)
+      setCompanies(c); setBranches(b); setAccess(a); setIsSuper(ctx.is_super_admin)
     } catch {
       toast.error('Failed to load companies')
     } finally {
@@ -38,14 +38,16 @@ export default function CompaniesPage() {
         <header className="quotes-page__head" style={{ marginTop: 8 }}>
           <h1>Companies &amp; branches</h1>
           <p style={{ margin: '4px 0 0', color: 'var(--muted-foreground)', fontSize: 14 }}>
-            Countries, their offices, and which staff work in each.{isAdmin ? '' : ' Admins can edit.'}
+            Countries, their offices, and which staff work in each.
           </p>
         </header>
-        {loading ? <p className="text-muted-foreground">Loading…</p> : (
+        {loading ? <p className="text-muted-foreground">Loading…</p> : !isSuper ? (
+          <p className="text-muted-foreground">Only the super admin can manage companies and branches.</p>
+        ) : (
           <>
-            <CompaniesSection rows={companies} setRows={setCompanies} canEdit={isAdmin} reload={reload} />
-            <BranchesSection rows={branches} setRows={setBranches} companies={companies} canEdit={isAdmin} reload={reload} />
-            <StaffAccessSection rows={access} staff={staff} companies={companies} branches={branches} canEdit={isAdmin} reload={reload} />
+            <CompaniesSection rows={companies} setRows={setCompanies} canEdit={isSuper} reload={reload} />
+            <BranchesSection rows={branches} setRows={setBranches} companies={companies} canEdit={isSuper} reload={reload} />
+            <StaffAccessSection rows={access} staff={staff} companies={companies} branches={branches} canEdit={isSuper} reload={reload} />
           </>
         )}
       </div>

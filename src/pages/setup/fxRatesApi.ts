@@ -1,4 +1,5 @@
 import { supabase } from '../../supabase'
+import { workingCompany } from '../../features/company/companyApi'
 
 export type ExchangeRate = {
   base_currency: string
@@ -73,6 +74,7 @@ export async function fetchExchangeRates(): Promise<ExchangeRate[]> {
   const { data, error } = await supabase
     .from('exchange_rates')
     .select(RATE_COLUMNS)
+    .eq('company_id', await workingCompany())
     .order('base_currency', { ascending: true })
     .order('quote_currency', { ascending: true })
   if (error) throw error
@@ -83,6 +85,7 @@ export async function fetchRatesForBase(base: string): Promise<ExchangeRate[]> {
   const { data, error } = await supabase
     .from('exchange_rates')
     .select(RATE_COLUMNS)
+    .eq('company_id', await workingCompany())
     .eq('base_currency', base)
     .order('quote_currency', { ascending: true })
   if (error) throw error
@@ -110,6 +113,7 @@ export async function updatePairCorrection(
   const { error } = await supabase
     .from('exchange_rates')
     .update({ buy_correction_pct, sell_correction_pct, updated_at: new Date().toISOString() })
+    .eq('company_id', await workingCompany())
     .eq('base_currency', base)
     .eq('quote_currency', quote)
   if (error) throw error

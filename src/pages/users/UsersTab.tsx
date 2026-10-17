@@ -11,7 +11,13 @@ const BLUE = '#2563EB'
 type Row = StaffProfile & { role_count: number }
 
 async function loadStaff(): Promise<Row[]> {
+  // Only staff who work in the picked company (or any of mine in "All companies").
+  const { data: ids, error: idErr } = await supabase.rpc('staff_in_scope')
+  if (idErr) throw idErr
+  const userIds = ((ids ?? []) as string[])
+  if (!userIds.length) return []
   const { data, error } = await supabase.from('staff_users').select(`${PROFILE_COLS},staff_user_roles(role_id)`)
+    .in('user_id', userIds)
   if (error) throw error
   return ((data ?? []) as unknown as (StaffProfile & { staff_user_roles: unknown[] | null })[])
     .map(({ staff_user_roles, ...p }) => ({ ...p, role_count: staff_user_roles?.length ?? 0 }))

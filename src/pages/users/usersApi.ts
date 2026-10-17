@@ -142,7 +142,12 @@ export async function createStaffUser(email: string, roleIds: string[]): Promise
     }
     throw new Error(msg)
   }
-  return data as CreateStaffUserResult
+  const res = data as CreateStaffUserResult
+  if (res?.user_id) {
+    const { error: joinErr } = await supabase.rpc('staff_join_my_company', { p_user_id: res.user_id })
+    if (joinErr) throw new Error(`User created, but company access failed: ${joinErr.message}`)
+  }
+  return res
 }
 
 export async function sendStaffReset(userId: string): Promise<{ ok: boolean; link?: string; email_sent?: boolean }> {

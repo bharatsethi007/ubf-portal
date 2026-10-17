@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
   const { invoice_id } = (await req.json().catch(() => ({}))) as { invoice_id?: string };
   if (!invoice_id) return json({ error: "invoice_id required" }, 400);
 
-  const { data: inv } = await db.from("creditor_invoices").select("id, booking_id, document_id, status").eq("id", invoice_id).maybeSingle();
+  const { data: inv } = await db.from("creditor_invoices").select("id, booking_id, document_id, status, company_id").eq("id", invoice_id).maybeSingle();
   if (!inv) return json({ error: "Invoice not found" }, 404);
   if (inv.status === "approved") return json({ error: "Approved invoices are not re-read" }, 400);
   if (!inv.document_id) return json({ error: "No document attached" }, 400);
@@ -83,11 +83,15 @@ Deno.serve(async (req) => {
     const text = (out.content ?? []).filter((c: { type: string }) => c.type === "text").map((c: { text: string }) => c.text).join("");
     const x = parse(text);
 
-    const currency = (x.currency || "NZD").toUpperCase().slice(0, 3);
+    // FX into the invoice company's base currency, using that company's rates.
+    const company = (inv as { company_id?: string }).company_id ?? "NZ";
+    const { data: co } = await db.from("companies").select("base_currency").eq("code", company).maybeSingle();
+    const baseCur = (co?.base_currency as string | undefined) ?? "NZD";
+    const currency = (x.currency || baseCur).toUpperCase().slice(0, 3);
     let fx = 1;
-    if (currency !== "NZD") {
+    if (currency !== baseCur) {
       const { data: r } = await db.from("exchange_rates").select("rate, buy_correction_pct")
-        .eq("base_currency", "NZD").eq("quote_currency", currency).maybeSingle();
+        .eq("company_id", company).eq("base_currency", baseCur).eq("quote_currency", currency).maybeSingle();
       if (r?.rate) fx = Number(r.rate) * (1 + Number(r.buy_correction_pct || 0) / 100);
     }
     const sign = x.is_credit_note ? -1 : 1;

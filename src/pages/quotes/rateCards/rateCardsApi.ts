@@ -1,4 +1,5 @@
 import { supabase } from '../../../supabase'
+import { workingCompany } from '../../../features/company/companyApi'
 import type { Line, RateCard } from './rateCardModel'
 
 export * from './rateCardModel'
@@ -109,7 +110,8 @@ export async function marginRules(accountId: string): Promise<CustomerRule[]> {
 
 /** {"NZD": 0.56} = units of `base` per 1 NZD, from the live FX table. */
 export async function fxFor(base: string): Promise<Record<string, number>> {
-  const { data } = await supabase.from('exchange_rates').select('quote_currency, rate').eq('base_currency', base)
+  const { data } = await supabase.from('exchange_rates').select('quote_currency, rate')
+    .eq('company_id', await workingCompany()).eq('base_currency', base)
   return Object.fromEntries(((data ?? []) as { quote_currency: string; rate: number }[]).map((r) => [r.quote_currency, Number(r.rate)]))
 }
 

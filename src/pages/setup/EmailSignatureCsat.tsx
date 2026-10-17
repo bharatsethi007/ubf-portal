@@ -23,9 +23,12 @@ export default function EmailSignatureCsat() {
   useEffect(() => {
     let cancelled = false
     ;(async () => {
+      // Staff of the picked company only
+      const { data: ids } = await supabase.rpc('staff_in_scope')
       const { data, error } = await supabase
         .from('staff_users')
         .select('user_id, initials, email')
+        .in('user_id', ((ids ?? []) as string[]).length ? (ids as string[]) : ['00000000-0000-0000-0000-000000000000'])
         .order('initials')
       if (cancelled) return
       if (error) {

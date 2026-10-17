@@ -23,16 +23,33 @@ export type StaffCompany = {
 export type CompanyContext = {
   current: string | null
   is_admin: boolean
+  is_super_admin: boolean
   companies: { code: string; name: string; is_active: boolean; currency: string }[]
 }
 
 const COMPANY_COLS = 'code,name,country_code,base_currency,timezone,fy_start_month,erp_label,legal_name,tax_label,tax_number,is_active,sort_order'
 const BRANCH_COLS = 'code,company_id,name,city,unlocode,erp_branch_code,ref_prefix,address,phone,email,is_active,sort_order'
 
+let ctxPromise: Promise<CompanyContext> | null = null
+
 export async function fetchCompanyContext(): Promise<CompanyContext> {
   const { data, error } = await supabase.rpc('my_company_context')
   if (error) throw error
-  return data as CompanyContext
+  const ctx = data as CompanyContext
+  ctxPromise = Promise.resolve(ctx)
+  return ctx
+}
+
+/** Cached per page load (switching companies reloads the page). */
+export function companyContext(): Promise<CompanyContext> {
+  if (!ctxPromise) ctxPromise = fetchCompanyContext().catch((e) => { ctxPromise = null; throw e })
+  return ctxPromise
+}
+
+/** Company whose settings a page edits. "All companies" falls back to the first one. */
+export async function workingCompany(): Promise<string> {
+  const ctx = await companyContext()
+  return ctx.current ?? ctx.companies[0]?.code ?? 'NZ'
 }
 
 /** null = all my companies */

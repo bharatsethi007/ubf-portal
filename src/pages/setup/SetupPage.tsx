@@ -1,4 +1,6 @@
+import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
+import { companyContext } from '../../features/company/companyApi'
 import { Activity, ArrowLeftRight, Brain, Building, Coins, Layers, ListOrdered, MapPin, Percent, Ruler, Scale, Ship, Smile, Table2, Truck } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 
@@ -125,7 +127,12 @@ function InertTile({ icon: Icon, title }: ComingSection) {
   )
 }
 
+const SUPER_ONLY = new Set(['/setup/companies'])
+
 export default function SetupPage() {
+  const [isSuper, setIsSuper] = useState(false)
+  useEffect(() => { companyContext().then((c) => setIsSuper(c.is_super_admin)).catch(() => setIsSuper(false)) }, [])
+  const sections = ACTIVE.filter((s) => isSuper || !SUPER_ONLY.has(s.to))
   return (
     <div className="quotes-page">
       <div className="card quotes-page__card">
@@ -137,7 +144,7 @@ export default function SetupPage() {
         </header>
 
         <div style={{ ...gridStyle, marginTop: 8 }}>
-          {ACTIVE.map((section) => (
+          {sections.map((section) => (
             <ActiveCard key={section.to} {...section} />
           ))}
         </div>
