@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
-import { ChevronDown, LogOut, UserRound } from 'lucide-react'
+import { LogOut, UserRound } from 'lucide-react'
 import type { Session } from '@supabase/supabase-js'
 import { supabase } from '../../supabase'
 import StaffAvatar from './StaffAvatar'
@@ -8,7 +8,7 @@ import TextSizeMenu from './TextSizeMenu'
 import { displayName } from '../../pages/users/staffProfileApi'
 import { useMyProfile } from './useMyProfile'
 
-// Top-right user button: photo + name, dropdown with My profile and Sign out.
+// Top-right user button: photo or initials only (name in the dropdown), dropdown with My profile and Sign out.
 export default function UserMenu({ session }: { session: Session }) {
   const profile = useMyProfile()
   const [open, setOpen] = useState(false)
@@ -27,10 +27,9 @@ export default function UserMenu({ session }: { session: Session }) {
 
   return (
     <div className="user-menu" ref={ref}>
-      <button type="button" className="user-btn" aria-expanded={open} aria-haspopup="true" onClick={() => setOpen((v) => !v)}>
+      <button type="button" className="user-btn" aria-expanded={open} aria-haspopup="true" title={name} aria-label={`Account: ${name}`}
+        onClick={() => setOpen((v) => !v)} style={{ padding: 2, borderRadius: 999 }}>
         <StaffAvatar path={profile?.avatar_path ?? null} name={name} size={32} />
-        <span className="user-name">{name}</span>
-        <ChevronDown size={16} className={`user-chevron${open ? ' open' : ''}`} />
       </button>
       {open && (
         <div className="user-dropdown">

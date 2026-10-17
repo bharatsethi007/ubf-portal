@@ -2,7 +2,7 @@ import { NavLink, Outlet, useLocation, useNavigate } from 'react-router-dom'
 import type { Session } from '@supabase/supabase-js'
 import {
   BarChart3, Building2, Calendar, ChevronsLeft, ChevronsRight, ClipboardList,
-  FileText, Handshake, ListChecks, Menu, MessageCircle, Package, PackageCheck, Search, Settings,
+  FileText, Handshake, ListChecks, Menu, Inbox, Package, PackageCheck, Search, Settings,
   TowerControl, Truck, Users, X,
 } from 'lucide-react'
 import { useEffect, useState } from 'react'
@@ -181,7 +181,7 @@ export default function AppShell({ session, search, onSearch }: Props) {
             <CompanySwitcher />
             <StaffNotificationBell userId={session.user.id} />
             <button type="button" className="sync-btn wa-topbar-btn" title="Inbox" aria-label="Inbox" onClick={() => navigate('/inbox')}>
-              <MessageCircle size={16} strokeWidth={2} />
+              <Inbox size={16} strokeWidth={2} />
               {inboxAwaiting > 0 ? <span className="wa-topbar-btn__badge">{inboxAwaiting > 99 ? '99+' : inboxAwaiting}</span> : null}
             </button>
             <SyncButton userEmail={session.user.email ?? ''} />
