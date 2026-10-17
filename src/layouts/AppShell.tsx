@@ -10,6 +10,7 @@ import Logo from '../components/Logo'
 import SyncButton from '../components/SyncButton'
 import UserMenu from '../components/staff/UserMenu'
 import StaffNotificationBell from '../components/staff/notifications/StaffNotificationBell'
+import CompanySwitcher from '../features/company/CompanySwitcher'
 import { fetchCounts } from '../pages/inbox/inboxApi'
 import { supabase } from '../supabase'
 import { ModuleGuard, usePermissions } from '../access/PermissionsProvider'
@@ -177,6 +178,7 @@ export default function AppShell({ session, search, onSearch }: Props) {
             <input className="input search-input" placeholder="Quick search" value={search} onChange={(e) => onSearch(e.target.value)} aria-label="Quick search" />
           </div>
           <div className="topbar__actions">
+            <CompanySwitcher />
             <StaffNotificationBell userId={session.user.id} />
             <button type="button" className="sync-btn wa-topbar-btn" title="Inbox" aria-label="Inbox" onClick={() => navigate('/inbox')}>
               <MessageCircle size={16} strokeWidth={2} />
